@@ -1,11 +1,6 @@
 // How do I cite the Matrix class from Josh's Split Op code
 
-#include <algorithm>
-#include <assert.h>
-#include <iomanip>
-#include <iostream>
 #include <memory>
-#include <random>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -13,6 +8,7 @@
 
 typedef std::complex<double> cplx;
 
+// Using template becuse I might need complex or real fields
 template <typename T> class Grid2D
 {
 protected:

@@ -1,13 +1,13 @@
 #include <string>
 #include <complex>
-#include <function>
 
 using namespace std;
 
+// Needs modification for complex I think
 template <typename T> class Source
 {
 protected:
-    function profile
+    std::function<double(double)> profile
     string polarization
     
 public:
