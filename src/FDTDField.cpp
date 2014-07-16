@@ -12,38 +12,38 @@
 
 using namespace std;
 
-FDTDField::FDTDField(programInputs &IP)
+FDTDField::FDTDField(programInputs *IP)
 {
     //Define cell parameters
     res = IP.res;
     dx = 1.0/res;
     dy = 1.0/res;
     dt = 1.0/(IP.courant*res);
-    nx = IP.size_x/dx;
-    ny = IP.size_y/dy;
+    nx = IP.x_size/dx;
+    ny = IP.y_size/dy;
     nt = IP.t_lim/dt;
 
-    // The source array should go here, I am not sure how I am going to do the source input yet... From this I can get the polarizations
-    srcArray[1] = new Source(IP.prof,IP.pol);
-    physGrid = new Grid2D(nx,ny,dx,dy)
+    vector<Source> srcArray();
+    
+
+    // The source array should go here, I need to read up on Vectors before I do that
+    physGrid = make_unique<Grid2D>(nx,ny,dx,dy);
 
     // Create the Grids. Do I need a null constructor for the set that I disregard?
-    if(srcArray[0].polarization.compare("Hz") == 0)
+    if(IP.pol.compare("Hz") == 0)
     {
         Ex = make_unique<Grid2D>(nx-1,ny,dx,dy);
-        // Ex = new Grid2D(nx-1,ny,dx,dy)
-        //Fix Below
-        Ey = new Grid2D(nx,ny-1,dx,dy)
-        Hz = new Grid2D(nx-1,ny-1,dx,dy)
+        Ey = make_unique<Grid2D>(nx,ny-1,dx,dy);
+        Hz = make_unique<Grid2D>(nx-1,ny-1,dx,dy);
        // Hx = null;
        // Hy = null;
        // Ez = null;
     }
     else
     {
-        Hx = new Grid2D(nx-1,ny,dx,dy);
-        Hy = new Grid2D(nx,ny-1,dx,dy);
-        Ez = new Grid2D(nx-1,ny-1,dx,dy);
+        Hx = make_unique<Grid2D>(nx-1,ny,dx,dy);
+        Hy = make_unique<Grid2D>(nx,ny-1,dx,dy);
+        Ez = make_unique<Grid2D>(nx-1,ny-1,dx,dy);
         //Ex = null;
         //Ey = null;
         //Hz = null;

@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
-
+#include <algorithm>
 // Using template becuse I might need complex or real fields
 template <typename T> class Grid2D
 {

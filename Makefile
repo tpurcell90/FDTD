@@ -6,6 +6,8 @@ OBJ  =   obj/main.o  obj/Inputs.o obj/FDTDField.o
 
 LIBS =  -lpthread -lm
 
+BOOST_INC = -I/usr/include/boost/
+
 HEADS =  src/source.hpp src/Grid.hpp src/FDTDField.hpp src/Inputs.hpp
 BIN  =   FDTD
 
@@ -24,7 +26,7 @@ obj/main.o: src/main.cpp
 	$(CC) $(CFLAGS) -c  src/main.cpp -o obj/main.o -I./src
 
 obj/Inputs.o: src/Inputs.cpp
-	$(CC) $(CFLAGS)  -c src/Inputs.cpp  -o obj/Inputs.o  -I./src
+	$(CC) $(CFLAGS)  -c src/Inputs.cpp  -o obj/Inputs.o $(BOOST_INC)  -I./src
 
 obj/FDTDField.o: src/FDTDField.cpp
-	$(CC) $(CFLAGS)  -c src/FDTDField.cpp  -o obj/FDTDField.o  -I./src
+	$(CC) $(CFLAGS)  -c src/FDTDField.cpp  -o obj/FDTDField.o $(BOOST_INC)  -I./src
