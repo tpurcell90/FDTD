@@ -24,7 +24,7 @@ protected:
     double dx,dy,dt,res;
 public:
     Grid2D <double> *Ex,*Ey,*Ez,*Hx,*Hy,*Hz,physGrid;
-    std::vector<Source> srcArr;
+    std::vector<Source<double>> srcArr;
 
     FDTDField(programInputs *IP = NULL);
     void initializeGrid(programInputs *IP = NULL);
