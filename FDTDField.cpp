@@ -16,25 +16,23 @@ FDTDField::(programInputs &IP)
     srcArray[1] = new Source(IP.prof,IP.pol);
     physGrid = new Grid2D(nx,ny,dx,dy)
     // Create the Grids. Do I need a null constructor for the set that I disregard?
-    // If people do calculations with mulptiple different polarizations this will need to get more complicated
-    // I also need to change the grid stuff (They should not be the same but will look up later)
     if(srcArray[0].polarization.compare("Hz") == 0)
     {
-        Ex = new Grid2D(nx,ny,dx,dy)
-        Ey = new Grid2D(nx,ny,dx,dy)
-        Hz = new Grid2D(nx,ny,dx,dy)
-        Hx = null;
-        Hy = null;
-        Ez = null;
+        Ex = new Grid2D(nx-1,ny,dx,dy)
+        Ey = new Grid2D(nx,ny-1,dx,dy)
+        Hz = new Grid2D(nx-1,ny-1,dx,dy)
+       // Hx = null;
+       // Hy = null;
+       // Ez = null;
     }
     else
     {
-        Hx = new Grid2D(nx,ny,dx,dy);
-        Hy = new Grid2D(nx,ny,dx,dy);
-        Ez = new Grid2D(nx,ny,dx,dy);
-        Ex = null;
-        Ey = null;
-        Hz = null;
+        Hx = new Grid2D(nx-1,ny,dx,dy);
+        Hy = new Grid2D(nx,ny-1,dx,dy);
+        Ez = new Grid2D(nx-1,ny-1,dx,dy);
+        //Ex = null;
+        //Ey = null;
+        //Hz = null;
     }
 }
 
@@ -50,5 +48,9 @@ void FDTDField::ouputField()
     // Need to think of the best format to do this in
 }
 
+void FDTDField::step()
+{
+
+}
 
 
