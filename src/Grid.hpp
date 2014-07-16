@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <iostream>
 
 // Using template becuse I might need complex or real fields
 template <typename T> class Grid2D
@@ -20,21 +21,21 @@ public:
     Grid2D(const int x, const int y, const double xstep, const double ystep) : nx(x), ny(y), dx(xstep), dy(ystep), vals(std::unique_ptr<T[]>(new T[x*y]))
     {
        std::fill_n(vals.get(), nx*ny, T(0.0));
-       memSize += sizeof(t)*size();
+       memSize += sizeof(T)*size();
     }
 
 // Copy Constructor
     Grid2D(const Grid2D& o) : nx(o.nx), ny(o.ny), dx(o.dx), dy(o.dy), vals(std::unique_ptr<T[]>(new T[x*y]))
     {
-       std::copy_n(o.vals.get(), nx*ny, vals.get();
-       memSize += sizeof(t)*size();
+       std::copy_n(o.vals.get(), nx*ny, vals.get());
+       memSize += sizeof(T)*size();
     }
 
 // Move Constructor
-    Grid2D(Grid2D&& o) : nx(o.nx), ny(o.ny), dx(o.dx), dy(o.dy) vals(std::move(vals)) {o.nx = 0; o.ny = 0;}
+    Grid2D(Grid2D&& o) : nx(o.nx), ny(o.ny), dx(o.dx), dy(o.dy), vals(std::move(vals)) {o.nx = 0; o.ny = 0;}
 
 // Destructor
-    ~gridBase(){memSize -= sizeof(T)*size();}
+    ~Grid2D(){memSize -= sizeof(T)*size();}
 
 // Access functions
     size_t size() const { return nx*ny;}
@@ -69,8 +70,8 @@ public:
         std::cout << "Total memory allocated for matrix storage: " << memSize << " bytes." << std::endl;
         return;
     }
-}
+};
 
-template <typename T> unsigned int matrixBase<T>::memSize = 0;
+template <typename T> unsigned int Grid2D<T>::memSize = 0;
 
 #endif
