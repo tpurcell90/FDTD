@@ -8,7 +8,7 @@
 // #include <assert.h>
 // #include <iomanip>
 // #include <iostream>
-// #include <memory>
+#include <memory>
 // #include <random>
 // #include <stdexcept>
 // #include <string>
@@ -23,7 +23,7 @@ protected:
     size_t nx,ny,nt;
     double dx,dy,dt,res;
 public:
-    Grid2D <double> *Ex,*Ey,*Ez,*Hx,*Hy,*Hz,physGrid;
+    std::shared_ptr<Grid2D<double>> Ex,Ey,Ez,Hx,Hy,Hz,physGrid;
     std::vector<Source<double>> srcArr;
 
     FDTDField(programInputs *IP = NULL);

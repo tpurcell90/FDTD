@@ -7,6 +7,7 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
+
 // Using template becuse I might need complex or real fields
 template <typename T> class Grid2D
 {
@@ -25,7 +26,7 @@ public:
     }
 
 // Copy Constructor
-    Grid2D(const Grid2D& o) : nx(o.nx), ny(o.ny), dx(o.dx), dy(o.dy), vals(std::unique_ptr<T[]>(new T[x*y]))
+    Grid2D(const Grid2D& o) : nx(o.nx), ny(o.ny), dx(o.dx), dy(o.dy), vals(std::unique_ptr<T[]>(new T[nx*ny]))
     {
        std::copy_n(o.vals.get(), nx*ny, vals.get());
        memSize += sizeof(T)*size();

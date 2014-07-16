@@ -4,8 +4,6 @@
 #include <string>
 #include <complex>
 
-using namespace std;
-
 enum Polarization {EX,EY,EZ,HX,HY,HZ};
 
 // Needs modification for complex I think
@@ -17,7 +15,7 @@ protected:
 
 public:
     // Constructor
-    Source(const function<T(T)> prof, const string pol) : profile(prof), polarization(pol) {}
+    Source(const std::function<T(T)> prof, Polarization pol) : profile(prof), polarization(pol) {}
 
     // Copy Constructor
     Source(const Source& o) : profile(o.profile), polarization(o.polarization) {}
