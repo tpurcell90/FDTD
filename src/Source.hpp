@@ -3,6 +3,7 @@
 
 #include <string>
 #include <complex>
+#include <vector>
 
 enum Polarization {EX,EY,EZ,HX,HY,HZ};
 
@@ -12,13 +13,15 @@ template <typename T> class Source
 protected:
     std::function<T(double)> profile;
     Polarization polarization;
+    std::vector<double> location;
+    std::vector<double> size;
 
 public:
     // Constructor
-    Source(const std::function<T(T)> prof, Polarization pol) : profile(prof), polarization(pol) {}
+    Source(const std::function<T(T)> prof, Polarization pol,std::vector<double> loc, std::vector<double> sz) : profile(prof), polarization(pol), location(loc), size(sz) {}
 
     // Copy Constructor
-    Source(const Source& o) : profile(o.profile), polarization(o.polarization) {}
+    Source(const Source& o) : profile(o.profile), polarization(o.polarization), location(o.location), size(o.size) {}
 
     //Access Functions
     Polarization pol() const {return polarization;}

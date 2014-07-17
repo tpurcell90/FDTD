@@ -7,21 +7,24 @@ using namespace std;
 
 //Constructor
 //Learn how to throw an error is mater does not have a size of 3n+1, where n is an integer
-Obj::Obj(Shape s, vector<double> mater, vector<double> geo)  //: part(s), material(mater), geoParam(geo) {}
+Obj::Obj(Shape s, vector<double> mater, vector<double> geo, vector<double> loc)  //: part(s), material(mater), geoParam(geo) {}
 {
     part = s;
     vector<double> material(mater);
     vector<double> geoParam(geo);
+    vector<double> location(loc);
 }
 Obj::Obj(const Obj& o)  //: part(o.part), material(o.material), geoParam(o.geoParam){}
 {
     part = o.part;
     vector<double> material(o.material);
     vector<double> geoParam (o.geoParam);
+    vector<double> location (o.location);
 }
 
 //Access Functions
 vector<double> Obj::geo() {return geoParam;}
+vector<double> Obj::loc() {return location;}
 
 //Dielectric
 cplx Obj::dielectric(double freq) //, double material[])

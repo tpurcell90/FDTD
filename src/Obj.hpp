@@ -19,16 +19,18 @@ protected:
     std::vector<double> geoParam;
     std::vector<double> material;
     Shape part;
+    std::vector<double> location;
  
 public:
     // Constructor
-    Obj(Shape s, std::vector<double> mater, std::vector<double> geo);
+    Obj(Shape s, std::vector<double> mater, std::vector<double> geo, std::vector<double> loc);
 
     // Copy Constructor
     Obj(const Obj& o);
     // Access Functions
     Shape s() {return part;}
     std::vector<double> geo();
+    std::vector<double> loc();
 
     // Dielectric Access function
     cplx dielectric(double freq);
