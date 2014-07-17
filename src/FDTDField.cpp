@@ -80,13 +80,15 @@ void FDTDField::initializeGrid(programInputs *IP)
                 {
                     for(int kk = 0; kk < ny-1; kk ++)
                     {
-                        vector<double> pt({jj*dx,kk*dy});
-                        if(dist(pt,objArr.at(ii).loc()) <= rad)
-                        {
+                        vector<double> pt({(jj+0.5)*dx,kk*dy});
+                        if(dist(objArr.at(ii).loc(),pt) < rad)
                             phys_Ex->point(jj,kk) = ii;
-                            phys_Ey->point(jj,kk) = ii;
+                        pt[1] += 0.5*dy;
+                        if(dist(objArr.at(ii).loc(),pt) < rad)
                             phys_Hz->point(jj,kk) = ii;
-                        }
+			pt[0] -= 0.5*dx;
+                        if(dist(objArr.at(ii).loc(), pt) < rad)
+                            phys_Ey->point(jj,kk) = ii;
                     }
                 }
             }
@@ -96,12 +98,12 @@ void FDTDField::initializeGrid(programInputs *IP)
                 {
                     for(int kk = 0; kk < ny-1; kk ++)
                     {
-                        if((jj*dx < (objArr.at(ii).loc()[0] + objArr.at(ii).geo()[0])) && (jj*dx >= (objArr.at(ii).loc()[0] - objArr.at(ii).geo()[0])) && (kk*dy <= (objArr.at(ii).loc()[1] + objArr.at(ii).geo()[1])) && (kk*dy >= (objArr.at(ii).loc()[1] - objArr.at(ii).geo()[1])) )
-                        {
+                        if(((jj+0.5)*dx < (objArr.at(ii).loc()[0] + objArr.at(ii).geo()[0])) && ((jj+0.5)*dx >= (objArr.at(ii).loc()[0] - objArr.at(ii).geo()[0])) && (kk*dy <= (objArr.at(ii).loc()[1] + objArr.at(ii).geo()[1])) && (kk*dy >= (objArr.at(ii).loc()[1] - objArr.at(ii).geo()[1])))
                             phys_Ex->point(jj,kk) = ii;
-                            phys_Ey->point(jj,kk) = ii;
+                        if(((jj+0.5)*dx < (objArr.at(ii).loc()[0] + objArr.at(ii).geo()[0])) && ((jj+0.5)*dx >= (objArr.at(ii).loc()[0] - objArr.at(ii).geo()[0])) && ((kk+0.5)*dy <= (objArr.at(ii).loc()[1] + objArr.at(ii).geo()[1])) && ((kk+0.5)*dy >= (objArr.at(ii).loc()[1] - objArr.at(ii).geo()[1])))
                             phys_Hz->point(jj,kk) = ii;
-                        }
+                        if((jj*dx < (objArr.at(ii).loc()[0] + objArr.at(ii).geo()[0])) && (jj*dx >= (objArr.at(ii).loc()[0] - objArr.at(ii).geo()[0])) && ((kk+0.5)*dy <= (objArr.at(ii).loc()[1] + objArr.at(ii).geo()[1])) && ((kk+0.5)*dy >= (objArr.at(ii).loc()[1] - objArr.at(ii).geo()[1])))
+                            phys_Ey->point(jj,kk) = ii; 
                     }
                 }
             }
@@ -115,13 +117,15 @@ void FDTDField::initializeGrid(programInputs *IP)
                 {
                     for(int kk = 0; kk < ny-1; kk ++)
                     {
-                        vector<double> pt({jj*dx,kk*dy});
-                        if(dist(pt,objArr.at(ii).loc()) <= rad)
-                        {
+                        vector<double> pt({(jj+0.5)*dx,kk*dy});
+                        if(dist(objArr.at(ii).loc(),pt) < rad)
                             phys_Hx->point(jj,kk) = ii;
-                            phys_Hy->point(jj,kk) = ii;
+                        pt[1] += 0.5*dy;
+                        if(dist(objArr.at(ii).loc(),pt) < rad)
                             phys_Ez->point(jj,kk) = ii;
-                        }
+                        pt[0] -= 0.5*dx;
+                        if(dist(objArr.at(ii).loc(), pt) < rad)
+                            phys_Hy->point(jj,kk) = ii;
                     }
                 }
             }
@@ -131,12 +135,12 @@ void FDTDField::initializeGrid(programInputs *IP)
                 {
                     for(int kk = 0; kk < ny-1; kk ++)
                     {
-                        if((jj*dx < (objArr.at(ii).loc()[0] + objArr.at(ii).geo()[0])) && (jj*dx >= (objArr.at(ii).loc()[0] - objArr.at(ii).geo()[0])) && (kk*dy <= (objArr.at(ii).loc()[1] + objArr.at(ii).geo()[1])) && (kk*dy >= (objArr.at(ii).loc()[1] - objArr.at(ii).geo()[1])) )
-                        {
+                        if(((jj+0.5)*dx < (objArr.at(ii).loc()[0] + objArr.at(ii).geo()[0])) && ((jj+0.5)*dx >= (objArr.at(ii).loc()[0] - objArr.at(ii).geo()[0])) && (kk*dy <= (objArr.at(ii).loc()[1] + objArr.at(ii).geo()[1])) && (kk*dy >= (objArr.at(ii).loc()[1] - objArr.at(ii).geo()[1])))
                             phys_Hx->point(jj,kk) = ii;
-                            phys_Hy->point(jj,kk) = ii;
+                        if(((jj+0.5)*dx < (objArr.at(ii).loc()[0] + objArr.at(ii).geo()[0])) && ((jj+0.5)*dx >= (objArr.at(ii).loc()[0] - objArr.at(ii).geo()[0])) && ((kk+0.5)*dy <= (objArr.at(ii).loc()[1] + objArr.at(ii).geo()[1])) && ((kk+0.5)*dy >= (objArr.at(ii).loc()[1] - objArr.at(ii).geo()[1])))
                             phys_Ez->point(jj,kk) = ii;
-                        }
+                        if((jj*dx < (objArr.at(ii).loc()[0] + objArr.at(ii).geo()[0])) && (jj*dx >= (objArr.at(ii).loc()[0] - objArr.at(ii).geo()[0])) && ((kk+0.5)*dy <= (objArr.at(ii).loc()[1] + objArr.at(ii).geo()[1])) && ((kk+0.5)*dy >= (objArr.at(ii).loc()[1] - objArr.at(ii).geo()[1])))
+                            phys_Hy->point(jj,kk) = ii;
                     }
                 }
             }
