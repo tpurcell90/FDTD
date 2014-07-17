@@ -30,7 +30,7 @@ public:
     void initializeGrid(programInputs *IP = NULL);
     void ouputField();
     void step();
-    Obj makeSphere(double* mater, double rad);
+    Obj makeSphere(vector<double> mater, double rad);
 };
 
 #endif

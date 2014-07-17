@@ -16,24 +16,23 @@ typedef std::complex<double> cplx;
 class Obj
 {
 protected:
-    double* geoParam; 
-    double* material;
+    std::vector<double> geoParam;
+    std::vector<double> material;
     Shape part;
-  
-
+ 
 public:
     // Constructor
-    Obj(Shape s, double* mater, double* geo);
+    Obj(Shape s, std::vector<double> mater, std::vector<double> geo);
 
     // Copy Constructor
     Obj(const Obj& o);
+    // Access Functions
+    Shape s() {return part;}
+    std::vector<double> geo();
 
+    // Dielectric Access function
+    cplx dielectric(double freq);
 
-    // Dielectric
-    cplx dielectric(double freq, double material[]);
-
-    // Geometry Creators Should be in the field section
-    //Obj makeSphere(double* mater, double rad);
 };
 
 #endif
