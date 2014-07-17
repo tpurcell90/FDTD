@@ -2,13 +2,13 @@ CC = g++
 
 CFLAGS = -O2 -Wall -Wno-sign-compare -Wno-unused-function -Werror -std=c++11 -openmp
 
-OBJ  =   obj/main.o  obj/Inputs.o obj/FDTDField.o
+OBJ  =   obj/main.o  obj/Inputs.o obj/FDTDField.o obj/Obj.o
 
 LIBS =  -lpthread -lm
 
 BOOST_INC = -I/usr/include/boost/
 
-HEADS =  src/source.hpp src/Grid.hpp src/FDTDField.hpp src/Inputs.hpp
+HEADS =  src/source.hpp src/Grid.hpp src/FDTDField.hpp src/Inputs.hpp src/Obj.hpp
 BIN  =   FDTD
 
 RM = rm -f
@@ -27,6 +27,9 @@ obj/main.o: src/main.cpp
 
 obj/Inputs.o: src/Inputs.cpp
 	$(CC) $(CFLAGS)  -c src/Inputs.cpp  -o obj/Inputs.o $(BOOST_INC)  -I./src
+
+obj/Obj.o: src/Obj.cpp
+	$(CC) $(CFLAGS)  -c src/Obj.cpp  -o obj/Obj.o  -I./src
 
 obj/FDTDField.o: src/FDTDField.cpp
 	$(CC) $(CFLAGS)  -c src/FDTDField.cpp  -o obj/FDTDField.o $(BOOST_INC)  -I./src
