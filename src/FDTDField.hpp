@@ -4,7 +4,7 @@
 #include "Grid.hpp"
 #include "Source.hpp"
 #include "Inputs.hpp"
-
+#include "Obj.hpp"
 // #include <assert.h>
 // #include <iomanip>
 // #include <iostream>
@@ -30,6 +30,7 @@ public:
     void initializeGrid(programInputs *IP = NULL);
     void ouputField();
     void step();
+    Obj makeSphere(double* mater, double rad);
 };
 
 #endif

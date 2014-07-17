@@ -32,9 +32,3 @@ complex<double> dielectric(double freq, double material[])
     return eps;
 }
 
-// I know this should be in the FDTDField class I just don't want to change it yet
-/*Obj::Obj makeSphere(double* mater, double rad)
-{
-    double geo[1] = [rad];
-    return Obj(sphere, mater, geo);
-}*/

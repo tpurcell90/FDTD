@@ -67,5 +67,9 @@ void FDTDField::step()
 {
 
 }
-
+Obj makeSphere(double* mater, double rad)
+{
+    double geo[1] = {rad};
+    return Obj(sphere, mater, geo);
+}
 
