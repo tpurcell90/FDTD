@@ -9,12 +9,13 @@
 #include <iostream>
 #include <memory>
 
-enum Shape {sphere,block,ellipse,cone,cylinder};
 typedef std::complex<double> cplx;
+enum Shape {sphere,block,ellipse,cone,cylinder};
 
 // Needs modification for complex I think
 class Obj
 {
+
 protected:
     std::vector<double> geoParam;
     std::vector<double> material;

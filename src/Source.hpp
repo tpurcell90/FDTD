@@ -16,13 +16,14 @@ protected:
     std::vector<double> location;
     std::vector<double> size;
     std::vector<double> direction;
+    std::vector<double> fxnParam;
 
 public:
     // Constructor
-    Source(const std::function<T(T)> prof, Polarization pol,std::vector<double> loc, std::vector<double> sz,std::vector<double> dir) : profile(prof), polarization(pol), location(loc), size(sz), direction(dir) {}
+    Source(const std::function<T(T)> prof, Polarization pol,std::vector<double> loc, std::vector<double> sz,std::vector<double> dir,std::vector<double> fxn) : profile(prof), polarization(pol), location(loc), size(sz), direction(dir), fxnParam(fxn) {}
 
     // Copy Constructor
-    Source(const Source& o) : profile(o.profile), polarization(o.polarization), location(o.location), size(o.size), direction(o.direction) {}
+    Source(const Source& o) : profile(o.profile), polarization(o.polarization), location(o.location), size(o.size), direction(o.direction), fxnParam(o.fxnParam) {}
 
     //Access Functions
     Polarization pol() const {return polarization;}
