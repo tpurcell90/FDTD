@@ -59,36 +59,31 @@ FDTDField::FDTDField(programInputs *IP)
     }
 }
 
-double dist(vector<double> pt1, vector<double> pt2)
-{
-    double sum = 0;
-    for(int cc = 0; cc < pt1.size(); cc ++)
-        sum += pow((pt1[cc]-pt2[cc]),2);
-    return sqrt(sum);
-}
-
 void FDTDField::initializeGrid(programInputs *IP)
 {
+    for(int ii = 0; ii < srcArr.size(); ii++)
+    {
+        //Take the size and location of the source array convert that into the pulse in the step fxn
+    }
     for(int ii = 0; ii < objArr.size(); ii ++) 
     {
         if(IP ->pol.compare("Hz") == 0)
         {
             if(objArr.at(ii).s() == sphere)
             {
-                double rad = objArr.at(ii).geo()[0];
                 for(int jj = 0; jj < nx-1;jj ++)
                 {
                     for(int kk = 0; kk < ny-1; kk ++)
                     {
                         vector<double> pt({(jj+0.5)*dx,kk*dy});
-                        if(dist(objArr.at(ii).loc(),pt) < rad)
-                            phys_Ex->point(jj,kk) = ii;
+                        if(objArr.at(ii).isObj(pt)) 
+                            phys_Ex->point(jj,kk) = ii+1;
                         pt[1] += 0.5*dy;
-                        if(dist(objArr.at(ii).loc(),pt) < rad)
-                            phys_Hz->point(jj,kk) = ii;
+                        if(objArr.at(ii).isObj(pt))
+                            phys_Hz->point(jj,kk) = ii+1;
 			pt[0] -= 0.5*dx;
-                        if(dist(objArr.at(ii).loc(), pt) < rad)
-                            phys_Ey->point(jj,kk) = ii;
+                        if(objArr.at(ii).isObj(pt))
+                            phys_Ey->point(jj,kk) = ii+1;
                     }
                 }
             }
@@ -98,12 +93,15 @@ void FDTDField::initializeGrid(programInputs *IP)
                 {
                     for(int kk = 0; kk < ny-1; kk ++)
                     {
-                        if(((jj+0.5)*dx < (objArr.at(ii).loc()[0] + objArr.at(ii).geo()[0])) && ((jj+0.5)*dx >= (objArr.at(ii).loc()[0] - objArr.at(ii).geo()[0])) && (kk*dy <= (objArr.at(ii).loc()[1] + objArr.at(ii).geo()[1])) && (kk*dy >= (objArr.at(ii).loc()[1] - objArr.at(ii).geo()[1])))
-                            phys_Ex->point(jj,kk) = ii;
-                        if(((jj+0.5)*dx < (objArr.at(ii).loc()[0] + objArr.at(ii).geo()[0])) && ((jj+0.5)*dx >= (objArr.at(ii).loc()[0] - objArr.at(ii).geo()[0])) && ((kk+0.5)*dy <= (objArr.at(ii).loc()[1] + objArr.at(ii).geo()[1])) && ((kk+0.5)*dy >= (objArr.at(ii).loc()[1] - objArr.at(ii).geo()[1])))
-                            phys_Hz->point(jj,kk) = ii;
-                        if((jj*dx < (objArr.at(ii).loc()[0] + objArr.at(ii).geo()[0])) && (jj*dx >= (objArr.at(ii).loc()[0] - objArr.at(ii).geo()[0])) && ((kk+0.5)*dy <= (objArr.at(ii).loc()[1] + objArr.at(ii).geo()[1])) && ((kk+0.5)*dy >= (objArr.at(ii).loc()[1] - objArr.at(ii).geo()[1])))
-                            phys_Ey->point(jj,kk) = ii; 
+                        vector<double> pt({(jj+0.5)*dx,kk*dy});
+                        if(objArr.at(ii).isObj(pt))
+                            phys_Ex->point(jj,kk) = ii+1;
+                        pt[1] += 0.5*dy;
+                        if(objArr.at(ii).isObj(pt))
+                            phys_Hz->point(jj,kk) = ii+1;
+                        pt[0] -= 0.5*dx;
+                        if(objArr.at(ii).isObj(pt))
+                            phys_Ey->point(jj,kk) = ii+1;
                     }
                 }
             }
@@ -112,20 +110,19 @@ void FDTDField::initializeGrid(programInputs *IP)
         {
             if(objArr.at(ii).s() == sphere)
             {
-                double rad = objArr.at(ii).geo()[0];
                 for(int jj = 0; jj < nx-1;jj ++)
                 {
                     for(int kk = 0; kk < ny-1; kk ++)
                     {
                         vector<double> pt({(jj+0.5)*dx,kk*dy});
-                        if(dist(objArr.at(ii).loc(),pt) < rad)
-                            phys_Hx->point(jj,kk) = ii;
+                        if(objArr.at(ii).isObj(pt))
+                            phys_Ex->point(jj,kk) = ii+1;
                         pt[1] += 0.5*dy;
-                        if(dist(objArr.at(ii).loc(),pt) < rad)
-                            phys_Ez->point(jj,kk) = ii;
+                        if(objArr.at(ii).isObj(pt))
+                            phys_Hz->point(jj,kk) = ii+1;
                         pt[0] -= 0.5*dx;
-                        if(dist(objArr.at(ii).loc(), pt) < rad)
-                            phys_Hy->point(jj,kk) = ii;
+                        if(objArr.at(ii).isObj(pt))
+                            phys_Ey->point(jj,kk) = ii+1;
                     }
                 }
             }
@@ -135,12 +132,15 @@ void FDTDField::initializeGrid(programInputs *IP)
                 {
                     for(int kk = 0; kk < ny-1; kk ++)
                     {
-                        if(((jj+0.5)*dx < (objArr.at(ii).loc()[0] + objArr.at(ii).geo()[0])) && ((jj+0.5)*dx >= (objArr.at(ii).loc()[0] - objArr.at(ii).geo()[0])) && (kk*dy <= (objArr.at(ii).loc()[1] + objArr.at(ii).geo()[1])) && (kk*dy >= (objArr.at(ii).loc()[1] - objArr.at(ii).geo()[1])))
-                            phys_Hx->point(jj,kk) = ii;
-                        if(((jj+0.5)*dx < (objArr.at(ii).loc()[0] + objArr.at(ii).geo()[0])) && ((jj+0.5)*dx >= (objArr.at(ii).loc()[0] - objArr.at(ii).geo()[0])) && ((kk+0.5)*dy <= (objArr.at(ii).loc()[1] + objArr.at(ii).geo()[1])) && ((kk+0.5)*dy >= (objArr.at(ii).loc()[1] - objArr.at(ii).geo()[1])))
-                            phys_Ez->point(jj,kk) = ii;
-                        if((jj*dx < (objArr.at(ii).loc()[0] + objArr.at(ii).geo()[0])) && (jj*dx >= (objArr.at(ii).loc()[0] - objArr.at(ii).geo()[0])) && ((kk+0.5)*dy <= (objArr.at(ii).loc()[1] + objArr.at(ii).geo()[1])) && ((kk+0.5)*dy >= (objArr.at(ii).loc()[1] - objArr.at(ii).geo()[1])))
-                            phys_Hy->point(jj,kk) = ii;
+                        vector<double> pt({(jj+0.5)*dx,kk*dy});
+                        if(objArr.at(ii).isObj(pt))
+                            phys_Ex->point(jj,kk) = ii+1;
+                        pt[1] += 0.5*dy;
+                        if(objArr.at(ii).isObj(pt))
+                            phys_Hz->point(jj,kk) = ii+1;
+                        pt[0] -= 0.5*dx;
+                        if(objArr.at(ii).isObj(pt))
+                            phys_Ey->point(jj,kk) = ii+1;
                     }
                 }
             }

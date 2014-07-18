@@ -36,3 +36,42 @@ cplx Obj::dielectric(double freq) //, double material[])
     return eps;
 }
 
+//Determine if a point is in an object
+bool Obj::isObj(std::vector<double> v)
+{
+    bool isIn = true;
+    if(part == block)
+    {
+        for(int ii = 0; ii < v.size(); ii++)
+        {
+            if((v[ii] > location[ii] + geoParam[ii]/2.0) || (v[ii] < location[ii] - geoParam[ii]/2.0))
+                isIn = false;
+        }
+    }
+    else if(part == sphere)
+    {
+        if(dist(v,location) > geoParam[0])
+            isIn = false;
+    }
+    else
+    {
+        isIn = false;
+    }
+    return isIn;
+}
+double Obj::dist(vector<double> pt1, vector<double> pt2)
+{
+    double sum = 0;
+    for(int cc = 0; cc < pt1.size(); cc ++)
+        sum += pow((pt1[cc]-pt2[cc]),2);
+    return sqrt(sum);
+}
+
+
+
+
+
+
+
+
+
