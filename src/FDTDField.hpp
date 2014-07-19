@@ -1,6 +1,7 @@
 #ifndef FDTD_FDTDFIELD
 #define FDTD_FDTDFIELD
 
+#include "Detector.hpp"
 #include "Grid.hpp"
 #include "Inputs.hpp"
 // #include <assert.h>
