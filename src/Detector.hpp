@@ -10,28 +10,31 @@
 #include <algorithm>
 #include "Grid.hpp"
 
+enum OupuptsData  {field, flux};
+
 template <typename T> class Detector
 {
 protected:
-    std::vector<double> location;
-    std::vector<double> size;
-    std::string Type;
-    T out;
+    std::vector<int> location;
+    OupuptsData Type;
 public:
     // Constructor
-    Detector(std::vector<double> loc, std::vector<double> sz, std::string type) : location(loc), size(sz), Type(type), out(T(0.0)){}
+    Detector(std::vector<int> loc, OupuptsData type) : location(loc), Type(type){}
     // Copy Constructor
-    Detector(const Detector& o) : location(o.location), size(o.size), Type(o.Type), out(o.out){}
+    Detector(const Detector& o) : location(o.location), Type(o.Type){}
 
     // Accessor Function
-    std::vector<double> loc() {return location;}
-    std::vector<double> sz() {return size;}
+    std::vector<int> loc() {return location;}
     std::string type() {return Type;}
 
     // Output functions
-    T& outField (Grid2D<T> field)
+    T& output (Grid2D<T> field)
     {
-
+        if(Type == field)
+        {
+            return field.point(location[0],location[1]); 
+        }
+        return T(0.0);
     }
 };
 #endif

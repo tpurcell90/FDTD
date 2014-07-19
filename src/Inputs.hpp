@@ -1,6 +1,8 @@
 #ifndef FDTD_INPUTS
 #define FDTD_INPUTS
 
+#include "enum.hpp"
+#include "Detector.hpp"
 #include "Source.hpp"
 #include "Obj.hpp"
 #include <string>
@@ -25,7 +27,8 @@ public:
     //vector<Source<double>> srcArr();
     vector<Obj> objArr;
 	//Source Parameters Start with just Gaussian complicate later
-    vector<Source<double>> srcArr; 
+    vector<Source<double>> srcArr;
+    vector<Detector<double>> dctArr; 
 	//Geometry Will add parameters as I write
 	int n_struct;
 
@@ -35,6 +38,14 @@ public:
 	programInputs(std::string infile);
 
     vector<double> getDielectricParams(string mat);
+    // Conversion to enums
+    Polarization string2pol(string p);
+    Shape string2shape(string s);
+    OupuptsData string2out(string t);
+    ProfType string2prof(string p);
+
+    // convert double to int grid point
+    int find_pt(double pt);
 
 	//Removes comment lines from the json file
 	void stripComments();

@@ -10,6 +10,8 @@
 // #include <vector>
 // #include <complex>
 
+
+
 using namespace std;
 
 FDTDField::FDTDField(programInputs *IP)
@@ -29,6 +31,7 @@ FDTDField::FDTDField(programInputs *IP)
         physGrid = make_shared<Grid2D<int>>(nx,ny,dx,dy);
         vector<Source<double>> srcArr(IP -> srcArr);
         vector<Obj> objArr(IP -> objArr); 
+        vector<Detector<double>> dtcArr();
         // Create the Grids. Do I need a null constructor for the set that I disregard?
         if(IP->pol.compare("Hz") == 0)
         {
@@ -152,6 +155,8 @@ void FDTDField::ouputField()
     // Work on a plan for this one
     // This again will be bade on how I set up the geometry of the cell, but basically will just be storing the data in an output file with points specified 
     // Need to think of the best format to do this in
+
+    
 }
 
 void FDTDField::step()

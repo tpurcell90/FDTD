@@ -43,17 +43,19 @@ programInputs::programInputs(std::string fn) : filename(fn)
         dir.push_back(iter.second.get<double>("dir_y"));
         //I need to fix this I know it's not good
         pol = iter.second.get<string>("pol");
+        Polarization pols = string2pol(pol);
         vector<double> fxn(4,100.8);
         fxn.push_back(iter.second.get<double>("fcen"));
         fxn.push_back(iter.second.get<double>("fwidth"));
         fxn.push_back(iter.second.get<double>("cutoff"));
         fxn.push_back(iter.second.get<double>("t_start"));
         // Now I need to write the funciton class for the source to take in
-        // srcArr.push_back(Source(.....));
+        srcArr.push_back(Source<double>(Pulse<double>(fxn,gaussian), pols, loc,size,dir));
     }
     for (auto& iter : IP.get_child("ObjectList"))
     {
-        string s(iter.second.get<string>("shape"));
+        string sStr(iter.second.get<string>("shape"));
+        Shape s = string2shape(sStr);
         vector<double> loc(2,0.0);
         vector<double> size(2,0.0);
         size.push_back(iter.second.get<double>("size_x"));
@@ -61,7 +63,28 @@ programInputs::programInputs(std::string fn) : filename(fn)
         loc.push_back(iter.second.get<double>("loc_x"));
         loc.push_back(iter.second.get<double>("loc_y"));
         string mater = iter.second.get<string>("material");
-        objArr.push_back(Obj(sphere,getDielectricParams(mater),size,loc));
+        objArr.push_back(Obj(s,getDielectricParams(mater),size,loc));
+    }
+    for (auto& iter : IP.get_child("DetectorList"))
+    {
+        string tt(iter.second.get<string>("type"));
+        OupuptsData t = string2out(tt);
+        double sz_x = iter.second.get<double>("size_x");
+        double sz_y = iter.second.get<double>("size_y");
+        double loc_x = iter.second.get<double>("loc_x");
+        double loc_y = iter.second.get<double>("loc_y");
+        // Make proper rounding function
+        int x_min = find_pt(loc_x-sz_x/2.0);
+        int x_max = find_pt(loc_x+sz_x/2.0);
+        int y_min = find_pt(loc_y-sz_y/2.0);
+        int y_max = find_pt(loc_y+sz_y/2.0);
+        for(int x = x_min; x <= x_max; x ++)
+            for(int y = y_min; y <= y_max; y++)
+            {
+                vector<int> loc(2,x);
+                loc[1] = y;
+                dctArr.push_back(Detector<double>(loc,t));
+            }
     }
     string pol	= IP.get<string>("SourceParam.Pol", "EZ");
     //Copies the json data to a file to check for debugging
@@ -106,6 +129,61 @@ void programInputs::stripComments()
 
 	//update filename;
 	filename = newfn;
+}
+Polarization programInputs::string2pol(string p)
+{
+    if(p.compare("Ez"))
+        return Ez;
+    else if(p.compare("Ey"))
+        return Ey;
+    else if(p.compare("Ex"))
+        return Ex;
+    else if(p.compare("Hx"))
+        return Hx;
+    else if(p.compare("Hz"))
+        return Hz;
+    else if(p.compare("Hx"))
+        return Hy;
+    else
+        return Ez; //Throw an error but first need to look up how to do that
+}
+Shape programInputs::string2shape(string s)
+{
+    if(s.compare("sphere"))
+        return sphere;
+    else if (s.compare("block"))
+        return block;
+    else if (s.compare("cone"))
+        return cone;
+    else if (s.compare("ellipse"))
+        return ellipse;
+    else if (s.compare("cylinder"))
+        return cylinder;
+    else
+        return block; //Throw an error I know
+}
+OupuptsData programInputs::string2out(string t)
+{
+    if(t.compare("field"))
+        return field;
+    else if (t.compare("flux"))
+        return flux;
+    else
+        return field; //Yes, yes error, I know
+}
+ProfType programInputs::string2prof(string p)
+{
+    if(p.compare("gaussian"))
+        return gaussian;
+    else if(p.compare("continuous"))
+        return continuous;
+    else
+        return gaussian; // I should be an error again
+}
+
+int programInputs::find_pt(double pt)
+{
+    return int(pt*res); // make it better
 }
 
 void programInputs::toFDTD()

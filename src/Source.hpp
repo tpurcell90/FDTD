@@ -1,13 +1,15 @@
 #ifndef FDTD_SOURCE
 #define FDTD_SOURCE
 
+#include "enum.hpp"
 #include "Pulse.hpp"
 #include <string>
 #include <complex>
 #include <vector>
 #include <functional>
 
-enum Polarization {EX,EY,EZ,HX,HY,HZ};
+
+enum Polarization {Ex,Ey,Ez,Hx,Hy,Hz};
 
 // Needs modification for complex I think
 template <typename T> class Source
@@ -18,14 +20,13 @@ protected:
     std::vector<double> location;
     std::vector<double> size;
     std::vector<double> direction;
-    std::vector<double> fxnParam;
 
 public:
     // Constructor
-    Source(Pulse<double> prof, Polarization pol,std::vector<double> loc, std::vector<double> sz,std::vector<double> dir,std::vector<double> fxn) : profile(prof), polarization(pol), location(loc), size(sz), direction(dir), fxnParam(fxn) {}
+    Source(Pulse<double> prof, Polarization pol,std::vector<double> loc, std::vector<double> sz,std::vector<double> dir) : profile(prof), polarization(pol), location(loc), size(sz), direction(dir) {}
 
     // Copy Constructor
-    Source(const Source& o) : profile(o.profile), polarization(o.polarization), location(o.location), size(o.size), direction(o.direction), fxnParam(o.fxnParam) {}
+    Source(const Source& o) : profile(o.profile), polarization(o.polarization), location(o.location), size(o.size), direction(o.direction) {}
 
     //Access Functions
     Polarization pol() const {return polarization;}
