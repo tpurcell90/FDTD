@@ -24,7 +24,8 @@ programInputs::programInputs(std::string fn) : filename(fn)
     //for(int ii = 0; ii < IP.get_child("SourceList").size(); ii ++)
     for (auto& iter : IP.get_child("SourceList"))
     {
-        string prof = iter.second.get<string>("profile");
+        string p = iter.second.get<string>("profile");
+        ProfType prof = string2prof(p);
         /*boost::property_tree::ptree& size = iter.second.get_child("size");
         if (size.size() != 2)
           throw runtime_error("\"size\" needs two elements");
@@ -50,7 +51,7 @@ programInputs::programInputs(std::string fn) : filename(fn)
         fxn.push_back(iter.second.get<double>("cutoff"));
         fxn.push_back(iter.second.get<double>("t_start"));
         // Now I need to write the funciton class for the source to take in
-        srcArr.push_back(Source<double>(Pulse<double>(fxn,gaussian), pols, loc,size,dir));
+        srcArr.push_back(Source<double>(Pulse<double>(fxn,prof), pols, loc,size,dir));
     }
     for (auto& iter : IP.get_child("ObjectList"))
     {
