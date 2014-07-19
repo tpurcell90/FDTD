@@ -41,7 +41,8 @@ programInputs::programInputs(std::string fn) : filename(fn)
         loc.push_back(iter.second.get<double>("loc_y"));
         dir.push_back(iter.second.get<double>("dir_x"));
         dir.push_back(iter.second.get<double>("dir_y"));
-        string pol = iter.second.get<string>("pol");
+        //I need to fix this I know it's not good
+        pol = iter.second.get<string>("pol");
         vector<double> fxn(4,100.8);
         fxn.push_back(iter.second.get<double>("fcen"));
         fxn.push_back(iter.second.get<double>("fwidth"));

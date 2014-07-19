@@ -2,9 +2,7 @@
 #define FDTD_FDTDFIELD
 
 #include "Grid.hpp"
-#include "Source.hpp"
 #include "Inputs.hpp"
-#include "Obj.hpp"
 // #include <assert.h>
 // #include <iomanip>
 // #include <iostream>
@@ -27,7 +25,7 @@ public:
     std::shared_ptr<Grid2D<double>> Ex,Ey,Ez,Hx,Hy,Hz;
     std::shared_ptr<Grid2D<int>> physGrid,phys_Ex,phys_Ey,phys_Ez,phys_Hx,phys_Hy,phys_Hz;
     std::vector<Source<double>> srcArr;
-    std::map<int,Obj> objArr;
+    std::vector<Obj> objArr;
 
     FDTDField(programInputs *IP = NULL);
     void initializeGrid(programInputs *IP = NULL);

@@ -25,11 +25,10 @@ FDTDField::FDTDField(programInputs *IP)
         nx = IP->x_size/dx;
         ny = IP->y_size/dy;
         // The source array should go here, I need to read up on Vectors before I do that
-        vector<Source<double>> srcArr();
         // The Object array will be inserted here map int to objects based on order in input file
-        map<int,Obj> objArr;
         physGrid = make_shared<Grid2D<int>>(nx,ny,dx,dy);
-        
+        vector<Source<double>> srcArr(IP -> srcArr);
+        vector<Obj> objArr(IP -> objArr); 
         // Create the Grids. Do I need a null constructor for the set that I disregard?
         if(IP->pol.compare("Hz") == 0)
         {

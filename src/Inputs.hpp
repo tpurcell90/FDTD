@@ -1,6 +1,7 @@
 #ifndef FDTD_INPUTS
 #define FDTD_INPUTS
 
+#include "Source.hpp"
 #include "Obj.hpp"
 #include <string>
 #include <iostream>
@@ -13,17 +14,18 @@ class programInputs
 public:
 	std::string filename;
 	//Computational cell parameters and run parameters
-	int procs;
-	double x_size;
-	double y_size;
+    int procs;
+    double x_size;
+    double y_size;
     double z_size;
-	double res;
-	double courant;
-	double t_pml;
+    double res;
+    double courant;
+    double t_pml;
+    string pol;
     //vector<Source<double>> srcArr();
     vector<Obj> objArr;
 	//Source Parameters Start with just Gaussian complicate later
-    
+    vector<Source<double>> srcArr; 
 	//Geometry Will add parameters as I write
 	int n_struct;
 

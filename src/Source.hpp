@@ -1,9 +1,11 @@
 #ifndef FDTD_SOURCE
 #define FDTD_SOURCE
 
+#include "ProfileFunctions.hpp"
 #include <string>
 #include <complex>
 #include <vector>
+#include <functional>
 
 enum Polarization {EX,EY,EZ,HX,HY,HZ};
 
@@ -11,7 +13,7 @@ enum Polarization {EX,EY,EZ,HX,HY,HZ};
 template <typename T> class Source
 {
 protected:
-    std::function<T(double)> profile;
+    ProfileFunctions<double> profile;
     Polarization polarization;
     std::vector<double> location;
     std::vector<double> size;
@@ -20,7 +22,7 @@ protected:
 
 public:
     // Constructor
-    Source(const std::function<T(T)> prof, Polarization pol,std::vector<double> loc, std::vector<double> sz,std::vector<double> dir,std::vector<double> fxn) : profile(prof), polarization(pol), location(loc), size(sz), direction(dir), fxnParam(fxn) {}
+    Source(ProfileFunctions<double> prof, Polarization pol,std::vector<double> loc, std::vector<double> sz,std::vector<double> dir,std::vector<double> fxn) : profile(prof), polarization(pol), location(loc), size(sz), direction(dir), fxnParam(fxn) {}
 
     // Copy Constructor
     Source(const Source& o) : profile(o.profile), polarization(o.polarization), location(o.location), size(o.size), direction(o.direction), fxnParam(o.fxnParam) {}
