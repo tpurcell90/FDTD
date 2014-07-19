@@ -22,7 +22,7 @@ class FDTDField
 {
 protected:
     size_t nx,ny;
-    double dx,dy,dt,res;
+    double dx,dy,dt,res, t_cur;
     std::shared_ptr<Grid2D<int>> physGrid,phys_Ex,phys_Ey,phys_Ez,phys_Hx,phys_Hy,phys_Hz;
     std::vector<Source<double>> srcArr;
     std::vector<Obj> objArr;
@@ -35,6 +35,7 @@ public:
     void initializeGrid(programInputs *IP = NULL);
     void ouputField();
     void step();
+    void inc_t();
     Obj makeSphere(vector<double> mater, double rad, vector<double> loc);
     Obj makeBlock(vector<double> mater, vector<double> dims, vector<double> loc);
 };

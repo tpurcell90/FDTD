@@ -28,13 +28,13 @@ public:
     std::string type() {return Type;}
 
     // Output functions
-    T& output (Grid2D<T> field)
+    T output (std::shared_ptr<Grid2D<T>> field_in)
     {
         if(Type == field)
         {
-            return field.point(location[0],location[1]); 
+            return field_in->point(location[0],location[1]); 
         }
-        return T(0.0);
+        return T(0);
     }
 };
 #endif

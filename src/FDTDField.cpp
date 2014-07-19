@@ -2,8 +2,9 @@
 
 // #include <assert.h>
 // #include <iomanip>
-// #include <iostream>
+#include <iostream>
 #include <memory>
+#include <fstream>
 // #include <random>
 // #include <stdexcept>
 // #include <string>
@@ -20,6 +21,7 @@ FDTDField::FDTDField(programInputs *IP)
 
     if (IP)
     {
+        t_cur = 0;
         res = IP->res;
         dx = 1.0/res;
         dy = 1.0/res;
@@ -31,7 +33,7 @@ FDTDField::FDTDField(programInputs *IP)
         physGrid = make_shared<Grid2D<int>>(nx,ny,dx,dy);
         vector<Source<double>> srcArr(IP -> srcArr);
         vector<Obj> objArr(IP -> objArr); 
-        vector<Detector<double>> dtcArr();
+        vector<Detector<double>> dtcArr (IP -> dctArr);
         // Create the Grids. Do I need a null constructor for the set that I disregard?
         if(IP->pol.compare("Hz") == 0)
         {
@@ -60,6 +62,11 @@ FDTDField::FDTDField(programInputs *IP)
         }
     }
 }
+void FDTDField::inc_t()
+{
+    t_cur += dt;
+}
+
 
 void FDTDField::initializeGrid(programInputs *IP)
 {
@@ -155,7 +162,13 @@ void FDTDField::ouputField()
     // Work on a plan for this one
     // This again will be bade on how I set up the geometry of the cell, but basically will just be storing the data in an output file with points specified 
     // Need to think of the best format to do this in
-
+    ofstream outFile;
+    outFile.open("Out.dat");
+    for(int ii = 0; ii < dtcArr.size(); ii ++)
+    {
+        outFile << t_cur << "\t" << dtcArr[ii].loc()[0] << "\t" << dtcArr[ii].loc()[1] << "\t" << dtcArr[ii].output(Ez); 
+    }
+    
     
 }
 

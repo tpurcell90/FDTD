@@ -8,7 +8,7 @@ LIBS =  -lpthread -lm
 
 BOOST_INC = -I/usr/include/boost/
 
-HEADS =  src/Source.hpp src/Grid.hpp src/FDTDField.hpp src/Inputs.hpp src/Obj.hpp src/ProfileFunctions.hpp
+HEADS =  src/Source.hpp src/Grid.hpp src/FDTDField.hpp src/Inputs.hpp src/Obj.hpp src/Pulse.hpp src/enum.hpp src/Detector.hpp
 BIN  =   FDTD
 
 RM = rm -f
