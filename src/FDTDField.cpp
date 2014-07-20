@@ -26,10 +26,8 @@ FDTDField::FDTDField(programInputs *IP)
         dx = 1.0/res;
         dy = 1.0/res;
         dt = 1.0/(IP->courant*res);
-        nx = IP->x_size/dx;
-        ny = IP->y_size/dy;
-        // The source array should go here, I need to read up on Vectors before I do that
-        // The Object array will be inserted here map int to objects based on order in input file
+        nx = int(IP->x_size*dx); //Better way here
+        ny = int(IP->y_size*dy); //Better way here
         physGrid = make_shared<Grid2D<int>>(nx,ny,dx,dy);
         vector<Source<double>> srcArr(IP -> srcArr);
         vector<Obj> objArr(IP -> objArr); 
@@ -90,7 +88,7 @@ void FDTDField::initializeGrid(programInputs *IP)
                         pt[1] += 0.5*dy;
                         if(objArr.at(ii).isObj(pt))
                             phys_Hz->point(jj,kk) = ii+1;
-			pt[0] -= 0.5*dx;
+			            pt[0] -= 0.5*dx;
                         if(objArr.at(ii).isObj(pt))
                             phys_Ey->point(jj,kk) = ii+1;
                     }
@@ -174,8 +172,58 @@ void FDTDField::ouputField()
 
 void FDTDField::step()
 {
-
+    // disregard PML's to start
+    inc_t();
+    // Time step and other fdtd constants. When Other things introduced these will change.
+    double dt_mu0 = dt/4.0e-7;
+    double den_ex = 1.0/dx;
+    double den_hx = 1.0/dx;
+    double den_ey = 1.0/dy;
+    double den_hy = 1.0/dy;
+    // PML and source stuff will change this
+    for(int ii = 1; ii < nx - 1; ii ++)
+    {
+        for(int jj = 1; jj < ny -1; jj ++)
+        {
+            Hz->point(ii,jj) += dt_mu0*((Ey->point(ii,jj)-Ey->point(ii+1,jj))*den_hx + (Ex->point(ii,jj+1)-Ex->point(ii,jj))*den_hy);
+            // Look up how D-L models affects the Electric fields, Something about Jx/Jy in Maxim's code also
+            // look up how to deal with the frequency dependence of eps in the time domain
+            double freq = 1.0/t_cur; // I know this is not right
+            double dt_eps = dt/(1.0/(4.0e-7*pow(299792458.0,2)) * real(objArr[phys_Ey->point(ii,jj)].dielectric(freq)));
+            Ey->point(ii,jj) += dt_eps*(Hz->point(ii-1,jj)-Hz->point(1,jj))*den_ex;
+            dt_eps = dt/(1.0/(4.0e-7*pow(299792458.0,2)) * real(objArr[phys_Ex->point(ii,jj)].dielectric(freq)));
+            Ex->point(ii,jj) += dt_eps*(Hz->point(ii,jj)-Hz->point(ii,jj-1))*den_ey;
+        }
+    }
+    ouputField();
 }
+
+std::vector<double> FDTDField::pml(int npml, int m, int ma)
+{
+    /*
+    double mu0 = 4.0e-7;
+    double eps0 = 1.0/(4.0e-7*pow(299792458.0,2));
+    double sigmaCPML = 0.75*(0.8*(m+1)/(dx*sqrt(mu0/eps0*eps_delectric)));
+    double alphaCPML = 0.24;
+    double kappaCPML = 20.0;
+
+
+    for(int jj = 0; jj < npml; jj++)
+    {
+        sige_y[jj] = sigmaCPML* pow((npml-jj) / (npml-1.0),m);
+        alphae_y[jj] = alphaCPML * pow((jj-1) / (npml-1.0),m);    
+        kappae_y[jj] = 1.0 + (kappaCPML - 1.0) * pow((npml- jj) / (npml - 1.0),m);
+        be_y[jj] = exp(-(sige_y[jj] / kappae_y[jj] + alphae_y[jj]) * dt/eps0);
+        if((sige_y[jj] == 0.0) && (alphae_y[jj] == 0.0) && (j == npml))
+            ce_y[jj] = 0.0;
+        else
+            ce_y[jj] = sige_y[jj] * (be_y[jj]-1.0) / (sige_y[jj] + kappae_y[jj] * alphae_y[jj]) / kappae_y[jj];
+    }
+    */
+    vector<double> test(3,0.0); 
+    return test;
+}
+
 Obj makeSphere(vector<double> mater, double rad, vector<double> loc)
 {
     vector<double> geo(1,rad);

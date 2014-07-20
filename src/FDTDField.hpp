@@ -38,6 +38,7 @@ public:
     void inc_t();
     Obj makeSphere(vector<double> mater, double rad, vector<double> loc);
     Obj makeBlock(vector<double> mater, vector<double> dims, vector<double> loc);
+    std::vector<double> pml(int npml, int m, int ma);
 };
 
 #endif
