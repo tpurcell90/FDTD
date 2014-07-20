@@ -9,28 +9,27 @@
 #include <functional>
 
 
-enum Polarization {Ex,Ey,Ez,Hx,Hy,Hz};
+enum Polarization {EX,EY,EZ,HX,HY,HZ};
 
 // Needs modification for complex I think
 template <typename T> class Source
 {
 protected:
-    Pulse<double> profile;
+    Pulse<T> profile;
     Polarization polarization;
-    std::vector<double> location;
-    std::vector<double> size;
-    std::vector<double> direction;
+    std::vector<int> location;
 
 public:
     // Constructor
-    Source(Pulse<double> prof, Polarization pol,std::vector<double> loc, std::vector<double> sz,std::vector<double> dir) : profile(prof), polarization(pol), location(loc), size(sz), direction(dir) {}
+    Source(Pulse<double> prof, Polarization pol,std::vector<int> loc) : profile(prof), polarization(pol), location(loc) {}
 
     // Copy Constructor
-    Source(const Source& o) : profile(o.profile), polarization(o.polarization), location(o.location), size(o.size), direction(o.direction) {}
-
+    Source(const Source& o) : profile(o.profile), polarization(o.polarization), location(o.location) {}
+   
     //Access Functions
     Polarization pol() const {return polarization;}
-    T field(double t) const {return profile(t);}
+    std::vector<double> loc() const {return location;}
+    Pulse<T> prof() const {return profile;}
 };
 
 #endif

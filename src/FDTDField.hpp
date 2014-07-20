@@ -31,8 +31,8 @@ protected:
 public:
     std::shared_ptr<Grid2D<double>> Ex,Ey,Ez,Hx,Hy,Hz;
 
-    FDTDField(programInputs *IP = NULL);
-    void initializeGrid(programInputs *IP = NULL);
+    FDTDField(programInputs *IP);
+    void initializeGrid(programInputs *IP);
     void ouputField();
     void step();
     void inc_t();

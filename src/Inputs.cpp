@@ -33,16 +33,6 @@ programInputs::programInputs(std::string fn) : filename(fn)
         for (auto& i : size)
             tmpsize.push_back(i.second);
         */   //This will be fixed for vectors but for now hard coding in the vectors
-        vector<double> size(2,0.0);
-        vector<double> loc(2,0.0);
-        vector<double> dir(2,0.0);
-        size.push_back(iter.second.get<double>("size_x"));
-        size.push_back(iter.second.get<double>("size_y"));
-        loc.push_back(iter.second.get<double>("loc_x"));
-        loc.push_back(iter.second.get<double>("loc_y"));
-        dir.push_back(iter.second.get<double>("dir_x"));
-        dir.push_back(iter.second.get<double>("dir_y"));
-        //I need to fix this I know it's not good
         pol = iter.second.get<string>("pol");
         Polarization pols = string2pol(pol);
         vector<double> fxn(4,100.8);
@@ -51,7 +41,22 @@ programInputs::programInputs(std::string fn) : filename(fn)
         fxn.push_back(iter.second.get<double>("cutoff"));
         fxn.push_back(iter.second.get<double>("t_start"));
         // Now I need to write the funciton class for the source to take in
-        srcArr.push_back(Source<double>(Pulse<double>(fxn,prof), pols, loc,size,dir));
+        double sz_x = iter.second.get<double>("size_x");
+        double sz_y = iter.second.get<double>("size_y");
+        double loc_x = iter.second.get<double>("loc_x");
+        double loc_y = iter.second.get<double>("loc_y");
+        // Make proper rounding function
+        int x_min = find_pt(loc_x-sz_x/2.0);
+        int x_max = find_pt(loc_x+sz_x/2.0);
+        int y_min = find_pt(loc_y-sz_y/2.0);
+        int y_max = find_pt(loc_y+sz_y/2.0);
+        for(int x = x_min; x <= x_max; x ++)
+            for(int y = y_min; y <= y_max; y++)
+            {
+                vector<int> loc(2,x);
+                loc[1] = y;
+                srcArr.push_back(Source<double>(Pulse<double>(fxn,prof), pols, loc));
+            }
     }
     for (auto& iter : IP.get_child("ObjectList"))
     {
@@ -134,19 +139,19 @@ void programInputs::stripComments()
 Polarization programInputs::string2pol(string p)
 {
     if(p.compare("Ez"))
-        return Ez;
+        return EZ;
     else if(p.compare("Ey"))
-        return Ey;
+        return EY;
     else if(p.compare("Ex"))
-        return Ex;
+        return EX;
     else if(p.compare("Hx"))
-        return Hx;
+        return HX;
     else if(p.compare("Hz"))
-        return Hz;
+        return HZ;
     else if(p.compare("Hx"))
-        return Hy;
+        return HY;
     else
-        return Ez; //Throw an error but first need to look up how to do that
+        return EZ; //Throw an error but first need to look up how to do that
 }
 Shape programInputs::string2shape(string s)
 {

@@ -23,15 +23,19 @@ public:
     std::vector<T> param() {return Param;}
     ProfType type() {return Type;}
 
-    T& pulse(double t)
+    const T pulse(double t)
     {
         if(Type == gaussian)
             return gauss_pulse(t);
         return T(0.0);
     }
     //Pulse functions
-    T& gauss_pulse(double t)
+    const T gauss_pulse(double t)
     {
+        std::complex<double> imag(0.0,1.0);
+        if (t < Param[1]*Param[3])
+            return real(-1.0 / (imag*Param[0]) * (-Param[0]*imag + (Param[2]-t) / pow(2*Param[1],2)) * exp(-Param[0]*imag - pow(((Param[2]-t)/pow(2*Param[1],2.0)),2.0)));
+        return T(0.0);
         // look for the best way to calculate gaussian pulse
     }    
 };

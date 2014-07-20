@@ -185,6 +185,22 @@ void FDTDField::step()
     {
         for(int jj = 1; jj < ny -1; jj ++)
         {
+            // Update source
+            for(int kk = 0; kk < srcArr.size(); kk ++)
+            {
+                if(srcArr[kk].pol() == EZ)
+                    Ez -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+                else if(srcArr[kk].pol() == EX)
+                    Ex -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+                else if(srcArr[kk].pol() == EY)
+                    Ey -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+                else if(srcArr[kk].pol() == HX)
+                    Hx -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+                else if(srcArr[kk].pol() == HY)
+                    Hy -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+                else if(srcArr[kk].pol() == HZ)
+                    Hz -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+            }
             Hz->point(ii,jj) += dt_mu0*((Ey->point(ii,jj)-Ey->point(ii+1,jj))*den_hx + (Ex->point(ii,jj+1)-Ex->point(ii,jj))*den_hy);
             // Look up how D-L models affects the Electric fields, Something about Jx/Jy in Maxim's code also
             // look up how to deal with the frequency dependence of eps in the time domain
@@ -198,14 +214,21 @@ void FDTDField::step()
     ouputField();
 }
 
-std::vector<double> FDTDField::pml(int npml, int m, int ma)
+/*std::vector<double> FDTDField::pml(int npml, int m, int ma)
 {
-    /*
+    
     double mu0 = 4.0e-7;
     double eps0 = 1.0/(4.0e-7*pow(299792458.0,2));
     double sigmaCPML = 0.75*(0.8*(m+1)/(dx*sqrt(mu0/eps0*eps_delectric)));
     double alphaCPML = 0.24;
     double kappaCPML = 20.0;
+    double precision psi_Hzy_1[Nx-1,npml-1],psi_Exy_1[Nx-1,npml]                              
+    double precision psi_Hzy_2(Nx-1,npml-1),psi_Exy_2(Nx-1,npml)
+    double precision be_y(npml),ce_y(npml),alphae_y(npml),sige_y(npml),kappae_y(npml)
+    double precision bh_y(npml-1),ch_y(npml-1),alphah_y(npml-1),sigh_y(npml-1),kappah_y(npml-1)
+    double precision den_ex(Nx),den_hx(Nx),den_ey(N_loc),den_hy(N_loc)
+    double precision psi_Hzy_1_inc(Nx-1,npml-1),psi_Exy_1_inc(Nx-1,npml)                              
+    double precision psi_Hzy_2_inc(Nx-1,npml-1),psi_Exy_2_inc(Nx-1,npml)
 
 
     for(int jj = 0; jj < npml; jj++)
@@ -219,10 +242,11 @@ std::vector<double> FDTDField::pml(int npml, int m, int ma)
         else
             ce_y[jj] = sige_y[jj] * (be_y[jj]-1.0) / (sige_y[jj] + kappae_y[jj] * alphae_y[jj]) / kappae_y[jj];
     }
-    */
+   
     vector<double> test(3,0.0); 
     return test;
-}
+    */
+//}
 
 Obj makeSphere(vector<double> mater, double rad, vector<double> loc)
 {

@@ -1,0 +1,78 @@
+{
+    "CompCell" : {
+        "Procs"        : 1,
+        "x_size"       : 10.0,
+        "y_size"       : 10.0,
+        "z_size"       : 0.0,
+        "res"          : 10,
+        "PML_Thick"    : 1.00,
+        "courant"      : 0.5
+    },
+    "SourceList" : [
+        {
+            "profile"  : "gauss",
+            "fcen"     : 0.200,
+            "fwidth"   : 0.100,
+            "cutoff"   : 5.00,
+            "t_start"  : 0.00,
+            "size_x"   : 1.00,
+            "size_y"   : 1.00,
+            "pol"      : 'Ez',
+            "loc_x"    : 0.00,
+            "loc_y"    : 0.00,
+            "dir_x"    : 1.00,
+            "dir_y"    : 0.00,
+        },
+        {
+            "profile"  : "gauss",
+            "fcen"     : 0.200,
+            "fwidth"   : 0.100,
+            "cutoff"   : 5.00,
+            "t_start"  : 0.00,
+            "size_x"   : 1.00,
+            "size_y"   : 1.00,
+            "pol"      : 'Ez',
+            "loc_x"    : 0.00,
+            "loc_y"    : 0.00,
+            "dir_x"    : 1.00,
+            "dir_y"    : 0.00,
+        }
+
+    ],
+    "ObjectList"   : [
+        {
+            "shape"    : "sphere",
+            "loc_x"    : 1.00,
+            "loc_y"    : 1.00,
+            "size_x"   : 1.0,
+            "size_y"   : 1.0,
+            "material" : "Ag",
+        },
+        {
+            "shape"    : "sphere",
+            "loc_x"    : 1.00,
+            "loc_y"    : 1.00,
+            "size_x"   : 1.0,
+            "size_y"   : 1.0,
+            "material" : "Ag",
+        }
+    ],
+    "DetectorList" : [
+        {
+            "loc_x"    : 2.00,
+            "loc_y"    : 3.00,
+            "size_x"   : 1.00,
+            "size_y"   : 0.00,
+            "type"     : "Ex"
+        },
+        {
+            "loc_x"    : 2.00,
+            "loc_y"    : 3.00,
+            "size_x"   : 1.00,
+            "size_y"   : 0.00,
+            "type"     : "Ex"
+        }
+
+
+    ]
+}
