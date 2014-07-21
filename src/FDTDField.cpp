@@ -189,46 +189,55 @@ void FDTDField::step()
     // disregard PML's to start
     inc_t();
     // only the same because of vac.
-    double c_hxh = (1.0 - dt/2.0) / (1.0 + dt/2.0);
-    double c_hxe = 1.0 / (1.0 + dt/2.0) * dt/dx;
-    double c_hyh = (1.0 - dt/2.0) / (1.0 + dt/2.0);
-    double c_hye = 1.0 / (1.0 + dt/2.0) * dt/dx;
-    double c_eze = (1.0 - dt/2.0) / (1.0 + dt/2.0);
-    double c_ezh = 1.0 / (1.0 + dt/2.0) * dt/dx;
-    cout << c_ezh * ((Hy->point(50,70)-Hy->point(50-1,70)) - (Hx->point(50,70-1)-Hx->point(50,70))) << "\t\t" << c_eze * Ez->point(50,70)<<"\n";
+    /*cout << c_ezh * ((Hy->point(50,70)-Hy->point(50-1,70)) - (Hx->point(50,70-1)-Hx->point(50,70))) << "\t\t" << c_eze * Ez->point(50,70)<<"\n";
     cout << c_ezh * ((Hy->point(50,70)-Hy->point(50-1,70)) - (Hx->point(50,70-1)-Hx->point(50,70))) + c_eze * Ez->point(50,70)<<"\n";
     Ez->point(50,70) =  c_eze * Ez->point(50,70) + c_ezh * ((Hy->point(50,70)-Hy->point(50-1,70)) - (Hx->point(50,70-1)-Hx->point(50,70)));
     Hy->point(50,70) = c_hyh * Hy->point(50,70) + c_hye * (Ez->point(50+1,70)-Ez->point(50,70));
     Hx->point(50,70) = c_hxh * Hx->point(50,70) + c_hxe * (Ez->point(50+1,70)-Ez->point(50,70));
-    cout << Ez->point(50,70) << "\n";
-    for(int ii = 2; ii < nx - 2; ii ++)
+    cout << Ez->point(50,70) << "\n";*/
+    for(int ii = 1; ii < nx - 1; ii ++)
     {
-        for(int jj = 2; jj < ny -2; jj ++)
+        for(int jj = 1; jj < ny - 1; jj ++)
         {
             if(Ez)
             {
+                double c_eze = (1.0 - dt/2.0) / (1.0 + dt/2.0);
+                double c_ezh = 1.0 / (1.0 + dt/2.0) * dt/dx;
                 Ez->point(ii,jj) = c_eze * Ez->point(ii,jj) + c_ezh * ((Hy->point(ii,jj)-Hy->point(ii-1,jj)) - (Hx->point(ii,jj-1)-Hx->point(ii,jj)));
-                // Look up how D-L models affects the Electric fields, Something about Jx/Jy in Maxim's code also
-                // look up how to deal with the frequency dependence of eps in the time domain
-                //double dt_eps = 1.0;
-                Hy->point(ii,jj) = c_hyh * Hy->point(ii,jj) + c_hye * (Ez->point(ii+1,jj)-Ez->point(ii,jj));
-                Hx->point(ii,jj) = c_hxh * Hx->point(ii,jj) + c_hxe * (Ez->point(ii+1,jj)-Ez->point(ii,jj));
             }
             else
             {
-                //Ez->point(ii,jj) += dt_mu0*((Hy->point(ii,jj)-Hy->point(ii+1,jj))*den_hx + (Hx->point(ii,jj+1)-Hx->point(ii,jj))*den_hy);
-                // Look up how D-L models affects the Electric fields, Something about Jx/Jy in Maxim's code also
-                // look up how to deal with the frequency dependence of eps in the time domain
-                //double freq = 1.0/t_cur; // I know this is not right
-                //double dt_eps = dt/(1.0/(4.0e-7*pow(299792458.0,2)) * real(objArr[phys_Hy->point(ii,jj)].dielectric(freq)));
-                //Hy->point(ii,jj) += dt_eps*(Ez->point(ii-1,jj)-Ez->point(1,jj))*den_ex;
-                //dt_eps = dt/(1.0/(4.0e-7*pow(299792458.0,2)) * real(objArr[phys_Hx->point(ii,jj)].dielectric(freq)));
-                //Hx->point(ii,jj) += dt_eps*(Ez->point(ii,jj)-Ez->point(ii,jj-1))*den_ey;
+                double c_hzh = (1.0 - dt/2.0) / (1.0 + dt/2.0);
+                double c_hze = 1.0 / (1.0 + dt/2.0) * dt/dx;
+                Hz->point(ii,jj) = c_hzh * Hz->point(ii,jj) + c_hze * ((Ex->point(ii,jj+1) - Ex->point(ii,jj)) - (Ey->point(ii+1,jj)-Ey->point(ii,jj)));
+
             }
         }
     }
-//    cout <<c_ezh * ((Hy->point(50,70)-Hy->point(50-1,70)) - (Hx->point(50,70-1)-Hx->point(50,70))) << "\t\t" << c_eze * Ez->point(50,70)<< "\n end round \n";
-    cout << Ez -> point(50,70) <<"\n end round \n";
+    for(int ii = 1; ii < nx - 1; ii ++)
+    {
+        for(int jj = 1; jj < ny - 1; jj ++)
+        {
+            if(Ez)
+            {
+                double c_hxh = (1.0 - dt/2.0) / (1.0 + dt/2.0);
+                double c_hxe = 1.0 / (1.0 + dt/2.0) * dt/dx;
+                double c_hyh = (1.0 - dt/2.0) / (1.0 + dt/2.0);
+                double c_hye = 1.0 / (1.0 + dt/2.0) * dt/dx;
+                Hy->point(ii,jj) = c_hyh * Hy->point(ii,jj) + c_hye * (Ez->point(ii+1,jj)-Ez->point(ii,jj));
+                Hx->point(ii,jj) = c_hxh * Hx->point(ii,jj) - c_hxe * (Ez->point(ii,jj+1)-Ez->point(ii,jj));
+            }
+            else
+            {
+                double c_exe = (1.0 - dt/2.0) / (1.0 + dt/2.0);
+                double c_exh = 1.0 / (1.0 + dt/2.0) * dt/dx;
+                double c_eye = (1.0 - dt/2.0) / (1.0 + dt/2.0);
+                double c_eyh = 1.0 / (1.0 + dt/2.0) * dt/dx;
+                Ey->point(ii,jj) = c_eye * Ey->point(ii,jj) - c_eyh * (Hz->point(ii,jj) - Hz->point(ii-1,jj));
+                Ex->point(ii,jj) = c_exe * Ex->point(ii,jj) + c_exh * (Hz->point(ii,jj) - Hz->point(ii,jj-1));
+            }
+        }
+    }
     //Source
     for(int kk = 0; kk < srcArr.size(); kk ++)
     {
@@ -236,23 +245,21 @@ void FDTDField::step()
         int jj = srcArr[kk].loc()[1];
         if(srcArr[kk].pol() == EZ)
         {
-            Ez -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
-            Hx -> point(ii,jj) = 0;
-            Hy -> point(ii,jj) = 0;
+            Ez -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
         }
         else if(srcArr[kk].pol() == EX)
-            Ex -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
+            Ex -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
         else if(srcArr[kk].pol() == EY)
-            Ey -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
+            Ey -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
         else if(srcArr[kk].pol() == HX)
-            Hx -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
+            Hx -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
         else if(srcArr[kk].pol() == HY)
-            Hy -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
+            Hy -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
         else if(srcArr[kk].pol() == HZ)
-            Hz -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
+            Hz -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
     }
 
-    //ouputField();
+    ouputField();
 }
 
 /*std::vector<double> FDTDField::pml(int npml, int m, int ma)

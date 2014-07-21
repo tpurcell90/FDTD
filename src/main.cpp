@@ -16,7 +16,7 @@ int main(int argc, char const *argv[])
     cout << FF.d_t() <<"\n";
     */
     FF.initializeGrid(IP);
-    for(int ii = 0; ii < 3; ii++)
+    for(int ii = 0; ii < 150; ii++)
         FF.step();
     cout << "I am always in error\n";
     return 0; 
