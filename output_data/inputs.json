@@ -1,10 +1,11 @@
 {
     "CompCell" : {
-        "procs"        : 1,
+        "Procs"        : 1,
         "x_size"       : 10.0,
         "y_size"       : 10.0,
         "z_size"       : 0.0,
         "res"          : 10,
+        "PML_Thick"    : 1.00,
         "courant"      : 0.5
     },
     "SourceList" : [
@@ -16,20 +17,22 @@
             "t_start"  : 0.00,
             "size_x"   : 0.00,
             "size_y"   : 0.00,
-            "pol"      : "Ez",
+            "pol"      : 'Ez',
             "loc_x"    : 0.00,
-            "loc_y"    : 0.00
+            "loc_y"    : 0.00,
         }
     ],
-    "ObjectList"   : [ 
+    "ObjectList"   : [
     ],
     "DetectorList" : [
         {
             "loc_x"    : 0.00,
-            "loc_y"    : 0.50,
+            "loc_y"    : 5.00,
             "size_x"   : 0.00,
             "size_y"   : 0.00,
             "type"     : "Ez"
         }
+
+
     ]
 }

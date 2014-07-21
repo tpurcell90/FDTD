@@ -15,139 +15,151 @@
 
 using namespace std;
 
-FDTDField::FDTDField(programInputs *IP)
+FDTDField::FDTDField(programInputs IP)
 {
     //Define cell parameters
-
-    if (IP)
+    t_cur = 0;
+    res = IP.res;
+    dx = 1.0/res;
+    dy = 1.0/res;
+    dt = IP.courant/(res);
+    nx = int(IP.x_size*res); //Better way here
+    ny = int(IP.y_size*res); //Better way here
+    srcArr = IP.srcArr;
+    objArr = IP.objArr; 
+    dtcArr = IP.dctArr;
+    // Create the Grids. Do I need a null constructor for the set that I disregard?
+    if(IP.pol.compare("Hz") == 0 || IP.pol.compare("Ey") == 0 || IP.pol.compare("Ex") == 0)
     {
-        t_cur = 0;
-        res = IP->res;
-        dx = 1.0/res;
-        dy = 1.0/res;
-        dt = 1.0/(IP->courant*res);
-        nx = int(IP->x_size*dx); //Better way here
-        ny = int(IP->y_size*dy); //Better way here
-        physGrid = make_shared<Grid2D<int>>(nx,ny,dx,dy);
-        vector<Source<double>> srcArr(IP -> srcArr);
-        vector<Obj> objArr(IP -> objArr); 
-        vector<Detector<double>> dtcArr (IP -> dctArr);
-        // Create the Grids. Do I need a null constructor for the set that I disregard?
-        if(IP->pol.compare("Hz") == 0)
-        {
-            Ex = make_shared<Grid2D<double>>(nx-1,ny,dx,dy);
-            Ey = make_shared<Grid2D<double>>(nx,ny-1,dx,dy);
-            Hz = make_shared<Grid2D<double>>(nx-1,ny-1,dx,dy);
-            phys_Ex = make_shared<Grid2D<int>>(nx-1,ny,dx,dy);
-            phys_Ey = make_shared<Grid2D<int>>(nx,ny-1,dx,dy);
-            phys_Hz = make_shared<Grid2D<int>>(nx-1,ny-1,dx,dy);
-
-           // Hx = null;
-           // Hy = null;
-           // Ez = null;
-        }
-        else
-        {
-            Hx = make_shared<Grid2D<double>>(nx-1,ny,dx,dy);
-            Hy = make_shared<Grid2D<double>>(nx,ny-1,dx,dy);
-            Ez = make_shared<Grid2D<double>>(nx-1,ny-1,dx,dy);
-            phys_Hx = make_shared<Grid2D<int>>(nx-1,ny,dx,dy);
-            phys_Hy = make_shared<Grid2D<int>>(nx,ny-1,dx,dy);
-            phys_Ez = make_shared<Grid2D<int>>(nx-1,ny-1,dx,dy);
-            //Ex = null;
-            //Ey = null;
-            //Hz = null;
-        }
+        Ex = make_shared<Grid2D<double>>(nx-1,ny,dx,dy);
+        Ey = make_shared<Grid2D<double>>(nx,ny-1,dx,dy);
+        Hz = make_shared<Grid2D<double>>(nx-1,ny-1,dx,dy);
+        phys_Ex = make_shared<Grid2D<int>>(nx-1,ny,dx,dy);
+        phys_Ey = make_shared<Grid2D<int>>(nx,ny-1,dx,dy);
+        phys_Hz = make_shared<Grid2D<int>>(nx-1,ny-1,dx,dy);
+        //These are never used in the TE mode
+        Hx = NULL;
+        Hy = NULL;
+        Ez = NULL;
+        phys_Hx = NULL;
+        phys_Hy = NULL;
+        phys_Ez = NULL;
     }
+    else
+    {
+        Hx = make_shared<Grid2D<double>>(nx-1,ny,dx,dy);
+        Hy = make_shared<Grid2D<double>>(nx,ny-1,dx,dy);
+        Ez = make_shared<Grid2D<double>>(nx-1,ny-1,dx,dy);
+        phys_Hx = make_shared<Grid2D<int>>(nx-1,ny,dx,dy);
+        phys_Hy = make_shared<Grid2D<int>>(nx,ny-1,dx,dy);
+        phys_Ez = make_shared<Grid2D<int>>(nx-1,ny-1,dx,dy);
+        // These are never used in the TM mode
+        Ex = NULL;
+        Ey = NULL;
+        Hz = NULL;
+        phys_Ex = NULL;
+        phys_Ey = NULL;
+        phys_Hz = NULL;
+    }
+
 }
+// Access Functions
+size_t FDTDField::n_x() {return nx;}
+size_t FDTDField::n_y() {return ny;}
+double FDTDField::d_x() {return dx;}
+double FDTDField::d_y() {return dy;}
+double FDTDField::d_t() {return dt;}
+double FDTDField::getTime() {return t_cur;}
+int FDTDField::getRes() {return res;}
+std::vector<Detector<double>> FDTDField::getDtcArr() {return dtcArr;}
+shared_ptr<Grid2D<int>> FDTDField::getPhysEz() {return phys_Ez;}
+
 void FDTDField::inc_t()
 {
     t_cur += dt;
 }
 
 
-void FDTDField::initializeGrid(programInputs *IP)
+void FDTDField::initializeGrid(programInputs IP)
 {
-    for(int ii = 0; ii < srcArr.size(); ii++)
-    {
-        //Take the size and location of the source array convert that into the pulse in the step fxn
-    }
     for(int ii = 0; ii < objArr.size(); ii ++) 
     {
-        if(IP ->pol.compare("Hz") == 0)
+        if(Hz)
         {
-            if(objArr.at(ii).s() == sphere)
+            if(objArr[ii].s() == sphere)
             {
                 for(int jj = 0; jj < nx-1;jj ++)
                 {
                     for(int kk = 0; kk < ny-1; kk ++)
                     {
                         vector<double> pt({(jj+0.5)*dx,kk*dy});
-                        if(objArr.at(ii).isObj(pt)) 
-                            phys_Ex->point(jj,kk) = ii+1;
+                        if(objArr[ii].isObj(pt)) 
+                            phys_Ex->point(jj,kk) = ii;
                         pt[1] += 0.5*dy;
-                        if(objArr.at(ii).isObj(pt))
-                            phys_Hz->point(jj,kk) = ii+1;
+                        if(objArr[ii].isObj(pt))
+                            phys_Hz->point(jj,kk) = ii;
 			            pt[0] -= 0.5*dx;
-                        if(objArr.at(ii).isObj(pt))
-                            phys_Ey->point(jj,kk) = ii+1;
+                        if(objArr[ii].isObj(pt))
+                            phys_Ey->point(jj,kk) = ii;
                     }
                 }
             }
-            else if(objArr.at(ii).s() == block)
+            else if(objArr[ii].s() == block)
             {
                 for(int jj = 0; jj < nx-1;jj ++)
                 {
                     for(int kk = 0; kk < ny-1; kk ++)
                     {
                         vector<double> pt({(jj+0.5)*dx,kk*dy});
-                        if(objArr.at(ii).isObj(pt))
-                            phys_Ex->point(jj,kk) = ii+1;
+                        if(objArr[ii].isObj(pt))
+                            phys_Ex->point(jj,kk) = ii;
                         pt[1] += 0.5*dy;
-                        if(objArr.at(ii).isObj(pt))
-                            phys_Hz->point(jj,kk) = ii+1;
+                        if(objArr[ii].isObj(pt))
+                            phys_Hz->point(jj,kk) = ii;
                         pt[0] -= 0.5*dx;
-                        if(objArr.at(ii).isObj(pt))
-                            phys_Ey->point(jj,kk) = ii+1;
+                        if(objArr[ii].isObj(pt))
+                            phys_Ey->point(jj,kk) = ii;
                     }
                 }
             }
         }
         else
         {
-            if(objArr.at(ii).s() == sphere)
+            if(objArr[ii].s() == sphere)
             {
                 for(int jj = 0; jj < nx-1;jj ++)
                 {
                     for(int kk = 0; kk < ny-1; kk ++)
                     {
                         vector<double> pt({(jj+0.5)*dx,kk*dy});
-                        if(objArr.at(ii).isObj(pt))
-                            phys_Ex->point(jj,kk) = ii+1;
+                        if(objArr[ii].isObj(pt))
+                            phys_Hx->point(jj,kk) = ii;
                         pt[1] += 0.5*dy;
-                        if(objArr.at(ii).isObj(pt))
-                            phys_Hz->point(jj,kk) = ii+1;
+                        if(objArr[ii].isObj(pt))
+                            phys_Ez->point(jj,kk) = ii;
                         pt[0] -= 0.5*dx;
-                        if(objArr.at(ii).isObj(pt))
-                            phys_Ey->point(jj,kk) = ii+1;
+                        if(objArr[ii].isObj(pt))
+                            phys_Hy->point(jj,kk) = ii;
                     }
                 }
             }
-            else if(objArr.at(ii).s() == block)
+            else if(objArr[ii].s() == block)
             {
                 for(int jj = 0; jj < nx-1;jj ++)
                 {
                     for(int kk = 0; kk < ny-1; kk ++)
                     {
                         vector<double> pt({(jj+0.5)*dx,kk*dy});
-                        if(objArr.at(ii).isObj(pt))
-                            phys_Ex->point(jj,kk) = ii+1;
+                        if(objArr[ii].isObj(pt))
+                        {
+                            phys_Hx->point(jj,kk) = ii;
+                        }
                         pt[1] += 0.5*dy;
-                        if(objArr.at(ii).isObj(pt))
-                            phys_Hz->point(jj,kk) = ii+1;
+                        if(objArr[ii].isObj(pt))
+                            phys_Ez->point(jj,kk) = ii;
                         pt[0] -= 0.5*dx;
-                        if(objArr.at(ii).isObj(pt))
-                            phys_Ey->point(jj,kk) = ii+1;
+                        if(objArr[ii].isObj(pt))
+                            phys_Hy->point(jj,kk) = ii;
                     }
                 }
             }
@@ -161,11 +173,13 @@ void FDTDField::ouputField()
     // This again will be bade on how I set up the geometry of the cell, but basically will just be storing the data in an output file with points specified 
     // Need to think of the best format to do this in
     ofstream outFile;
-    outFile.open("Out.dat");
+    outFile.open("Out.dat", ios_base::app);
     for(int ii = 0; ii < dtcArr.size(); ii ++)
     {
-        outFile << t_cur << "\t" << dtcArr[ii].loc()[0] << "\t" << dtcArr[ii].loc()[1] << "\t" << dtcArr[ii].output(Ez); 
+        outFile << t_cur << "\t" << dtcArr[ii].loc()[0] << "\t" << dtcArr[ii].loc()[1] << "\t" << dtcArr[ii].output(Ez) << "\t"<< srcArr[0].prof().pulse(t_cur) << "\n";
+        cout << t_cur << "\t" << dtcArr[ii].loc()[0] << "\t" << dtcArr[ii].loc()[1] << "\t" << dtcArr[ii].output(Ez) << "\t" <<  srcArr[0].prof().pulse(t_cur) << "\n";
     }
+    outFile.close();
     
     
 }
@@ -174,41 +188,58 @@ void FDTDField::step()
 {
     // disregard PML's to start
     inc_t();
-    // Time step and other fdtd constants. When Other things introduced these will change.
-    double dt_mu0 = dt/4.0e-7;
-    double den_ex = 1.0/dx;
-    double den_hx = 1.0/dx;
-    double den_ey = 1.0/dy;
-    double den_hy = 1.0/dy;
-    // PML and source stuff will change this
-    for(int ii = 1; ii < nx - 1; ii ++)
+    // Source
+    for(int kk = 0; kk < srcArr.size(); kk ++)
     {
-        for(int jj = 1; jj < ny -1; jj ++)
+        int ii = srcArr[kk].loc()[0];
+        int jj = srcArr[kk].loc()[1];
+        if(srcArr[kk].pol() == EZ)
         {
-            // Update source
-            for(int kk = 0; kk < srcArr.size(); kk ++)
+            Ez -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+        }
+        else if(srcArr[kk].pol() == EX)
+            Ex -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+        else if(srcArr[kk].pol() == EY)
+            Ey -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+        else if(srcArr[kk].pol() == HX)
+            Hx -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+        else if(srcArr[kk].pol() == HY)
+            Hy -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+        else if(srcArr[kk].pol() == HZ)
+            Hz -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+    }
+    // Time step and other fdtd constants. When Other things introduced these will change.
+    double dt_mu0 = dt;
+    double den_ex = dx;
+    double den_hx = dx;
+    double den_ey = dy;
+    double den_hy = dy;
+    double dt_eps = dt;    
+    for(int ii = 2; ii < nx - 2; ii ++)
+    {
+        for(int jj = 2; jj < ny -2; jj ++)
+        {
+            if(Ez)
             {
-                if(srcArr[kk].pol() == EZ)
-                    Ez -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
-                else if(srcArr[kk].pol() == EX)
-                    Ex -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
-                else if(srcArr[kk].pol() == EY)
-                    Ey -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
-                else if(srcArr[kk].pol() == HX)
-                    Hx -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
-                else if(srcArr[kk].pol() == HY)
-                    Hy -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
-                else if(srcArr[kk].pol() == HZ)
-                    Hz -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+                
+                Ez->point(ii,jj) += dt_mu0*((Hy->point(ii,jj)-Hy->point(ii+1,jj))*den_hx + (Hx->point(ii,jj+1)-Hx->point(ii,jj))*den_hy);
+                // Look up how D-L models affects the Electric fields, Something about Jx/Jy in Maxim's code also
+                // look up how to deal with the frequency dependence of eps in the time domain
+                //double dt_eps = 1.0;
+                Hy->point(ii,jj) += dt_eps*(Ez->point(ii-1,jj)-Ez->point(1,jj))*den_ex;
+                Hx->point(ii,jj) += dt_eps*(Ez->point(ii,jj)-Ez->point(ii,jj-1))*den_ey;
             }
-            Hz->point(ii,jj) += dt_mu0*((Ey->point(ii,jj)-Ey->point(ii+1,jj))*den_hx + (Ex->point(ii,jj+1)-Ex->point(ii,jj))*den_hy);
-            // Look up how D-L models affects the Electric fields, Something about Jx/Jy in Maxim's code also
-            // look up how to deal with the frequency dependence of eps in the time domain
-            double freq = 1.0/t_cur; // I know this is not right
-            double dt_eps = dt/(1.0/(4.0e-7*pow(299792458.0,2)) * real(objArr[phys_Ey->point(ii,jj)].dielectric(freq)));
-            Ey->point(ii,jj) += dt_eps*(Hz->point(ii-1,jj)-Hz->point(1,jj))*den_ex;
-            dt_eps = dt/(1.0/(4.0e-7*pow(299792458.0,2)) * real(objArr[phys_Ex->point(ii,jj)].dielectric(freq)));
-            Ex->point(ii,jj) += dt_eps*(Hz->point(ii,jj)-Hz->point(ii,jj-1))*den_ey;
+            else
+            {
+                //Ez->point(ii,jj) += dt_mu0*((Hy->point(ii,jj)-Hy->point(ii+1,jj))*den_hx + (Hx->point(ii,jj+1)-Hx->point(ii,jj))*den_hy);
+                // Look up how D-L models affects the Electric fields, Something about Jx/Jy in Maxim's code also
+                // look up how to deal with the frequency dependence of eps in the time domain
+                //double freq = 1.0/t_cur; // I know this is not right
+                //double dt_eps = dt/(1.0/(4.0e-7*pow(299792458.0,2)) * real(objArr[phys_Hy->point(ii,jj)].dielectric(freq)));
+                //Hy->point(ii,jj) += dt_eps*(Ez->point(ii-1,jj)-Ez->point(1,jj))*den_ex;
+                //dt_eps = dt/(1.0/(4.0e-7*pow(299792458.0,2)) * real(objArr[phys_Hx->point(ii,jj)].dielectric(freq)));
+                //Hx->point(ii,jj) += dt_eps*(Ez->point(ii,jj)-Ez->point(ii,jj-1))*den_ey;
+            }
         }
     }
     ouputField();

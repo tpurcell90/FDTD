@@ -27,9 +27,9 @@ public:
     Source(const Source& o) : profile(o.profile), polarization(o.polarization), location(o.location) {}
    
     //Access Functions
-    Polarization pol() const {return polarization;}
-    std::vector<double> loc() const {return location;}
-    Pulse<T> prof() const {return profile;}
+    Polarization pol() {return polarization;}
+    std::vector<int> loc()  {return location;}
+    Pulse<T> prof() {return profile;}
 };
 
 #endif

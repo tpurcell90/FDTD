@@ -9,7 +9,6 @@ using namespace std;
 
 programInputs::programInputs(std::string fn) : filename(fn)
 {
-	stripComments();
     boost::property_tree::ptree IP;
     boost::property_tree::json_parser::read_json(filename,IP);
     // Basic FDTD params
@@ -46,10 +45,10 @@ programInputs::programInputs(std::string fn) : filename(fn)
         double loc_x = iter.second.get<double>("loc_x");
         double loc_y = iter.second.get<double>("loc_y");
         // Make proper rounding function
-        int x_min = find_pt(loc_x-sz_x/2.0);
-        int x_max = find_pt(loc_x+sz_x/2.0);
-        int y_min = find_pt(loc_y-sz_y/2.0);
-        int y_max = find_pt(loc_y+sz_y/2.0);
+        int x_min = find_pt(loc_x-sz_x/2.0+x_size/2.0);
+        int x_max = find_pt(loc_x+sz_x/2.0+x_size/2.0);
+        int y_min = find_pt(loc_y-sz_y/2.0+y_size/2.0);
+        int y_max = find_pt(loc_y+sz_y/2.0+y_size/2.0);
         for(int x = x_min; x <= x_max; x ++)
             for(int y = y_min; y <= y_max; y++)
             {
@@ -58,6 +57,12 @@ programInputs::programInputs(std::string fn) : filename(fn)
                 srcArr.push_back(Source<double>(Pulse<double>(fxn,prof), pols, loc));
             }
     }
+    vector<double> loc(2,0.0);
+    vector<double> size(2,0.0);
+    size[0] = x_size;
+    size[1] = y_size;
+    vector<double> mat(1,1.0);
+    objArr.push_back(Obj(block,mat,size,loc));
     for (auto& iter : IP.get_child("ObjectList"))
     {
         string sStr(iter.second.get<string>("shape"));
@@ -80,10 +85,10 @@ programInputs::programInputs(std::string fn) : filename(fn)
         double loc_x = iter.second.get<double>("loc_x");
         double loc_y = iter.second.get<double>("loc_y");
         // Make proper rounding function
-        int x_min = find_pt(loc_x-sz_x/2.0);
-        int x_max = find_pt(loc_x+sz_x/2.0);
-        int y_min = find_pt(loc_y-sz_y/2.0);
-        int y_max = find_pt(loc_y+sz_y/2.0);
+        int x_min = find_pt(loc_x-sz_x/2.0+x_size/2.0);
+        int x_max = find_pt(loc_x+sz_x/2.0+x_size/2.0);
+        int y_min = find_pt(loc_y-sz_y/2.0+y_size/2.0);
+        int y_max = find_pt(loc_y+sz_y/2.0+y_size/2.0);
         for(int x = x_min; x <= x_max; x ++)
             for(int y = y_min; y <= y_max; y++)
             {
@@ -138,50 +143,50 @@ void programInputs::stripComments()
 }
 Polarization programInputs::string2pol(string p)
 {
-    if(p.compare("Ez"))
+    if(p.compare("Ez") == 0)
         return EZ;
-    else if(p.compare("Ey"))
+    else if(p.compare("Ey") == 0)
         return EY;
-    else if(p.compare("Ex"))
+    else if(p.compare("Ex") == 0)
         return EX;
-    else if(p.compare("Hx"))
+    else if(p.compare("Hx") == 0)
         return HX;
-    else if(p.compare("Hz"))
+    else if(p.compare("Hz") == 0)
         return HZ;
-    else if(p.compare("Hx"))
+    else if(p.compare("Hx") == 0)
         return HY;
     else
         return EZ; //Throw an error but first need to look up how to do that
 }
 Shape programInputs::string2shape(string s)
 {
-    if(s.compare("sphere"))
+    if(s.compare("sphere") == 0)
         return sphere;
-    else if (s.compare("block"))
+    else if (s.compare("block") == 0)
         return block;
-    else if (s.compare("cone"))
+    else if (s.compare("cone") == 0)
         return cone;
-    else if (s.compare("ellipse"))
+    else if (s.compare("ellipse") == 0)
         return ellipse;
-    else if (s.compare("cylinder"))
+    else if (s.compare("cylinder") == 0)
         return cylinder;
     else
         return block; //Throw an error I know
 }
 OupuptsData programInputs::string2out(string t)
 {
-    if(t.compare("field"))
+    if(t.compare("field") == 0)
         return field;
-    else if (t.compare("flux"))
+    else if (t.compare("flux") == 0)
         return flux;
     else
         return field; //Yes, yes error, I know
 }
 ProfType programInputs::string2prof(string p)
 {
-    if(p.compare("gaussian"))
+    if(p.compare("gaussian") == 0)
         return gaussian;
-    else if(p.compare("continuous"))
+    else if(p.compare("continuous") == 0)
         return continuous;
     else
         return gaussian; // I should be an error again

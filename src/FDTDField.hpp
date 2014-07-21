@@ -22,17 +22,29 @@ class FDTDField
 {
 protected:
     size_t nx,ny;
-    double dx,dy,dt,res, t_cur;
-    std::shared_ptr<Grid2D<int>> physGrid,phys_Ex,phys_Ey,phys_Ez,phys_Hx,phys_Hy,phys_Hz;
+    double dx,dy,dt, t_cur;
+    int res;
+    std::shared_ptr<Grid2D<int>> phys_Ex,phys_Ey,phys_Ez,phys_Hx,phys_Hy,phys_Hz;
     std::vector<Source<double>> srcArr;
     std::vector<Obj> objArr;
     std::vector<Detector<double>> dtcArr;
 
 public:
     std::shared_ptr<Grid2D<double>> Ex,Ey,Ez,Hx,Hy,Hz;
+    FDTDField(programInputs IP);
+    void initializeGrid(programInputs IP);
 
-    FDTDField(programInputs *IP);
-    void initializeGrid(programInputs *IP);
+    // Access Functions
+    size_t n_x();
+    size_t n_y();
+    double d_x();
+    double d_y();
+    double d_t();
+    double getTime();
+    std::vector<Detector<double>> getDtcArr();
+    int getRes();
+    std::shared_ptr<Grid2D<int>> getPhysEz();    
+
     void ouputField();
     void step();
     void inc_t();

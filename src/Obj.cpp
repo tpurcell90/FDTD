@@ -10,16 +10,16 @@ using namespace std;
 Obj::Obj(Shape s, vector<double> mater, vector<double> geo, vector<double> loc)  //: part(s), material(mater), geoParam(geo) {}
 {
     part = s;
-    vector<double> material(mater);
-    vector<double> geoParam(geo);
-    vector<double> location(loc);
+    material = mater;
+    geoParam = geo;
+    location = loc;
 }
 Obj::Obj(const Obj& o)  //: part(o.part), material(o.material), geoParam(o.geoParam){}
 {
     part = o.part;
-    vector<double> material(o.material);
-    vector<double> geoParam (o.geoParam);
-    vector<double> location (o.location);
+    material = o.material;
+    geoParam = o.geoParam;
+    location = o.location;
 }
 
 //Access Functions
