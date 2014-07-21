@@ -22,9 +22,9 @@ FDTDField::FDTDField(programInputs IP)
     res = IP.res;
     dx = 1.0/res;
     dy = 1.0/res;
-    dt = IP.courant/(res);
-    nx = int(IP.x_size*res); //Better way here
-    ny = int(IP.y_size*res); //Better way here
+    dt = 0.99/(sqrt(pow(dx,-2.0) + pow(dy,-2.0)));
+    nx = int((IP.x_size)*res) + 1; //Better way here; + 1 to include the 0 point
+    ny = int((IP.y_size)*res) + 1; //Better way here; + 1 to include the 0 point
     srcArr = IP.srcArr;
     objArr = IP.objArr; 
     dtcArr = IP.dctArr;
@@ -49,7 +49,7 @@ FDTDField::FDTDField(programInputs IP)
     {
         Hx = make_shared<Grid2D<double>>(nx-1,ny,dx,dy);
         Hy = make_shared<Grid2D<double>>(nx,ny-1,dx,dy);
-        Ez = make_shared<Grid2D<double>>(nx-1,ny-1,dx,dy);
+        Ez = make_shared<Grid2D<double>>(nx,ny,dx,dy);
         phys_Hx = make_shared<Grid2D<int>>(nx-1,ny,dx,dy);
         phys_Hy = make_shared<Grid2D<int>>(nx,ny-1,dx,dy);
         phys_Ez = make_shared<Grid2D<int>>(nx-1,ny-1,dx,dy);
@@ -177,7 +177,7 @@ void FDTDField::ouputField()
     for(int ii = 0; ii < dtcArr.size(); ii ++)
     {
         outFile << t_cur << "\t" << dtcArr[ii].loc()[0] << "\t" << dtcArr[ii].loc()[1] << "\t" << setw(10) << dtcArr[ii].output(Ez) << "\t"<< srcArr[0].prof().pulse(t_cur) << "\n";
-        cout << t_cur << "\t" << dtcArr[ii].loc()[0] << "\t" << dtcArr[ii].loc()[1] << "\t" << setw(10) << dtcArr[ii].output(Hy)<< "\t" <<  srcArr[0].prof().pulse(t_cur) << "\n";
+        cout << setw(9) << t_cur << "\t" << dtcArr[ii].loc()[0] << "\t" << dtcArr[ii].loc()[1] << "\t" << setw(10) << dtcArr[ii].output(Ez)<< "\t" <<  srcArr[0].prof().pulse(t_cur) << "\n";
     }
     outFile.close();
     
@@ -188,77 +188,88 @@ void FDTDField::step()
 {
     // disregard PML's to start
     inc_t();
-    // only the same because of vac.
-    /*cout << c_ezh * ((Hy->point(50,70)-Hy->point(50-1,70)) - (Hx->point(50,70-1)-Hx->point(50,70))) << "\t\t" << c_eze * Ez->point(50,70)<<"\n";
-    cout << c_ezh * ((Hy->point(50,70)-Hy->point(50-1,70)) - (Hx->point(50,70-1)-Hx->point(50,70))) + c_eze * Ez->point(50,70)<<"\n";
-    Ez->point(50,70) =  c_eze * Ez->point(50,70) + c_ezh * ((Hy->point(50,70)-Hy->point(50-1,70)) - (Hx->point(50,70-1)-Hx->point(50,70)));
-    Hy->point(50,70) = c_hyh * Hy->point(50,70) + c_hye * (Ez->point(50+1,70)-Ez->point(50,70));
-    Hx->point(50,70) = c_hxh * Hx->point(50,70) + c_hxe * (Ez->point(50+1,70)-Ez->point(50,70));
-    cout << Ez->point(50,70) << "\n";*/
-    for(int ii = 1; ii < nx - 1; ii ++)
-    {
-        for(int jj = 1; jj < ny - 1; jj ++)
-        {
-            if(Ez)
-            {
-                double c_eze = (1.0 - dt/2.0) / (1.0 + dt/2.0);
-                double c_ezh = 1.0 / (1.0 + dt/2.0) * dt/dx;
-                Ez->point(ii,jj) = c_eze * Ez->point(ii,jj) + c_ezh * ((Hy->point(ii,jj)-Hy->point(ii-1,jj)) - (Hx->point(ii,jj-1)-Hx->point(ii,jj)));
-            }
-            else
-            {
-                double c_hzh = (1.0 - dt/2.0) / (1.0 + dt/2.0);
-                double c_hze = 1.0 / (1.0 + dt/2.0) * dt/dx;
-                Hz->point(ii,jj) = c_hzh * Hz->point(ii,jj) + c_hze * ((Ex->point(ii,jj+1) - Ex->point(ii,jj)) - (Ey->point(ii+1,jj)-Ey->point(ii,jj)));
-
-            }
-        }
-    }
-    for(int ii = 1; ii < nx - 1; ii ++)
-    {
-        for(int jj = 1; jj < ny - 1; jj ++)
-        {
-            if(Ez)
-            {
-                double c_hxh = (1.0 - dt/2.0) / (1.0 + dt/2.0);
-                double c_hxe = 1.0 / (1.0 + dt/2.0) * dt/dx;
-                double c_hyh = (1.0 - dt/2.0) / (1.0 + dt/2.0);
-                double c_hye = 1.0 / (1.0 + dt/2.0) * dt/dx;
-                Hy->point(ii,jj) = c_hyh * Hy->point(ii,jj) + c_hye * (Ez->point(ii+1,jj)-Ez->point(ii,jj));
-                Hx->point(ii,jj) = c_hxh * Hx->point(ii,jj) - c_hxe * (Ez->point(ii,jj+1)-Ez->point(ii,jj));
-            }
-            else
-            {
-                double c_exe = (1.0 - dt/2.0) / (1.0 + dt/2.0);
-                double c_exh = 1.0 / (1.0 + dt/2.0) * dt/dx;
-                double c_eye = (1.0 - dt/2.0) / (1.0 + dt/2.0);
-                double c_eyh = 1.0 / (1.0 + dt/2.0) * dt/dx;
-                Ey->point(ii,jj) = c_eye * Ey->point(ii,jj) - c_eyh * (Hz->point(ii,jj) - Hz->point(ii-1,jj));
-                Ex->point(ii,jj) = c_exe * Ex->point(ii,jj) + c_exh * (Hz->point(ii,jj) - Hz->point(ii,jj-1));
-            }
-        }
-    }
-    //Source
+    // Source
     for(int kk = 0; kk < srcArr.size(); kk ++)
     {
         int ii = srcArr[kk].loc()[0];
         int jj = srcArr[kk].loc()[1];
         if(srcArr[kk].pol() == EZ)
         {
-            Ez -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+            Ez -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
+            Hx -> point(ii,jj) = 0;
+            Hy -> point(ii,jj) = 0;
         }
         else if(srcArr[kk].pol() == EX)
             Ex -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
         else if(srcArr[kk].pol() == EY)
             Ey -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
         else if(srcArr[kk].pol() == HX)
+        {
             Hx -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+        }
         else if(srcArr[kk].pol() == HY)
+        {
             Hy -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+        }
         else if(srcArr[kk].pol() == HZ)
             Hz -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
     }
+    for(int ii = 1; ii < nx - 1; ii ++)
+    {
+        for(int jj = 1; jj < ny - 1; jj ++)
+        {
+            if(Ez)
+            {
+                //Always true in a magnetic lossless enviroment, with mu0 = 1, sigma_m = 0;
+                double c_hxh = 1.0;
+                double c_hxe = 1.0 * dt/dx;
+                double c_hyh = 1.0;
+                double c_hye = 1.0 * dt/dy;
+                Hx->point(ii,jj) = c_hxh * Hx->point(ii,jj) - c_hxe * (Ez->point(ii,jj+1)-Ez->point(ii,jj));
+                Hy->point(ii,jj) = c_hyh * Hy->point(ii,jj) + c_hye * (Ez->point(ii+1,jj)-Ez->point(ii,jj));
+            }
+            else
+            {
+                //Always true in a magnetic lossless enviroment, with mu0 = 1, sigma_m = 0;
+                double c_hzh = 1.0;
+                double c_hze = 1.0 * dt/dx;
+                Hz->point(ii,jj) = c_hzh * Hz->point(ii,jj) + c_hze * ((Ex->point(ii,jj+1) - Ex->point(ii,jj)) - (Ey->point(ii+1,jj)-Ey->point(ii,jj)));
 
+            }
+        }
+    }
+    for(int ii = 0; ii < nx; ii ++)
+    {
+        double c_hxh = 1.0;
+        double c_hxe = 1.0 * dt/dx;
+        double c_hyh = 1.0;
+        double c_hye = 1.0 * dt/dy;
+        Hx->point(ii,0) = c_hxh * Hx->point(ii,0) - c_hxe * (Ez->point(ii,0+1)-Ez->point(ii,0));
+        Hy->point(0,ii) = c_hyh * Hy->point(0,ii) + c_hye * (Ez->point(0+1,ii)-Ez->point(0,ii));
+    }
+    for(int ii = 1; ii < nx - 1; ii ++)
+    {
+        for(int jj = 1; jj < ny - 1; jj ++)
+        {
+            if(Ez)
+            {
+                //Only True in Vac
+                double c_eze = 1.0;
+                double c_ezh = 1.0 * dt/dx;
+                Ez->point(ii,jj) = c_eze * Ez->point(ii,jj) + c_ezh * ((Hy->point(ii,jj)-Hy->point(ii-1,jj)) - (Hx->point(ii,jj)-Hx->point(ii,jj-1)));
+            }
+            else
+            {
+                //Only True in Vac
+                double c_exe = 1.0;
+                double c_exh = 1.0 * dt/dx;
+                double c_eye = 1.0;
+                double c_eyh = 1.0 * dt/dy;
+                Ey->point(ii,jj) = c_eye * Ey->point(ii,jj) - c_eyh * (Hz->point(ii,jj) - Hz->point(ii-1,jj));
+                Ex->point(ii,jj) = c_exe * Ex->point(ii,jj) + c_exh * (Hz->point(ii,jj) - Hz->point(ii,jj-1));
+            }
+        }
+    }
     ouputField();
 }
 

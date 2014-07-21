@@ -99,10 +99,10 @@ programInputs::programInputs(std::string fn) : filename(fn)
     }
     string pol	= IP.get<string>("SourceParam.Pol", "EZ");
     //Copies the json data to a file to check for debugging
-    ofstream ss;
-    ss.open("output_data/inputs_check.json");
-    boost::property_tree::write_json(ss,IP);
-    ss.close();
+    //ofstream ss;
+    //ss.open("output_data/inputs_check.json");
+    //boost::property_tree::write_json(ss,IP);
+    //ss.close();
 }
 
 vector<double> programInputs::getDielectricParams(string mat)
