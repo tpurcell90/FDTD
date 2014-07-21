@@ -1,7 +1,7 @@
 #include "FDTDField.hpp"
 
 // #include <assert.h>
-// #include <iomanip>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <fstream>
@@ -176,8 +176,8 @@ void FDTDField::ouputField()
     outFile.open("Out.dat", ios_base::app);
     for(int ii = 0; ii < dtcArr.size(); ii ++)
     {
-        outFile << t_cur << "\t" << dtcArr[ii].loc()[0] << "\t" << dtcArr[ii].loc()[1] << "\t" << dtcArr[ii].output(Ez) << "\t"<< srcArr[0].prof().pulse(t_cur) << "\n";
-        cout << t_cur << "\t" << dtcArr[ii].loc()[0] << "\t" << dtcArr[ii].loc()[1] << "\t" << dtcArr[ii].output(Ez) << "\t" <<  srcArr[0].prof().pulse(t_cur) << "\n";
+        outFile << t_cur << "\t" << dtcArr[ii].loc()[0] << "\t" << dtcArr[ii].loc()[1] << "\t" << setw(10) << dtcArr[ii].output(Ez) << "\t"<< srcArr[0].prof().pulse(t_cur) << "\n";
+        cout << t_cur << "\t" << dtcArr[ii].loc()[0] << "\t" << dtcArr[ii].loc()[1] << "\t" << setw(10) << dtcArr[ii].output(Hy)<< "\t" <<  srcArr[0].prof().pulse(t_cur) << "\n";
     }
     outFile.close();
     
@@ -188,26 +188,6 @@ void FDTDField::step()
 {
     // disregard PML's to start
     inc_t();
-    // Source
-    for(int kk = 0; kk < srcArr.size(); kk ++)
-    {
-        int ii = srcArr[kk].loc()[0];
-        int jj = srcArr[kk].loc()[1];
-        if(srcArr[kk].pol() == EZ)
-        {
-            Ez -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
-        }
-        else if(srcArr[kk].pol() == EX)
-            Ex -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
-        else if(srcArr[kk].pol() == EY)
-            Ey -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
-        else if(srcArr[kk].pol() == HX)
-            Hx -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
-        else if(srcArr[kk].pol() == HY)
-            Hy -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
-        else if(srcArr[kk].pol() == HZ)
-            Hz -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
-    }
     // only the same because of vac.
     double c_hxh = (1.0 - dt/2.0) / (1.0 + dt/2.0);
     double c_hxe = 1.0 / (1.0 + dt/2.0) * dt/dx;
@@ -215,7 +195,12 @@ void FDTDField::step()
     double c_hye = 1.0 / (1.0 + dt/2.0) * dt/dx;
     double c_eze = (1.0 - dt/2.0) / (1.0 + dt/2.0);
     double c_ezh = 1.0 / (1.0 + dt/2.0) * dt/dx;
-
+    cout << c_ezh * ((Hy->point(50,70)-Hy->point(50-1,70)) - (Hx->point(50,70-1)-Hx->point(50,70))) << "\t\t" << c_eze * Ez->point(50,70)<<"\n";
+    cout << c_ezh * ((Hy->point(50,70)-Hy->point(50-1,70)) - (Hx->point(50,70-1)-Hx->point(50,70))) + c_eze * Ez->point(50,70)<<"\n";
+    Ez->point(50,70) =  c_eze * Ez->point(50,70) + c_ezh * ((Hy->point(50,70)-Hy->point(50-1,70)) - (Hx->point(50,70-1)-Hx->point(50,70)));
+    Hy->point(50,70) = c_hyh * Hy->point(50,70) + c_hye * (Ez->point(50+1,70)-Ez->point(50,70));
+    Hx->point(50,70) = c_hxh * Hx->point(50,70) + c_hxe * (Ez->point(50+1,70)-Ez->point(50,70));
+    cout << Ez->point(50,70) << "\n";
     for(int ii = 2; ii < nx - 2; ii ++)
     {
         for(int jj = 2; jj < ny -2; jj ++)
@@ -242,7 +227,32 @@ void FDTDField::step()
             }
         }
     }
-    ouputField();
+//    cout <<c_ezh * ((Hy->point(50,70)-Hy->point(50-1,70)) - (Hx->point(50,70-1)-Hx->point(50,70))) << "\t\t" << c_eze * Ez->point(50,70)<< "\n end round \n";
+    cout << Ez -> point(50,70) <<"\n end round \n";
+    //Source
+    for(int kk = 0; kk < srcArr.size(); kk ++)
+    {
+        int ii = srcArr[kk].loc()[0];
+        int jj = srcArr[kk].loc()[1];
+        if(srcArr[kk].pol() == EZ)
+        {
+            Ez -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
+            Hx -> point(ii,jj) = 0;
+            Hy -> point(ii,jj) = 0;
+        }
+        else if(srcArr[kk].pol() == EX)
+            Ex -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
+        else if(srcArr[kk].pol() == EY)
+            Ey -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
+        else if(srcArr[kk].pol() == HX)
+            Hx -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
+        else if(srcArr[kk].pol() == HY)
+            Hy -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
+        else if(srcArr[kk].pol() == HZ)
+            Hz -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
+    }
+
+    //ouputField();
 }
 
 /*std::vector<double> FDTDField::pml(int npml, int m, int ma)
