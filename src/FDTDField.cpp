@@ -208,26 +208,26 @@ void FDTDField::step()
         else if(srcArr[kk].pol() == HZ)
             Hz -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
     }
-    // Time step and other fdtd constants. When Other things introduced these will change.
-    double dt_mu0 = dt;
-    double den_ex = dx;
-    double den_hx = dx;
-    double den_ey = dy;
-    double den_hy = dy;
-    double dt_eps = dt;    
+    // only the same because of vac.
+    double c_hxh = (1.0 - dt/2.0) / (1.0 + dt/2.0);
+    double c_hxe = 1.0 / (1.0 + dt/2.0) * dt/dx;
+    double c_hyh = (1.0 - dt/2.0) / (1.0 + dt/2.0);
+    double c_hye = 1.0 / (1.0 + dt/2.0) * dt/dx;
+    double c_eze = (1.0 - dt/2.0) / (1.0 + dt/2.0);
+    double c_ezh = 1.0 / (1.0 + dt/2.0) * dt/dx;
+
     for(int ii = 2; ii < nx - 2; ii ++)
     {
         for(int jj = 2; jj < ny -2; jj ++)
         {
             if(Ez)
             {
-                
-                Ez->point(ii,jj) += dt_mu0*((Hy->point(ii,jj)-Hy->point(ii+1,jj))*den_hx + (Hx->point(ii,jj+1)-Hx->point(ii,jj))*den_hy);
+                Ez->point(ii,jj) = c_eze * Ez->point(ii,jj) + c_ezh * ((Hy->point(ii,jj)-Hy->point(ii-1,jj)) - (Hx->point(ii,jj-1)-Hx->point(ii,jj)));
                 // Look up how D-L models affects the Electric fields, Something about Jx/Jy in Maxim's code also
                 // look up how to deal with the frequency dependence of eps in the time domain
                 //double dt_eps = 1.0;
-                Hy->point(ii,jj) += dt_eps*(Ez->point(ii-1,jj)-Ez->point(1,jj))*den_ex;
-                Hx->point(ii,jj) += dt_eps*(Ez->point(ii,jj)-Ez->point(ii,jj-1))*den_ey;
+                Hy->point(ii,jj) = c_hyh * Hy->point(ii,jj) + c_hye * (Ez->point(ii+1,jj)-Ez->point(ii,jj));
+                Hx->point(ii,jj) = c_hxh * Hx->point(ii,jj) + c_hxe * (Ez->point(ii+1,jj)-Ez->point(ii,jj));
             }
             else
             {
