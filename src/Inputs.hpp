@@ -23,6 +23,7 @@ public:
     double res;
     double courant;
     double t_pml;
+    std::string output_base;
     string pol;
     //vector<Source<double>> srcArr();
     vector<Obj> objArr;

@@ -45,7 +45,7 @@ public:
     int getRes();
     std::shared_ptr<Grid2D<int>> getPhysEz();    
 
-    void ouputField();
+    void ouputField(Detector<double> d);
     void step();
     void inc_t();
     Obj makeSphere(vector<double> mater, double rad, vector<double> loc);

@@ -12,13 +12,14 @@ programInputs::programInputs(std::string fn) : filename(fn)
     boost::property_tree::ptree IP;
     boost::property_tree::json_parser::read_json(filename,IP);
     // Basic FDTD params
-    procs   = IP.get<int>("CompCell.Procs",1);
-    x_size  = IP.get<double>("CompCell.x_size",10.1);
-    y_size  = IP.get<double>("CompCell.y_size",10.1);
-    z_size  = IP.get<double>("CompCell.z_size",10.1);
-    res     = IP.get<int>("CompCell.res", 10);
-    t_pml   = IP.get<double>("CompCell.PML_Thick", 1.1);
-    courant = IP.get<double>("CompCell.courant", 0.5);
+    procs       = IP.get<int>("CompCell.Procs",1);
+    x_size      = IP.get<double>("CompCell.x_size",10.1);
+    y_size      = IP.get<double>("CompCell.y_size",10.1);
+    z_size      = IP.get<double>("CompCell.z_size",10.1);
+    res         = IP.get<int>("CompCell.res", 10);
+    t_pml       = IP.get<double>("CompCell.PML_Thick", 1.1);
+    courant     = IP.get<double>("CompCell.courant", 0.5);
+    output_base = IP.get<string>("CompCell.output", "dtc_out");
     // Crating the srcArr
     //for(int ii = 0; ii < IP.get_child("SourceList").size(); ii ++)
     for (auto& iter : IP.get_child("SourceList"))
@@ -74,10 +75,23 @@ programInputs::programInputs(std::string fn) : filename(fn)
         string mater = iter.second.get<string>("material");
         objArr.push_back(Obj(s,getDielectricParams(mater),size,loc));
     }
+    int ii = 0;
+    int jj = 0;
     for (auto& iter : IP.get_child("DetectorList"))
     {
         string tt(iter.second.get<string>("type"));
         OupuptsData t = string2out(tt);
+        string out_name;
+        if(t == field)
+        {
+            out_name = output_base + "_field_" + to_string(ii) + ".dat";
+            ii ++;
+        }
+        else
+        {
+            out_name = output_base + "_flux_" + to_string(jj) + ".dat";
+            jj++;
+        }
         double sz_x = iter.second.get<double>("size_x");
         double sz_y = iter.second.get<double>("size_y");
         double loc_x = iter.second.get<double>("loc_x");
@@ -91,7 +105,7 @@ programInputs::programInputs(std::string fn) : filename(fn)
             for(int y = y_min; y <= y_max; y++)
             {
                 vector<int> loc = {x,y};
-                dctArr.push_back(Detector<double>(loc,t));
+                dctArr.push_back(Detector<double>(loc,t,out_name));
             }
     }
     string pol	= IP.get<string>("SourceParam.Pol", "EZ");

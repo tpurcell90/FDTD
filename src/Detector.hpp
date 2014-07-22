@@ -17,24 +17,17 @@ template <typename T> class Detector
 protected:
     std::vector<int> location;
     OupuptsData Type;
+    std::string out;        
 public:
     // Constructor
-    Detector(std::vector<int> loc, OupuptsData type) : Type(type)
-    {
-        for (int ii = 0 ; ii < loc.size(); ii++)
-            location.push_back(loc[ii]);
-    }
+    Detector(std::vector<int> loc, OupuptsData type, std::string out_name) : location(loc),Type(type), out(out_name) {}
     // Copy Constructor
-    Detector(const Detector& o) : Type(o.Type)
-    {
-        for (int ii = 0 ; ii < o.location.size(); ii++)
-            location.push_back(o.location[ii]);
-    }
+    Detector(const Detector& o) : location(o.location),Type(o.Type), out(o.out) {}
 
     // Accessor Function
     std::vector<int> loc() {return location;}
-    std::string type() {return Type;}
-
+    OupuptsData type() {return Type;}
+    std::string outfile() {return out;}
     // Output functions
     T output (std::shared_ptr<Grid2D<T>> field_in)
     {

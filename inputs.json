@@ -4,7 +4,7 @@
         "x_size"       : 30.0,
         "y_size"       : 30.0,
         "z_size"       : 0.0,
-        "res"          : 100,
+        "res"          : 10,
         "courant"      : 0.5
     },
     "SourceList" : [
@@ -27,6 +27,13 @@
         {
             "loc_x"    : 0.00,
             "loc_y"    : 9.00,
+            "size_x"   : 0.00,
+            "size_y"   : 0.00,
+            "type"     : "Ez"
+        },
+        {
+            "loc_x"    : 0.00,
+            "loc_y"    : -9.00,
             "size_x"   : 0.00,
             "size_y"   : 0.00,
             "type"     : "Ez"

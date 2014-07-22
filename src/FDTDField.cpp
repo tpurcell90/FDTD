@@ -28,6 +28,13 @@ FDTDField::FDTDField(programInputs &IP)
     srcArr = IP.srcArr;
     objArr = IP.objArr;
     dtcArr = IP.dctArr;
+    for(int ii =0; ii < dtcArr.size(); ii++)
+    {
+        ofstream outFile;
+        outFile.open(dtcArr[ii].outfile());
+        outFile << "Output for the " << to_string(ii) << "th detector" << endl;
+        outFile.close();
+    } 
     // Create the Grids. Do I need a null constructor for the set that I disregard?
     if(IP.pol.compare("Hz") == 0 || IP.pol.compare("Ey") == 0 || IP.pol.compare("Ex") == 0)
     {
@@ -163,18 +170,12 @@ void FDTDField::initializeGrid(programInputs &IP)
     }
 }
 
-void FDTDField::ouputField() //iostream as input parameter?
+void FDTDField::ouputField(Detector<double> d) //iostream as input parameter?
 {
-    // Work on a plan for this one
-    // This again will be bade on how I set up the geometry of the cell, but basically will just be storing the data in an output file with points specified
-    // Need to think of the best format to do this in
     ofstream outFile;
-    outFile.open("Out.dat", ios_base::app);
-    for(int ii = 0; ii < dtcArr.size(); ii ++)
-    {
-        outFile << setw(9) << t_cur << "\t" << dtcArr[ii].loc()[0] << "\t" << dtcArr[ii].loc()[1] << "\t" << setw(10) << dtcArr[ii].output(Ez)<< "\t" <<  srcArr[0].prof().pulse(t_cur) << "\n";
-        cout << setw(9) << t_cur << "\t" << dtcArr[ii].loc()[0] << "\t" << dtcArr[ii].loc()[1] << "\t" << setw(10) << dtcArr[ii].output(Ez)<< "\t" <<  srcArr[0].prof().pulse(t_cur) << "\n";
-    }
+    outFile.open(d.outfile(), ios_base::app);
+    outFile << setw(9) << t_cur << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez)<< "\t" <<  srcArr[0].prof().pulse(t_cur) << endl;
+    cout << setw(9) << t_cur << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez)<< "\t" <<  srcArr[0].prof().pulse(t_cur) << endl;
     outFile.close();
 
 
@@ -283,7 +284,8 @@ void FDTDField::step()
             }
         }
     }
-    ouputField();
+    for(int ii = 0; ii < dtcArr.size(); ii ++)
+        ouputField(dtcArr[ii]);
     inc_t();
 }
 
