@@ -212,7 +212,7 @@ void FDTDField::step()
                 Hz -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
                 break;
             default:
-                throw logic_error("reached a default case in a switch state that should never happen!")
+                throw logic_error("reached a default case in a switch state that should never happen!");
                 break;
         }
     }
