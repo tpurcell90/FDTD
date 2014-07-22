@@ -38,12 +38,12 @@ FDTDField::FDTDField(programInputs &IP)
         phys_Ey = make_shared<Grid2D<int>>(nx,ny-1,dx,dy);
         phys_Hz = make_shared<Grid2D<int>>(nx-1,ny-1,dx,dy);
         //These are never used in the TE mode
-        Hx = NULL;
-        Hy = NULL;
-        Ez = NULL;
-        phys_Hx = NULL;
-        phys_Hy = NULL;
-        phys_Ez = NULL;
+        Hx = nullptr;
+        Hy = nullptr;
+        Ez = nullptr;
+        phys_Hx = nullptr;
+        phys_Hy = nullptr;
+        phys_Ez = nullptr;
     }
     else
     {
@@ -54,12 +54,12 @@ FDTDField::FDTDField(programInputs &IP)
         phys_Hy = make_shared<Grid2D<int>>(nx,ny-1,dx,dy);
         phys_Ez = make_shared<Grid2D<int>>(nx-1,ny-1,dx,dy);
         // These are never used in the TM mode
-        Ex = NULL;
-        Ey = NULL;
-        Hz = NULL;
-        phys_Ex = NULL;
-        phys_Ey = NULL;
-        phys_Hz = NULL;
+        Ex = nullptr;
+        Ey = nullptr;
+        Hz = nullptr;
+        phys_Ex = nullptr;
+        phys_Ey = nullptr;
+        phys_Hz = nullptr;
     }
 
 }
@@ -221,7 +221,7 @@ void FDTDField::step()
                 Ex -> point(ii,jj) = 0;
                 break;
             default:
-                cout << "Error" << endl;
+                throw logic_error("reached a default case in a switch state that should never happen!");
                 break;
         }
     }

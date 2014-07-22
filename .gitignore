@@ -1,2 +1,4 @@
 *.o
 *.swp
+output_data
+FDTD
