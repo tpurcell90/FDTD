@@ -172,7 +172,7 @@ void FDTDField::ouputField() //iostream as input parameter?
     outFile.open("Out.dat", ios_base::app);
     for(int ii = 0; ii < dtcArr.size(); ii ++)
     {
-        outFile << t_cur << "\t" << dtcArr[ii].loc()[0] << "\t" << dtcArr[ii].loc()[1] << "\t" << setw(10) << dtcArr[ii].output(Ez) << "\t"<< srcArr[0].prof().pulse(t_cur) << "\n";
+        outFile << setw(9) << t_cur << "\t" << dtcArr[ii].loc()[0] << "\t" << dtcArr[ii].loc()[1] << "\t" << setw(10) << dtcArr[ii].output(Ez)<< "\t" <<  srcArr[0].prof().pulse(t_cur) << "\n";
         cout << setw(9) << t_cur << "\t" << dtcArr[ii].loc()[0] << "\t" << dtcArr[ii].loc()[1] << "\t" << setw(10) << dtcArr[ii].output(Ez)<< "\t" <<  srcArr[0].prof().pulse(t_cur) << "\n";
     }
     outFile.close();
@@ -250,7 +250,7 @@ void FDTDField::step()
         }
     }
     // Code for prefect reflectors, which we don't ever really want
-    /*for(int ii = 0; ii < nx; ii ++)
+    for(int ii = 0; ii < nx; ii ++)
     {
         double c_hxh = 1.0;
         double c_hxe = 1.0 * dt/dx;
@@ -258,7 +258,7 @@ void FDTDField::step()
         double c_hye = 1.0 * dt/dy;
         Hx->point(ii,0) = c_hxh * Hx->point(ii,0) - c_hxe * (Ez->point(ii,0+1)-Ez->point(ii,0));
         Hy->point(0,ii) = c_hyh * Hy->point(0,ii) + c_hye * (Ez->point(0+1,ii)-Ez->point(0,ii));
-    }*/
+    }
     for(int ii = 1; ii < nx - 1; ii ++)
     {
         for(int jj = 1; jj < ny - 1; jj ++)

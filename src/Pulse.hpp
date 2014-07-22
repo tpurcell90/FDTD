@@ -33,20 +33,38 @@ public:
 
     const T pulse(double t)
     {
-        if(Type == gaussian)
-            return gauss_pulse(t);
-        return T(0.0);
+        T pul;
+        switch ( Type )
+        {
+            case gaussian: //if(srcArr[kk].pol() == EZ)
+                pul = gauss_pulse(t);
+                break;
+            case continuous: //else if(srcArr[kk].pol() == HX)
+                pul = const_pulse(t);
+                break;
+            default:
+                pul =  T(0.0);
+                break;
+        }
+        return pul;
+        //if(Type == gaussian)
+        //    return gauss_pulse(t);
+        //else if 
+        //return T(0.0);
     }
     //Pulse functions
     const T gauss_pulse(double t)
     {
         std::complex<double> imag(0.0,1.0);
         //if (t < Param[1]*Param[3])
-        //return real(-1.0 / (imag*Param[0]) * (-1*Param[0]*imag + (Param[2]-t) / pow(2*Param[1],2)) * exp(-1*Param[0]*imag - pow(((Param[2]-t)/pow(2*Param[1],2.0)),2.0)));
-        if (t < 3.00)
-            return t*exp(-t*t);
-        return T(0.0);
+   //return real(-1.0 / (imag*Param[0]) * (-1*Param[0]*imag + (Param[2]-t) / pow(2*Param[1],2)) * exp(-1*Param[0]*imag - pow(((Param[2]-t)/pow(2*Param[1],2.0)),2.0)));
+        return t*t*exp(-1 * pow(t-2,2));
         // look for the best way to calculate gaussian pulse
+    }
+    
+    const T const_pulse(double t)
+    {
+        return T(0.0);
     }
 };
 #endif
