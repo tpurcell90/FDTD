@@ -183,7 +183,6 @@ void FDTDField::ouputField() //iostream as input parameter?
 void FDTDField::step()
 {
     // disregard PML's to start
-    inc_t();
     // Source
     for(int kk = 0; kk < srcArr.size(); kk ++)
     {
@@ -197,19 +196,29 @@ void FDTDField::step()
                 Hy -> point(ii,jj) = 0;
                 break;
             case HX: //else if(srcArr[kk].pol() == HX)
-                Hx -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
-                break;
-            case EX: //else if(srcArr[kk].pol() == EX)
-                Ex -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
-                break;
-            case EY: //else if(srcArr[kk].pol() == EY)
-                Ey -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+                Hx -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
+                Ez -> point(ii,jj) = 0;
+                Hy -> point(ii,jj) = 0;
                 break;
             case HY: //else if(srcArr[kk].pol() == HY)
-                Hy -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+                Hy -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
+                Ez -> point(ii,jj) = 0;
+                Hx -> point(ii,jj) = 0;
                 break;
             case HZ: //else if(srcArr[kk].pol() == HZ)
-                Hz -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+                Hz -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
+                Ex -> point(ii,jj) = 0;
+                Ey -> point(ii,jj) = 0;
+                break;
+            case EX: //else if(srcArr[kk].pol() == EX)
+                Ex -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
+                Hz -> point(ii,jj) = 0;
+                Ey -> point(ii,jj) = 0;
+                break;
+            case EY: //else if(srcArr[kk].pol() == EY)
+                Ey -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
+                Hz -> point(ii,jj) = 0;
+                Ex -> point(ii,jj) = 0;
                 break;
             default:
                 cout << "Error" << endl;
@@ -240,7 +249,8 @@ void FDTDField::step()
             }
         }
     }
-    for(int ii = 0; ii < nx; ii ++)
+    // Code for prefect reflectors, which we don't ever really want
+    /*for(int ii = 0; ii < nx; ii ++)
     {
         double c_hxh = 1.0;
         double c_hxe = 1.0 * dt/dx;
@@ -248,21 +258,22 @@ void FDTDField::step()
         double c_hye = 1.0 * dt/dy;
         Hx->point(ii,0) = c_hxh * Hx->point(ii,0) - c_hxe * (Ez->point(ii,0+1)-Ez->point(ii,0));
         Hy->point(0,ii) = c_hyh * Hy->point(0,ii) + c_hye * (Ez->point(0+1,ii)-Ez->point(0,ii));
-    }
+    }*/
     for(int ii = 1; ii < nx - 1; ii ++)
     {
         for(int jj = 1; jj < ny - 1; jj ++)
         {
             if(Ez)
             {
-                //Only True in Vac
+                //Only True in Vac Once Mat/PML introduced vectorize it
                 double c_eze = 1.0;
                 double c_ezh = 1.0 * dt/dx;
                 Ez->point(ii,jj) = c_eze * Ez->point(ii,jj) + c_ezh * ((Hy->point(ii,jj)-Hy->point(ii-1,jj)) - (Hx->point(ii,jj)-Hx->point(ii,jj-1)));
             }
             else
             {
-                //Only True in Vac
+                //Only True in Vac Once Mat/PML introduced vectorize it
+                //
                 double c_exe = 1.0;
                 double c_exh = 1.0 * dt/dx;
                 double c_eye = 1.0;
@@ -273,41 +284,8 @@ void FDTDField::step()
         }
     }
     ouputField();
+    inc_t();
 }
-
-/*std::vector<double> FDTDField::pml(int npml, int m, int ma)
-{
-
-    double mu0 = 4.0e-7;
-    double eps0 = 1.0/(4.0e-7*pow(299792458.0,2));
-    double sigmaCPML = 0.75*(0.8*(m+1)/(dx*sqrt(mu0/eps0*eps_delectric)));
-    double alphaCPML = 0.24;
-    double kappaCPML = 20.0;
-    double precision psi_Hzy_1[Nx-1,npml-1],psi_Exy_1[Nx-1,npml]
-    double precision psi_Hzy_2(Nx-1,npml-1),psi_Exy_2(Nx-1,npml)
-    double precision be_y(npml),ce_y(npml),alphae_y(npml),sige_y(npml),kappae_y(npml)
-    double precision bh_y(npml-1),ch_y(npml-1),alphah_y(npml-1),sigh_y(npml-1),kappah_y(npml-1)
-    double precision den_ex(Nx),den_hx(Nx),den_ey(N_loc),den_hy(N_loc)
-    double precision psi_Hzy_1_inc(Nx-1,npml-1),psi_Exy_1_inc(Nx-1,npml)
-    double precision psi_Hzy_2_inc(Nx-1,npml-1),psi_Exy_2_inc(Nx-1,npml)
-
-
-    for(int jj = 0; jj < npml; jj++)
-    {
-        sige_y[jj] = sigmaCPML* pow((npml-jj) / (npml-1.0),m);
-        alphae_y[jj] = alphaCPML * pow((jj-1) / (npml-1.0),m);
-        kappae_y[jj] = 1.0 + (kappaCPML - 1.0) * pow((npml- jj) / (npml - 1.0),m);
-        be_y[jj] = exp(-(sige_y[jj] / kappae_y[jj] + alphae_y[jj]) * dt/eps0);
-        if((sige_y[jj] == 0.0) && (alphae_y[jj] == 0.0) && (j == npml))
-            ce_y[jj] = 0.0;
-        else
-            ce_y[jj] = sige_y[jj] * (be_y[jj]-1.0) / (sige_y[jj] + kappae_y[jj] * alphae_y[jj]) / kappae_y[jj];
-    }
-
-    vector<double> test(3,0.0);
-    return test;
-    */
-//}
 
 Obj makeSphere(vector<double> mater, double rad, vector<double> loc)
 {

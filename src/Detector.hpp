@@ -19,9 +19,17 @@ protected:
     OupuptsData Type;
 public:
     // Constructor
-    Detector(std::vector<int> loc, OupuptsData type) : location(loc), Type(type){}
+    Detector(std::vector<int> loc, OupuptsData type) : Type(type)
+    {
+        for (int ii = 0 ; ii < loc.size(); ii++)
+            location.push_back(loc[ii]);
+    }
     // Copy Constructor
-    Detector(const Detector& o) : location(o.location), Type(o.Type){}
+    Detector(const Detector& o) : Type(o.Type)
+    {
+        for (int ii = 0 ; ii < o.location.size(); ii++)
+            location.push_back(o.location[ii]);
+    }
 
     // Accessor Function
     std::vector<int> loc() {return location;}

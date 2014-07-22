@@ -65,8 +65,8 @@ programInputs::programInputs(std::string fn) : filename(fn)
     {
         string sStr(iter.second.get<string>("shape"));
         Shape s = string2shape(sStr);
-        vector<double> loc(2,0.0);
-        vector<double> size(2,0.0);
+        vector<double> loc = {};
+        vector<double> size = {};
         size.push_back(iter.second.get<double>("size_x"));
         size.push_back(iter.second.get<double>("size_y"));
         loc.push_back(iter.second.get<double>("loc_x"));
@@ -90,8 +90,7 @@ programInputs::programInputs(std::string fn) : filename(fn)
         for(int x = x_min; x <= x_max; x ++)
             for(int y = y_min; y <= y_max; y++)
             {
-                vector<int> loc(2,x);
-                loc[1] = y;
+                vector<int> loc = {x,y};
                 dctArr.push_back(Detector<double>(loc,t));
             }
     }
@@ -105,7 +104,7 @@ programInputs::programInputs(std::string fn) : filename(fn)
 
 vector<double> programInputs::getDielectricParams(string mat)
 {
-    vector<double> dielec(1,1.0);
+    vector<double> dielec = {};
     if(mat.compare("Ag"))
     {
         dielec.push_back(1.00); // so on and so on I'll add all this later

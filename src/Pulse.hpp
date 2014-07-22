@@ -22,7 +22,11 @@ public:
             Param.push_back(param[ii]);
     }
     // Copy Constructor
-    Pulse(const Pulse& o) : Param(o.Param), Type(o.Type) {}
+    Pulse(const Pulse& o) :  Type(o.Type)
+    {
+        for (int ii = 0 ; ii < o.Param.size(); ii++)
+            Param.push_back(o.Param[ii]);
+    }
     //Acessor Functions
     std::vector<T> param() {return Param;}
     ProfType type() {return Type;}

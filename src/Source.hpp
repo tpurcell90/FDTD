@@ -21,11 +21,18 @@ protected:
 
 public:
     // Constructor
-    Source(Pulse<double> prof, Polarization pol,std::vector<int> loc) : profile(prof), polarization(pol), location(loc) {}
+    Source(Pulse<double> prof, Polarization pol,std::vector<int> loc) : profile(prof), polarization(pol)
+    {
+        for (int ii = 0 ; ii < loc.size(); ii++)
+            location.push_back(loc[ii]);
 
+    }
     // Copy Constructor
-    Source(const Source& o) : profile(o.profile), polarization(o.polarization), location(o.location) {}
-
+    Source(const Source& o) : profile(o.profile), polarization(o.polarization)
+    {
+        for (int ii = 0 ; ii < o.location.size(); ii++)
+            location.push_back(o.location[ii]);
+    }
     //Access Functions
     Polarization pol() {return polarization;}
     std::vector<int> loc()  {return location;}
