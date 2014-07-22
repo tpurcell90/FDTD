@@ -48,15 +48,10 @@ bool Obj::isObj(std::vector<double> v)
                 isIn = false;
         }
     }
-    else if(part == sphere)
-    {
-        if(dist(v,location) > geoParam[0])
-            isIn = false;
-    }
-    else
-    {
+    else if(part == sphere && dist(v,location) > geoParam[0])
         isIn = false;
-    }
+    else
+        isIn = false;
     return isIn;
 }
 double Obj::dist(vector<double> pt1, vector<double> pt2)

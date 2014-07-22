@@ -15,7 +15,7 @@
 
 using namespace std;
 
-FDTDField::FDTDField(programInputs IP)
+FDTDField::FDTDField(programInputs &IP)
 {
     //Define cell parameters
     t_cur = 0;
@@ -26,7 +26,7 @@ FDTDField::FDTDField(programInputs IP)
     nx = int((IP.x_size)*res) + 1; //Better way here; + 1 to include the 0 point
     ny = int((IP.y_size)*res) + 1; //Better way here; + 1 to include the 0 point
     srcArr = IP.srcArr;
-    objArr = IP.objArr; 
+    objArr = IP.objArr;
     dtcArr = IP.dctArr;
     // Create the Grids. Do I need a null constructor for the set that I disregard?
     if(IP.pol.compare("Hz") == 0 || IP.pol.compare("Ey") == 0 || IP.pol.compare("Ex") == 0)
@@ -74,15 +74,11 @@ int FDTDField::getRes() {return res;}
 std::vector<Detector<double>> FDTDField::getDtcArr() {return dtcArr;}
 shared_ptr<Grid2D<int>> FDTDField::getPhysEz() {return phys_Ez;}
 
-void FDTDField::inc_t()
-{
-    t_cur += dt;
-}
+void FDTDField::inc_t() {t_cur += dt;}
 
-
-void FDTDField::initializeGrid(programInputs IP)
+void FDTDField::initializeGrid(programInputs &IP)
 {
-    for(int ii = 0; ii < objArr.size(); ii ++) 
+    for(int ii = 0; ii < objArr.size(); ii ++)
     {
         if(Hz)
         {
@@ -93,7 +89,7 @@ void FDTDField::initializeGrid(programInputs IP)
                     for(int kk = 0; kk < ny-1; kk ++)
                     {
                         vector<double> pt({(jj+0.5)*dx,kk*dy});
-                        if(objArr[ii].isObj(pt)) 
+                        if(objArr[ii].isObj(pt))
                             phys_Ex->point(jj,kk) = ii;
                         pt[1] += 0.5*dy;
                         if(objArr[ii].isObj(pt))
@@ -167,10 +163,10 @@ void FDTDField::initializeGrid(programInputs IP)
     }
 }
 
-void FDTDField::ouputField()
+void FDTDField::ouputField() //iostream as input parameter?
 {
     // Work on a plan for this one
-    // This again will be bade on how I set up the geometry of the cell, but basically will just be storing the data in an output file with points specified 
+    // This again will be bade on how I set up the geometry of the cell, but basically will just be storing the data in an output file with points specified
     // Need to think of the best format to do this in
     ofstream outFile;
     outFile.open("Out.dat", ios_base::app);
@@ -180,8 +176,8 @@ void FDTDField::ouputField()
         cout << setw(9) << t_cur << "\t" << dtcArr[ii].loc()[0] << "\t" << dtcArr[ii].loc()[1] << "\t" << setw(10) << dtcArr[ii].output(Ez)<< "\t" <<  srcArr[0].prof().pulse(t_cur) << "\n";
     }
     outFile.close();
-    
-    
+
+
 }
 
 void FDTDField::step()
@@ -193,26 +189,32 @@ void FDTDField::step()
     {
         int ii = srcArr[kk].loc()[0];
         int jj = srcArr[kk].loc()[1];
-        if(srcArr[kk].pol() == EZ)
+        switch ( srcArr[kk].pol() )
         {
-            Ez -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
-            Hx -> point(ii,jj) = 0;
-            Hy -> point(ii,jj) = 0;
+            case EZ: //if(srcArr[kk].pol() == EZ)
+                Ez -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
+                Hx -> point(ii,jj) = 0;
+                Hy -> point(ii,jj) = 0;
+                break;
+            case HX: //else if(srcArr[kk].pol() == HX)
+                Hx -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+                break;
+            case EX: //else if(srcArr[kk].pol() == EX)
+                Ex -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+                break;
+            case EY: //else if(srcArr[kk].pol() == EY)
+                Ey -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+                break;
+            case HY: //else if(srcArr[kk].pol() == HY)
+                Hy -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+                break;
+            case HZ: //else if(srcArr[kk].pol() == HZ)
+                Hz -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
+                break;
+            default:
+                cout << "Error" << endl;
+                break;
         }
-        else if(srcArr[kk].pol() == EX)
-            Ex -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
-        else if(srcArr[kk].pol() == EY)
-            Ey -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
-        else if(srcArr[kk].pol() == HX)
-        {
-            Hx -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
-        }
-        else if(srcArr[kk].pol() == HY)
-        {
-            Hy -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
-        }
-        else if(srcArr[kk].pol() == HZ)
-            Hz -> point(ii,jj) += srcArr[kk].prof().pulse(t_cur);
     }
     for(int ii = 1; ii < nx - 1; ii ++)
     {
@@ -275,25 +277,25 @@ void FDTDField::step()
 
 /*std::vector<double> FDTDField::pml(int npml, int m, int ma)
 {
-    
+
     double mu0 = 4.0e-7;
     double eps0 = 1.0/(4.0e-7*pow(299792458.0,2));
     double sigmaCPML = 0.75*(0.8*(m+1)/(dx*sqrt(mu0/eps0*eps_delectric)));
     double alphaCPML = 0.24;
     double kappaCPML = 20.0;
-    double precision psi_Hzy_1[Nx-1,npml-1],psi_Exy_1[Nx-1,npml]                              
+    double precision psi_Hzy_1[Nx-1,npml-1],psi_Exy_1[Nx-1,npml]
     double precision psi_Hzy_2(Nx-1,npml-1),psi_Exy_2(Nx-1,npml)
     double precision be_y(npml),ce_y(npml),alphae_y(npml),sige_y(npml),kappae_y(npml)
     double precision bh_y(npml-1),ch_y(npml-1),alphah_y(npml-1),sigh_y(npml-1),kappah_y(npml-1)
     double precision den_ex(Nx),den_hx(Nx),den_ey(N_loc),den_hy(N_loc)
-    double precision psi_Hzy_1_inc(Nx-1,npml-1),psi_Exy_1_inc(Nx-1,npml)                              
+    double precision psi_Hzy_1_inc(Nx-1,npml-1),psi_Exy_1_inc(Nx-1,npml)
     double precision psi_Hzy_2_inc(Nx-1,npml-1),psi_Exy_2_inc(Nx-1,npml)
 
 
     for(int jj = 0; jj < npml; jj++)
     {
         sige_y[jj] = sigmaCPML* pow((npml-jj) / (npml-1.0),m);
-        alphae_y[jj] = alphaCPML * pow((jj-1) / (npml-1.0),m);    
+        alphae_y[jj] = alphaCPML * pow((jj-1) / (npml-1.0),m);
         kappae_y[jj] = 1.0 + (kappaCPML - 1.0) * pow((npml- jj) / (npml - 1.0),m);
         be_y[jj] = exp(-(sige_y[jj] / kappae_y[jj] + alphae_y[jj]) * dt/eps0);
         if((sige_y[jj] == 0.0) && (alphae_y[jj] == 0.0) && (j == npml))
@@ -301,8 +303,8 @@ void FDTDField::step()
         else
             ce_y[jj] = sige_y[jj] * (be_y[jj]-1.0) / (sige_y[jj] + kappae_y[jj] * alphae_y[jj]) / kappae_y[jj];
     }
-   
-    vector<double> test(3,0.0); 
+
+    vector<double> test(3,0.0);
     return test;
     */
 //}

@@ -34,14 +34,14 @@ programInputs::programInputs(std::string fn) : filename(fn)
         */   //This will be fixed for vectors but for now hard coding in the vectors
         pol = iter.second.get<string>("pol");
         Polarization pols = string2pol(pol);
-        vector<double> fxn(4,100.8);
+        vector<double> fxn ={};
         fxn.push_back(iter.second.get<double>("fcen"));
         fxn.push_back(iter.second.get<double>("fwidth"));
         fxn.push_back(iter.second.get<double>("cutoff"));
         fxn.push_back(iter.second.get<double>("t_start"));
         // Now I need to write the funciton class for the source to take in
-        double sz_x = iter.second.get<double>("size_x");
-        double sz_y = iter.second.get<double>("size_y");
+        double sz_x  = iter.second.get<double>("size_x");
+        double sz_y  = iter.second.get<double>("size_y");
         double loc_x = iter.second.get<double>("loc_x");
         double loc_y = iter.second.get<double>("loc_y");
         // Make proper rounding function
@@ -58,9 +58,7 @@ programInputs::programInputs(std::string fn) : filename(fn)
             }
     }
     vector<double> loc(2,0.0);
-    vector<double> size(2,0.0);
-    size[0] = x_size;
-    size[1] = y_size;
+    vector<double> size = {x_size,y_size};
     vector<double> mat(1,1.0);
     objArr.push_back(Obj(block,mat,size,loc));
     for (auto& iter : IP.get_child("ObjectList"))

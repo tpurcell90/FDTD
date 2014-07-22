@@ -5,7 +5,12 @@
 using namespace std;
 int main(int argc, char const *argv[])
 {
-    programInputs IP("/home/tap620/git/FDTD/inputs.json");
+    if (argc < 2)
+    {
+        cout << "Provide an input json file" << endl;
+        exit(1);
+    }
+    programInputs IP(argv[1]);
     FDTDField FF(IP);
 
     /*cout << "hello \n";

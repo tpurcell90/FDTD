@@ -21,7 +21,7 @@ protected:
     std::vector<double> material;
     Shape part;
     std::vector<double> location;
- 
+
 public:
     // Constructor
     Obj(Shape s, std::vector<double> mater, std::vector<double> geo, std::vector<double> loc);

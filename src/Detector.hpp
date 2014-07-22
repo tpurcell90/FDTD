@@ -30,11 +30,9 @@ public:
     // Output functions
     T output (std::shared_ptr<Grid2D<T>> field_in)
     {
-        if(Type == field)
-        {
-            return field_in->point(location[0],location[1]); 
-        }
-        return T(0);
+        T out;
+        (Type == field) ? out = field_in->point(location[0],location[1]) : out = T(0);
+        return out;
     }
 };
 #endif

@@ -28,12 +28,12 @@ public:
     vector<Obj> objArr;
 	//Source Parameters Start with just Gaussian complicate later
     vector<Source<double>> srcArr;
-    vector<Detector<double>> dctArr; 
+    vector<Detector<double>> dctArr;
 	//Geometry Will add parameters as I write
 	int n_struct;
 
 	//Ouputs Will add parameters as I write
-	
+
 	//Imports the parameters from json file, converts to atomic units
 	programInputs(std::string infile);
 

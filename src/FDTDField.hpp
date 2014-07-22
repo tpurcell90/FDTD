@@ -31,8 +31,8 @@ protected:
 
 public:
     std::shared_ptr<Grid2D<double>> Ex,Ey,Ez,Hx,Hy,Hz;
-    FDTDField(programInputs IP);
-    void initializeGrid(programInputs IP);
+    FDTDField(programInputs &IP);
+    void initializeGrid(programInputs &IP);
 
     // Access Functions
     size_t n_x();

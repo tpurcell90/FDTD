@@ -25,7 +25,7 @@ public:
 
     // Copy Constructor
     Source(const Source& o) : profile(o.profile), polarization(o.polarization), location(o.location) {}
-   
+
     //Access Functions
     Polarization pol() {return polarization;}
     std::vector<int> loc()  {return location;}
