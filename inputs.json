@@ -26,14 +26,14 @@
     "DetectorList" : [
         {
             "loc_x"    : 0.00,
-            "loc_y"    : 9.00,
+            "loc_y"    : 5.00,
             "size_x"   : 0.00,
             "size_y"   : 0.00,
             "type"     : "Ez"
         },
         {
             "loc_x"    : 0.00,
-            "loc_y"    : -9.00,
+            "loc_y"    : -10.00,
             "size_x"   : 0.00,
             "size_y"   : 0.00,
             "type"     : "Ez"

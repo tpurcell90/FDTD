@@ -174,8 +174,8 @@ void FDTDField::ouputField(Detector<double> d) //iostream as input parameter?
 {
     ofstream outFile;
     outFile.open(d.outfile(), ios_base::app);
-    outFile << setw(9) << t_cur << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez)<< "\t" <<  srcArr[0].prof().pulse(t_cur) << endl;
-    cout << setw(9) << t_cur << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez)<< "\t" <<  srcArr[0].prof().pulse(t_cur) << endl;
+    outFile << setw(9) << t_cur << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez)<< "\t" << setw(10) << d.output(Hx)<< "\t" << setw(10)<< d.output(Hy)<< "\t" <<  srcArr[0].prof().pulse(t_cur) << endl;
+    cout << setw(9) << t_cur << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez)<< "\t" << setw(10) << d.output(Hx)<< "\t" << setw(10)<< d.output(Hy)<< "\t" <<  srcArr[0].prof().pulse(t_cur) << endl;
     outFile.close();
 
 
@@ -185,6 +185,7 @@ void FDTDField::step()
 {
     // disregard PML's to start
     // Source
+    inc_t();
     for(int kk = 0; kk < srcArr.size(); kk ++)
     {
         int ii = srcArr[kk].loc()[0];
@@ -193,33 +194,21 @@ void FDTDField::step()
         {
             case EZ: //if(srcArr[kk].pol() == EZ)
                 Ez -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
-                Hx -> point(ii,jj) = 0;
-                Hy -> point(ii,jj) = 0;
                 break;
             case HX: //else if(srcArr[kk].pol() == HX)
                 Hx -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
-                Ez -> point(ii,jj) = 0;
-                Hy -> point(ii,jj) = 0;
                 break;
             case HY: //else if(srcArr[kk].pol() == HY)
                 Hy -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
-                Ez -> point(ii,jj) = 0;
-                Hx -> point(ii,jj) = 0;
                 break;
             case HZ: //else if(srcArr[kk].pol() == HZ)
                 Hz -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
-                Ex -> point(ii,jj) = 0;
-                Ey -> point(ii,jj) = 0;
                 break;
             case EX: //else if(srcArr[kk].pol() == EX)
                 Ex -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
-                Hz -> point(ii,jj) = 0;
-                Ey -> point(ii,jj) = 0;
                 break;
             case EY: //else if(srcArr[kk].pol() == EY)
                 Ey -> point(ii,jj) = srcArr[kk].prof().pulse(t_cur);
-                Hz -> point(ii,jj) = 0;
-                Ex -> point(ii,jj) = 0;
                 break;
             default:
                 throw logic_error("reached a default case in a switch state that should never happen!");
@@ -260,6 +249,15 @@ void FDTDField::step()
         Hx->point(ii,0) = c_hxh * Hx->point(ii,0) - c_hxe * (Ez->point(ii,0+1)-Ez->point(ii,0));
         Hy->point(0,ii) = c_hyh * Hy->point(0,ii) + c_hye * (Ez->point(0+1,ii)-Ez->point(0,ii));
     }
+    for(int ii = 1; ii < nx-1; ii ++)
+    {
+        double c_hxh = 1.0;
+        double c_hxe = 1.0 * dt/dx;
+        double c_hyh = 1.0;
+        double c_hye = 1.0 * dt/dy;
+        Hx->point(nx-1,ii) = c_hxh * Hx->point(ii,0) - c_hxe * (Ez->point(ii,0+1)-Ez->point(ii,0));
+        Hy->point(ii,nx-1) = c_hyh * Hy->point(0,ii) + c_hye * (Ez->point(0+1,ii)-Ez->point(0,ii));
+    }
     for(int ii = 1; ii < nx - 1; ii ++)
     {
         for(int jj = 1; jj < ny - 1; jj ++)
@@ -286,7 +284,6 @@ void FDTDField::step()
     }
     for(int ii = 0; ii < dtcArr.size(); ii ++)
         ouputField(dtcArr[ii]);
-    inc_t();
 }
 
 Obj makeSphere(vector<double> mater, double rad, vector<double> loc)
