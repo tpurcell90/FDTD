@@ -12,6 +12,7 @@ int main(int argc, char const *argv[])
     }
     programInputs IP(argv[1]);
     FDTDField FF(IP);
+    cout<<"I MADE THE FDTDField" << endl;
 
     /*cout << "hello \n";
     cout << FF.n_x() <<"\n";
@@ -21,6 +22,7 @@ int main(int argc, char const *argv[])
     cout << FF.d_t() <<"\n";
     */
     FF.initializeGrid(IP);
+    cout<<"AND INITIALIZED THE GRID!" << endl;    
     for(int ii = 0; ii < 2000; ii++)
         FF.step();
     cout << "I am always in error\n";

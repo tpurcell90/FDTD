@@ -6,35 +6,27 @@
 #include <complex>
 #include "enum.hpp"
 
-enum ProfType {gaussian, continuous};
+enum plsShape {gaussian, continuous};
 
 template <typename T> class Pulse
 {
 protected:
-    std::vector<T> Param;
-    ProfType Type;
+    std::vector<T> param_;
+    plsShape plsType_;
 
 public:
     // Constructor
-    Pulse(std::vector<T> param, ProfType type) : Type(type)
-    {
-        for (int ii = 0 ; ii < param.size(); ii++)
-            Param.push_back(param[ii]);
-    }
+    Pulse(std::vector<T> param, plsShape type) : param_(param), plsType_(type) {}
     // Copy Constructor
-    Pulse(const Pulse& o) :  Type(o.Type)
-    {
-        for (int ii = 0 ; ii < o.Param.size(); ii++)
-            Param.push_back(o.Param[ii]);
-    }
+    Pulse(const Pulse& o) : param_(o.param_), plsType_(o.plsType_) {}
     //Acessor Functions
-    std::vector<T> param() {return Param;}
-    ProfType type() {return Type;}
+    std::vector<T> param() {return param_;}
+    plsShape type() {return plsType_;}
 
     const T pulse(double t)
     {
         T pul;
-        switch ( Type )
+        switch ( plsType_ )
         {
             case gaussian: //if(srcArr[kk].pol() == EZ)
                 pul = gauss_pulse(t);
@@ -47,7 +39,7 @@ public:
                 break;
         }
         return pul;
-        //if(Type == gaussian)
+        //if(plsType_ == gaussian)
         //    return gauss_pulse(t);
         //else if 
         //return T(0.0);
@@ -56,8 +48,8 @@ public:
     const T gauss_pulse(double t)
     {
         std::complex<double> imag(0.0,1.0);
-        //if (t < Param[1]*Param[3])
-   //return real(-1.0 / (imag*Param[0]) * (-1*Param[0]*imag + (Param[2]-t) / pow(2*Param[1],2)) * exp(-1*Param[0]*imag - pow(((Param[2]-t)/pow(2*Param[1],2.0)),2.0)));
+        //if (t < param_[1]*param_[3])
+   //return real(-1.0 / (imag*param_[0]) * (-1*param_[0]*imag + (param_[2]-t) / pow(2*param_[1],2)) * exp(-1*param_[0]*imag - pow(((param_[2]-t)/pow(2*param_[1],2.0)),2.0)));
         return t*t*exp(-1 * pow(t-2,2));
         // look for the best way to calculate gaussian pulse
     }

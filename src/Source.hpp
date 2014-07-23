@@ -16,26 +16,17 @@ template <typename T> class Source
 {
 protected:
     Pulse<T> profile;
-    Polarization polarization;
-    std::vector<int> location;
+    Polarization polarization_;
+    std::vector<int> location_;
 
 public:
     // Constructor
-    Source(Pulse<double> prof, Polarization pol,std::vector<int> loc) : profile(prof), polarization(pol)
-    {
-        for (int ii = 0 ; ii < loc.size(); ii++)
-            location.push_back(loc[ii]);
-
-    }
+    Source(Pulse<double> prof, Polarization pol,std::vector<int> loc) : profile(prof), polarization_(pol), location_(loc) {}
     // Copy Constructor
-    Source(const Source& o) : profile(o.profile), polarization(o.polarization)
-    {
-        for (int ii = 0 ; ii < o.location.size(); ii++)
-            location.push_back(o.location[ii]);
-    }
+    Source(const Source& o) : profile(o.profile), polarization_(o.polarization_), location_(o.location_) {}
     //Access Functions
-    Polarization pol() {return polarization;}
-    std::vector<int> loc()  {return location;}
+    Polarization pol() {return polarization_;}
+    std::vector<int> loc()  {return location_;}
     Pulse<T> prof() {return profile;}
 };
 

@@ -14,39 +14,36 @@ using namespace std;
 class programInputs
 {
 public:
-	std::string filename;
+	std::string filename_;
 	//Computational cell parameters and run parameters
-    int procs;
-    double x_size;
-    double y_size;
-    double z_size;
-    double res;
-    double courant;
-    double t_pml;
-    std::string output_base;
-    string pol;
+    int procs_;
+    double x_size_;
+    double y_size_;
+    double z_size_;
+    double res_;
+    double courant_;
+    double t_pml_;
+    std::string output_base_;
+    string pol_;
     //vector<Source<double>> srcArr();
-    vector<Obj> objArr;
+    vector<Obj> objArr_;
 	//Source Parameters Start with just Gaussian complicate later
-    vector<Source<double>> srcArr;
-    vector<Detector<double>> dctArr;
+    vector<Source<double>> srcArr_;
+    vector<Detector<double>> dctArr_;
 	//Geometry Will add parameters as I write
-	int n_struct;
-
-	//Ouputs Will add parameters as I write
+	int n_struct_;
 
 	//Imports the parameters from json file, converts to atomic units
 	programInputs(std::string infile);
-
     vector<double> getDielectricParams(string mat);
     // Conversion to enums
     Polarization string2pol(string p);
     Shape string2shape(string s);
-    OupuptsData string2out(string t);
-    ProfType string2prof(string p);
+    dtcOutType string2out(string t);
+    plsShape string2prof(string p);
 
     // convert double to int grid point
-    int find_pt(double pt);
+    int find_pt(double pt) {return int(pt*res_);};
 
 	//Removes comment lines from the json file
 	void stripComments();

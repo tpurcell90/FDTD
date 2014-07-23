@@ -21,33 +21,38 @@
 class FDTDField
 {
 protected:
-    size_t nx,ny;
-    double dx,dy,dt, t_cur;
-    int res;
-    std::shared_ptr<Grid2D<int>> phys_Ex,phys_Ey,phys_Ez,phys_Hx,phys_Hy,phys_Hz;
-    std::vector<Source<double>> srcArr;
-    std::vector<Obj> objArr;
-    std::vector<Detector<double>> dtcArr;
+    size_t nx_,ny_;
+    double dx_,dy_,dt_, tcur_;
+    int res_;
+    std::shared_ptr<Grid2D<int>> phys_Ex_,phys_Ey_,phys_Ez_,phys_Hx_,phys_Hy_,phys_Hz_;
+    std::vector<Source<double>> srcArr_;
+    std::vector<Obj> objArr_;
+    std::vector<Detector<double>> dtcArr_;
 
 public:
-    std::shared_ptr<Grid2D<double>> Ex,Ey,Ez,Hx,Hy,Hz;
+    std::shared_ptr<Grid2D<double>> Ex_,Ey_,Ez_,Hx_,Hy_,Hz_;
     FDTDField(programInputs &IP);
     void initializeGrid(programInputs &IP);
 
     // Access Functions
-    size_t n_x();
-    size_t n_y();
-    double d_x();
-    double d_y();
-    double d_t();
-    double getTime();
-    std::vector<Detector<double>> getDtcArr();
-    int getRes();
-    std::shared_ptr<Grid2D<int>> getPhysEz();    
+    size_t nx(){return nx_;}
+    size_t ny(){return ny_;}
+    double dx(){return dx_;}
+    double dy(){return dy_;}
+    double dt(){return dt_;}
+    double getTime(){return tcur_;}
+    std::vector<Detector<double>> getDtcArr(){return dtcArr_;}
+    int getRes(){return res_;}
+    std::shared_ptr<Grid2D<int>> getPhysEz(){return phys_Ez_;}
+    std::shared_ptr<Grid2D<int>> getPhysEx(){return phys_Ex_;}
+    std::shared_ptr<Grid2D<int>> getPhysEy(){return phys_Ey_;}
+    std::shared_ptr<Grid2D<int>> getPhysHy(){return phys_Hy_;}
+    std::shared_ptr<Grid2D<int>> getPhysHx(){return phys_Hx_;}
+    std::shared_ptr<Grid2D<int>> getPhysHz(){return phys_Hz_;}
+
 
     void ouputField(Detector<double> d);
     void step();
-    void inc_t();
     Obj makeSphere(vector<double> mater, double rad, vector<double> loc);
     Obj makeBlock(vector<double> mater, vector<double> dims, vector<double> loc);
     std::vector<double> pml(int npml, int m, int ma);

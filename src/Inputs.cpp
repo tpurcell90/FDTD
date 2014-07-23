@@ -7,25 +7,25 @@
 #include <vector>
 using namespace std;
 
-programInputs::programInputs(std::string fn) : filename(fn)
+programInputs::programInputs(std::string fn) : filename_(fn)
 {
     boost::property_tree::ptree IP;
-    boost::property_tree::json_parser::read_json(filename,IP);
+    boost::property_tree::json_parser::read_json(filename_,IP);
     // Basic FDTD params
-    procs       = IP.get<int>("CompCell.Procs",1);
-    x_size      = IP.get<double>("CompCell.x_size",10.1);
-    y_size      = IP.get<double>("CompCell.y_size",10.1);
-    z_size      = IP.get<double>("CompCell.z_size",10.1);
-    res         = IP.get<int>("CompCell.res", 10);
-    t_pml       = IP.get<double>("CompCell.PML_Thick", 1.1);
-    courant     = IP.get<double>("CompCell.courant", 0.5);
-    output_base = IP.get<string>("CompCell.output", "dtc_out");
+    procs_       = IP.get<int>("CompCell.Procs",1);
+    x_size_      = IP.get<double>("CompCell.x_size",10.1);
+    y_size_      = IP.get<double>("CompCell.y_size",10.1);
+    z_size_      = IP.get<double>("CompCell.z_size",10.1);
+    res_         = IP.get<int>("CompCell.res", 10);
+    t_pml_       = IP.get<double>("CompCell.PML_Thick", 1.1);
+    courant_     = IP.get<double>("CompCell.courant", 0.5);
+    output_base_ = IP.get<string>("CompCell.output", "dtc_out");
     // Crating the srcArr
     //for(int ii = 0; ii < IP.get_child("SourceList").size(); ii ++)
     for (auto& iter : IP.get_child("SourceList"))
     {
         string p = iter.second.get<string>("profile");
-        ProfType prof = string2prof(p);
+        plsShape prof = string2prof(p);
         /*boost::property_tree::ptree& size = iter.second.get_child("size");
         if (size.size() != 2)
           throw runtime_error("\"size\" needs two elements");
@@ -33,8 +33,8 @@ programInputs::programInputs(std::string fn) : filename(fn)
         for (auto& i : size)
             tmpsize.push_back(i.second);
         */   //This will be fixed for vectors but for now hard coding in the vectors
-        pol = iter.second.get<string>("pol");
-        Polarization pols = string2pol(pol);
+        pol_ = iter.second.get<string>("pol");
+        Polarization pols = string2pol(pol_);
         vector<double> fxn ={};
         fxn.push_back(iter.second.get<double>("fcen"));
         fxn.push_back(iter.second.get<double>("fwidth"));
@@ -46,22 +46,21 @@ programInputs::programInputs(std::string fn) : filename(fn)
         double loc_x = iter.second.get<double>("loc_x");
         double loc_y = iter.second.get<double>("loc_y");
         // Make proper rounding function
-        int x_min = find_pt(loc_x-sz_x/2.0+x_size/2.0);
-        int x_max = find_pt(loc_x+sz_x/2.0+x_size/2.0);
-        int y_min = find_pt(loc_y-sz_y/2.0+y_size/2.0);
-        int y_max = find_pt(loc_y+sz_y/2.0+y_size/2.0);
+        int x_min = find_pt(loc_x-sz_x/2.0+x_size_/2.0);
+        int x_max = find_pt(loc_x+sz_x/2.0+x_size_/2.0);
+        int y_min = find_pt(loc_y-sz_y/2.0+y_size_/2.0);
+        int y_max = find_pt(loc_y+sz_y/2.0+y_size_/2.0);
         for(int x = x_min; x <= x_max; x ++)
             for(int y = y_min; y <= y_max; y++)
             {
-                vector<int> loc(2,x);
-                loc[1] = y;
-                srcArr.push_back(Source<double>(Pulse<double>(fxn,prof), pols, loc));
+                vector<int> loc = {x,y};
+                srcArr_.push_back(Source<double>(Pulse<double>(fxn,prof), pols, loc));
             }
     }
     vector<double> loc(2,0.0);
-    vector<double> size = {x_size,y_size};
+    vector<double> size = {x_size_,y_size_};
     vector<double> mat(1,1.0);
-    objArr.push_back(Obj(block,mat,size,loc));
+    objArr_.push_back(Obj(block,mat,size,loc));
     for (auto& iter : IP.get_child("ObjectList"))
     {
         string sStr(iter.second.get<string>("shape"));
@@ -73,23 +72,23 @@ programInputs::programInputs(std::string fn) : filename(fn)
         loc.push_back(iter.second.get<double>("loc_x"));
         loc.push_back(iter.second.get<double>("loc_y"));
         string mater = iter.second.get<string>("material");
-        objArr.push_back(Obj(s,getDielectricParams(mater),size,loc));
+        objArr_.push_back(Obj(s,getDielectricParams(mater),size,loc));
     }
     int ii = 0;
     int jj = 0;
     for (auto& iter : IP.get_child("DetectorList"))
     {
         string tt(iter.second.get<string>("type"));
-        OupuptsData t = string2out(tt);
+        dtcOutType t = string2out(tt);
         string out_name;
         if(t == field)
         {
-            out_name = output_base + "_field_" + to_string(ii) + ".dat";
+            out_name = "output_data/" + output_base_ + "_field_" + to_string(ii) + ".dat";
             ii ++;
         }
         else
         {
-            out_name = output_base + "_flux_" + to_string(jj) + ".dat";
+            out_name = "output_data/" + output_base_ + "_flux_" + to_string(jj) + ".dat";
             jj++;
         }
         double sz_x = iter.second.get<double>("size_x");
@@ -97,18 +96,17 @@ programInputs::programInputs(std::string fn) : filename(fn)
         double loc_x = iter.second.get<double>("loc_x");
         double loc_y = iter.second.get<double>("loc_y");
         // Make proper rounding function
-        int x_min = find_pt(loc_x-sz_x/2.0+x_size/2.0);
-        int x_max = find_pt(loc_x+sz_x/2.0+x_size/2.0);
-        int y_min = find_pt(loc_y-sz_y/2.0+y_size/2.0);
-        int y_max = find_pt(loc_y+sz_y/2.0+y_size/2.0);
+        int x_min = find_pt(loc_x-sz_x/2.0+x_size_/2.0);
+        int x_max = find_pt(loc_x+sz_x/2.0+x_size_/2.0);
+        int y_min = find_pt(loc_y-sz_y/2.0+y_size_/2.0);
+        int y_max = find_pt(loc_y+sz_y/2.0+y_size_/2.0);
         for(int x = x_min; x <= x_max; x ++)
             for(int y = y_min; y <= y_max; y++)
             {
                 vector<int> loc = {x,y};
-                dctArr.push_back(Detector<double>(loc,t,out_name));
+                dctArr_.push_back(Detector<double>(loc,t,out_name));
             }
     }
-    string pol	= IP.get<string>("SourceParam.Pol", "EZ");
     //Copies the json data to a file to check for debugging
     //ofstream ss;
     //ss.open("output_data/inputs_check.json");
@@ -129,9 +127,9 @@ vector<double> programInputs::getDielectricParams(string mat)
 void programInputs::stripComments()
 {
 	//Open input and output file
-	string newfn = "output_data/" + filename;
+	string newfn = "output_data/" + filename_;
 	fstream inputfile;
-	inputfile.open(filename);
+	inputfile.open(filename_);
 	ofstream inputcopy;
 	inputcopy.open(newfn);
 
@@ -150,7 +148,7 @@ void programInputs::stripComments()
 	inputcopy.close();
 
 	//update filename;
-	filename = newfn;
+	filename_ = newfn;
 }
 Polarization programInputs::string2pol(string p)
 {
@@ -184,7 +182,7 @@ Shape programInputs::string2shape(string s)
     else
         return block; //Throw an error I know
 }
-OupuptsData programInputs::string2out(string t)
+dtcOutType programInputs::string2out(string t)
 {
     if(t.compare("field") == 0)
         return field;
@@ -193,7 +191,7 @@ OupuptsData programInputs::string2out(string t)
     else
         return field; //Yes, yes error, I know
 }
-ProfType programInputs::string2prof(string p)
+plsShape programInputs::string2prof(string p)
 {
     if(p.compare("gaussian") == 0)
         return gaussian;
@@ -201,11 +199,6 @@ ProfType programInputs::string2prof(string p)
         return continuous;
     else
         return gaussian; // I should be an error again
-}
-
-int programInputs::find_pt(double pt)
-{
-    return int(pt*res); // make it better
 }
 
 void programInputs::toFDTD()
