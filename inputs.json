@@ -9,11 +9,11 @@
     },
     "SourceList" : [
         {
-            "profile"  : "gauss",
-            "fcen"     : 0.200,
-            "fwidth"   : 0.100,
-            "cutoff"   : 5.00,
-            "t_start"  : 0.00,
+            "profile"  : "gaussian",
+            "fcen"     : 3.000,
+            "fwidth"   : 1.000,
+            "cutoff"   : 20.00,
+            "t_start"  : 10.00,
             "size_x"   : 30.00,
             "size_y"   : 0.00,
             "pol"      : "Ez",
@@ -29,14 +29,32 @@
             "loc_y"    : 5.00,
             "size_x"   : 0.00,
             "size_y"   : 0.00,
-            "type"     : "Ez"
+            "type"     : "flux",
+            "pol"      : "Ez"
         },
         {
             "loc_x"    : 0.00,
-            "loc_y"    : -10.00,
+            "loc_y"    : -5.00,
             "size_x"   : 0.00,
             "size_y"   : 0.00,
-            "type"     : "Ez"
+            "type"     : "flux",
+            "pol"      : "Ez"
+        },
+        {
+            "loc_x"    : 0.00,
+            "loc_y"    : 5.00,
+            "size_x"   : 0.00,
+            "size_y"   : 0.00,
+            "type"     : "field",
+            "pol"      : "Ez"
+        },
+        {
+            "loc_x"    : 0.00,
+            "loc_y"    : -5.00,
+            "size_x"   : 0.00,
+            "size_y"   : 0.00,
+            "type"     : "field",
+            "pol"      : "Ez"
         }
     ]
 }

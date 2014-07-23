@@ -50,13 +50,19 @@ public:
         std::complex<double> imag(0.0,1.0);
         //if (t < param_[1]*param_[3])
    //return real(-1.0 / (imag*param_[0]) * (-1*param_[0]*imag + (param_[2]-t) / pow(2*param_[1],2)) * exp(-1*param_[0]*imag - pow(((param_[2]-t)/pow(2*param_[1],2.0)),2.0)));
-        return t*t*exp(-1 * pow(t-2,2));
+        if (t < param_[2] * param_[1])
+            return exp(-1 * pow((t - param_[0])/param_[1],2.0));
+        else
+            return T(0.0);
         // look for the best way to calculate gaussian pulse
     }
     
     const T const_pulse(double t)
     {
-        return T(0.0);
+        if (t < param_[2] * param_[1])
+            return exp(-1 * pow((t - param_[3])/param_[1],2.0)) * sin(2*M_PI * param_[0] * t);
+        else
+            return T(0.0);
     }
 };
 #endif

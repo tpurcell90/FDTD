@@ -58,6 +58,14 @@ public:
         std::cout << "Total memory allocated for matrix storage: " << memSize << " bytes." << std::endl;
         return;
     }
+// Flux calculation
+    double flux(std::vector<int> loc, double eps)
+    {
+        T& pt = point(loc[0],loc[1]);
+        // NEed to do something to determine if complex or not
+        //return pow(point(loc[0],loc[1]),2.00) * eps / 2.00;
+        return std::real(pt*std::conj(pt) * eps / 2.0);
+    }
 };
 
 template <typename T> unsigned int Grid2D<T>::memSize = 0;

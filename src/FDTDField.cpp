@@ -160,8 +160,37 @@ void FDTDField::ouputField(Detector<double> d) //iostream as input parameter?
 {
     ofstream outFile;
     outFile.open(d.outfile(), ios_base::app);
-    outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez_)<< "\t" << setw(10) << d.output(Hx_)<< "\t" << setw(10)<< d.output(Hy_)<< "\t" <<  srcArr_[0].prof().pulse(tcur_) << endl;
-    cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez_)<< "\t" << setw(10) << d.output(Hx_)<< "\t" << setw(10)<< d.output(Hy_)<< "\t" <<  srcArr_[0].prof().pulse(tcur_) << endl;
+    double eps = 1.00; // Change this but for a test it will work
+    switch ( d.pol() )
+    {
+        case EZ: 
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez_,eps)<< "\t" << setw(10) << srcArr_[0].prof().pulse(tcur_) << endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez_,eps)<< "\t" << setw(10) << srcArr_[0].prof().pulse(tcur_) << endl;
+            break;
+        case HX:
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hx_,eps)<< endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hx_,eps)<< endl;
+            break;
+        case HY:
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hy_,eps)<< endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hy_,eps)<< endl;
+            break;
+        case HZ:
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hz_,eps)<< endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hz_,eps)<< endl;
+            break;
+        case EX:
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ex_,eps)<< endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ex_,eps)<< endl;
+            break;
+        case EY:
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ey_,eps)<< endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ey_,eps)<< endl;
+            break;
+        default:
+            throw logic_error("reached a default case in a switch state that should never happen!");
+            break;
+    }
     outFile.close();
 }
 
@@ -224,24 +253,24 @@ void FDTDField::step()
         }
     }
     // Code for prefect reflectors, which we don't ever really want
-/*    for(int ii = 0; ii < nx; ii ++)
+    for(int ii = 0; ii < nx_; ii ++)
     {
         double c_hxh = 1.0;
-        double c_hxe = 1.0 * dt/dx;
+        double c_hxe = 1.0 * dt_/dx_;
         double c_hyh = 1.0;
-        double c_hye = 1.0 * dt/dy;
-        Hx->point(ii,0) = c_hxh * Hx->point(ii,0) - c_hxe * (Ez->point(ii,0+1)-Ez->point(ii,0));
-        Hy->point(0,ii) = c_hyh * Hy->point(0,ii) + c_hye * (Ez->point(0+1,ii)-Ez->point(0,ii));
+        double c_hye = 1.0 * dt_/dy_;
+        Hx_->point(ii,0) = c_hxh * Hx_->point(ii,0) - c_hxe * (Ez_->point(ii,0+1)-Ez_->point(ii,0));
+        Hy_->point(0,ii) = c_hyh * Hy_->point(0,ii) + c_hye * (Ez_->point(0+1,ii)-Ez_->point(0,ii));
     }
-    for(int ii = 1; ii < nx-1; ii ++)
+    for(int ii = 1; ii < nx_-1; ii ++)
     {
         double c_hxh = 1.0;
-        double c_hxe = 1.0 * dt/dx;
+        double c_hxe = 1.0 * dt_/dx_;
         double c_hyh = 1.0;
-        double c_hye = 1.0 * dt/dy;
-        Hx->point(nx-1,ii) = c_hxh * Hx->point(ii,0) - c_hxe * (Ez->point(ii,0+1)-Ez->point(ii,0));
-        Hy->point(ii,nx-1) = c_hyh * Hy->point(0,ii) + c_hye * (Ez->point(0+1,ii)-Ez->point(0,ii));
-    }*/
+        double c_hye = 1.0 * dt_/dy_;
+        Hx_->point(nx_-1,ii) = c_hxh * Hx_->point(ii,0) - c_hxe * (Ez_->point(ii,0+1)-Ez_->point(ii,0));
+        Hy_->point(ii,nx_-1) = c_hyh * Hy_->point(0,ii) + c_hye * (Ez_->point(0+1,ii)-Ez_->point(0,ii));
+    }
     for(int ii = 1; ii < nx_ - 1; ii ++)
     {
         for(int jj = 1; jj < ny_ - 1; jj ++)

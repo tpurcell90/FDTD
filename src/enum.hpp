@@ -1,7 +1,6 @@
 #ifndef FDTD_ENUMS
 #define FDTD_ENUMS
 
-
 namespace my_enums
 {
     enum Polarization {EX,EY,EZ,HX,HY,HZ};
@@ -9,5 +8,4 @@ namespace my_enums
     enum plsShape {gaussian, continuous};
     enum Shape {sphere,block,ellipse,cone,cylinder};
 }
-
 #endif

@@ -20,8 +20,6 @@ programInputs::programInputs(std::string fn) : filename_(fn)
     t_pml_       = IP.get<double>("CompCell.PML_Thick", 1.1);
     courant_     = IP.get<double>("CompCell.courant", 0.5);
     output_base_ = IP.get<string>("CompCell.output", "dtc_out");
-    // Crating the srcArr
-    //for(int ii = 0; ii < IP.get_child("SourceList").size(); ii ++)
     for (auto& iter : IP.get_child("SourceList"))
     {
         string p = iter.second.get<string>("profile");
@@ -80,6 +78,8 @@ programInputs::programInputs(std::string fn) : filename_(fn)
     {
         string tt(iter.second.get<string>("type"));
         dtcOutType t = string2out(tt);
+        string pp(iter.second.get<string>("pol"));
+        Polarization p = string2pol(pp);
         string out_name;
         if(t == field)
         {
@@ -104,7 +104,7 @@ programInputs::programInputs(std::string fn) : filename_(fn)
             for(int y = y_min; y <= y_max; y++)
             {
                 vector<int> loc = {x,y};
-                dctArr_.push_back(Detector<double>(loc,t,out_name));
+                dctArr_.push_back(Detector<double>(loc,t,out_name,p));
             }
     }
     //Copies the json data to a file to check for debugging
@@ -165,7 +165,8 @@ Polarization programInputs::string2pol(string p)
     else if(p.compare("Hx") == 0)
         return HY;
     else
-        return EZ; //Throw an error but first need to look up how to do that
+        throw logic_error("Polarization undefined");
+
 }
 Shape programInputs::string2shape(string s)
 {
@@ -180,7 +181,8 @@ Shape programInputs::string2shape(string s)
     else if (s.compare("cylinder") == 0)
         return cylinder;
     else
-        return block; //Throw an error I know
+        throw logic_error("Shape undefined");
+
 }
 dtcOutType programInputs::string2out(string t)
 {
@@ -189,7 +191,7 @@ dtcOutType programInputs::string2out(string t)
     else if (t.compare("flux") == 0)
         return flux;
     else
-        return field; //Yes, yes error, I know
+        throw logic_error("Output type undefined");
 }
 plsShape programInputs::string2prof(string p)
 {
@@ -198,7 +200,7 @@ plsShape programInputs::string2prof(string p)
     else if(p.compare("continuous") == 0)
         return continuous;
     else
-        return gaussian; // I should be an error again
+        throw logic_error("Pulse sahpe undefined");
 }
 
 void programInputs::toFDTD()
