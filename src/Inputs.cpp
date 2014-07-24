@@ -20,6 +20,7 @@ programInputs::programInputs(std::string fn) : filename_(fn)
     t_pml_       = IP.get<double>("CompCell.PML_Thick", 1.1);
     courant_     = IP.get<double>("CompCell.courant", 0.5);
     output_base_ = IP.get<string>("CompCell.output", "dtc_out");
+    
     for (auto& iter : IP.get_child("SourceList"))
     {
         string p = iter.second.get<string>("profile");
@@ -59,6 +60,16 @@ programInputs::programInputs(std::string fn) : filename_(fn)
     vector<double> size = {x_size_,y_size_};
     vector<double> mat(1,1.0);
     objArr_.push_back(Obj(block,mat,size,loc));
+    for (auto& iter : IP.get_child("PML"))
+    {
+        string dd = iter.second.get<string>("direction");
+        Direction d = string2dir(dd);
+        int thickness = iter.second.get<int>("thickness");
+        if (d == X)
+            pmlArr_.push_back(UPML<double>(thickness,d, 4, 1.0e-14, int(res_*y_size_),1.0/res_,1.0/res_,string2pol(pol_)));
+        else if(d == Y)
+            pmlArr_.push_back(UPML<double>(thickness,d, 4, 1.0e-14, int(res_*x_size_),1.0/res_,1.0/res_,string2pol(pol_)));
+    }
     for (auto& iter : IP.get_child("ObjectList"))
     {
         string sStr(iter.second.get<string>("shape"));
@@ -167,6 +178,17 @@ Polarization programInputs::string2pol(string p)
     else
         throw logic_error("Polarization undefined");
 
+}
+Direction programInputs::string2dir(string dir)
+{
+    if((dir.compare("x") == 0) || (dir.compare("X") == 0))
+        return X;
+    else if((dir.compare("y") == 0) || (dir.compare("Y") == 0))
+        return Y;
+    else if ((dir.compare("z") == 0) || (dir.compare("Z") == 0))
+        return Z;
+    else
+        throw logic_error("That is not a direction");
 }
 Shape programInputs::string2shape(string s)
 {

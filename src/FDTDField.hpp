@@ -5,6 +5,7 @@
 #include "Detector.hpp"
 #include "Grid.hpp"
 #include "Inputs.hpp"
+#include "pml.hpp"
 // #include <assert.h>
 // #include <iomanip>
 // #include <iostream>
@@ -28,6 +29,8 @@ protected:
     std::vector<Source<double>> srcArr_;
     std::vector<Obj> objArr_;
     std::vector<Detector<double>> dtcArr_;
+    std::vector<UPML<double>> pmlArr_;
+
 
 public:
     std::shared_ptr<Grid2D<double>> Ex_,Ey_,Ez_,Hx_,Hy_,Hz_;

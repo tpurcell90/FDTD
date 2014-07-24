@@ -17,20 +17,81 @@
 // typedef std::complex<double> cplx;
 enum Direction {X,Y,Z};
 
-class UPML
+template <typename T> class UPML
 {
 protected:
 	int thickness_;
 	Direction d_;
 	int m_;
 	double R0_;
-	std::shared_ptr<Grid2D<double>> pml_;
 	std::vector<double> kappa_;
 	std::vector<double> sigma_;
 
 public:
-	UPML(int thickness, Direction d, int m, double R0, int nx, double dx, double dy);
-	double F_out(int x, int y, std::shared_ptr<Grid2D<double>> field, Polarization pol);
+	std::shared_ptr<Grid2D<T>> Dx_,Dy_,Dz_,Bx_,By_,Bz_;
+
+	UPML(int thickness, Direction d, int m, double R0, int nx, double dx, double dy, Polarization pol) : thickness_(thickness), d_(d), m_(m), R0_(R0)
+	{
+		double sigmaMax = -(m_+1)*log(R0_)/(2*thickness_*dx); // eta should be in the denominator eta = sqrt(mu_0*Material(1,2)/epsilon_0/Material(1,1));
+		double kappaMax = 1.0;
+		if(d == X)
+		{
+			if(pol == EX || pol == EY || pol == HZ)
+			{
+		        Dx_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
+		        Dy_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
+		        Bz_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
+		        Bx_ = nullptr;
+		        By_ = nullptr;
+		        Dz_ = nullptr;
+			}
+			else
+			{
+		        Bx_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
+		        By_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
+		        Dz_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
+		        Dx_ = nullptr;
+		        Dy_ = nullptr;
+		        Bz_ = nullptr;
+			}
+		}
+		else if (d == Y)
+		{
+			if(pol == EX || pol == EY || pol == HZ)
+			{
+		        Dx_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
+		        Dy_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
+		        Bz_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
+		        Bx_ = nullptr;
+		        By_ = nullptr;
+		        Dz_ = nullptr;
+			}
+			else
+			{
+		        Bx_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
+		        By_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
+		       	Dz_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
+		        Dx_ = nullptr;
+		        Dy_ = nullptr;
+		        Bz_ = nullptr;
+			}
+
+		}
+		else
+			 throw std::logic_error("While yes we could have a thrid dimension to run, I have yet to be implimented to do such a thing. So please accept this error as my sincerest appology.");
+
+		for(int ii = 0; ii < thickness_; ii++)
+		{
+			kappa_.push_back(1 +(kappaMax - 1) * pow(static_cast<double>(ii)/static_cast<double>(thickness_),m_));
+			sigma_.push_back(sigmaMax * pow(static_cast<double>(ii)/static_cast<double>(thickness_),m_));
+		}
+
+	}
+	// Accessor Functions
+	int thickness(){return thickness_;}
+	Direction d(){return d_;}
+	double kappa(int x){return kappa_[x];}
+	double sigma(int x){return sigma_[x];}
 
 
 /*k_Fz_1 = zeros(ny,1);   k_Fz_2 = zeros(ny,1);   

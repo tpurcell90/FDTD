@@ -7,6 +7,16 @@
         "res"          : 10,
         "courant"      : 0.5
     },
+    "PML" : [
+        {
+            "thickness"    : 10,
+            "direction"    : "x",
+        },
+        {
+            "thickness"    : 10,
+            "direction"    : "y",
+        }
+    ],
     "SourceList" : [
         {
             "profile"  : "gaussian",

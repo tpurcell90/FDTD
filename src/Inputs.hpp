@@ -2,6 +2,7 @@
 #define FDTD_INPUTS
 
 #include "enum.hpp"
+#include "pml.hpp"
 #include "Detector.hpp"
 #include "Source.hpp"
 #include "Obj.hpp"
@@ -30,6 +31,7 @@ public:
 	//Source Parameters Start with just Gaussian complicate later
     vector<Source<double>> srcArr_;
     vector<Detector<double>> dctArr_;
+    vector<UPML<double>> pmlArr_;
 	//Geometry Will add parameters as I write
 	int n_struct_;
 
@@ -41,6 +43,7 @@ public:
     Shape string2shape(string s);
     dtcOutType string2out(string t);
     plsShape string2prof(string p);
+    Direction string2dir(string dir);
 
     // convert double to int grid point
     int find_pt(double pt) {return int(pt*res_);};

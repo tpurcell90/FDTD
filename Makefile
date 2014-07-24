@@ -2,7 +2,7 @@ CC = g++
 
 CFLAGS = -O2 -Wall -Wno-sign-compare -Wno-unused-function -Werror -std=c++11 -openmp
 
-OBJ  =   obj/main.o  obj/Inputs.o obj/FDTDField.o obj/Obj.o obj/pml.o
+OBJ  =   obj/main.o  obj/Inputs.o obj/FDTDField.o obj/Obj.o 
 
 LIBS =  -lpthread -lm
 
@@ -30,9 +30,6 @@ obj/Inputs.o: src/Inputs.cpp
 
 obj/Obj.o: src/Obj.cpp
 	$(CC) $(CFLAGS)  -c src/Obj.cpp  -o obj/Obj.o  -I./src
-
-obj/pml.o: src/pml.cpp
-	$(CC) $(CFLAGS) -c src/pml.cpp -o obj/pml.o -I./src
 
 obj/FDTDField.o: src/FDTDField.cpp
 	$(CC) $(CFLAGS)  -c src/FDTDField.cpp  -o obj/FDTDField.o $(BOOST_INC)  -I./src

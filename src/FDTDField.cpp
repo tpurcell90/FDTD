@@ -28,6 +28,8 @@ FDTDField::FDTDField(programInputs &IP)
     srcArr_ = IP.srcArr_;
     objArr_ = IP.objArr_;
     dtcArr_ = IP.dctArr_;
+    pmlArr_ = IP.pmlArr_;
+
     for(int ii =0; ii < dtcArr_.size(); ii++)
     {
         ofstream outFile;
@@ -248,12 +250,12 @@ void FDTDField::step()
                 double c_hzh = 1.0;
                 double c_hze = 1.0 * dt_/dx_;
                 Hz_->point(ii,jj) = c_hzh * Hz_->point(ii,jj) + c_hze * ((Ex_->point(ii,jj+1) - Ex_->point(ii,jj)) - (Ey_->point(ii+1,jj)-Ey_->point(ii,jj)));
-
             }
         }
     }
+
     // Code for prefect reflectors, which we don't ever really want
-    for(int ii = 0; ii < nx_; ii ++)
+    /*for(int ii = 0; ii < nx_; ii ++)
     {
         double c_hxh = 1.0;
         double c_hxe = 1.0 * dt_/dx_;
@@ -270,7 +272,61 @@ void FDTDField::step()
         double c_hye = 1.0 * dt_/dy_;
         Hx_->point(nx_-1,ii) = c_hxh * Hx_->point(ii,0) - c_hxe * (Ez_->point(ii,0+1)-Ez_->point(ii,0));
         Hy_->point(ii,nx_-1) = c_hyh * Hy_->point(0,ii) + c_hye * (Ez_->point(0+1,ii)-Ez_->point(0,ii));
+    }*/
+    // PML part goes here
+    for(int kk = 0; kk < pmlArr_.size(); kk++)
+    {
+        for(int ii = 0; ii < pmlArr_[kk].thickness(); ii ++)
+        {
+            switch (pmlArr_[kk].d())
+            {
+                case X:
+                    for(int jj = 0; jj < ny_; jj ++)
+                    {
+                        if(Ez_)
+                        {
+                            //Always true in a magnetic lossless enviroment, with mu0 = 1, sigma_m = 0;
+                            //Hx_->point(ii,jj) = pmlArr_.F_out(ii,jj,Hx_,HX);
+                            //Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
+                        }
+                        else
+                        {
+                            //Always true in a magnetic lossless enviroment, with mu0 = 1, sigma_m = 0;
+                            //double c_hzh = 1.0;
+                            //double c_hze = 1.0 * dt_/dx_;
+                            //Hz_->point(ii,jj) = c_hzh * Hz_->point(ii,jj) + c_hze * ((Ex_->point(ii,jj+1) - Ex_->point(ii,jj)) - (Ey_->point(ii+1,jj)-Ey_->point(ii,jj)));
+                        }
+                    }
+                    break;
+                case Y:
+                    for(int jj = 0; jj < nx_; jj ++)
+                    {
+                        if(Ez_)
+                        {
+                            //Always true in a magnetic lossless enviroment, with mu0 = 1, sigma_m = 0;
+                            double c_hxh = 1.0;
+                            double c_hxe = 1.0 * dt_/dx_;
+                            double c_hyh = 1.0;
+                            double c_hye = 1.0 * dt_/dy_;
+                            Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) - c_hxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
+                            Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
+                        }
+                        else
+                        {
+                            //Always true in a magnetic lossless enviroment, with mu0 = 1, sigma_m = 0;
+                            double c_hzh = 1.0;
+                            double c_hze = 1.0 * dt_/dx_;
+                            Hz_->point(ii,jj) = c_hzh * Hz_->point(ii,jj) + c_hze * ((Ex_->point(ii,jj+1) - Ex_->point(ii,jj)) - (Ey_->point(ii+1,jj)-Ey_->point(ii,jj)));
+                        }  
+                    }
+                    break;
+                default:
+                    throw logic_error("While yes we could have a thrid dimension to run, I have yet to be implimented to do such a thing. So please accept this error as my sincerest appology.");
+
+            }
+        }
     }
+
     for(int ii = 1; ii < nx_ - 1; ii ++)
     {
         for(int jj = 1; jj < ny_ - 1; jj ++)
@@ -295,6 +351,8 @@ void FDTDField::step()
             }
         }
     }
+    
+
     for(int ii = 0; ii < dtcArr_.size(); ii ++)
         ouputField(dtcArr_[ii]);
 }
