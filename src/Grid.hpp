@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <complex>
 #include <algorithm>
 
 // Using template becuse I might need complex or real fields
