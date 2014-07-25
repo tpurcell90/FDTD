@@ -66,9 +66,18 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         Direction d = string2dir(dd);
         int thickness = iter.second.get<int>("thickness");
         if (d == X)
+        {
             pmlArr_.push_back(UPML<double>(thickness,d, 4, 1.0e-14, int(res_*y_size_),1.0/res_,1.0/res_,string2pol(pol_)));
+        }
         else if(d == Y)
+        {
             pmlArr_.push_back(UPML<double>(thickness,d, 4, 1.0e-14, int(res_*x_size_),1.0/res_,1.0/res_,string2pol(pol_)));
+        }
+        else if (d == Z)
+            throw logic_error("While yes we could have a thrid dimension to run, I have yet to be implimented to do such a thing. So please accept this error as my sincerest appology.");
+        else
+            throw logic_error("I would appricate it if you stick to the standard X,Y,Z directions. While it's fun to invent new ones, it is very hard to do calculations if I don't even understand what dimension I am in. Please try again!");
+
     }
     for (auto& iter : IP.get_child("ObjectList"))
     {
@@ -188,7 +197,8 @@ Direction programInputs::string2dir(string dir)
     else if ((dir.compare("z") == 0) || (dir.compare("Z") == 0))
         return Z;
     else
-        throw logic_error("That is not a direction");
+        throw logic_error("I would appricate it if you stick to the standard X,Y,Z directions. While it's fun to invent new ones, it is very hard to do calculations if I don't even understand what dimension I am in. Please try again!");
+
 }
 Shape programInputs::string2shape(string s)
 {

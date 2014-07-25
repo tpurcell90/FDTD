@@ -49,10 +49,10 @@ public:
     size_t y() const {return ny;}
 
 // Accessor Functions
-    T& point(const int x_val, const int y_val) { return vals[y_val*nx + x_val];}
-    const T& point(const int x_val, const int y_val) const{ return vals[y_val*nx + x_val];}
+    T& point(const int x_val, const int y_val) { return vals[(y_val%ny)*nx + x_val%nx];}
+    const T& point(const int x_val, const int y_val) const{ return vals[(y_val%ny)*nx + x_val%nx];}
     T& operator()(const int x_val, const int y_val) { return point(x_val,y_val); }
-    const T& operator()(const int x_val, const int y_val) const { return vals[y_val*nx + x_val]; }
+    const T& operator()(const int x_val, const int y_val) const { return vals[(y_val%ny)*nx + x_val%nx]; }
     void printMem() const
     {
         std::cout << "Current memory allocated to this matrix: " << size()*sizeof(T) << " bytes." << std::endl;

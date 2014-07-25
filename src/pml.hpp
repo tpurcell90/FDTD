@@ -16,12 +16,14 @@
 // #include <complex>
 // typedef std::complex<double> cplx;
 enum Direction {X,Y,Z};
+enum PMLTopBot {TOP, BOT};
 
 template <typename T> class UPML
 {
 protected:
 	int thickness_;
 	Direction d_;
+	//PMLTopBot tb_;
 	int m_;
 	double R0_;
 	std::vector<double> kappa_;
@@ -79,20 +81,19 @@ public:
 		}
 		else
 			 throw std::logic_error("While yes we could have a thrid dimension to run, I have yet to be implimented to do such a thing. So please accept this error as my sincerest appology.");
-
 		for(int ii = 0; ii < thickness_; ii++)
 		{
 			//seperate out the points for the different fields
-			kappa_.push_back(1 +(kappaMax - 1) * pow(static_cast<double>(ii)/static_cast<double>(thickness_),m_));
-			sigma_.push_back(sigmaMax * pow(static_cast<double>(ii)/static_cast<double>(thickness_),m_));
+			kappa_.push_back(1 +(kappaMax - 1) * pow((static_cast<double>(thickness_) - static_cast<double>(ii))/static_cast<double>(thickness_),m_));
+			sigma_.push_back(sigmaMax * pow((static_cast<double>(thickness_) - static_cast<double>(ii))/static_cast<double>(thickness_),m_));
 		}
-
 	}
 	// Accessor Functions
 	int thickness(){return thickness_;}
 	Direction d(){return d_;}
 	double kappa(int x){return kappa_[x];}
 	double sigma(int x){return sigma_[x];}
+	//PMLTopBot tb(){return tb_;}
 
 
 /*k_Fz_1 = zeros(ny,1);   k_Fz_2 = zeros(ny,1);   

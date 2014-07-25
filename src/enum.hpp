@@ -7,5 +7,6 @@ namespace my_enums
     enum dtcOutType {field, flux};
     enum plsShape {gaussian, continuous};
     enum Shape {sphere,block,ellipse,cone,cylinder};
+    enum PMLTopBot {TOP, BOT};
 }
 #endif

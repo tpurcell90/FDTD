@@ -32,4 +32,4 @@ obj/Obj.o: src/Obj.cpp
 	$(CC) $(CFLAGS)  -c src/Obj.cpp  -o obj/Obj.o  -I./src
 
 obj/FDTDField.o: src/FDTDField.cpp
-	$(CC) $(CFLAGS)  -c src/FDTDField.cpp  -o obj/FDTDField.o $(BOOST_INC)  -I./src
+	$(CC) $(CFLAGS)  -c src/FDTDField.cpp  -o obj/FDTDField.o  -I./src

@@ -296,9 +296,11 @@ void FDTDField::step()
                             double c_hxb1 = 1.0; // kappa difference again with eps = 1
                             double c_hxb0 = c_bxb; // kappa difference with epsislon =1
                             pmlArr_[kk].Bx_->point(ii,jj) = c_bxb * pmlArr_[kk].Bx_->point(ii,jj) - c_bxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
+                            pmlArr_[kk].By_->point(ii,jj) = c_bxb * pmlArr_[kk].By_->point(ii,jj) + c_bxe * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
                             Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[kk].Bx_->point(ii,jj) - c_hxb0 * bxstore;
-                            pmlArr_[kk].By_->point(ii,jj) = c_bxb * pmlArr_[kk].By_->point(ii,jj) - c_bxe * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
                             Hy_->point(ii,jj) = c_hxh * Hy_->point(ii,jj) + c_hxb1 * pmlArr_[kk].By_->point(ii,jj) - c_hxb0 * bystore;
+                            Hx_->point((nx_-1) - ii,jj) = c_hxh * Hx_->point((nx_-1) - ii,jj) + c_hxb1 * pmlArr_[kk].Bx_->point(ii,jj) - c_hxb0 * bxstore;
+                            Hy_->point((nx_-1) - ii,jj) = c_hxh * Hy_->point((nx_-1) - ii,jj) + c_hxb1 * pmlArr_[kk].By_->point(ii,jj) - c_hxb0 * bystore;
                         }
                         else
                         {
@@ -312,6 +314,7 @@ void FDTDField::step()
                             double c_ezd0 = c_dzd; // kappa difference with epsislon =1
                             pmlArr_[kk].Bz_->point(ii,jj) = c_dzd * pmlArr_[kk].Bz_->point(ii,jj) + c_dzh * ((Ey_->point(ii,jj)-Ey_->point(ii-1,jj)) - (Ex_->point(ii,jj)-Ex_->point(ii,jj-1)));
                             Hz_->point(ii,jj) = c_eze * Hz_->point(ii,jj) + c_ezd1 * pmlArr_[kk].Bz_->point(ii,jj) - c_ezd0 * bstore;
+                            Hz_->point((nx_ - 1) - ii,jj) = c_eze * Hz_->point((nx_ - 1) - ii,jj) + c_ezd1 * pmlArr_[kk].Bz_->point(ii,jj) - c_ezd0 * bstore;
                         }
                     }
                     break;
@@ -330,9 +333,11 @@ void FDTDField::step()
                             double c_hxb1 = 1.0; // kappa difference again with eps = 1
                             double c_hxb0 = c_bxb; // kappa difference with epsislon =1
                             pmlArr_[kk].Bx_->point(jj,ii) = c_bxb * pmlArr_[kk].Bx_->point(jj,ii) - c_bxe * (Ez_->point(jj,ii+1)-Ez_->point(jj,ii));
-                            pmlArr_[kk].By_->point(jj,ii) = c_bxb * pmlArr_[kk].By_->point(jj,ii) - c_bxe * (Ez_->point(jj+1,ii)-Ez_->point(jj,ii));
+                            pmlArr_[kk].By_->point(jj,ii) = c_bxb * pmlArr_[kk].By_->point(jj,ii) + c_bxe * (Ez_->point(jj+1,ii)-Ez_->point(jj,ii));
                             Hx_->point(jj,ii) = c_hxh * Hx_->point(jj,ii) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,ii) - c_hxb0 * bxstore;
-                            Hy_->point(jj,ii) = c_hxh * Hy_->point(jj,ii) + c_hxb1 * pmlArr_[kk].By_->point(jj,ii) - c_hxb0 * bystore;                        }
+                            Hy_->point(jj,ii) = c_hxh * Hy_->point(jj,ii) + c_hxb1 * pmlArr_[kk].By_->point(jj,ii) - c_hxb0 * bystore; 
+                            Hx_->point(jj,(ny_ - 1) - ii) = c_hxh * Hx_->point(jj,(ny_ - 1) - ii) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,ii) - c_hxb0 * bxstore;
+                            Hy_->point(jj,(ny_ - 1) - ii) = c_hxh * Hy_->point(jj,(ny_ - 1) - ii) + c_hxb1 * pmlArr_[kk].By_->point(jj,ii) - c_hxb0 * bystore;                       }
                         else
                         {
                             double sigma = pmlArr_[kk].sigma(ii);
@@ -343,14 +348,17 @@ void FDTDField::step()
                             double c_ezd1 = 1.0; // kappa difference again with eps = 1
                             double c_ezd0 = c_dzd; // kappa difference with epsislon =1
                             pmlArr_[kk].Bz_->point(jj,ii) = c_dzd * pmlArr_[kk].Bz_->point(jj,ii) + c_dzh * ((Ey_->point(jj,ii)-Ey_->point(jj-1,ii)) - (Ex_->point(jj,ii)-Ex_->point(jj,ii-1)));
-                            Hz_->point(jj,ii) = c_eze * Hz_->point(jj,ii) + c_ezd1 * pmlArr_[kk].Bz_->point(jj,ii) - c_ezd0 * bstore;
+                            Hz_->point(jj,(ny_ - 1) - ii) = c_eze * Hz_->point(jj,(ny_ - 1) - ii) + c_ezd1 * pmlArr_[kk].Bz_->point(jj,ii) - c_ezd0 * bstore;
                             
                         }  
                     }
                     break;
-                default:
+                case Z:
                     throw logic_error("While yes we could have a thrid dimension to run, I have yet to be implimented to do such a thing. So please accept this error as my sincerest appology.");
-
+                    break;
+                default:
+                    throw logic_error("I would appricate it if you stick to the standard X,Y,Z directions. While it's fun to invent new ones, it is very hard to do calculations if I don't even understand what dimension I am in. Please try again!");
+                    break;
             }
         }
     }
