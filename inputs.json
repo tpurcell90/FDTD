@@ -5,16 +5,13 @@
         "y_size"       : 30.0,
         "z_size"       : 0.0,
         "res"          : 10,
+        "PML_Thick"    : 20,
         "courant"      : 0.5
     },
-    "PML" : [
+    "PML" :  [
         {
-            "thickness"    : 20,
-            "direction"    : "Y"
-        },
-        {
-            "thickness"    : 20,
-            "direction"    : "G"
+            "direction": "X",
+            "thickness": 20
         }
     ],
     "SourceList" : [
@@ -24,8 +21,8 @@
             "fwidth"   : 1.000,
             "cutoff"   : 20.00,
             "t_start"  : 10.00,
-            "size_x"   : 30.00,
-            "size_y"   : 0.00,
+            "size_x"   : 0.00,
+            "size_y"   : 30.00,
             "pol"      : "Ez",
             "loc_x"    : 0.00,
             "loc_y"    : 0.00
@@ -35,36 +32,28 @@
     ],
     "DetectorList" : [
         {
-            "loc_x"    : 0.00,
-            "loc_y"    : 5.00,
-            "size_x"   : 0.00,
-            "size_y"   : 0.00,
-            "type"     : "flux",
-            "pol"      : "Ez"
-        },
-        {
-            "loc_x"    : 0.00,
-            "loc_y"    : 5.00,
+            "loc_x"    : 13.10,
+            "loc_y"    : 0.00,
             "size_x"   : 0.00,
             "size_y"   : 0.00,
             "type"     : "field",
             "pol"      : "Ez"
         },
         {
-            "loc_x"    : 0.00,
-            "loc_y"    : -5.00,
-            "size_x"   : 0.00,
-            "size_y"   : 0.00,
-            "type"     : "flux",
-            "pol"      : "Ez"
-        },
-        {
-            "loc_x"    : 0.00,
-            "loc_y"    : -5.00,
+            "loc_x"    : 13.10,
+            "loc_y"    : 0.00,
             "size_x"   : 0.00,
             "size_y"   : 0.00,
             "type"     : "field",
-            "pol"      : "Ez"
+            "pol"      : "Hy"
+        },
+        {
+            "loc_x"    : 13.10,
+            "loc_y"    : 0.00,
+            "size_x"   : 0.00,
+            "size_y"   : 0.00,
+            "type"     : "field",
+            "pol"      : "Hx"
         }
     ]
 }

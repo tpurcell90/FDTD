@@ -24,7 +24,7 @@ protected:
 	int thickness_;
 	Direction d_;
 	//PMLTopBot tb_;
-	int m_;
+	double g_;
 	double R0_;
 	std::vector<double> kappa_;
 	std::vector<double> sigma_;
@@ -32,10 +32,9 @@ protected:
 public:
 	std::shared_ptr<Grid2D<T>> Dx_,Dy_,Dz_,Bx_,By_,Bz_;
 
-	UPML(int thickness, Direction d, int m, double R0, int nx, double dx, double dy, Polarization pol) : thickness_(thickness), d_(d), m_(m), R0_(R0)
+	UPML(int thickness, Direction d, double g, double R0, int nx, double dx, double dy, Polarization pol) : thickness_(thickness), d_(d), g_(g), R0_(R0)
 	{
-		double sigmaMax = -(m_+1)*log(R0_)/(2*thickness_*dx); // eta should be in the denominator eta = sqrt(mu_0*Material(1,2)/epsilon_0/Material(1,1));
-		double kappaMax = 1.0;
+		double sigma0 = -log(R0_)*log(g_)/(2.0*dx*pow(g,static_cast<double>(thickness_)/dx) - 1.00); // eta should be in the denominator eta = sqrt(mu_0*Material(1,2)/epsilon_0/Material(1,1));
 		if(d == X)
 		{
 			if(pol == EX || pol == EY || pol == HZ)
@@ -84,8 +83,8 @@ public:
 		for(int ii = 0; ii < thickness_; ii++)
 		{
 			//seperate out the points for the different fields
-			kappa_.push_back(1 +(kappaMax - 1) * pow((static_cast<double>(thickness_) - static_cast<double>(ii))/static_cast<double>(thickness_),m_));
-			sigma_.push_back(sigmaMax * pow((static_cast<double>(thickness_) - static_cast<double>(ii))/static_cast<double>(thickness_),m_));
+			sigma_.push_back(sigma0 * pow(g,(static_cast<double>(thickness) - static_cast<double>(ii))/dx));
+			kappa_.push_back(pow(g,(static_cast<double>(thickness) - static_cast<double>(ii))/dx));
 		}
 	}
 	// Accessor Functions

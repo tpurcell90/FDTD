@@ -17,7 +17,7 @@ programInputs::programInputs(std::string fn) : filename_(fn)
     y_size_      = IP.get<double>("CompCell.y_size",10.1);
     z_size_      = IP.get<double>("CompCell.z_size",10.1);
     res_         = IP.get<int>("CompCell.res", 10);
-    t_pml_       = IP.get<double>("CompCell.PML_Thick", 1.1);
+    t_pml_       = IP.get<double>("CompCell.PML_Thick", 0);
     courant_     = IP.get<double>("CompCell.courant", 0.5);
     output_base_ = IP.get<string>("CompCell.output", "dtc_out");
     
@@ -67,11 +67,11 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         int thickness = iter.second.get<int>("thickness");
         if (d == X)
         {
-            pmlArr_.push_back(UPML<double>(thickness,d, 4, 1.0e-14, int(res_*y_size_),1.0/res_,1.0/res_,string2pol(pol_)));
+            pmlArr_.push_back(UPML<double>(thickness,d, 2.0, 1.0e-7, int(res_*y_size_),1.0/res_,1.0/res_,string2pol(pol_)));
         }
         else if(d == Y)
         {
-            pmlArr_.push_back(UPML<double>(thickness,d, 4, 1.0e-14, int(res_*x_size_),1.0/res_,1.0/res_,string2pol(pol_)));
+            pmlArr_.push_back(UPML<double>(thickness,d, 2.0, 1.0e-7, int(res_*x_size_),1.0/res_,1.0/res_,string2pol(pol_)));
         }
         else if (d == Z)
             throw logic_error("While yes we could have a thrid dimension to run, I have yet to be implimented to do such a thing. So please accept this error as my sincerest appology.");
@@ -182,7 +182,7 @@ Polarization programInputs::string2pol(string p)
         return HX;
     else if(p.compare("Hz") == 0)
         return HZ;
-    else if(p.compare("Hx") == 0)
+    else if(p.compare("Hy") == 0)
         return HY;
     else
         throw logic_error("Polarization undefined");
