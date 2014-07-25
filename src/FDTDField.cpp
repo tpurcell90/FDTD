@@ -230,9 +230,10 @@ void FDTDField::step()
                 break;
         }
     }
-    for(int ii = 1; ii < nx_ - 1; ii ++)
+    // make this more accurate
+    for(int ii = pmlArr_[0].thickness(); ii < nx_ - pmlArr_[0].thickness(); ii ++)
     {
-        for(int jj = 1; jj < ny_ - 1; jj ++)
+        for(int jj = pmlArr_[0].thickness(); jj < ny_ - pmlArr_[0].thickness(); jj ++)
         {
             if(Ez_)
             {
@@ -285,16 +286,32 @@ void FDTDField::step()
                     {
                         if(Ez_)
                         {
-                            //Always true in a magnetic lossless enviroment, with mu0 = 1, sigma_m = 0;
-                            //Hx_->point(ii,jj) = pmlArr_.F_out(ii,jj,Hx_,HX);
-                            //Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
+                            //Kappas change throughout
+                            double sigma = pmlArr_[kk].sigma(ii);
+                            double bxstore = pmlArr_[kk].Bx_->point(ii,jj);
+                            double bystore = pmlArr_[kk].By_->point(ii,jj);
+                            double c_bxb = (2*pmlArr_[kk].kappa(ii) - dt_ * sigma ) / (2*pmlArr_[kk].kappa(ii) + dt_* sigma);
+                            double c_bxe = 2 * dt_ / (2*pmlArr_[kk].kappa(ii) + dt_* sigma);
+                            double c_hxh = c_bxb; // kappa_x v. kappa_y. I don't think there is a difference here if step size is the same
+                            double c_hxb1 = 1.0; // kappa difference again with eps = 1
+                            double c_hxb0 = c_bxb; // kappa difference with epsislon =1
+                            pmlArr_[kk].Bx_->point(ii,jj) = c_bxb * pmlArr_[kk].Bx_->point(ii,jj) - c_bxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
+                            Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[kk].Bx_->point(ii,jj) - c_hxb0 * bxstore;
+                            pmlArr_[kk].By_->point(ii,jj) = c_bxb * pmlArr_[kk].By_->point(ii,jj) - c_bxe * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
+                            Hy_->point(ii,jj) = c_hxh * Hy_->point(ii,jj) + c_hxb1 * pmlArr_[kk].By_->point(ii,jj) - c_hxb0 * bystore;
                         }
                         else
                         {
-                            //Always true in a magnetic lossless enviroment, with mu0 = 1, sigma_m = 0;
-                            //double c_hzh = 1.0;
-                            //double c_hze = 1.0 * dt_/dx_;
-                            //Hz_->point(ii,jj) = c_hzh * Hz_->point(ii,jj) + c_hze * ((Ex_->point(ii,jj+1) - Ex_->point(ii,jj)) - (Ey_->point(ii+1,jj)-Ey_->point(ii,jj)));
+                            //Same constants as Ez so not changing them
+                            double sigma = pmlArr_[kk].sigma(ii);
+                            double bstore = pmlArr_[kk].Bz_->point(ii,jj);
+                            double c_dzd = (2*pmlArr_[kk].kappa(ii) - dt_ * sigma) / (2*pmlArr_[kk].kappa(ii) + dt_ * sigma);
+                            double c_dzh = 2 * dt_ / (2*pmlArr_[kk].kappa(ii) + dt_*sigma);
+                            double c_eze = c_dzd; // kappa_x v. kappa_y. I don't think there is a difference here if step size is the same
+                            double c_ezd1 = 1.0; // kappa difference again with eps = 1
+                            double c_ezd0 = c_dzd; // kappa difference with epsislon =1
+                            pmlArr_[kk].Bz_->point(ii,jj) = c_dzd * pmlArr_[kk].Bz_->point(ii,jj) + c_dzh * ((Ey_->point(ii,jj)-Ey_->point(ii-1,jj)) - (Ex_->point(ii,jj)-Ex_->point(ii,jj-1)));
+                            Hz_->point(ii,jj) = c_eze * Hz_->point(ii,jj) + c_ezd1 * pmlArr_[kk].Bz_->point(ii,jj) - c_ezd0 * bstore;
                         }
                     }
                     break;
@@ -303,20 +320,31 @@ void FDTDField::step()
                     {
                         if(Ez_)
                         {
-                            //Always true in a magnetic lossless enviroment, with mu0 = 1, sigma_m = 0;
-                            double c_hxh = 1.0;
-                            double c_hxe = 1.0 * dt_/dx_;
-                            double c_hyh = 1.0;
-                            double c_hye = 1.0 * dt_/dy_;
-                            Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) - c_hxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
-                            Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
-                        }
+                            //Kappas change throughout
+                            double sigma = pmlArr_[kk].sigma(ii);
+                            double bxstore = pmlArr_[kk].Bx_->point(jj,ii);
+                            double bystore = pmlArr_[kk].By_->point(jj,ii);
+                            double c_bxb = (2*pmlArr_[kk].kappa(ii) - dt_ * sigma ) / (2*pmlArr_[kk].kappa(ii) + dt_* sigma);
+                            double c_bxe = 2 * dt_ / (2*pmlArr_[kk].kappa(ii) + dt_* sigma);
+                            double c_hxh = c_bxb; // kappa_x v. kappa_y. I don't think there is a difference here if step size is the same
+                            double c_hxb1 = 1.0; // kappa difference again with eps = 1
+                            double c_hxb0 = c_bxb; // kappa difference with epsislon =1
+                            pmlArr_[kk].Bx_->point(jj,ii) = c_bxb * pmlArr_[kk].Bx_->point(jj,ii) - c_bxe * (Ez_->point(jj,ii+1)-Ez_->point(jj,ii));
+                            pmlArr_[kk].By_->point(jj,ii) = c_bxb * pmlArr_[kk].By_->point(jj,ii) - c_bxe * (Ez_->point(jj+1,ii)-Ez_->point(jj,ii));
+                            Hx_->point(jj,ii) = c_hxh * Hx_->point(jj,ii) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,ii) - c_hxb0 * bxstore;
+                            Hy_->point(jj,ii) = c_hxh * Hy_->point(jj,ii) + c_hxb1 * pmlArr_[kk].By_->point(jj,ii) - c_hxb0 * bystore;                        }
                         else
                         {
-                            //Always true in a magnetic lossless enviroment, with mu0 = 1, sigma_m = 0;
-                            double c_hzh = 1.0;
-                            double c_hze = 1.0 * dt_/dx_;
-                            Hz_->point(ii,jj) = c_hzh * Hz_->point(ii,jj) + c_hze * ((Ex_->point(ii,jj+1) - Ex_->point(ii,jj)) - (Ey_->point(ii+1,jj)-Ey_->point(ii,jj)));
+                            double sigma = pmlArr_[kk].sigma(ii);
+                            double bstore = pmlArr_[kk].Bz_->point(jj,ii);
+                            double c_dzd = (2*pmlArr_[kk].kappa(ii) - dt_ * sigma) / (2*pmlArr_[kk].kappa(ii) + dt_ * sigma);
+                            double c_dzh = 2 * dt_ / (2*pmlArr_[kk].kappa(ii) + dt_*sigma);
+                            double c_eze = c_dzd; // kappa_x v. kappa_y. I don't think there is a difference here if step size is the same
+                            double c_ezd1 = 1.0; // kappa difference again with eps = 1
+                            double c_ezd0 = c_dzd; // kappa difference with epsislon =1
+                            pmlArr_[kk].Bz_->point(jj,ii) = c_dzd * pmlArr_[kk].Bz_->point(jj,ii) + c_dzh * ((Ey_->point(jj,ii)-Ey_->point(jj-1,ii)) - (Ex_->point(jj,ii)-Ex_->point(jj,ii-1)));
+                            Hz_->point(jj,ii) = c_eze * Hz_->point(jj,ii) + c_ezd1 * pmlArr_[kk].Bz_->point(jj,ii) - c_ezd0 * bstore;
+                            
                         }  
                     }
                     break;
@@ -326,10 +354,10 @@ void FDTDField::step()
             }
         }
     }
-
-    for(int ii = 1; ii < nx_ - 1; ii ++)
+    // Better conditions will be added
+    for(int ii = pmlArr_[0].thickness(); ii < nx_ - pmlArr_[0].thickness(); ii ++)
     {
-        for(int jj = 1; jj < ny_ - 1; jj ++)
+        for(int jj = pmlArr_[0].thickness(); jj < ny_ - pmlArr_[0].thickness(); jj ++)
         {
             if(Ez_)
             {
@@ -340,6 +368,7 @@ void FDTDField::step()
             }
             else
             {
+
                 //Only True in Vac Once Mat/PML introduced vectorize it
                 //
                 double c_exe = 1.0;
@@ -351,7 +380,86 @@ void FDTDField::step()
             }
         }
     }
-    
+    for(int kk = 0; kk < pmlArr_.size(); kk++)
+    {
+        for(int ii = 0; ii < pmlArr_[kk].thickness(); ii ++)
+        {
+            switch (pmlArr_[kk].d())
+            {
+                case X:
+                    for(int jj = 0; jj < ny_; jj ++)
+                    {
+                        if(Ez_)
+                        {
+                            double sigma = pmlArr_[kk].sigma(ii);
+                            double dstore = pmlArr_[kk].Dz_->point(ii,jj);
+                            double c_dzd = (2*pmlArr_[kk].kappa(ii) - dt_ * sigma) / (2*pmlArr_[kk].kappa(ii) + dt_ * sigma);
+                            double c_dzh = 2 * dt_ / (2*pmlArr_[kk].kappa(ii) + dt_*sigma);
+                            double c_eze = c_dzd; // kappa_x v. kappa_y. I don't think there is a difference here if step size is the same
+                            double c_ezd1 = 1.0; // kappa difference again with eps = 1
+                            double c_ezd0 = c_dzd; // kappa difference with epsislon =1
+                            pmlArr_[kk].Dz_->point(ii,jj) = c_dzd * pmlArr_[kk].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
+                            Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,jj) - c_ezd0 * dstore;
+                        }
+                        else
+                        {
+                            //Kappas change throughout
+                            double sigma = pmlArr_[kk].sigma(ii);
+                            double dxstore = pmlArr_[kk].Dx_->point(ii,jj);
+                            double dystore = pmlArr_[kk].Dy_->point(ii,jj);
+                            double c_bxb = (2*pmlArr_[kk].kappa(ii) - dt_ * sigma ) / (2*pmlArr_[kk].kappa(ii) + dt_* sigma);
+                            double c_bxe = 2 * dt_ / (2*pmlArr_[kk].kappa(ii) + dt_* sigma);
+                            double c_hxh = c_bxb; // kappa_x v. kappa_y. I don't think there is a difference here if step size is the same
+                            double c_hxb1 = 1.0; // kappa difference again with eps = 1
+                            double c_hxb0 = c_bxb; // kappa difference with epsislon =1
+                            pmlArr_[kk].Dx_->point(ii,jj) = c_bxb * pmlArr_[kk].Dx_->point(ii,jj) - c_bxe * (Hz_->point(ii,jj+1)-Hz_->point(ii,jj));
+                            pmlArr_[kk].Dy_->point(ii,jj) = c_bxb * pmlArr_[kk].Dy_->point(ii,jj) - c_bxe * (Hz_->point(ii+1,jj)-Hz_->point(ii,jj));
+                            Ex_->point(ii,jj) = c_hxh * Ex_->point(ii,jj) + c_hxb1 * pmlArr_[kk].Dx_->point(ii,jj) - c_hxb0 * dxstore;
+                            Ey_->point(ii,jj) = c_hxh * Ey_->point(ii,jj) + c_hxb1 * pmlArr_[kk].Dy_->point(ii,jj) - c_hxb0 * dystore;
+                        }
+                    }
+                    break;
+                case Y:
+                    for(int jj = 0; jj < nx_; jj ++)
+                    {
+                        if(Ez_)
+                        {
+                            //Always true in a magnetic lossless enviroment, with mu0 = 1, sigma_m = 0;
+                            double sigma = pmlArr_[kk].sigma(ii);
+                            double dstore = pmlArr_[kk].Dz_->point(jj,ii);
+                            double c_dzd = (2*pmlArr_[kk].kappa(ii) - dt_ * sigma) / (2*pmlArr_[kk].kappa(ii) + dt_ * sigma);
+                            double c_dzh = 2 * dt_ / (2*pmlArr_[kk].kappa(ii) + dt_*sigma);
+                            double c_eze = c_dzd; // kappa_x v. kappa_y. I don't think there is a difference here if step size is the same
+                            double c_ezd1 = 1.0; // kappa difference again with eps = 1
+                            double c_ezd0 = c_dzd; // kappa difference with epsislon =1
+                            pmlArr_[kk].Dz_->point(jj,ii) = c_dzd * pmlArr_[kk].Dz_->point(jj,ii) + c_dzh * ((Hy_->point(jj,ii)-Hy_->point(jj-1,ii)) - (Hx_->point(jj,ii)-Hx_->point(jj,ii-1)));
+                            Ez_->point(jj,ii) = c_eze * Ez_->point(jj,ii) + c_ezd1 * pmlArr_[kk].Dz_->point(jj,ii) - c_ezd0 * dstore;
+                           
+                        }
+                        else
+                        {
+                            //Kappas change throughout
+                            double sigma = pmlArr_[kk].sigma(ii);
+                            double dxstore = pmlArr_[kk].Dx_->point(jj,ii);
+                            double dystore = pmlArr_[kk].Dy_->point(jj,ii);
+                            double c_bxb = (2*pmlArr_[kk].kappa(ii) - dt_ * sigma ) / (2*pmlArr_[kk].kappa(ii) + dt_* sigma);
+                            double c_bxe = 2 * dt_ / (2*pmlArr_[kk].kappa(ii) + dt_* sigma);
+                            double c_hxh = c_bxb; // kappa_x v. kappa_y. I don't think there is a difference here if step size is the same
+                            double c_hxb1 = 1.0; // kappa difference again with eps = 1
+                            double c_hxb0 = c_bxb; // kappa difference with epsislon =1
+                            pmlArr_[kk].Dx_->point(jj,ii) = c_bxb * pmlArr_[kk].Dx_->point(jj,ii) - c_bxe * (Hz_->point(jj,ii+1)-Hz_->point(jj,ii));
+                            pmlArr_[kk].Dy_->point(jj,ii) = c_bxb * pmlArr_[kk].Dy_->point(jj,ii) - c_bxe * (Hz_->point(jj+1,ii)-Hz_->point(jj,ii));
+                            Ex_->point(jj,ii) = c_hxh * Ex_->point(jj,ii) + c_hxb1 * pmlArr_[kk].Dx_->point(jj,ii) - c_hxb0 * dxstore;
+                            Ey_->point(jj,ii) = c_hxh * Ey_->point(jj,ii) + c_hxb1 * pmlArr_[kk].Dy_->point(jj,ii) - c_hxb0 * dystore;
+                        }  
+                    }
+                    break;
+                default:
+                    throw logic_error("While yes we could have a thrid dimension to run, I have yet to be implimented to do such a thing. So please accept this error as my sincerest appology.");
+
+            }
+        }
+    }
 
     for(int ii = 0; ii < dtcArr_.size(); ii ++)
         ouputField(dtcArr_[ii]);

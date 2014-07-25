@@ -82,6 +82,7 @@ public:
 
 		for(int ii = 0; ii < thickness_; ii++)
 		{
+			//seperate out the points for the different fields
 			kappa_.push_back(1 +(kappaMax - 1) * pow(static_cast<double>(ii)/static_cast<double>(thickness_),m_));
 			sigma_.push_back(sigmaMax * pow(static_cast<double>(ii)/static_cast<double>(thickness_),m_));
 		}
