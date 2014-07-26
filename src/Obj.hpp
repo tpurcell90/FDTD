@@ -31,6 +31,7 @@ public:
     Shape s() {return part_;}
     std::vector<double> geo() {return geoParam_;}
     std::vector<double> loc() {return location_;}
+    std::vector<double> mat() {return material_;}
 
     // Dielectric Access function
     cplx dielectric(double freq);

@@ -427,20 +427,23 @@ void FDTDField::step()
         for(int ii = 0; ii < pmlArr_[kk].thickness(); ii ++)
         {
             /*double eps = 1.0;
-            double kapy = 1.0; double kapz = 1.0; double sigy = 0.0; double sigz= 0.0;
-            double kapx = pmlArr_[kk].kappa(ii);
-            double sigx = pmlArr_[kk].sigma(ii);
+            double kapx = 1.0; double kapz = 1.0; double sigx = 0.0; double sigz= 0.0;
+            double kapy = pmlArr_[kk].kappa(ii);
+            double sigy = pmlArr_[kk].sigma(ii);
             //Kappas change throughout
             double c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
             double c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_)) ;
             double c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
             double c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
             double c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+            cout << "kapy \t" << kapy <<endl;
+            cout << "sigy \t" << sigy <<endl;
             cout << "c_dzd \t" << c_dzd <<endl;
             cout << "c_dzh \t" << c_dzh <<endl;
             cout << "c_eze \t" << c_eze <<endl;
             cout << "c_ezd0 \t" << c_ezd0 <<endl;
-            cout << "c_ezd1 \t" << c_ezd1 <<endl;*/
+            cout << "c_ezd1 \t" << c_ezd1 <<endl;
+            cout << "--------------------------------------"<< endl;*/
             switch (pmlArr_[kk].d())
             {
                 case X:
@@ -449,9 +452,9 @@ void FDTDField::step()
                         if(Ez_)
                         {
                             double eps = 1.0;
-                            double kapy = 1.0; double kapz = 1.0; double sigy = 0.0; double sigz= 0.0;
-                            double kapx = pmlArr_[kk].kappa(ii);
-                            double sigx = pmlArr_[kk].sigma(ii);
+                            double kapx = 1.0; double kapy = 1.0; double kapz = 1.0; 
+                            double sigx = pmlArr_[kk].sigma(ii); double sigy = 0.0; double sigz = 0.0;
+                            //double kapx = pmlArr_[kk].kappa(ii);             
                             //Kappas change throughout
                             double dzstore = pmlArr_[kk].Dz_->point(ii,jj);
 
@@ -540,15 +543,4 @@ void FDTDField::step()
 
     for(int ii = 0; ii < dtcArr_.size(); ii ++)
         ouputField(dtcArr_[ii]);
-}
-
-Obj makeSphere(vector<double> mater, double rad, vector<double> loc)
-{
-    vector<double> geo(1,rad);
-    return Obj(sphere, mater, geo,loc);
-}
-
-Obj makeBlock(vector<double> mater, vector<double> dims, vector<double> loc)
-{
-    return Obj(block, mater, dims,loc);
 }

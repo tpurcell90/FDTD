@@ -44,6 +44,7 @@ public:
     double dy(){return dy_;}
     double dt(){return dt_;}
     double getTime(){return tcur_;}
+    Obj getObj(int n){return objArr_[n];}
     std::vector<Detector<double>> getDtcArr(){return dtcArr_;}
     int getRes(){return res_;}
     std::shared_ptr<Grid2D<int>> getPhysEz(){return phys_Ez_;}
@@ -56,8 +57,6 @@ public:
 
     void ouputField(Detector<double> d);
     void step();
-    Obj makeSphere(vector<double> mater, double rad, vector<double> loc);
-    Obj makeBlock(vector<double> mater, vector<double> dims, vector<double> loc);
     std::vector<double> pml(int npml, int m, int ma);
 };
 

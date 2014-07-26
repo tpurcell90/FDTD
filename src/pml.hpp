@@ -91,7 +91,11 @@ public:
 	int thickness(){return thickness_;}
 	Direction d(){return d_;}
 	double kappa(int x){return kappa_[x];}
-	double sigma(int x){return sigma_[x];}
+	double sigma(int x)
+	{
+		
+		return sigma_[x];
+	}
 	//PMLTopBot tb(){return tb_;}
 
 

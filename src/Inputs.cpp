@@ -5,6 +5,7 @@
 #include <boost/foreach.hpp>
 #include <iterator>
 #include <vector>
+
 using namespace std;
 
 programInputs::programInputs(std::string fn) : filename_(fn)
@@ -26,13 +27,6 @@ programInputs::programInputs(std::string fn) : filename_(fn)
     {
         string p = iter.second.get<string>("profile");
         plsShape prof = string2prof(p);
-        /*boost::property_tree::ptree& size = iter.second.get_child("size");
-        if (size.size() != 2)
-          throw runtime_error("\"size\" needs two elements");
-        vector<double> tmpsize;
-        for (auto& i : size)
-            tmpsize.push_back(i.second);
-        */   //This will be fixed for vectors but for now hard coding in the vectors
         pol_ = iter.second.get<string>("pol");
         Polarization pols = string2pol(pol_);
         vector<double> fxn ={};
@@ -57,10 +51,6 @@ programInputs::programInputs(std::string fn) : filename_(fn)
                 srcArr_.push_back(Source<double>(Pulse<double>(fxn,prof), pols, loc));
             }
     }
-    vector<double> loc(2,0.0);
-    vector<double> size = {x_size_,y_size_};
-    vector<double> mat(1,1.0);
-    objArr_.push_back(Obj(block,mat,size,loc));
     for (auto& iter : IP.get_child("PML"))
     {
         string dd = iter.second.get<string>("direction");
@@ -69,12 +59,12 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         if (d == X)
         {
             xPml_ = thickness;
-            pmlArr_.push_back(UPML<double>(thickness,d, 2.0, 2.0e-14, int(res_*y_size_),1.0/res_,1.0/res_,string2pol(pol_)));
+            pmlArr_.push_back(UPML<double>(thickness,d, 3.0, 1.0e-16, int(res_*y_size_),1.0/res_,1.0/res_,string2pol(pol_)));
         }
         else if(d == Y)
         {
             yPml_ = thickness;
-            pmlArr_.push_back(UPML<double>(thickness,d, 2.0, 2.0e-14, int(res_*x_size_),1.0/res_,1.0/res_,string2pol(pol_)));
+            pmlArr_.push_back(UPML<double>(thickness,d, 3.0, 1.0e-16, int(res_*x_size_),1.0/res_,1.0/res_,string2pol(pol_)));
         }
         else if (d == Z)
             throw logic_error("While yes we could have a thrid dimension to run, I have yet to be implimented to do such a thing. So please accept this error as my sincerest appology.");
@@ -82,18 +72,37 @@ programInputs::programInputs(std::string fn) : filename_(fn)
             throw logic_error("I would appricate it if you stick to the standard X,Y,Z directions. While it's fun to invent new ones, it is very hard to do calculations if I don't even understand what dimension I am in. Please try again!");
 
     }
+
+    vector<double> loc(2,0.0);
+    vector<double> size = {x_size_,y_size_};
+    vector<double> mat(1,1.0);
+    objArr_.push_back(Obj(block,mat,size,loc));
     for (auto& iter : IP.get_child("ObjectList"))
     {
         string sStr(iter.second.get<string>("shape"));
         Shape s = string2shape(sStr);
         vector<double> loc = {};
         vector<double> size = {};
-        size.push_back(iter.second.get<double>("size_x"));
-        size.push_back(iter.second.get<double>("size_y"));
-        loc.push_back(iter.second.get<double>("loc_x"));
-        loc.push_back(iter.second.get<double>("loc_y"));
-        string mater = iter.second.get<string>("material");
-        objArr_.push_back(Obj(s,getDielectricParams(mater),size,loc));
+        if(s == block)
+        {
+            size.push_back(iter.second.get<double>("size_x",0.0));
+            size.push_back(iter.second.get<double>("size_y",0.0));
+        }
+        else if(s == sphere)
+            size.push_back(iter.second.get<double>("radius",0.0));
+
+        loc.push_back(iter.second.get<double>("loc_x",0.0));
+        loc.push_back(iter.second.get<double>("loc_y",0.0));
+        std::vector<double> mater = {iter.second.get<double>("eps",1.00)};
+
+        boost::property_tree::ptree& pols = iter.second.get_child("pols");
+        for(auto& iter2 : pols)
+        {            
+            mater.push_back(iter2.second.get<double>("sigma"));
+            mater.push_back(iter2.second.get<double>("gamma"));
+            mater.push_back(iter2.second.get<double>("kappa"));
+        }
+        objArr_.push_back(Obj(s,mater,size,loc));
     }
     int ii = 0;
     int jj = 0;
@@ -135,16 +144,6 @@ programInputs::programInputs(std::string fn) : filename_(fn)
     //ss.open("output_data/inputs_check.json");
     //boost::property_tree::write_json(ss,IP);
     //ss.close();
-}
-
-vector<double> programInputs::getDielectricParams(string mat)
-{
-    vector<double> dielec = {};
-    if(mat.compare("Ag"))
-    {
-        dielec.push_back(1.00); // so on and so on I'll add all this later
-    }
-    return dielec;
 }
 
 void programInputs::stripComments()

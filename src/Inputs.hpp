@@ -10,6 +10,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <cmath>
 
 using namespace std;
 class programInputs
@@ -21,7 +22,7 @@ public:
     double x_size_;
     double y_size_;
     double z_size_;
-    double res_;
+    int res_;
     double courant_;
     int xPml_, yPml_;
     std::string output_base_;
@@ -46,7 +47,7 @@ public:
     Direction string2dir(string dir);
 
     // convert double to int grid point
-    int find_pt(double pt) {return int(pt*res_);};
+    int find_pt(double pt) {return floor(pt*static_cast<double>(res_) + 0.5);}
 
 	//Removes comment lines from the json file
 	void stripComments();
