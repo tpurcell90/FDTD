@@ -17,7 +17,8 @@ programInputs::programInputs(std::string fn) : filename_(fn)
     y_size_      = IP.get<double>("CompCell.y_size",10.1);
     z_size_      = IP.get<double>("CompCell.z_size",10.1);
     res_         = IP.get<int>("CompCell.res", 10);
-    t_pml_       = IP.get<double>("CompCell.PML_Thick", 0);
+    xPml_        = 1;
+    yPml_        = 1;
     courant_     = IP.get<double>("CompCell.courant", 0.5);
     output_base_ = IP.get<string>("CompCell.output", "dtc_out");
     
@@ -67,11 +68,13 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         int thickness = iter.second.get<int>("thickness");
         if (d == X)
         {
-            pmlArr_.push_back(UPML<double>(thickness,d, 2.0, 1.0e-7, int(res_*y_size_),1.0/res_,1.0/res_,string2pol(pol_)));
+            xPml_ = thickness;
+            pmlArr_.push_back(UPML<double>(thickness,d, 2.0, 2.0e-14, int(res_*y_size_),1.0/res_,1.0/res_,string2pol(pol_)));
         }
         else if(d == Y)
         {
-            pmlArr_.push_back(UPML<double>(thickness,d, 2.0, 1.0e-7, int(res_*x_size_),1.0/res_,1.0/res_,string2pol(pol_)));
+            yPml_ = thickness;
+            pmlArr_.push_back(UPML<double>(thickness,d, 2.0, 2.0e-14, int(res_*x_size_),1.0/res_,1.0/res_,string2pol(pol_)));
         }
         else if (d == Z)
             throw logic_error("While yes we could have a thrid dimension to run, I have yet to be implimented to do such a thing. So please accept this error as my sincerest appology.");

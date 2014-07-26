@@ -23,7 +23,7 @@ public:
     double z_size_;
     double res_;
     double courant_;
-    double t_pml_;
+    int xPml_, yPml_;
     std::string output_base_;
     string pol_;
     //vector<Source<double>> srcArr();

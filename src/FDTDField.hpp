@@ -24,7 +24,7 @@ class FDTDField
 protected:
     size_t nx_,ny_;
     double dx_,dy_,dt_, tcur_;
-    int res_, tpml_;
+    int res_, xPML_, yPML_;
     std::shared_ptr<Grid2D<int>> phys_Ex_,phys_Ey_,phys_Ez_,phys_Hx_,phys_Hy_,phys_Hz_;
     std::vector<Source<double>> srcArr_;
     std::vector<Obj> objArr_;
