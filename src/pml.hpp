@@ -24,17 +24,21 @@ protected:
 	int thickness_;
 	Direction d_;
 	//PMLTopBot tb_;
-	double g_;
+	double m_;
 	double R0_;
 	std::vector<double> kappa_;
 	std::vector<double> sigma_;
+	double sigmaMax_;
+	double kappaMax_;
 
 public:
 	std::shared_ptr<Grid2D<T>> Dx_,Dy_,Dz_,Bx_,By_,Bz_;
 
-	UPML(int thickness, Direction d, double g, double R0, int nx, double dx, double dy, Polarization pol) : thickness_(thickness), d_(d), g_(g), R0_(R0)
+	UPML(int thickness, Direction d, double m, double R0, int nx, double dx, double dy, Polarization pol) : thickness_(thickness), d_(d), m_(m), R0_(R0)
 	{
-		double sigma0 = -log(R0_)*log(g_)/(2.0*dx*pow(g,static_cast<double>(thickness_)/dx) - 1.00); // eta should be in the denominator eta = sqrt(mu_0*Material(1,2)/epsilon_0/Material(1,1));
+		//double sigma0 = -log(R0_)*log(g_)/(2.0*dx*pow(g,static_cast<double>(thickness_)/dx) - 1.00); // eta should be in the denominator eta = sqrt(mu_0*Material(1,2)/epsilon_0/Material(1,1));
+		double sigmaMax_ = -(m_+1)*log(R0_)/(2*thickness_*dx); // eta should be included
+		double kappaMax_ = 1.0;
 		if(d == X)
 		{
 			if(pol == EX || pol == EY || pol == HZ)
@@ -83,18 +87,58 @@ public:
 		for(int ii = 0; ii < thickness_; ii++)
 		{
 			//seperate out the points for the different fields
-			sigma_.push_back(sigma0 * pow(g,(static_cast<double>(thickness) - static_cast<double>(ii))/dx));
-			kappa_.push_back(pow(g,(static_cast<double>(thickness) - static_cast<double>(ii))/dx));
+			//sigma_.push_back(sigma0 * pow(g,(static_cast<double>(thickness) - static_cast<double>(ii))/dx));
+			//kappa_.push_back(pow(g,(static_cast<double>(thickness) - static_cast<double>(ii))/dx));
+			sigma_.push_back(sigmaMax_ * pow(static_cast<double>(ii) / static_cast<double>(thickness_), m_));
+			kappa_.push_back(1 + (1-kappaMax_) * pow(static_cast<double>(ii) / static_cast<double>(thickness_), m_));
 		}
 	}
 	// Accessor Functions
 	int thickness(){return thickness_;}
 	Direction d(){return d_;}
 	double kappa(int x){return kappa_[x];}
-	double sigma(int x)
+	double sigma(int ii,Polarization pol)
 	{
-		
-		return sigma_[x];
+		double out = 0.0;
+		switch(pol)
+		{
+			case HX:
+				switch(d_)
+				{
+					case X:
+						out = sigmaMax_ * pow(static_cast<double>(ii) / static_cast<double>(thickness_), m_);
+						break;
+					case Y:
+						out =  sigmaMax_ * pow((static_cast<double>(ii) + 0.5) / static_cast<double>(thickness_), m_);
+						break;
+					default:
+						throw std::logic_error("hit defalut error!");
+						break;
+				}
+				break;
+			case HY:
+				switch(d_)
+				{
+					case Y:
+						out = sigmaMax_ * pow(static_cast<double>(ii) / static_cast<double>(thickness_), m_);
+						break;
+					case X:
+						out =  sigmaMax_ * pow((static_cast<double>(ii) + 0.5) / static_cast<double>(thickness_), m_);
+						break;
+					default:
+						throw std::logic_error("hit defalut error!");
+						break;
+				}
+				break;
+				break;
+			case EZ:
+				out = sigmaMax_ * pow(static_cast<double>(ii) / static_cast<double>(thickness_), m_);
+				break;
+			default:
+				throw std::logic_error("hit the default of a switch which is bad");
+				break;
+		}
+		return out;
 	}
 	//PMLTopBot tb(){return tb_;}
 

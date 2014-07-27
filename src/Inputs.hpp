@@ -25,6 +25,7 @@ public:
     int res_;
     double courant_;
     int xPml_, yPml_;
+    bool periodic_;
     std::string output_base_;
     string pol_;
     //vector<Source<double>> srcArr();

@@ -30,6 +30,7 @@ protected:
     std::vector<Obj> objArr_;
     std::vector<Detector<double>> dtcArr_;
     std::vector<UPML<double>> pmlArr_;
+    bool periodic_;
 
 
 public:
