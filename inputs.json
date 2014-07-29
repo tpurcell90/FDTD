@@ -4,24 +4,26 @@
         "x_size"        : 30.0,
         "y_size"        : 30.0,
         "z_size"        : 0.0,
-        "res"           : 10,
-        "PML_Thick"     : 20,
+        "res"           : 20,
         "courant"       : 0.5
     },
     "PML" :  [
         {
             "direction" : "Y",
             "thickness" : 20
+        },
+        {
+            "direction" : "X",
+            "thickness" : 20
         }
-        
     ],
     "SourceList"  : [
         {
             "profile"   : "gaussian",
             "fcen"      : 3.000,
             "fwidth"    : 1.000,
-            "cutoff"    : 20.00,
-            "t_start"   : 10.00,
+            "cutoff"    : 16.00,
+            "t_start"   : 0.00,
             "size_x"    : 30.00,
             "size_y"    : 0.00,
             "pol"       : "Ez",
@@ -33,24 +35,24 @@
     ],
     "DetectorList"  : [
         {
-            "loc_x"     : 5.10,
-            "loc_y"     : 5.10,
+            "loc_x"     : 5.00,
+            "loc_y"     : 5.00,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",
             "pol"       : "Ez"
         },
         {
-            "loc_x"     : 5.10,
-            "loc_y"     : 5.10,
+            "loc_x"     : 5.00,
+            "loc_y"     : 5.00,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",
             "pol"       : "Hy"
         },
         {
-            "loc_x"     : 5.10,
-            "loc_y"     : 5.10,
+            "loc_x"     : 5.00,
+            "loc_y"     : 5.00,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",

@@ -59,12 +59,12 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         if (d == X)
         {
             xPml_ = thickness;
-            pmlArr_.push_back(UPML<double>(thickness,d, 4.0, 1.0e-16, int(res_*y_size_),1.0/res_,1.0/res_,string2pol(pol_)));
+            pmlArr_.push_back(UPML<double>(thickness,d, 4.0, exp(-16), int(res_*y_size_),1.0/res_,1.0/res_,string2pol(pol_)));
         }
         else if(d == Y)
         {
             yPml_ = thickness;
-            pmlArr_.push_back(UPML<double>(thickness,d, 4.0, 1.0e-16, int(res_*x_size_),1.0/res_,1.0/res_,string2pol(pol_)));
+            pmlArr_.push_back(UPML<double>(thickness,d, 4.0, exp(-16), int(res_*x_size_),1.0/res_,1.0/res_,string2pol(pol_)));
         }
         else if (d == Z)
             throw logic_error("While yes we could have a thrid dimension to run, I have yet to be implimented to do such a thing. So please accept this error as my sincerest appology.");

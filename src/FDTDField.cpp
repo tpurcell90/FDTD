@@ -288,8 +288,10 @@ void FDTDField::step()
     // PML part goes here
     for(int kk = 0; kk < pmlArr_.size(); kk++)
     {
+        //cout << pmlArr_[kk].thickness()<<endl;
         for(int ii = 2; ii < pmlArr_[kk].thickness(); ii ++)
         {
+            //cout<< ii <<  "\t" << pmlArr_[kk].sigma(static_cast<double>(ii)) << "\t\t" <<  pmlArr_[kk].kappa(ii) <<endl;
             switch (pmlArr_[kk].d())
             {
                 case X:
@@ -300,8 +302,8 @@ void FDTDField::step()
                             double eps = 1.0;
                             double kapy = 1.0; double kapz = 1.0; double sigy = 0.0; double sigz= 0.0;
                             double kapx = pmlArr_[kk].kappa(ii);
-                            double sigxx = pmlArr_[kk].sigma(ii,HX);
-                            double sigxy = pmlArr_[kk].sigma(ii,HY);
+                            double sigxx = pmlArr_[kk].sigma(static_cast<double>(ii));
+                            double sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5);
                             //Kappas change throughout
                             double bxstore = pmlArr_[kk].Bx_->point(ii,jj);
                             double bystore = pmlArr_[kk].By_->point(ii,jj);
@@ -329,23 +331,11 @@ void FDTDField::step()
                         }
                         else
                         {
-                            //Fix
-                            //Same constants as Ez so not changing them
-                            /*double sigma = pmlArr_[kk].sigma(ii);
-                            double bstore = pmlArr_[kk].Bz_->point(ii,jj);
-                            double c_dzd = (2*pmlArr_[kk].kappa(ii) - dt_ * sigma) / (2*pmlArr_[kk].kappa(ii) + dt_ * sigma);
-                            double c_dzh = 2 * dt_ / (2*pmlArr_[kk].kappa(ii) + dt_*sigma) / dx_;
-                            double c_eze = c_dzd; // kappa_x v. kappa_y. I don't think there is a difference here if step size is the same
-                            double c_ezd1 = 1.0; // kappa difference again with eps = 1
-                            double c_ezd0 = c_dzd; // kappa difference with epsislon =1
-                            pmlArr_[kk].Bz_->point(ii,jj) = c_dzd * pmlArr_[kk].Bz_->point(ii,jj) + c_dzh * ((Ey_->point(ii,jj)-Ey_->point(ii-1,jj)) - (Ex_->point(ii,jj)-Ex_->point(ii,jj-1)));
-                            Hz_->point(ii,jj) = c_eze * Hz_->point(ii,jj) + c_ezd1 * pmlArr_[kk].Bz_->point(ii,jj) - c_ezd0 * bstore;
-                            Hz_->point((nx_ - 1) - ii,jj) = c_eze * Hz_->point((nx_ - 1) - ii,jj) + c_ezd1 * pmlArr_[kk].Bz_->point(ii,jj) - c_ezd0 * bstore;*/
+                            
                         }
                     }
                     break;
                 case Y:
-                    //cout <<2 * dt_ / (2*pmlArr_[kk].kappa(ii) + dt_* pmlArr_[kk].sigma(ii)) << "\t\t" << ii << endl;
                     for(int jj = xPML_; jj < nx_ - xPML_; jj ++)
                     {
                         if(Ez_)
@@ -353,8 +343,8 @@ void FDTDField::step()
                             double eps = 1.0;
                             double kapx = 1.0; double kapz = 1.0; double sigx = 0.0; double sigz= 0.0;
                             double kapy = pmlArr_[kk].kappa(ii);
-                            double sigyy = pmlArr_[kk].sigma(ii, HY);
-                            double sigyx = pmlArr_[kk].sigma(ii, HX);
+                            double sigyy = pmlArr_[kk].sigma(static_cast<double>(ii));
+                            double sigyx = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5);
                             //Kappas change throughout
                             double bxstore = pmlArr_[kk].Bx_->point(jj,ii);
                             double bystore = pmlArr_[kk].By_->point(jj,ii);
@@ -382,17 +372,7 @@ void FDTDField::step()
                         }
                         else
                         {
-                            /*double sigma = pmlArr_[kk].sigma(ii);
-                            double bstore = pmlArr_[kk].Bz_->point(jj,ii);
-                            double c_dzd = (2*pmlArr_[kk].kappa(ii) - dt_ * sigma) / (2*pmlArr_[kk].kappa(ii) + dt_ * sigma);
-                            double c_dzh = 2 * dt_ / (2*pmlArr_[kk].kappa(ii) + dt_*sigma) / dx_;
-                            double c_eze = c_dzd; // kappa_x v. kappa_y. I don't think there is a difference here if step size is the same
-                            double c_ezd1 = 1.0; // kappa difference again with eps = 1
-                            double c_ezd0 = c_dzd; // kappa difference with epsislon =1
-
-                            pmlArr_[kk].Bz_->point(jj,ii) = c_dzd * pmlArr_[kk].Bz_->point(jj,ii) + c_dzh * ((Ey_->point(jj,ii)-Ey_->point(jj-1,ii)) - (Ex_->point(jj,ii)-Ex_->point(jj,ii-1)));
-                            Hz_->point(jj,(ny_ - 1) - ii) = c_eze * Hz_->point(jj,(ny_ - 1) - ii) + c_ezd1 * pmlArr_[kk].Bz_->point(jj,ii) - c_ezd0 * bstore;
-                            */
+                           
                         }  
                     }
                     break;
@@ -435,26 +415,8 @@ void FDTDField::step()
     //cout << pmlArr_[0].thickness()<< endl;
     for(int kk = 0; kk < pmlArr_.size(); kk++)
     {
-        for(int ii = 0; ii < pmlArr_[kk].thickness(); ii ++)
+        for(int ii = 2; ii < pmlArr_[kk].thickness(); ii ++)
         {
-            /*double eps = 1.0;
-            double kapx = 1.0; double kapz = 1.0; double sigx = 0.0; double sigz= 0.0;
-            double kapy = pmlArr_[kk].kappa(ii);
-            double sigy = pmlArr_[kk].sigma(ii);
-            //Kappas change throughout
-            double c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-            double c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_)) ;
-            double c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-            double c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-            double c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-            cout << "kapy \t" << kapy <<endl;
-            cout << "sigy \t" << sigy <<endl;
-            cout << "c_dzd \t" << c_dzd <<endl;
-            cout << "c_dzh \t" << c_dzh <<endl;
-            cout << "c_eze \t" << c_eze <<endl;
-            cout << "c_ezd0 \t" << c_ezd0 <<endl;
-            cout << "c_ezd1 \t" << c_ezd1 <<endl;
-            cout << "--------------------------------------"<< endl;*/
             switch (pmlArr_[kk].d())
             {
                 case X:
@@ -464,7 +426,7 @@ void FDTDField::step()
                         {
                             double eps = 1.0;
                             double kapx = 1.0; double kapy = 1.0; double kapz = 1.0; 
-                            double sigx = pmlArr_[kk].sigma(ii,EZ); double sigy = 0.0; double sigz = 0.0;
+                            double sigx = pmlArr_[kk].sigma(static_cast<double>(ii)); double sigy = 0.0; double sigz = 0.0;
                             //double kapx = pmlArr_[kk].kappa(ii);             
                             //Kappas change throughout
                             double dzstore = pmlArr_[kk].Dz_->point(ii,jj);
@@ -472,8 +434,8 @@ void FDTDField::step()
                             double c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                             double c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_)) ;
                             double c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            double c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             double c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            double c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             
                             pmlArr_[kk].Dz_->point(ii,jj) = c_dzd * pmlArr_[kk].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                             
@@ -483,21 +445,7 @@ void FDTDField::step()
                         }
                         else
                         {
-                            //Kappas change throughout
-                            /*double sigma = pmlArr_[kk].sigma(ii);
-                            double dxstore = pmlArr_[kk].Dx_->point(ii,jj);
-                            double dystore = pmlArr_[kk].Dy_->point(ii,jj);
-                            double c_bxb = (2*pmlArr_[kk].kappa(ii) - dt_ * sigma ) / (2*pmlArr_[kk].kappa(ii) + dt_* sigma);
-                            double c_bxe = 2 * dt_ / (2*pmlArr_[kk].kappa(ii) + dt_* sigma) /dx_;
-                            double c_hxh = c_bxb; // kappa_x v. kappa_y. I don't think there is a difference here if step size is the same
-                            double c_hxb1 = 1.0; // kappa difference again with eps = 1
-                            double c_hxb0 = c_bxb; // kappa difference with epsislon =1
-                            pmlArr_[kk].Dx_->point(ii,jj) = c_bxb * pmlArr_[kk].Dx_->point(ii,jj) - c_bxe * (Hz_->point(ii,jj+1)-Hz_->point(ii,jj));
-                            pmlArr_[kk].Dy_->point(ii,jj) = c_bxb * pmlArr_[kk].Dy_->point(ii,jj) - c_bxe * (Hz_->point(ii+1,jj)-Hz_->point(ii,jj));
-                            Ex_->point(ii,jj) = c_hxh * Ex_->point(ii,jj) + c_hxb1 * pmlArr_[kk].Dx_->point(ii,jj) - c_hxb0 * dxstore;
-                            Ey_->point(ii,jj) = c_hxh * Ey_->point(ii,jj) + c_hxb1 * pmlArr_[kk].Dy_->point(ii,jj) - c_hxb0 * dystore;
-                            Ex_->point((nx_ - 1) - ii,jj) = c_hxh * Ex_->point((nx_ - 1) - ii,jj) + c_hxb1 * pmlArr_[kk].Dx_->point(ii,jj) - c_hxb0 * dxstore;
-                            Ey_->point((nx_ - 1) - ii,jj) = c_hxh * Ey_->point((nx_ - 1) - ii,jj) + c_hxb1 * pmlArr_[kk].Dy_->point(ii,jj) - c_hxb0 * dystore;*/
+                            
                         }
                     }
                     break;
@@ -508,16 +456,16 @@ void FDTDField::step()
                         {
                             double eps = 1.0;
                             double kapx = 1.0; double kapz = 1.0; double sigx = 0.0; double sigz= 0.0;
-                            double kapy = pmlArr_[kk].kappa(ii);
-                            double sigy = pmlArr_[kk].sigma(ii,EZ);
+                            double kapy = 1.0;
+                            double sigy = pmlArr_[kk].sigma(static_cast<double>(ii));
                             //Kappas change throughout
                             double dzstore = pmlArr_[kk].Dz_->point(jj,ii);
 
                             double c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                             double c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_)) ;
                             double c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            double c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             double c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            double c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             
                             pmlArr_[kk].Dz_->point(jj,ii) = c_dzd * pmlArr_[kk].Dz_->point(jj,ii) + c_dzh * ((Hy_->point(jj,ii)-Hy_->point(jj-1,ii)) - (Hx_->point(jj,ii)-Hx_->point(jj,ii-1)));
                             
@@ -527,21 +475,7 @@ void FDTDField::step()
                         }
                         else
                         {
-                            //Kappas change throughout
-                            /*double sigma = pmlArr_[kk].sigma(ii);
-                            double dxstore = pmlArr_[kk].Dx_->point(jj,ii);
-                            double dystore = pmlArr_[kk].Dy_->point(jj,ii);
-                            double c_bxb = (2*pmlArr_[kk].kappa(ii) - dt_ * sigma ) / (2*pmlArr_[kk].kappa(ii) + dt_* sigma);
-                            double c_bxe = 2 * dt_ / (2*pmlArr_[kk].kappa(ii) + dt_* sigma) / dx_;
-                            double c_hxh = c_bxb; // kappa_x v. kappa_y. I don't think there is a difference here if step size is the same
-                            double c_hxb1 = 1.0; // kappa difference again with eps = 1
-                            double c_hxb0 = c_bxb; // kappa difference with epsislon =1
-                            pmlArr_[kk].Dx_->point(jj,ii) = c_bxb * pmlArr_[kk].Dx_->point(jj,ii) + c_bxe * (Hz_->point(jj,ii+1)-Hz_->point(jj,ii));
-                            pmlArr_[kk].Dy_->point(jj,ii) = c_bxb * pmlArr_[kk].Dy_->point(jj,ii) - c_bxe * (Hz_->point(jj+1,ii)-Hz_->point(jj,ii));
-                            Ex_->point(jj,ii) = c_hxh * Ex_->point(jj,ii) + c_hxb1 * pmlArr_[kk].Dx_->point(jj,ii) - c_hxb0 * dxstore;
-                            Ey_->point(jj,ii) = c_hxh * Ey_->point(jj,ii) + c_hxb1 * pmlArr_[kk].Dy_->point(jj,ii) - c_hxb0 * dystore;
-                            Ex_->point(jj,(ny_ - 1) - ii) = c_hxh * Ex_->point(jj,(ny_ - 1) - ii) + c_hxb1 * pmlArr_[kk].Dx_->point(jj,ii) - c_hxb0 * dxstore;
-                            Ey_->point(jj,(ny_ - 1) - ii) = c_hxh * Ey_->point(jj,(ny_ - 1) - ii) + c_hxb1 * pmlArr_[kk].Dy_->point(jj,ii) - c_hxb0 * dystore;*/
+                            
                         }  
                     }
                     break;
