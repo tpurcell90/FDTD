@@ -18,8 +18,8 @@ programInputs::programInputs(std::string fn) : filename_(fn)
     y_size_      = IP.get<double>("CompCell.y_size",10.1);
     z_size_      = IP.get<double>("CompCell.z_size",10.1);
     res_         = IP.get<int>("CompCell.res", 10);
-    xPml_        = 1;
-    yPml_        = 1;
+    xPml_        = 0;
+    yPml_        = 0;
     courant_     = IP.get<double>("CompCell.courant", 0.5);
     output_base_ = IP.get<string>("CompCell.output", "dtc_out");
     periodic_      = IP.get<bool>("PBC", true);    
