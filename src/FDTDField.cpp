@@ -243,30 +243,30 @@ void FDTDField::step()
     {
         int ii = srcArr_[kk].loc()[0];
         int jj = srcArr_[kk].loc()[1];
-        switch ( srcArr_[kk].pol() )
-        {
-            case EZ: //if(srcArr[kk].pol() == EZ)
-                Ez_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
-                break;
-            case HX: //else if(srcArr[kk].pol() == HX)
-                Hx_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
-                break;
-            case HY: //else if(srcArr[kk].pol() == HY)
-                Hy_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
-                break;
-            case HZ: //else if(srcArr[kk].pol() == HZ)
-                Hz_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
-                break;
-            case EX: //else if(srcArr[kk].pol() == EX)
-                Ex_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
-                break;
-            case EY: //else if(srcArr[kk].pol() == EY)
-                Ey_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
-                break;
-            default:
-                throw logic_error("reached a default case in a switch state that should never happen!");
-                break;
-        }
+            switch ( srcArr_[kk].pol() )
+            {
+                case EZ: //if(srcArr[kk].pol() == EZ)
+                    Ez_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
+                    break;
+                case HX: //else if(srcArr[kk].pol() == HX)
+                    Hx_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
+                    break;
+                case HY: //else if(srcArr[kk].pol() == HY)
+                    Hy_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
+                    break;
+                case HZ: //else if(srcArr[kk].pol() == HZ)
+                    Hz_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
+                    break;
+                case EX: //else if(srcArr[kk].pol() == EX)
+                    Ex_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
+                    break;
+                case EY: //else if(srcArr[kk].pol() == EY)
+                    Ey_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
+                    break;
+                default:
+                    throw logic_error("reached a default case in a switch state that should never happen!");
+                    break;
+            }
     }
     for(int ii = xPML_ + 1; ii < nx_ + 1 - xPML_; ii ++)
     {

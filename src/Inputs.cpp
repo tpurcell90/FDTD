@@ -55,18 +55,18 @@ programInputs::programInputs(std::string fn) : filename_(fn)
     {
         string dd = iter.second.get<string>("direction");
         Direction d = string2dir(dd);
-        int thickness = iter.second.get<int>("thickness");
+        int thickness = iter.second.get<double>("thickness");
         if (d == X)
         {
-            xPml_ = thickness ;
+            xPml_ = find_pt(thickness);
             //pmlArr_.push_back(UPML<double>(thickness,d, 4.0, exp(-16), find_pt(y_size_),1.0/res_,1.0/res_,string2pol(pol_)));
-            pmlArr_.push_back(UPML<double>(thickness,d, 4.0, exp(-16), find_pt(y_size_) + 1,1.0/res_,1.0/res_,string2pol(pol_)));
+            pmlArr_.push_back(UPML<double>(xPml_,d, 4.0, exp(-16), find_pt(y_size_) + 1,1.0/res_,1.0/res_,string2pol(pol_)));
         }
         else if(d == Y)
         {
-            yPml_ = thickness ;
+            yPml_ = find_pt(thickness);
             //pmlArr_.push_back(UPML<double>(thickness,d, 4.0, exp(-16), find_pt(x_size_),1.0/res_,1.0/res_,string2pol(pol_)));
-            pmlArr_.push_back(UPML<double>(thickness,d, 4.0, exp(-16), find_pt(x_size_) + 1,1.0/res_,1.0/res_,string2pol(pol_)));
+            pmlArr_.push_back(UPML<double>(yPml_,d, 4.0, exp(-16), find_pt(x_size_) + 1,1.0/res_,1.0/res_,string2pol(pol_)));
         }
         else if (d == Z)
             throw logic_error("While yes we could have a thrid dimension to run, I have yet to be implimented to do such a thing. So please accept this error as my sincerest appology.");

@@ -8,7 +8,14 @@
         "courant"       : 0.5
     },
     "PML" :  [
-        
+        {
+            "direction" : "X",
+            "thickness" : 4.0
+        },
+        {
+            "direction" : "Y",
+            "thickness" : 4.0
+        }
     ],
     "SourceList"  : [
         {
@@ -17,7 +24,7 @@
             "fwidth"    : 1.000,
             "cutoff"    : 16.00,
             "t_start"   : 0.00,
-            "size_x"    : 0.00,
+            "size_x"    : 20.00,
             "size_y"    : 0.00,
             "pol"       : "Ez",
             "loc_x"     : 0.00,
