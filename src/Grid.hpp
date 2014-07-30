@@ -8,6 +8,7 @@
 #include <iostream>
 #include <complex>
 #include <algorithm>
+#include <assert.h>
 
 // Using template becuse I might need complex or real fields
 template <typename T> class Grid2D
@@ -54,10 +55,14 @@ public:
     T& operator()(const int x_val, const int y_val) { return point(x_val,y_val); }
     const T& operator()(const int x_val, const int y_val) const { return vals[(y_val%ny)*nx + x_val%nx]; }*/
     
-    T& point(const int x_val, const int y_val) { return vals[y_val*nx + x_val];}
-    const T& point(const int x_val, const int y_val) const{ return vals[y_val*nx + x_val];}
-    T& operator()(const int x_val, const int y_val) { return point(x_val,y_val); }
-    const T& operator()(const int x_val, const int y_val) const { return vals[(y_val)*nx + x_val]; }
+    T& point(const int x_val, const int y_val) 
+    { 
+        assert(0 <= x_val && x_val < nx && 0 <= y_val && y_val < ny );
+        return vals[y_val*nx + x_val];
+    }
+    const T& point(const int x_val, const int y_val) const{ assert(0 <= x_val && x_val < nx && 0 <= y_val && y_val < ny );return vals[y_val*nx + x_val];}
+    T& operator()(const int x_val, const int y_val) {assert(0 <= x_val && x_val < nx && 0 <= y_val && y_val < ny ); return point(x_val,y_val); }
+    const T& operator()(const int x_val, const int y_val) const { assert(0 <= x_val && x_val < nx && 0 <= y_val && y_val < ny );return vals[(y_val)*nx + x_val]; }
 
 // Flux calculation
     double flux(std::vector<int> loc, double eps)
