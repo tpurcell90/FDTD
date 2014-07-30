@@ -23,7 +23,7 @@ int main(int argc, char const *argv[])
     */
     FF.initializeGrid(IP);
     cout<<"AND INITIALIZED THE GRID!" << endl;    
-    for(int ii = 0; ii < 6000; ii++)
+    for(int ii = 0; ii < 10000; ii++)
         FF.step();
     cout << "I am always in error\n";
     return 0; 

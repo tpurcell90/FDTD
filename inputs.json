@@ -9,12 +9,12 @@
     },
     "PML" :  [
         {
-            "direction" : "X",
-            "thickness" : 4.0
+            "thickness" : 1.0,
+            "direction" : "X"
         },
         {
-            "direction" : "Y",
-            "thickness" : 4.0
+            "thickness" : 1.0,
+            "direction" : "Y"
         }
     ],
     "SourceList"  : [
@@ -24,8 +24,8 @@
             "fwidth"    : 1.000,
             "cutoff"    : 16.00,
             "t_start"   : 0.00,
-            "size_x"    : 5.00,
-            "size_y"    : 2.00,
+            "size_x"    : 30.00,
+            "size_y"    : 0.00,
             "pol"       : "Ez",
             "loc_x"     : 0.00,
             "loc_y"     : 0.00
