@@ -323,8 +323,8 @@ void FDTDField::step()
                             double sigz = 0.0;
                             double sigxx = pmlArr_[kk].sigma(static_cast<double>(ii));
                             double sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5);
-                            double sigyx = 1.0;
-                            double sigyy = 1.0;
+                            double sigyx = 0.0;
+                            double sigyy = 0.0;
                             //Kappas change throughout
                             //cout << "store1" <<endl;
                             //cout << jj << "\t" << ny_+1<< "\t"<< pmlArr_[kk].Bx_->y()  << "\t" << pmlArr_[kk].By_->y() <<endl;
