@@ -1,19 +1,19 @@
 {
     "CompCell" : {
         "procs"         : 1,
-        "x_size"        : 10.0,
-        "y_size"        : 10.0,
+        "x_size"        : 20.0,
+        "y_size"        : 20.0,
         "z_size"        : 0.0,
         "res"           : 20,
         "courant"       : 0.5
     },
     "PML" :  [
         {
-            "thickness" : 2.0,
+            "thickness" : 5.0,
             "direction" : "X"
         },
         {
-            "thickness" : 2.0,
+            "thickness" : 5.0,
             "direction" : "Y"
         }
     ],
@@ -25,7 +25,7 @@
             "cutoff"    : 16.00,
             "t_start"   : 0.00,
             "size_x"    : 4.00,
-            "size_y"    : 0.00,
+            "size_y"    : 4.00,
             "pol"       : "Ez",
             "loc_x"     : 0.00,
             "loc_y"     : 0.00
@@ -35,32 +35,32 @@
     ],
     "DetectorList"  : [
         {
-            "loc_x"     : -3.0,
-            "loc_y"     : -3.0,
+            "loc_x"     : 0.0,
+            "loc_y"     : 4.0,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",
             "pol"       : "Ez"
         },
         {
-            "loc_x"     : -5.0,
-            "loc_y"     : -3.00,
+            "loc_x"     : 0.0,
+            "loc_y"     : -4.00,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",
             "pol"       : "Ez"
         },
         {
-            "loc_x"     : -3.0,
-            "loc_y"     : -5.00,
+            "loc_x"     : 4.0,
+            "loc_y"     : 0.00,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",
             "pol"       : "Ez"
         },
         {
-            "loc_x"     : -5.0,
-            "loc_y"     : -5.0,
+            "loc_x"     : -4.0,
+            "loc_y"     : 0.0,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",

@@ -65,6 +65,7 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         else if(d == Y)
         {
             yPml_ = find_pt(thickness);
+            cout << find_pt(x_size_)<<endl;
             //pmlArr_.push_back(UPML<double>(thickness,d, 4.0, exp(-16), find_pt(x_size_),1.0/res_,1.0/res_,string2pol(pol_)));
             pmlArr_.push_back(UPML<double>(yPml_,d, 4.0, exp(-16), find_pt(x_size_) + 1,1.0/res_,1.0/res_,string2pol(pol_)));
         }
