@@ -16,7 +16,6 @@
 // #include <complex>
 // typedef std::complex<double> cplx;
 enum Direction {X,Y,Z};
-enum PMLTopBot {TOP, BOT};
 
 template <typename T> class UPML
 {
@@ -117,8 +116,8 @@ public:
 	double kappa(int x){return kappaMax_;}
 	double sigma(double x)
 	{	
-		if(x <= thickness_)
-			return sigmaMax_ * pow((static_cast<double>(thickness_) - x) / static_cast<double>(thickness_) , m_);	
+		if(x <= thickness_ -1)
+			return sigmaMax_ * pow((static_cast<double>(thickness_-1) - x) / static_cast<double>(thickness_-1) , m_);	
 		else
 			return 0.0;
 	}
