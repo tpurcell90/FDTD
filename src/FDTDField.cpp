@@ -443,21 +443,25 @@ void FDTDField::step()
                             sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5);
                             sigyx = 0.0;
                             sigyy = 0.0;
+                            c_bxb = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                            c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_)) ;
+                            c_hxh = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                            c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_) / eps;
+                            c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_) / eps;
+
+                            c_byb = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                            c_bye = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_)) ;
+                            c_hyh = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                            c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_) / eps;
+                            c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_) / eps;
                             for(int jj = yPML_; jj < ny_- yPML_; jj ++)
                             {
                                 //Update everything
-                                c_bxb = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                                c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_)) ;
-                                c_hxh = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_) / eps;
-                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_) / eps;
-
-                                c_byb = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_bye = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_)) ;
+                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5);
                                 c_hyh = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
                                 c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_) / eps;
                                 c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_) / eps;
-                                
+
                                 double bxstore = pmlArr_[kk].Bx_->point(ii,jj);
                                 double bystore = pmlArr_[kk].By_->point(ii,jj);
 
