@@ -8,12 +8,10 @@
         "courant"       : 0.5
     },
     "PML" :  [
-        
         {
             "thickness" : 5.0,
             "direction" : "X"
         }
-
     ],
     "SourceList"  : [
         {
@@ -22,8 +20,8 @@
             "fwidth"    : 1.000,
             "cutoff"    : 16.00,
             "t_start"   : 0.00,
-            "size_x"    : 8.00,
-            "size_y"    : 8.00,
+            "size_x"    : 2.00,
+            "size_y"    : 2.00,
             "pol"       : "Ez",
             "loc_x"     : 0.00,
             "loc_y"     : 0.00
@@ -34,7 +32,7 @@
     "DetectorList"  : [
         {
             "loc_x"     : 0.0,
-            "loc_y"     : 9.0,
+            "loc_y"     : 6.00,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",
@@ -42,14 +40,14 @@
         },
         {
             "loc_x"     : 0.0,
-            "loc_y"     : -9.00,
+            "loc_y"     : -6.00,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",
             "pol"       : "Ez"
         },
         {
-            "loc_x"     : 9.0,
+            "loc_x"     : 6.00,
             "loc_y"     : 0.00,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
@@ -57,8 +55,8 @@
             "pol"       : "Ez"
         },
         {
-            "loc_x"     : -9.0,
-            "loc_y"     : 0.0,
+            "loc_x"     : -6.00,
+            "loc_y"     : 0.00,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",
