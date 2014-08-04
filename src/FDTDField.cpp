@@ -23,7 +23,7 @@ FDTDField::FDTDField(programInputs &IP)
     dx_       = 1.0/res_;
     dy_       = 1.0/res_;
     dt_       = 0.99/(sqrt(pow(dx_,-2.0) + pow(dy_,-2.0)));
-    nx_       = floor(static_cast<double>(res_) * static_cast<double>(IP.y_size_)+ 0.5) + 1; //Better way here; + 1 to include the 0 point
+    nx_       = floor(static_cast<double>(res_) * static_cast<double>(IP.x_size_)+ 0.5) + 1; //Better way here; + 1 to include the 0 point
     ny_       = floor(static_cast<double>(res_) * static_cast<double>(IP.y_size_)+ 0.5) + 1; //Better way here; + 1 to include the 0 point
     srcArr_   = IP.srcArr_;
     objArr_   = IP.objArr_;
@@ -39,7 +39,7 @@ FDTDField::FDTDField(programInputs &IP)
         outFile.open(dtcArr_[ii].outfile());
         outFile << "Output for the " << to_string(ii) << "th detector" << endl;
         outFile.close();
-    } 
+    }
     // Create the Grids. Do I need a null constructor for the set that I disregard?
     if(IP.pol_.compare("Hz") == 0 || IP.pol_.compare("Ey") == 0 || IP.pol_.compare("Ex") == 0)
     {
@@ -182,7 +182,7 @@ void FDTDField::ouputField(Detector<double> d) //iostream as input parameter?
     double eps = 1.00; // Change this but for a test it will work
     switch ( d.pol() )
     {
-        case EZ: 
+        case EZ:
             outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez_,eps)<< "\t" << setw(10) << srcArr_[0].prof().pulse(tcur_) << endl;
             cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez_,eps)<< "\t" << setw(10) << srcArr_[0].prof().pulse(tcur_) << endl;
             break;
@@ -213,31 +213,8 @@ void FDTDField::ouputField(Detector<double> d) //iostream as input parameter?
     outFile.close();
 }
 
-
-// Code for prefect reflectors, which we don't ever really want
-    /*for(int ii = 0; ii < nx_; ii ++)
-    {
-        double c_hxh = 1.0;
-        double c_hxe = 1.0 * dt_/dx_;
-        double c_hyh = 1.0;
-        double c_hye = 1.0 * dt_/dy_;
-        Hx_->point(ii,0) = c_hxh * Hx_->point(ii,0) - c_hxe * (Ez_->point(ii,0+1)-Ez_->point(ii,0));
-        Hy_->point(0,ii) = c_hyh * Hy_->point(0,ii) + c_hye * (Ez_->point(0+1,ii)-Ez_->point(0,ii));
-    }
-    for(int ii = 1; ii < nx_-1; ii ++)
-    {
-        double c_hxh = 1.0;
-        double c_hxe = 1.0 * dt_/dx_;
-        double c_hyh = 1.0;
-        double c_hye = 1.0 * dt_/dy_;
-        Hx_->point(nx_-1,ii) = c_hxh * Hx_->point(ii,0) - c_hxe * (Ez_->point(ii,0+1)-Ez_->point(ii,0));
-        Hy_->point(ii,nx_-1) = c_hyh * Hy_->point(0,ii) + c_hye * (Ez_->point(0+1,ii)-Ez_->point(0,ii));
-    }*/
-    // make this more accurate
-
 void FDTDField::step()
 {
-    // disregard PML's to start
     // Source
     for(int kk = 0; kk < srcArr_.size(); kk ++)
     {
@@ -268,33 +245,99 @@ void FDTDField::step()
                 break;
         }
     }
-    for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
+    if(Ez_)
     {
-        for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
+        if(xPML_ != 0 && yPML_ !=0)
         {
-            if(Ez_)
+            for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
             {
-                //Always true in a magnetic lossless enviroment, with mu0 = 1, sigma_m = 0;
-                double c_hxh = 1.0;
-                double c_hxe = 1.0 * dt_/dx_;
-                double c_hyh = 1.0;
-                double c_hye = 1.0 * dt_/dy_;
-                
-                if(ii!=nx_-1 && jj != ny_-1)
+                for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
                 {
+                    //Always true in a magnetic lossless enviroment, with mu0 = 1, sigma_m = 0;
+                    double c_hxh = 1.0;
+                    double c_hxe = 1.0 * dt_/dx_;
+                    double c_hyh = 1.0;
+                    double c_hye = 1.0 * dt_/dy_;
                     Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) - c_hxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
                     Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
-                }
-                else if (ii!=nx_-1)
-                {
-                    Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
-                }
-                else if(jj!=ny_-1)
-                {
-                    Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) - c_hxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
                 }
             }
-            else
+        }
+        else if(xPML_ != 0)
+        {
+            for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
+            {
+                for(int jj = 0; jj < ny_ - 1; jj ++)
+                {
+                    double c_hxh = 1.0;
+                    double c_hxe = 1.0 * dt_/dx_;
+                    double c_hyh = 1.0;
+                    double c_hye = 1.0 * dt_/dy_;
+                    Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) - c_hxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
+                    Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
+                }
+            }
+            for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
+            {
+                double c_hyh = 1.0;
+                double c_hye = 1.0 * dt_/dy_;
+                Hy_->point(ii,ny_-1) = c_hyh * Hy_->point(ii,ny_-1) + c_hye * (Ez_->point(ii+1,ny_-1)-Ez_->point(ii,ny_-1));
+            }
+        }
+        else if(yPML_ != 0)
+        {
+            for(int ii = 0; ii < nx_ - 1; ii ++)
+            {
+                for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
+                {
+                    double c_hxh = 1.0;
+                    double c_hxe = 1.0 * dt_/dx_;
+                    double c_hyh = 1.0;
+                    double c_hye = 1.0 * dt_/dy_;
+                    Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) - c_hxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
+                    Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
+                }
+            }
+            for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
+            {
+                double c_hxh = 1.0;
+                double c_hxe = 1.0 * dt_/dx_;
+                Hx_->point(nx_-1,jj) = c_hxh * Hx_->point(nx_-1,jj) - c_hxe * (Ez_->point(nx_-1,jj+1)-Ez_->point(nx_-1,jj));
+            }
+        }
+        else
+        {
+            for(int ii = 0; ii < nx_ - 1; ii ++)
+            {
+                for(int jj = 0; jj < ny_ - 1; jj ++)
+                {
+                    double c_hxh = 1.0;
+                    double c_hxe = 1.0 * dt_/dx_;
+                    double c_hyh = 1.0;
+                    double c_hye = 1.0 * dt_/dy_;
+                    Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) - c_hxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
+                    Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
+                }
+            }
+            for(int jj = 0; jj < nx_ - 1; jj ++)
+            {
+                double c_hxh = 1.0;
+                double c_hxe = 1.0 * dt_/dx_;
+                Hx_->point(nx_-1,jj) = c_hxh * Hx_->point(nx_-1,jj) - c_hxe * (Ez_->point(nx_-1,jj+1)-Ez_->point(nx_-1,jj));
+            }
+            for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
+            {
+                double c_hyh = 1.0;
+                double c_hye = 1.0 * dt_/dy_;
+                Hy_->point(ii,ny_-1) = c_hyh * Hy_->point(ii,ny_-1) + c_hye * (Ez_->point(ii+1,ny_-1)-Ez_->point(ii,ny_-1));
+            }
+        }
+    }
+    else
+    {
+        for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
+        {
+            for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
             {
                 //Always true in a magnetic lossless enviroment, with mu0 = 1, sigma_m = 0;
                 double c_hzh = 1.0;
@@ -330,7 +373,6 @@ void FDTDField::step()
                     double c_hyh = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
                     double c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_) / eps;
                     double c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_) / eps;
-
                     if (yPML_== 0)
                     {
                         for (int jj = 0; jj < ny_-1; jj++)
@@ -341,7 +383,7 @@ void FDTDField::step()
 
                             pmlArr_[kk].Bx_->point(0,jj) = c_bxb * pmlArr_[kk].Bx_->point(0,jj) - c_bxe * (Ez_->point(0,jj+1)-Ez_->point(0,jj));
                             pmlArr_[kk].By_->point(0,jj) = c_byb * pmlArr_[kk].By_->point(0,jj) + c_bye * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
-                            
+
                             Hx_->point(0,jj) = c_hxh * Hx_->point(0,jj) + c_hxb1 * pmlArr_[kk].Bx_->point(0,jj) - c_hxb0 * bxstore;
                             Hy_->point(0,jj) = c_hyh * Hy_->point(0,jj) + c_hyb1 * pmlArr_[kk].By_->point(0,jj) - c_hyb0 * bystore;
 
@@ -371,7 +413,7 @@ void FDTDField::step()
                             c_hyh = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
                             c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_) / eps;
                             c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_) / eps;
-                            
+
                             //top row
                             bystore = pmlArr_[kk].By_->point(ii,ny_-1);
                             pmlArr_[kk].By_->point(ii,ny_-1) = c_byb * pmlArr_[kk].By_->point(ii,ny_-1) + c_bye * (Ez_->point(ii+1,ny_-1)-Ez_->point(ii,ny_-1));
@@ -389,15 +431,15 @@ void FDTDField::step()
 
                                 pmlArr_[kk].Bx_->point(ii,jj) = c_bxb * pmlArr_[kk].Bx_->point(ii,jj) - c_bxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
                                 pmlArr_[kk].By_->point(ii,jj) = c_byb * pmlArr_[kk].By_->point(ii,jj) + c_bye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
-                                
+
                                 Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[kk].Bx_->point(ii,jj) - c_hxb0 * bxstore;
                                 Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[kk].By_->point(ii,jj) - c_hyb0 * bystore;
-                                
+
                                 sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5);
                                 c_hyh = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
                                 c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_) / eps;
                                 c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_) / eps;
-                                
+
                                 bxstore = pmlArr_[kk].Bx_end_->point(ii,jj);
                                 bystore = pmlArr_[kk].By_end_->point(ii,jj);
 
@@ -408,7 +450,7 @@ void FDTDField::step()
                                 Hy_->point((nx_-1) - ii,jj) = c_hyh * Hy_->point((nx_-1) - ii,jj) + c_hyb1 * pmlArr_[kk].By_end_->point(ii,jj) - c_hyb0 * bystore;
                             }
                             // for the top row only upadate Hy
-                           
+
                             sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5);
                             c_hyh = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
                             c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_) / eps;
@@ -428,7 +470,7 @@ void FDTDField::step()
 
                             pmlArr_[kk].Bx_->point(0,jj) = c_bxb * pmlArr_[kk].Bx_->point(0,jj) - c_bxe * (Ez_->point(0,jj+1)-Ez_->point(0,jj));
                             pmlArr_[kk].By_->point(0,jj) = c_byb * pmlArr_[kk].By_->point(0,jj) + c_bye * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
-                            
+
                             Hx_->point(0,jj) = c_hxh * Hx_->point(0,jj) + c_hxb1 * pmlArr_[kk].Bx_->point(0,jj) - c_hxb0 * bxstore;
                             Hy_->point(0,jj) = c_hyh * Hy_->point(0,jj) + c_hyb1 * pmlArr_[kk].By_->point(0,jj) - c_hyb0 * bystore;
 
@@ -466,15 +508,15 @@ void FDTDField::step()
 
                                 pmlArr_[kk].Bx_->point(ii,jj) = c_bxb * pmlArr_[kk].Bx_->point(ii,jj) - c_bxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
                                 pmlArr_[kk].By_->point(ii,jj) = c_byb * pmlArr_[kk].By_->point(ii,jj) + c_bye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
-                                
+
                                 Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[kk].Bx_->point(ii,jj) - c_hxb0 * bxstore;
                                 Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[kk].By_->point(ii,jj) - c_hyb0 * bystore;
-                                
+
                                 sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5);
                                 c_hyh = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
                                 c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_) / eps;
                                 c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_) / eps;
-                                
+
                                 bxstore = pmlArr_[kk].Bx_end_->point(ii,jj);
                                 bystore = pmlArr_[kk].By_end_->point(ii,jj);
 
@@ -488,12 +530,12 @@ void FDTDField::step()
                         if(kk==0)
                         {
                             kapz = 1.0; sigz = 0.0; eps = 1.0;
-                            kapx = 1.0; kapy = 1.0; 
+                            kapx = 1.0; kapy = 1.0;
                             sigxx = pmlArr_[0].sigma(static_cast<double>(0));
                             sigxy = pmlArr_[0].sigma(static_cast<double>(0) + 0.5);
                             sigyx = pmlArr_[1].sigma(static_cast<double>(0) + 0.5);
                             sigyy = pmlArr_[1].sigma(static_cast<double>(0));
-                            
+
                             c_bxb = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                             c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_)) ;
                             c_hxh = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -536,12 +578,12 @@ void FDTDField::step()
                             for(int ii = 1; ii < pmlArr_[0].thickness(); ii++)
                             {
                                 kapz = 1.0; sigz = 0.0; eps = 1.0;
-                                kapx = 1.0; kapy = 1.0; 
+                                kapx = 1.0; kapy = 1.0;
                                 sigxx = pmlArr_[0].sigma(static_cast<double>(ii));
                                 sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5);
                                 sigyx = pmlArr_[1].sigma(static_cast<double>(0) + 0.5);
                                 sigyy = pmlArr_[1].sigma(static_cast<double>(0));
-                                
+
                                 c_bxb = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_)) ;
                                 c_hxh = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -591,12 +633,12 @@ void FDTDField::step()
                             for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
                             {
                                 kapz = 1.0; sigz = 0.0; eps = 1.0;
-                                kapx = 1.0; kapy = 1.0; 
+                                kapx = 1.0; kapy = 1.0;
                                 sigxx = pmlArr_[0].sigma(static_cast<double>(0));
                                 sigxy = pmlArr_[0].sigma(static_cast<double>(0) + 0.5);
                                 sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5);
                                 sigyy = pmlArr_[1].sigma(static_cast<double>(jj));
-                                
+
                                 c_bxb = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_)) ;
                                 c_hxh = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -648,12 +690,12 @@ void FDTDField::step()
                                 for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
                                 {
                                     kapz = 1.0; sigz = 0.0; eps = 1.0;
-                                    kapx = 1.0; kapy = 1.0; 
+                                    kapx = 1.0; kapy = 1.0;
                                     sigxx = pmlArr_[0].sigma(static_cast<double>(ii));
                                     sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5);
                                     sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5);
                                     sigyy = pmlArr_[1].sigma(static_cast<double>(jj));
-                                    
+
                                     c_bxb = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_)) ;
                                     c_hxh = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -709,7 +751,6 @@ void FDTDField::step()
                             }
                         }
                     }
-                    
                     break;
                 }
                 case Y:
@@ -721,7 +762,7 @@ void FDTDField::step()
                     double sigxy = 0.0;
                     double sigyx = pmlArr_[kk].sigma(0.5);
                     double sigyy = pmlArr_[kk].sigma(0.0);
-                    
+
                     double c_bxb = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                     double c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_)) ;
                     double c_hxh = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -782,7 +823,7 @@ void FDTDField::step()
                                 sigyx = pmlArr_[kk].sigma(static_cast<double>((ii) + 0.5));
                                 c_bxb = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                
+
                                 bxstore = pmlArr_[kk].Bx_->point(jj,ii);
                                 double bystore = pmlArr_[kk].By_->point(jj,ii);
                                 pmlArr_[kk].Bx_->point(jj,ii) = c_bxb * pmlArr_[kk].Bx_->point(jj,ii) - c_bxe * (Ez_->point(jj,ii+1)-Ez_->point(jj,ii));
@@ -817,6 +858,7 @@ void FDTDField::step()
                     {
                         for (int jj = xPML_; jj < nx_-xPML_; jj++)
                         {
+
                             //Update both on the bottom side and Hy on the top
                             double bxstore = pmlArr_[kk].Bx_->point(jj,0);
                             double bystore = pmlArr_[kk].By_->point(jj,0);
@@ -854,7 +896,7 @@ void FDTDField::step()
                                 sigyx = pmlArr_[kk].sigma(static_cast<double>((ii) + 0.5));
                                 c_bxb = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                
+
                                 double bxstore = pmlArr_[kk].Bx_->point(jj,ii);
                                 double bystore = pmlArr_[kk].By_->point(jj,ii);
                                 pmlArr_[kk].Bx_->point(jj,ii) = c_bxb * pmlArr_[kk].Bx_->point(jj,ii) - c_bxe * (Ez_->point(jj,ii+1)-Ez_->point(jj,ii));
@@ -879,12 +921,12 @@ void FDTDField::step()
                         if(kk==0)
                         {
                             kapz = 1.0; sigz = 0.0; eps = 1.0;
-                            kapx = 1.0; kapy = 1.0; 
+                            kapx = 1.0; kapy = 1.0;
                             sigxx = pmlArr_[1].sigma(static_cast<double>(0));
                             sigxy = pmlArr_[1].sigma(static_cast<double>(0) + 0.5);
                             sigyx = pmlArr_[0].sigma(static_cast<double>(0) + 0.5);
                             sigyy = pmlArr_[0].sigma(static_cast<double>(0));
-                            
+
                             c_bxb = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                             c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_)) ;
                             c_hxh = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -927,12 +969,12 @@ void FDTDField::step()
                             for(int ii = 1; ii < pmlArr_[0].thickness(); ii++)
                             {
                                 kapz = 1.0; sigz = 0.0; eps = 1.0;
-                                kapx = 1.0; kapy = 1.0; 
+                                kapx = 1.0; kapy = 1.0;
                                 sigxx = pmlArr_[1].sigma(static_cast<double>(ii));
                                 sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5);
                                 sigyx = pmlArr_[0].sigma(static_cast<double>(0) + 0.5);
                                 sigyy = pmlArr_[0].sigma(static_cast<double>(0));
-                                
+
                                 c_bxb = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_)) ;
                                 c_hxh = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -982,12 +1024,12 @@ void FDTDField::step()
                             for(int jj = 1; jj < pmlArr_[0].thickness(); jj++)
                             {
                                 kapz = 1.0; sigz = 0.0; eps = 1.0;
-                                kapx = 1.0; kapy = 1.0; 
+                                kapx = 1.0; kapy = 1.0;
                                 sigxx = pmlArr_[1].sigma(static_cast<double>(0));
                                 sigxy = pmlArr_[1].sigma(static_cast<double>(0) + 0.5);
                                 sigyx = pmlArr_[0].sigma(static_cast<double>(jj) + 0.5);
                                 sigyy = pmlArr_[0].sigma(static_cast<double>(jj));
-                                
+
                                 c_bxb = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_)) ;
                                 c_hxh = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -1039,12 +1081,12 @@ void FDTDField::step()
                                 for(int jj = 1; jj < pmlArr_[0].thickness(); jj++)
                                 {
                                     kapz = 1.0; sigz = 0.0; eps = 1.0;
-                                    kapx = 1.0; kapy = 1.0; 
+                                    kapx = 1.0; kapy = 1.0;
                                     sigxx = pmlArr_[1].sigma(static_cast<double>(ii));
                                     sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5);
                                     sigyx = pmlArr_[0].sigma(static_cast<double>(jj) + 0.5);
                                     sigyy = pmlArr_[0].sigma(static_cast<double>(jj));
-                                    
+
                                     c_bxb = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_)) ;
                                     c_hxh = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -1100,7 +1142,6 @@ void FDTDField::step()
                             }
                         }
                     }
-                    
                     break;
                 }
                 case Z:
@@ -1119,133 +1160,80 @@ void FDTDField::step()
 
     }
 
-    //Corners: Top Left -> X0, Top Right ->Xend, botLeft ->Y0, Bot Right yEnd
-    //fix to match ii being x always
-    /*if(pmlArr_.size() == 2)
+    if(Ez_)
     {
-        for(int ii = 0; ii < pmlArr_[0].thickness(); ii++)
+        double c_eze = 1.0;
+        double c_ezh = 1.0 * dt_/dx_;
+        if(xPML_ != 0 && yPML_ !=0)
         {
-            for(int jj = 0; jj < pmlArr_[1].thickness(); jj++)
+            for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
             {
-                double kapz = 1.0; double sigz = 0.0; double eps = 1.0;
-                switch(pmlArr_[0].d())
+                for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
                 {
-                    case X:
-                        if(Ez_)
-                        {
-                            double kapx = 1.0; double kapy = 1.0; 
-                            double sigxx = pmlArr_[0].sigma(static_cast<double>(ii));
-                            double sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5);
-                            double sigyx = pmlArr_[0].sigma(static_cast<double>(jj) + 0.5);
-                            double sigyy = pmlArr_[0].sigma(static_cast<double>(jj));
-                            //double sigyx = 0.0;
-                            //double sigyy = 0.0;                            
-                            // set all the constants
-                            double c_bxb = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                            double c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_)) ;
-                            double c_hxh = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            double c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_) / eps;
-                            double c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_) / eps;
-
-                            double c_byb = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            double c_bye = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_)) ;
-                            double c_hyh = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            double c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_) / eps;
-                            double c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_) / eps;
-
-                            // Bot Left
-                            double bxstore = pmlArr_[0].Bx_->point(ii,jj);
-                            double bystore = pmlArr_[0].By_->point(ii,jj);
-                            pmlArr_[0].Bx_->point(ii,jj) = c_bxb * pmlArr_[0].Bx_->point(ii,jj) - c_bxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
-                            pmlArr_[0].By_->point(ii,jj) = c_byb * pmlArr_[0].By_->point(ii,jj) + c_bye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
-                            
-                            Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[0].Bx_->point(ii,jj) - c_hxb0 * bxstore;
-                            Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[0].By_->point(ii,jj) - c_hyb0 * bystore;
-                            // Bot Right
-                            sigxy = pmlArr_[0].sigma(static_cast<double>(ii) - 0.5);
-                            c_hyh = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_) / eps;
-                            c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_) / eps;
-                            if(ii != 0)
-                            {
-                                bxstore = pmlArr_[0].Bx_end_->point(ii,jj);
-                                bystore = pmlArr_[0].By_end_->point(ii,jj);
-                                
-                                pmlArr_[0].Bx_end_->point(ii,jj) = c_bxb * pmlArr_[0].Bx_end_->point(ii,jj) - c_bxe * (Ez_->point(nx_-1-ii,jj+1)-Ez_->point(nx_-1-ii,jj));
-                                pmlArr_[0].By_end_->point(ii,jj) = c_byb * pmlArr_[0].By_end_->point(ii,jj) + c_bye * (Ez_->point(nx_-1-ii+1,jj)-Ez_->point(nx_-1-ii,jj));
-                                
-                                Hx_->point(nx_-1-ii,jj) = c_hxh * Hx_->point(nx_-1-ii,jj) + c_hxb1 * pmlArr_[0].Bx_end_->point(ii,jj) - c_hxb0 * bxstore;
-                                Hy_->point(nx_-1-ii,jj) = c_hyh * Hy_->point(nx_-1-ii,jj) + c_hyb1 * pmlArr_[0].By_end_->point(ii,jj) - c_hyb0 * bystore;
-                            }
-                            else
-                            {
-                                bxstore = pmlArr_[0].Bx_end_->point(ii,jj);
-                                pmlArr_[0].Bx_end_->point(ii,jj) = c_bxb * pmlArr_[0].Bx_end_->point(ii,jj) - c_bxe * (Ez_->point(nx_-1-ii,jj+1)-Ez_->point(nx_-1-ii,jj));
-                                Hx_->point(nx_-1-ii,jj) = c_hxh * Hx_->point(nx_-1-ii,jj) + c_hxb1 * pmlArr_[0].Bx_end_->point(ii,jj) - c_hxb0 * bxstore;
-                            }
-                            //Top Right
-                            sigyx = pmlArr_[0].sigma(static_cast<double>(jj) - 0.5);
-                            c_bxb = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                            c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                            if(ii != 0 && jj !=0)
-                            {
-                                bxstore = pmlArr_[0].Bx_end_->point(ii,ny_ - 1 - jj);
-                                bystore = pmlArr_[0].By_end_->point(ii,ny_ - 1 - jj);
-                                pmlArr_[0].Bx_end_->point(ii,ny_ - 1 - jj) = c_bxb * pmlArr_[0].Bx_end_->point(ii,ny_ - 1 - jj) - c_bxe * (Ez_->point(nx_-1-ii,ny_ - 1 - jj+1)-Ez_->point(nx_-1-ii,ny_ - 1 - jj));
-                                pmlArr_[0].By_end_->point(ii,ny_ - 1 - jj) = c_byb * pmlArr_[0].By_end_->point(ii,ny_ - 1 - jj) + c_bye * (Ez_->point(nx_-1-ii+1,ny_ - 1 - jj)-Ez_->point(nx_-1-ii,ny_ - 1 - jj));
-                                Hx_->point(nx_-1-ii,ny_ - 1 - jj) = c_hxh * Hx_->point(nx_-1-ii,ny_ - 1 - jj) + c_hxb1 * pmlArr_[0].Bx_end_->point(ii,ny_ - 1 - jj) - c_hxb0 * bxstore;
-                                Hy_->point(nx_-1-ii,ny_ - 1 - jj) = c_hyh * Hy_->point(nx_-1-ii,ny_ - 1 - jj) + c_hyb1 * pmlArr_[0].By_end_->point(ii,ny_ - 1 - jj) - c_hyb0 * bystore;
-                            }
-                            else if(jj!=0)
-                            {
-                                bxstore = pmlArr_[0].Bx_end_->point(ii,jj);
-                                pmlArr_[0].Bx_end_->point(ii,ny_ - 1 - jj) = c_bxb * pmlArr_[0].Bx_end_->point(ii,ny_ - 1 - jj) - c_bxe * (Ez_->point(nx_-1-ii,ny_ - 1 - jj+1)-Ez_->point(nx_-1-ii,ny_ - 1 - jj));
-                                Hx_->point(nx_-1-ii,ny_ - 1 - jj) = c_hxh * Hx_->point(nx_-1-ii,ny_ - 1 - jj) + c_hxb1 * pmlArr_[0].Bx_end_->point(ii,ny_ - 1 - jj) - c_hxb0 * bxstore;
-                            }
-                            else if (ii!=0)
-                            {
-                                bystore = pmlArr_[0].By_end_->point(ii,ny_ - 1 - jj);
-                                pmlArr_[0].By_end_->point(ii,ny_ - 1 - jj) = c_byb * pmlArr_[0].By_end_->point(ii,ny_ - 1 - jj) + c_bye * (Ez_->point(nx_-1-ii+1,ny_ - 1 - jj)-Ez_->point(nx_-1-ii,ny_ - 1 - jj));
-                                Hy_->point(nx_-1-ii,ny_ - 1 - jj) = c_hyh * Hy_->point(nx_-1-ii,ny_ - 1 - jj) + c_hyb1 * pmlArr_[0].By_end_->point(ii,ny_ - 1 - jj) - c_hyb0 * bystore;
-                            }
-                            //Top Left
-                            sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5);
-                            c_hyh = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_) / eps;
-                            c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_) / eps;
-                            if(jj !=0)
-                            {
-                                bxstore = pmlArr_[0].Bx_->point(ii,ny_ - 1 - jj);
-                                bystore = pmlArr_[0].By_->point(ii,ny_ - 1 - jj);
-                                pmlArr_[0].Bx_->point(ii,ny_ - 1 - jj) = c_bxb * pmlArr_[0].Bx_->point(ii,ny_ - 1 - jj) - c_bxe * (Ez_->point(ii,ny_ - 1 - jj+1)-Ez_->point(ii,ny_ - 1 - jj));
-                                pmlArr_[0].By_->point(ii,ny_ - 1 - jj) = c_byb * pmlArr_[0].By_->point(ii,ny_ - 1 - jj) + c_bye * (Ez_->point(ii+1,ny_ - 1 - jj)-Ez_->point(ii,ny_ - 1 - jj));
-                                Hx_->point(ii,ny_ - 1 - jj) = c_hxh * Hx_->point(ii,ny_ - 1 - jj) + c_hxb1 * pmlArr_[0].Bx_->point(ii,ny_ - 1 - jj) - c_hxb0 * bxstore;
-                                Hy_->point(ii,ny_ - 1 - jj) = c_hyh * Hy_->point(ii,ny_ - 1 - jj) + c_hyb1 * pmlArr_[0].By_->point(ii,ny_ - 1 - jj) - c_hyb0 * bystore;
-                            }
-                            else
-                            {
-                                bystore = pmlArr_[0].By_->point(ii,ny_ - 1 - jj);
-                                pmlArr_[0].By_->point(ii,ny_ - 1 - jj) = c_byb * pmlArr_[0].By_->point(ii,ny_ - 1 - jj) + c_bye * (Ez_->point(ii+1,ny_ - 1 - jj)-Ez_->point(ii,ny_ - 1 - jj));
-                                Hy_->point(ii,ny_ - 1 - jj) = c_hyh * Hy_->point(ii,ny_ - 1 - jj) + c_hyb1 * pmlArr_[0].By_->point(ii,ny_ - 1 - jj) - c_hyb0 * bystore;
-
-                            }
-                        }
-                        break;
-                    case Y:
-                        
-                        break;
-                    case Z:
-                        throw logic_error("Z is not yet defined");
-                        break;
-                    default:
-                        throw logic_error("hit switch default");
-                        break;
+                    Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                 }
             }
         }
-    }*/
-    // Better conditions will be added
-    for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
+        else if(xPML_ != 0)
+        {
+            for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
+            {
+                for(int jj = 1; jj < ny_ - 1; jj ++)
+                {
+                    Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
+                }
+            }
+            for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
+            {
+                Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)-0));
+                Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (0-Hx_->point(ii,ny_-1-1)));
+            }
+        }
+        else if(yPML_ != 0)
+        {
+            for(int ii = 1; ii < nx_ - 1; ii ++)
+            {
+                for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
+                {
+                    Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
+                }
+            }
+            for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
+            {
+                Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezh * ((Hy_->point(0,jj)-0) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
+                Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezh * ((0-Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
+            }
+        }
+        else
+        {
+            for(int ii = 1; ii < nx_ - 1; ii ++)
+            {
+                for(int jj = 1; jj < ny_ - 1; jj ++)
+                {
+                    Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
+                }
+            }
+            for(int jj = 1; jj < nx_ - 1; jj ++)
+            {
+                Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezh * ((Hy_->point(0,jj)-0) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
+                Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezh * ((0-Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
+            }
+            for(int ii = 1; ii < nx_ - 1; ii ++)
+            {
+                Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)-0));
+                Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (0-Hx_->point(ii,ny_-1-1)));
+            }
+            Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezh * ((Hy_->point(0,0)-0) - (Hx_->point(0,0)-0));
+            Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezh * ((Hy_->point(0,ny_-1)-0) - (0-Hx_->point(0,ny_-1-1)));
+            Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezh * ((0-Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0)-0));
+            Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezh * ((0-Hy_->point(nx_-1-1,ny_-1)) - (0-Hx_->point(nx_-1,ny_-1-1)));
+        }
+    }
+    else
+    {
+
+    }
+    /*for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
     {
         for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
         {
@@ -1262,7 +1250,7 @@ void FDTDField::step()
                     }
                     else if (jj != ny_-1)
                     {
-                        Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-0));                        
+                        Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-0));
                     }
                     else if (jj != 0)
                     {
@@ -1277,7 +1265,7 @@ void FDTDField::step()
                     }
                     else if (jj != ny_-1)
                     {
-                        Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-0) - (Hx_->point(ii,jj)-0));                        
+                        Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-0) - (Hx_->point(ii,jj)-0));
                     }
                     else if (jj != 0)
                     {
@@ -1292,7 +1280,7 @@ void FDTDField::step()
                     }
                     else if (jj != ny_-1)
                     {
-                        Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((0-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-0));                        
+                        Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((0-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-0));
                     }
                     else if (jj != 0)
                     {
@@ -1314,8 +1302,7 @@ void FDTDField::step()
                 Ex_->point(ii,jj) = c_exe * Ex_->point(ii,jj) + c_exh * (Hz_->point(ii,jj) - Hz_->point(ii,jj-1));
             }
         }
-    }
-    
+    }*/
     if(Ez_)
     {
         for(int kk = 0; kk < pmlArr_.size(); kk++)
@@ -1325,11 +1312,11 @@ void FDTDField::step()
                 case X:
                 {
                     double eps = 1.0;
-                    double kapx = 1.0; 
-                    double kapy = 1.0; 
-                    double kapz = 1.0; 
+                    double kapx = 1.0;
+                    double kapy = 1.0;
+                    double kapz = 1.0;
                     double sigx = pmlArr_[kk].sigma(0.0);
-                    double sigy = 0.0; 
+                    double sigy = 0.0;
                     double sigz = 0.0;
                     double c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                     double c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
@@ -1343,31 +1330,31 @@ void FDTDField::step()
                             double dzstore = pmlArr_[kk].Dz_->point(0,jj);
                             pmlArr_[kk].Dz_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj) - 0) - (Hx_->point(0,jj)-Hx_->point(0,jj-1))); // 0 is boundary condtion
                             Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezd1 * pmlArr_[kk].Dz_->point(0,jj) - c_ezd0 * dzstore;
-                            
+
                             dzstore = pmlArr_[kk].Dz_end_->point(0,jj);
                             pmlArr_[kk].Dz_end_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_end_->point(0,jj) + c_dzh * ((0 -Hy_->point((nx_-2),jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1))); // 0 is boundary condition
                             Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,jj) - c_ezd0 * dzstore;
-                        }                    
+                        }
                         double dzstore = pmlArr_[kk].Dz_->point(0,ny_-1);
                         pmlArr_[kk].Dz_->point(0,ny_-1) = c_dzd * pmlArr_[kk].Dz_->point(0,ny_-1) + c_dzh * ((Hy_->point(0,ny_-1) - 0) - (0-Hx_->point(0,ny_-2))); // 0 is boundary condtion
                         Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_->point(0,ny_-1) - c_ezd0 * dzstore;
-                        
+
                         dzstore = pmlArr_[kk].Dz_end_->point(0,ny_-1);
                         pmlArr_[kk].Dz_end_->point(0,ny_-1) = c_dzd * pmlArr_[kk].Dz_end_->point(0,ny_-1) + c_dzh * ((0 -Hy_->point(nx_-2,ny_-1)) - (0-Hx_->point(nx_-1,ny_-2))); // 0 is boundary condition
                         Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,ny_-1) - c_ezd0 * dzstore;
-                   
+
                         dzstore = pmlArr_[kk].Dz_->point(0,0);
                         pmlArr_[kk].Dz_->point(0,0) = c_dzd * pmlArr_[kk].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0) - 0) - (Hx_->point(0,0)-0)); // 0 is boundary condtion
                         Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezd1 * pmlArr_[kk].Dz_->point(0,0) - c_ezd0 * dzstore;
-                        
+
                         dzstore = pmlArr_[kk].Dz_end_->point(0,0);
                         pmlArr_[kk].Dz_end_->point(0,0) = c_dzd * pmlArr_[kk].Dz_end_->point(0,0) + c_dzh * ((0 -Hy_->point(nx_-2,0)) - (Hx_->point(nx_-1,0)-0)); // 0 is boundary condition
                         Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,0) - c_ezd0 * dzstore;
-                    
+
                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
                         {
                             eps = 1.0;
-                            kapx = 1.0; kapy = 1.0; kapz = 1.0; 
+                            kapx = 1.0; kapy = 1.0; kapz = 1.0;
                             sigx = pmlArr_[kk].sigma(static_cast<double>(ii));
                             sigy = 0.0; sigz = 0.0;
                             //double kapx = pmlArr_[kk].kappa(ii);
@@ -1382,7 +1369,7 @@ void FDTDField::step()
                                 double dzstore = pmlArr_[kk].Dz_->point(ii,jj);
                                 pmlArr_[kk].Dz_->point(ii,jj) = c_dzd * pmlArr_[kk].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                                 Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,jj) - c_ezd0 * dzstore;
-                                
+
                                 dzstore = pmlArr_[kk].Dz_end_->point(ii,jj);
                                 pmlArr_[kk].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[kk].Dz_end_->point(ii,jj) + c_dzh * ((Hy_->point((nx_-1) - ii,jj)-Hy_->point((nx_-1) - ii-1,jj)) - (Hx_->point((nx_-1) - ii,jj)-Hx_->point((nx_-1) - ii,jj-1)));
                                 Ez_->point((nx_-1) - ii,jj) = c_eze * Ez_->point((nx_-1) - ii,jj) + c_ezd1 * pmlArr_[kk].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
@@ -1390,15 +1377,15 @@ void FDTDField::step()
                             double dzstore = pmlArr_[kk].Dz_->point(ii,ny_-1);
                             pmlArr_[kk].Dz_->point(ii,ny_-1) = c_dzd * pmlArr_[kk].Dz_->point(ii,ny_-1) + c_dzh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (0-Hx_->point(ii,ny_-1-1)));
                             Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,ny_-1) - c_ezd0 * dzstore;
-                            
+
                             dzstore = pmlArr_[kk].Dz_end_->point(ii,ny_-1);
                             pmlArr_[kk].Dz_end_->point(ii,ny_-1) = c_dzd * pmlArr_[kk].Dz_end_->point(ii,ny_-1) + c_dzh * ((Hy_->point((nx_-1) - ii,ny_-1)-Hy_->point((nx_-1) - ii-1,ny_-1)) - (0-Hx_->point((nx_-1) - ii,ny_-1-1)));
                             Ez_->point((nx_-1) - ii,ny_-1) = c_eze * Ez_->point((nx_-1) - ii,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(ii,ny_-1) - c_ezd0 * dzstore;
-                        
+
                             dzstore = pmlArr_[kk].Dz_->point(ii,0);
                             pmlArr_[kk].Dz_->point(ii,0) = c_dzd * pmlArr_[kk].Dz_->point(ii,0) + c_dzh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)-0));
                             Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,0) - c_ezd0 * dzstore;
-                            
+
                             dzstore = pmlArr_[kk].Dz_end_->point(ii,0);
                             pmlArr_[kk].Dz_end_->point(ii,0) = c_dzd * pmlArr_[kk].Dz_end_->point(ii,0) + c_dzh * ((Hy_->point((nx_-1) - ii,0)-Hy_->point((nx_-1) - ii-1,0)) - (Hx_->point((nx_-1) - ii,0)-0));
                             Ez_->point((nx_-1) - ii,0) = c_eze * Ez_->point((nx_-1) - ii,0) + c_ezd1 * pmlArr_[kk].Dz_end_->point(ii,0) - c_ezd0 * dzstore;
@@ -1411,18 +1398,18 @@ void FDTDField::step()
                             double dzstore = pmlArr_[kk].Dz_->point(0,jj);
                             pmlArr_[kk].Dz_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj) - 0) - (Hx_->point(0,jj)-Hx_->point(0,jj-1))); // 0 is boundary condtion
                             Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezd1 * pmlArr_[kk].Dz_->point(0,jj) - c_ezd0 * dzstore;
-                            
+
                             dzstore = pmlArr_[kk].Dz_end_->point(0,jj);
                             pmlArr_[kk].Dz_end_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_end_->point(0,jj) + c_dzh * ((0 -Hy_->point((nx_-2),jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1))); // 0 is boundary condition
                             Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,jj) - c_ezd0 * dzstore;
-                        }     
+                        }
                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
                         {
                             eps = 1.0;
-                            kapx = 1.0; kapy = 1.0; kapz = 1.0; 
+                            kapx = 1.0; kapy = 1.0; kapz = 1.0;
                             sigx = pmlArr_[kk].sigma(static_cast<double>(ii));
                             sigy = 0.0; sigz = 0.0;
-                        
+
                             c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                             c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_)) ;
                             c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
@@ -1433,7 +1420,7 @@ void FDTDField::step()
                                 double dzstore = pmlArr_[kk].Dz_->point(ii,jj);
                                 pmlArr_[kk].Dz_->point(ii,jj) = c_dzd * pmlArr_[kk].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                                 Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,jj) - c_ezd0 * dzstore;
-                                
+
                                 dzstore = pmlArr_[kk].Dz_end_->point(ii,jj);
                                 pmlArr_[kk].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[kk].Dz_end_->point(ii,jj) + c_dzh * ((Hy_->point((nx_-1) - ii,jj)-Hy_->point((nx_-1) - ii-1,jj)) - (Hx_->point((nx_-1) - ii,jj)-Hx_->point((nx_-1) - ii,jj-1)));
                                 Ez_->point((nx_-1) - ii,jj) = c_eze * Ez_->point((nx_-1) - ii,jj) + c_ezd1 * pmlArr_[kk].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
@@ -1443,7 +1430,7 @@ void FDTDField::step()
                         {
                             kapx = 1.0; kapy = 1.0; kapz = 1.0;
                             sigx = pmlArr_[0].sigma(static_cast<double>(0));
-                            sigy = pmlArr_[1].sigma(static_cast<double>(0));                            
+                            sigy = pmlArr_[1].sigma(static_cast<double>(0));
                             sigz = 0.0;
 
                             c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
@@ -1452,7 +1439,7 @@ void FDTDField::step()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             //Bot Left
-                            double dzstore = pmlArr_[0].Dz_->point(0,0); 
+                            double dzstore = pmlArr_[0].Dz_->point(0,0);
                             pmlArr_[0].Dz_->point(0,0) = c_dzd * pmlArr_[0].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0)-0) - (Hx_->point(0,0)-0));
                             Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezd1 * pmlArr_[0].Dz_->point(0,0) - c_ezd0 * dzstore;
                             //Bot Right
@@ -1467,12 +1454,12 @@ void FDTDField::step()
                             dzstore = pmlArr_[0].Dz_->point(0,ny_ -1 - 0);
                             pmlArr_[0].Dz_->point(0,ny_ -1 - 0) = c_dzd * pmlArr_[0].Dz_->point(0,ny_ -1 - 0) + c_dzh * ((Hy_->point(0,ny_ -1 - 0)-0) - (0-Hx_->point(0,ny_ -1 - 0-1)));
                             Ez_->point(0,ny_ -1 - 0) = c_eze * Ez_->point(0,ny_ -1 - 0) + c_ezd1 * pmlArr_[0].Dz_->point(0,ny_ -1 - 0) - c_ezd0 * dzstore;
-                            
+
                             for(int ii = 1; ii < pmlArr_[0].thickness(); ii++)
                             {
                                 kapx = 1.0; kapy = 1.0; kapz = 1.0;
                                 sigx = pmlArr_[0].sigma(static_cast<double>(ii));
-                                sigy = pmlArr_[1].sigma(static_cast<double>(0));                            
+                                sigy = pmlArr_[1].sigma(static_cast<double>(0));
                                 sigz = 0.0;
 
                                 c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
@@ -1481,7 +1468,7 @@ void FDTDField::step()
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 //Bot Left
-                                dzstore = pmlArr_[0].Dz_->point(ii,0); 
+                                dzstore = pmlArr_[0].Dz_->point(ii,0);
                                 pmlArr_[0].Dz_->point(ii,0) = c_dzd * pmlArr_[0].Dz_->point(ii,0) + c_dzh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)-0));
                                 Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezd1 * pmlArr_[0].Dz_->point(ii,0) - c_ezd0 * dzstore;
                                 //Bot Right
@@ -1501,7 +1488,7 @@ void FDTDField::step()
                             {
                                 kapx = 1.0; kapy = 1.0; kapz = 1.0;
                                 sigx = pmlArr_[0].sigma(static_cast<double>(0));
-                                sigy = pmlArr_[1].sigma(static_cast<double>(jj));                            
+                                sigy = pmlArr_[1].sigma(static_cast<double>(jj));
                                 sigz = 0.0;
 
                                 c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
@@ -1510,7 +1497,7 @@ void FDTDField::step()
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 //Bot Left
-                                dzstore = pmlArr_[0].Dz_->point(0,jj); 
+                                dzstore = pmlArr_[0].Dz_->point(0,jj);
                                 pmlArr_[0].Dz_->point(0,jj) = c_dzd * pmlArr_[0].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj)-0) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
                                 Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezd1 * pmlArr_[0].Dz_->point(0,jj) - c_ezd0 * dzstore;
                                 //Bot Right
@@ -1532,7 +1519,7 @@ void FDTDField::step()
                                 {
                                     kapx = 1.0; kapy = 1.0; kapz = 1.0;
                                     sigx = pmlArr_[0].sigma(static_cast<double>(ii));
-                                    sigy = pmlArr_[1].sigma(static_cast<double>(jj));                            
+                                    sigy = pmlArr_[1].sigma(static_cast<double>(jj));
                                     sigz = 0.0;
 
                                     c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
@@ -1541,7 +1528,7 @@ void FDTDField::step()
                                     c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                     c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                     //Bot Left
-                                    dzstore = pmlArr_[0].Dz_->point(ii,jj); 
+                                    dzstore = pmlArr_[0].Dz_->point(ii,jj);
                                     pmlArr_[0].Dz_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                                     Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,jj) - c_ezd0 * dzstore;
                                     //Bot Right
@@ -1565,11 +1552,9 @@ void FDTDField::step()
                 case Y:
                 {
                     double eps = 1.0;
-                    double kapx = 1.0; double kapy = 1.0; double kapz = 1.0; 
+                    double kapx = 1.0; double kapy = 1.0; double kapz = 1.0;
                     double sigx = 0.0;
                     double sigy = pmlArr_[kk].sigma(0.0); double sigz = 0.0;
-                    //double kapx = pmlArr_[kk].kappa(ii);
-                    //Kappas change throughout
 
                     double c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                     double c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_)) ;
@@ -1583,34 +1568,34 @@ void FDTDField::step()
                             double dzstore = pmlArr_[kk].Dz_->point(jj,0);
                             pmlArr_[kk].Dz_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_->point(jj,0) + c_dzh * ((Hy_->point(jj,0)-Hy_->point(jj-1,0)) - (Hx_->point(jj,0)- 0)); // 0 is boundary condition
                             Ez_->point(jj,0) = c_eze * Ez_->point(jj,0) + c_ezd1 * pmlArr_[kk].Dz_->point(jj,0) - c_ezd0 * dzstore;
-                            
+
                             dzstore = pmlArr_[kk].Dz_end_->point(jj,0);
                             pmlArr_[kk].Dz_end_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_end_->point(jj,0) + c_dzh * ((Hy_->point(jj,(ny_-1)-0) - Hy_->point(jj - 1,(ny_-1)-0)) - (0 - Hx_->point(jj,(ny_-1)-0-1))); // 0 is boundary condtion
                             Ez_->point(jj,(ny_-1)-0) = c_eze * Ez_->point(jj,(ny_-1)-0) + c_ezd1 * pmlArr_[kk].Dz_end_->point(jj,0) - c_ezd0 * dzstore;
-                        }   
+                        }
                         double dzstore = pmlArr_[kk].Dz_->point(nx_-1,0);
                         pmlArr_[kk].Dz_->point(nx_-1,0) = c_dzd * pmlArr_[kk].Dz_->point(nx_-1,0) + c_dzh * ((0-Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0)- 0)); // 0 is boundary condition
                         Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezd1 * pmlArr_[kk].Dz_->point(nx_-1,0) - c_ezd0 * dzstore;
-                        
+
                         dzstore = pmlArr_[kk].Dz_end_->point(nx_-1,0);
                         pmlArr_[kk].Dz_end_->point(nx_-1,0) = c_dzd * pmlArr_[kk].Dz_end_->point(nx_-1,0) + c_dzh * ((0 - Hy_->point(nx_-1 - 1,(ny_-1)-0)) - (0 - Hx_->point(nx_-1,(ny_-1)-0-1))); // 0 is boundary condtion
                         Ez_->point(nx_-1,(ny_-1)-0) = c_eze * Ez_->point(nx_-1,(ny_-1)-0) + c_ezd1 * pmlArr_[kk].Dz_end_->point(nx_-1,0) - c_ezd0 * dzstore;
-                    
+
                         dzstore = pmlArr_[kk].Dz_->point(0,0);
                         pmlArr_[kk].Dz_->point(0,0) = c_dzd * pmlArr_[kk].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0)-0) - (Hx_->point(0,0)- 0)); // 0 is boundary condition
                         Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezd1 * pmlArr_[kk].Dz_->point(0,0) - c_ezd0 * dzstore;
-                        
+
                         dzstore = pmlArr_[kk].Dz_end_->point(0,0);
                         pmlArr_[kk].Dz_end_->point(0,0) = c_dzd * pmlArr_[kk].Dz_end_->point(0,0) + c_dzh * ((Hy_->point(0,(ny_-1)-0) - 0) - (0 - Hx_->point(0,(ny_-1)-0-1))); // 0 is boundary condtion
                         Ez_->point(0,(ny_-1)-0) = c_eze * Ez_->point(0,(ny_-1)-0) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,0) - c_ezd0 * dzstore;
-                     
+
                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
                         {
                             eps = 1.0;
-                            kapx = 1.0; kapy = 1.0; 
-                            kapz = 1.0; 
+                            kapx = 1.0; kapy = 1.0;
+                            kapz = 1.0;
                             sigx = 0.0;
-                            sigy = pmlArr_[kk].sigma(static_cast<double>(ii)); 
+                            sigy = pmlArr_[kk].sigma(static_cast<double>(ii));
                             sigz = 0.0;
 
                             c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
@@ -1623,7 +1608,7 @@ void FDTDField::step()
                                 double dzstore = pmlArr_[kk].Dz_->point(jj,ii);
                                 pmlArr_[kk].Dz_->point(jj,ii) = c_dzd * pmlArr_[kk].Dz_->point(jj,ii) + c_dzh * ((Hy_->point(jj,ii)-Hy_->point(jj-1,ii)) - (Hx_->point(jj,ii)-Hx_->point(jj,ii-1)));
                                 Ez_->point(jj,ii) = c_eze * Ez_->point(jj,ii) + c_ezd1 * pmlArr_[kk].Dz_->point(jj,ii) - c_ezd0 * dzstore;
-                                
+
                                 dzstore = pmlArr_[kk].Dz_end_->point(jj,ii);
                                 pmlArr_[kk].Dz_end_->point(jj,ii) = c_dzd * pmlArr_[kk].Dz_end_->point(jj,ii) + c_dzh * ((Hy_->point(jj,(ny_-1)-ii) - Hy_->point(jj - 1,(ny_-1)-ii)) - (Hx_->point(jj,(ny_-1)-ii) - Hx_->point(jj,(ny_-1)-ii-1)));
                                 Ez_->point(jj,(ny_-1)-ii) = c_eze * Ez_->point(jj,(ny_-1)-ii) + c_ezd1 * pmlArr_[kk].Dz_end_->point(jj,ii) - c_ezd0 * dzstore;
@@ -1631,15 +1616,15 @@ void FDTDField::step()
                             double dzstore = pmlArr_[kk].Dz_->point(nx_-1,ii);
                             pmlArr_[kk].Dz_->point(nx_-1,ii) = c_dzd * pmlArr_[kk].Dz_->point(nx_-1,ii) + c_dzh * ((0-Hy_->point(nx_-1-1,ii)) - (Hx_->point(nx_-1,ii)-Hx_->point(nx_-1,ii-1)));
                             Ez_->point(nx_-1,ii) = c_eze * Ez_->point(nx_-1,ii) + c_ezd1 * pmlArr_[kk].Dz_->point(nx_-1,ii) - c_ezd0 * dzstore;
-                            
+
                             dzstore = pmlArr_[kk].Dz_end_->point(nx_-1,ii);
                             pmlArr_[kk].Dz_end_->point(nx_-1,ii) = c_dzd * pmlArr_[kk].Dz_end_->point(nx_-1,ii) + c_dzh * ((0 - Hy_->point(nx_-1 - 1,(ny_-1)-ii)) - (Hx_->point(nx_-1,(ny_-1)-ii) - Hx_->point(nx_-1,(ny_-1)-ii-1)));
                             Ez_->point(nx_-1,(ny_-1)-ii) = c_eze * Ez_->point(nx_-1,(ny_-1)-ii) + c_ezd1 * pmlArr_[kk].Dz_end_->point(nx_-1,ii) - c_ezd0 * dzstore;
-                            
+
                             dzstore = pmlArr_[kk].Dz_->point(0,ii);
                             pmlArr_[kk].Dz_->point(0,ii) = c_dzd * pmlArr_[kk].Dz_->point(0,ii) + c_dzh * ((Hy_->point(0,ii)-0) - (Hx_->point(0,ii)-Hx_->point(0,ii-1)));
                             Ez_->point(0,ii) = c_eze * Ez_->point(0,ii) + c_ezd1 * pmlArr_[kk].Dz_->point(0,ii) - c_ezd0 * dzstore;
-                            
+
                             dzstore = pmlArr_[kk].Dz_end_->point(0,ii);
                             pmlArr_[kk].Dz_end_->point(0,ii) = c_dzd * pmlArr_[kk].Dz_end_->point(0,ii) + c_dzh * ((Hy_->point(0,(ny_-1)-ii) - 0) - (Hx_->point(0,(ny_-1)-ii) - Hx_->point(0,(ny_-1)-ii-1)));
                             Ez_->point(0,(ny_-1)-ii) = c_eze * Ez_->point(0,(ny_-1)-ii) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,ii) - c_ezd0 * dzstore;
@@ -1652,7 +1637,7 @@ void FDTDField::step()
                             double dzstore = pmlArr_[kk].Dz_->point(jj,0);
                             pmlArr_[kk].Dz_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_->point(jj,0) + c_dzh * ((Hy_->point(jj,0)-Hy_->point(jj-1,0)) - (Hx_->point(jj,0)- 0)); // 0 is boundary condition
                             Ez_->point(jj,0) = c_eze * Ez_->point(jj,0) + c_ezd1 * pmlArr_[kk].Dz_->point(jj,0) - c_ezd0 * dzstore;
-                            
+
                             dzstore = pmlArr_[kk].Dz_end_->point(jj,0);
                             pmlArr_[kk].Dz_end_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_end_->point(jj,0) + c_dzh * ((Hy_->point(jj,(ny_-1)-0) - Hy_->point(jj - 1,(ny_-1)-0)) - (0 - Hx_->point(jj,(ny_-1)-0-1))); // 0 is boundary condtion
                             Ez_->point(jj,(ny_-1)-0) = c_eze * Ez_->point(jj,(ny_-1)-0) + c_ezd1 * pmlArr_[kk].Dz_end_->point(jj,0) - c_ezd0 * dzstore;
@@ -1660,10 +1645,10 @@ void FDTDField::step()
                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
                         {
                             eps = 1.0;
-                            kapx = 1.0; kapy = 1.0; 
-                            kapz = 1.0; 
+                            kapx = 1.0; kapy = 1.0;
+                            kapz = 1.0;
                             sigx = 0.0;
-                            sigy = pmlArr_[kk].sigma(static_cast<double>(ii)); 
+                            sigy = pmlArr_[kk].sigma(static_cast<double>(ii));
                             sigz = 0.0;
 
                             c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
@@ -1676,7 +1661,7 @@ void FDTDField::step()
                                 double dzstore = pmlArr_[kk].Dz_->point(jj,ii);
                                 pmlArr_[kk].Dz_->point(jj,ii) = c_dzd * pmlArr_[kk].Dz_->point(jj,ii) + c_dzh * ((Hy_->point(jj,ii)-Hy_->point(jj-1,ii)) - (Hx_->point(jj,ii)-Hx_->point(jj,ii-1)));
                                 Ez_->point(jj,ii) = c_eze * Ez_->point(jj,ii) + c_ezd1 * pmlArr_[kk].Dz_->point(jj,ii) - c_ezd0 * dzstore;
-                                
+
                                 dzstore = pmlArr_[kk].Dz_end_->point(jj,ii);
                                 pmlArr_[kk].Dz_end_->point(jj,ii) = c_dzd * pmlArr_[kk].Dz_end_->point(jj,ii) + c_dzh * ((Hy_->point(jj,(ny_-1)-ii) - Hy_->point(jj - 1,(ny_-1)-ii)) - (Hx_->point(jj,(ny_-1)-ii) - Hx_->point(jj,(ny_-1)-ii-1)));
                                 Ez_->point(jj,(ny_-1)-ii) = c_eze * Ez_->point(jj,(ny_-1)-ii) + c_ezd1 * pmlArr_[kk].Dz_end_->point(jj,ii) - c_ezd0 * dzstore;
@@ -1686,7 +1671,7 @@ void FDTDField::step()
                         {
                             kapx = 1.0; kapy = 1.0; kapz = 1.0;
                             sigx = pmlArr_[1].sigma(static_cast<double>(0));
-                            sigy = pmlArr_[0].sigma(static_cast<double>(0));                            
+                            sigy = pmlArr_[0].sigma(static_cast<double>(0));
                             sigz = 0.0;
 
                             c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
@@ -1695,7 +1680,7 @@ void FDTDField::step()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             //Bot Left
-                            double dzstore = pmlArr_[1].Dz_->point(0,0); 
+                            double dzstore = pmlArr_[1].Dz_->point(0,0);
                             pmlArr_[1].Dz_->point(0,0) = c_dzd * pmlArr_[1].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0)-0) - (Hx_->point(0,0)-0));
                             Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezd1 * pmlArr_[1].Dz_->point(0,0) - c_ezd0 * dzstore;
                             //Bot Right
@@ -1710,12 +1695,12 @@ void FDTDField::step()
                             dzstore = pmlArr_[1].Dz_->point(0,ny_ -1 - 0);
                             pmlArr_[1].Dz_->point(0,ny_ -1 - 0) = c_dzd * pmlArr_[1].Dz_->point(0,ny_ -1 - 0) + c_dzh * ((Hy_->point(0,ny_ -1 - 0)-0) - (0-Hx_->point(0,ny_ -1 - 0-1)));
                             Ez_->point(0,ny_ -1 - 0) = c_eze * Ez_->point(0,ny_ -1 - 0) + c_ezd1 * pmlArr_[1].Dz_->point(0,ny_ -1 - 0) - c_ezd0 * dzstore;
-                            
+
                             for(int ii = 1; ii < pmlArr_[1].thickness(); ii++)
                             {
                                 kapx = 1.0; kapy = 1.0; kapz = 1.0;
                                 sigx = pmlArr_[1].sigma(static_cast<double>(ii));
-                                sigy = pmlArr_[0].sigma(static_cast<double>(0));                            
+                                sigy = pmlArr_[0].sigma(static_cast<double>(0));
                                 sigz = 0.0;
 
                                 c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
@@ -1724,7 +1709,7 @@ void FDTDField::step()
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 //Bot Left
-                                dzstore = pmlArr_[1].Dz_->point(ii,0); 
+                                dzstore = pmlArr_[1].Dz_->point(ii,0);
                                 pmlArr_[1].Dz_->point(ii,0) = c_dzd * pmlArr_[1].Dz_->point(ii,0) + c_dzh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)-0));
                                 Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezd1 * pmlArr_[1].Dz_->point(ii,0) - c_ezd0 * dzstore;
                                 //Bot Right
@@ -1744,7 +1729,7 @@ void FDTDField::step()
                             {
                                 kapx = 1.0; kapy = 1.0; kapz = 1.0;
                                 sigx = pmlArr_[1].sigma(static_cast<double>(0));
-                                sigy = pmlArr_[0].sigma(static_cast<double>(jj));                            
+                                sigy = pmlArr_[0].sigma(static_cast<double>(jj));
                                 sigz = 0.0;
 
                                 c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
@@ -1753,7 +1738,7 @@ void FDTDField::step()
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 //Bot Left
-                                dzstore = pmlArr_[1].Dz_->point(0,jj); 
+                                dzstore = pmlArr_[1].Dz_->point(0,jj);
                                 pmlArr_[1].Dz_->point(0,jj) = c_dzd * pmlArr_[1].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj)-0) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
                                 Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezd1 * pmlArr_[1].Dz_->point(0,jj) - c_ezd0 * dzstore;
                                 //Bot Right
@@ -1775,7 +1760,7 @@ void FDTDField::step()
                                 {
                                     kapx = 1.0; kapy = 1.0; kapz = 1.0;
                                     sigx = pmlArr_[1].sigma(static_cast<double>(ii));
-                                    sigy = pmlArr_[0].sigma(static_cast<double>(jj));                            
+                                    sigy = pmlArr_[0].sigma(static_cast<double>(jj));
                                     sigz = 0.0;
 
                                     c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
@@ -1784,7 +1769,7 @@ void FDTDField::step()
                                     c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                     c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                     //Bot Left
-                                    dzstore = pmlArr_[1].Dz_->point(ii,jj); 
+                                    dzstore = pmlArr_[1].Dz_->point(ii,jj);
                                     pmlArr_[1].Dz_->point(ii,jj) = c_dzd * pmlArr_[1].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                                     Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[1].Dz_->point(ii,jj) - c_ezd0 * dzstore;
                                     //Bot Right
@@ -1802,7 +1787,7 @@ void FDTDField::step()
                                 }
                             }
                         }
-                    }    
+                    }
                     break;
                 }
                 case Z:
@@ -1814,341 +1799,6 @@ void FDTDField::step()
             }
         }
     }
-        // Corners
-    /*if(pmlArr_.size() == 2)
-    {
-        for(int ii = 0; ii < pmlArr_[0].thickness(); ii++)
-        {
-            for(int jj = 0; jj < pmlArr_[1].thickness(); jj++)
-            {
-                double eps = 1.0;
-                switch(pmlArr_[0].d())
-                {
-                    case X:
-                        if(Ez_)
-                        {
-                            double kapx = 1.0; double kapy = 1.0; double kapz = 1.0;
-                            double sigx = pmlArr_[0].sigma(static_cast<double>(ii));
-                            double sigy = pmlArr_[1].sigma(static_cast<double>(jj));                            
-                            //double sigy=0.0;
-                            double sigz = 0.0;
-
-                            double c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            double c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_)) ;
-                            double c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            double c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            double c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            double dzstore = pmlArr_[0].Dz_->point(ii,jj);
-                            //Bot Left
-                            if(ii !=0)
-                            {
-                                if(jj !=0)
-                                {
-                                    pmlArr_[0].Dz_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
-                                    Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,jj) - c_ezd0 * dzstore;
-                                    
-                                    //dzstore = pmlArr_[0].Dz_end_->point(ii,jj);
-                                    //pmlArr_[0].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,jj) + c_dzh * ((Hy_->point((nx_-1) - ii,jj)-Hy_->point((nx_-1) - ii-1,jj)) - (Hx_->point((nx_-1) - ii,jj)-Hx_->point((nx_-1) - ii,jj-1)));
-                                    //Ez_->point((nx_-1) - ii,jj) = c_eze * Ez_->point((nx_-1) - ii,jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
-                                }
-                                else
-                                {
-                                    pmlArr_[0].Dz_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-0));
-                                    Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,jj) - c_ezd0 * dzstore;
-                                    
-                                    //dzstore = pmlArr_[0].Dz_end_->point(ii,jj);
-                                    //pmlArr_[0].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,jj) + c_dzh * ((Hy_->point((nx_-1) - ii,jj)-Hy_->point((nx_-1) - ii-1,jj)) - (Hx_->point((nx_-1) - ii,jj)-0));
-                                    //Ez_->point((nx_-1) - ii,jj) = c_eze * Ez_->point((nx_-1) - ii,jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
-                                }
-                                
-                            }
-                            else
-                            {
-                                if(jj !=0 )
-                                {
-                                    pmlArr_[0].Dz_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj) - 0) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1))); // 0 is boundary condtion
-                                    Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,jj) - c_ezd0 * dzstore;
-                                    
-                                    //dzstore = pmlArr_[0].Dz_end_->point(ii,jj);
-                                    //pmlArr_[0].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,jj) + c_dzh * ((0 -Hy_->point((nx_-1) - ii-1,jj)) - (Hx_->point((nx_-1) - ii,jj)-Hx_->point((nx_-1) - ii,jj-1))); // 0 is boundary condition
-                                    //Ez_->point((nx_-1) - ii,jj) = c_eze * Ez_->point((nx_-1) - ii,jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
-                                }
-                                else
-                                {
-                                    pmlArr_[0].Dz_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj) - 0) - (Hx_->point(ii,jj)-0)); // 0 is boundary condtion
-                                    Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,jj) - c_ezd0 * dzstore;
-                                    
-                                    //dzstore = pmlArr_[0].Dz_end_->point(ii,jj);
-                                    //pmlArr_[0].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,jj) + c_dzh * ((0 -Hy_->point((nx_-1) - ii-1,jj)) - (Hx_->point((nx_-1) - ii,jj)-0)); // 0 is boundary condition
-                                    //Ez_->point((nx_-1) - ii,jj) = c_eze * Ez_->point((nx_-1) - ii,jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
-                                }
-                                
-                            }
-                            // Bot Right
-                            dzstore = pmlArr_[0].Dz_end_->point(ii,jj);
-                            if(ii !=0)
-                            {
-                                if(jj !=0)
-                                {
-                                    //pmlArr_[0].Dz_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
-                                    //Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,jj) - c_ezd0 * dzstore;
-                                    
-                                    //dzstore = pmlArr_[0].Dz_end_->point(ii,jj);
-                                    pmlArr_[0].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,jj) + c_dzh * ((Hy_->point((nx_-1) - ii,jj)-Hy_->point((nx_-1) - ii-1,jj)) - (Hx_->point((nx_-1) - ii,jj)-Hx_->point((nx_-1) - ii,jj-1)));
-                                    Ez_->point((nx_-1) - ii,jj) = c_eze * Ez_->point((nx_-1) - ii,jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
-                                }
-                                else
-                                {
-                                    //pmlArr_[0].Dz_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-0));
-                                    //Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,jj) - c_ezd0 * dzstore;
-                                    
-                                    //dzstore = pmlArr_[0].Dz_end_->point(ii,jj);
-                                    pmlArr_[0].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,jj) + c_dzh * ((Hy_->point((nx_-1) - ii,jj)-Hy_->point((nx_-1) - ii-1,jj)) - (Hx_->point((nx_-1) - ii,jj)-0));
-                                    Ez_->point((nx_-1) - ii,jj) = c_eze * Ez_->point((nx_-1) - ii,jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
-                                }
-                                
-                            }
-                            else
-                            {
-                                if(jj !=0 )
-                                {
-                                    //pmlArr_[0].Dz_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj) - 0) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1))); // 0 is boundary condtion
-                                    //Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,jj) - c_ezd0 * dzstore;
-                                    
-                                    //dzstore = pmlArr_[0].Dz_end_->point(ii,jj);
-                                    pmlArr_[0].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,jj) + c_dzh * ((0 -Hy_->point((nx_-1) - ii-1,jj)) - (Hx_->point((nx_-1) - ii,jj)-Hx_->point((nx_-1) - ii,jj-1))); // 0 is boundary condition
-                                    Ez_->point((nx_-1) - ii,jj) = c_eze * Ez_->point((nx_-1) - ii,jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
-                                }
-                                else
-                                {
-                                    //pmlArr_[0].Dz_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj) - 0) - (Hx_->point(ii,jj)-0)); // 0 is boundary condtion
-                                    //Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,jj) - c_ezd0 * dzstore;
-                                    
-                                    //dzstore = pmlArr_[0].Dz_end_->point(ii,jj);
-                                    pmlArr_[0].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,jj) + c_dzh * ((0 -Hy_->point((nx_-1) - ii-1,jj)) - (Hx_->point((nx_-1) - ii,jj)-0)); // 0 is boundary condition
-                                    Ez_->point((nx_-1) - ii,jj) = c_eze * Ez_->point((nx_-1) - ii,jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
-                                }
-                                
-                            }
-                            //Top Right
-                            dzstore = pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj);
-                            if(ii !=0)
-                            {
-                                if(jj!=0)
-                                {
-                                    //pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) = c_dzd * pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) + c_dzh * ((Hy_->point(ii,ny_ -1 - jj)-Hy_->point(ii-1,ny_ -1 - jj)) - (Hx_->point(ii,ny_ -1 - jj)-Hx_->point(ii,ny_ -1 - jj-1)));
-                                    //Ez_->point(ii,ny_ -1 - jj) = c_eze * Ez_->point(ii,ny_ -1 - jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) - c_ezd0 * dzstore;
-                                    
-                                    //dzstore = pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj);
-                                    pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) + c_dzh * ((Hy_->point((nx_-1) - ii,ny_ -1 - jj)-Hy_->point((nx_-1) - ii-1,ny_ -1 - jj)) - (Hx_->point((nx_-1) - ii,ny_ -1 - jj)-Hx_->point((nx_-1) - ii,ny_ -1 - jj-1)));
-                                    Ez_->point((nx_-1) - ii,ny_ -1 - jj) = c_eze * Ez_->point((nx_-1) - ii,ny_ -1 - jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) - c_ezd0 * dzstore;
-                                }
-                                else
-                                {
-                                    //pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) = c_dzd * pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) + c_dzh * ((Hy_->point(ii,ny_ -1 - jj)-Hy_->point(ii-1,ny_ -1 - jj)) - (Hx_->point(ii,ny_ -1 - jj)-0));
-                                    //Ez_->point(ii,ny_ -1 - jj) = c_eze * Ez_->point(ii,ny_ -1 - jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) - c_ezd0 * dzstore;
-                                    
-                                    //dzstore = pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj);
-                                    pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) + c_dzh * ((Hy_->point((nx_-1) - ii,ny_ -1 - jj)-Hy_->point((nx_-1) - ii-1,ny_ -1 - jj)) - (0-Hx_->point((nx_-1) - ii,ny_ -1 - jj-1)));
-                                    Ez_->point((nx_-1) - ii,ny_ -1 - jj) = c_eze * Ez_->point((nx_-1) - ii,ny_ -1 - jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) - c_ezd0 * dzstore;
-                                }
-                                
-                            }
-                            else
-                            {
-                                if(jj !=0 )
-                                {
-                                    //pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) = c_dzd * pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) + c_dzh * ((Hy_->point(ii,ny_ -1 - jj) - 0) - (Hx_->point(ii,ny_ -1 - jj)-Hx_->point(ii,ny_ -1 - jj-1))); // 0 is boundary condtion
-                                    //Ez_->point(ii,ny_ -1 - jj) = c_eze * Ez_->point(ii,ny_ -1 - jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) - c_ezd0 * dzstore;
-                                    
-                                    //dzstore = pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj);
-                                    pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) + c_dzh * ((0 -Hy_->point((nx_-1) - ii-1,ny_ -1 - jj)) - (Hx_->point((nx_-1) - ii,ny_ -1 - jj)-Hx_->point((nx_-1) - ii,ny_ -1 - jj-1))); // 0 is boundary condition
-                                    Ez_->point((nx_-1) - ii,ny_ -1 - jj) = c_eze * Ez_->point((nx_-1) - ii,ny_ -1 - jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) - c_ezd0 * dzstore;
-                                }
-                                else
-                                {
-                                    //pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) = c_dzd * pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) + c_dzh * ((Hy_->point(ii,ny_ -1 - jj) - 0) - (Hx_->point(ii,ny_ -1 - jj)-0)); // 0 is boundary condtion
-                                    //Ez_->point(ii,ny_ -1 - jj) = c_eze * Ez_->point(ii,ny_ -1 - jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) - c_ezd0 * dzstore;
-                                    
-                                    //dzstore = pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj);
-                                    pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) + c_dzh * ((0 -Hy_->point((nx_-1) - ii-1,ny_ -1 - jj)) - (0 - Hx_->point((nx_-1) - ii,ny_ -1 - jj-1))); // 0 is boundary condition
-                                    Ez_->point((nx_-1) - ii,ny_ -1 - jj) = c_eze * Ez_->point((nx_-1) - ii,ny_ -1 - jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) - c_ezd0 * dzstore;
-                                }
-                                
-                            }
-                            // Top Left
-                            dzstore = pmlArr_[0].Dz_->point(ii,ny_ -1 - jj);
-                            if(ii !=0)
-                            {
-                                if(jj!=0)
-                                {
-                                    pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) = c_dzd * pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) + c_dzh * ((Hy_->point(ii,ny_ -1 - jj)-Hy_->point(ii-1,ny_ -1 - jj)) - (Hx_->point(ii,ny_ -1 - jj)-Hx_->point(ii,ny_ -1 - jj-1)));
-                                    Ez_->point(ii,ny_ -1 - jj) = c_eze * Ez_->point(ii,ny_ -1 - jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) - c_ezd0 * dzstore;
-                                    
-                                    //dzstore = pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj);
-                                    //pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) + c_dzh * ((Hy_->point((nx_-1) - ii,ny_ -1 - jj)-Hy_->point((nx_-1) - ii-1,ny_ -1 - jj)) - (Hx_->point((nx_-1) - ii,ny_ -1 - jj)-Hx_->point((nx_-1) - ii,ny_ -1 - jj-1)));
-                                    //Ez_->point((nx_-1) - ii,ny_ -1 - jj) = c_eze * Ez_->point((nx_-1) - ii,ny_ -1 - jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) - c_ezd0 * dzstore;
-                                }
-                                else
-                                {
-                                    pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) = c_dzd * pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) + c_dzh * ((Hy_->point(ii,ny_ -1 - jj)-Hy_->point(ii-1,ny_ -1 - jj)) - (0-Hx_->point(ii,ny_ -1 - jj-1)));
-                                    Ez_->point(ii,ny_ -1 - jj) = c_eze * Ez_->point(ii,ny_ -1 - jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) - c_ezd0 * dzstore;
-                                    
-                                    //dzstore = pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj);
-                                    //pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) + c_dzh * ((Hy_->point((nx_-1) - ii,ny_ -1 - jj)-Hy_->point((nx_-1) - ii-1,ny_ -1 - jj)) - (0-Hx_->point((nx_-1) - ii,ny_ -1 - jj-1)));
-                                    //Ez_->point((nx_-1) - ii,ny_ -1 - jj) = c_eze * Ez_->point((nx_-1) - ii,ny_ -1 - jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) - c_ezd0 * dzstore;
-                                }
-                                
-                            }
-                            else
-                            {
-                                if(jj !=0 )
-                                {
-                                    pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) = c_dzd * pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) + c_dzh * ((Hy_->point(ii,ny_ -1 - jj) - 0) - (Hx_->point(ii,ny_ -1 - jj)-Hx_->point(ii,ny_ -1 - jj-1))); // 0 is boundary condtion
-                                    Ez_->point(ii,ny_ -1 - jj) = c_eze * Ez_->point(ii,ny_ -1 - jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) - c_ezd0 * dzstore;
-                                    
-                                    //dzstore = pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj);
-                                    //pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) + c_dzh * ((0 -Hy_->point((nx_-1) - ii-1,ny_ -1 - jj)) - (Hx_->point((nx_-1) - ii,ny_ -1 - jj)-Hx_->point((nx_-1) - ii,ny_ -1 - jj-1))); // 0 is boundary condition
-                                    //Ez_->point((nx_-1) - ii,ny_ -1 - jj) = c_eze * Ez_->point((nx_-1) - ii,ny_ -1 - jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) - c_ezd0 * dzstore;
-                                }
-                                else
-                                {
-                                    pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) = c_dzd * pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) + c_dzh * ((Hy_->point(ii,ny_ -1 - jj) - 0) - (0-Hx_->point(ii,ny_ -1 - jj-1))); // 0 is boundary condtion
-                                    Ez_->point(ii,ny_ -1 - jj) = c_eze * Ez_->point(ii,ny_ -1 - jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,ny_ -1 - jj) - c_ezd0 * dzstore;
-                                    
-                                    //dzstore = pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj);
-                                    //pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) + c_dzh * ((0 -Hy_->point((nx_-1) - ii-1,ny_ -1 - jj)) - (0 - Hx_->point((nx_-1) - ii,ny_ -1 - jj-1))); // 0 is boundary condition
-                                    //Ez_->point((nx_-1) - ii,ny_ -1 - jj) = c_eze * Ez_->point((nx_-1) - ii,ny_ -1 - jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,ny_ -1 - jj) - c_ezd0 * dzstore;
-                                }
-                                
-                            }
-                        }
-                        break;
-                    case Y:
-                        if(Ez_)
-                        {
-                            double kapx = 1.0; double kapy = 1.0; double kapz = 1.0;
-                            double sigx = pmlArr_[1].sigma(static_cast<double>(ii));
-                            double sigy = pmlArr_[0].sigma(static_cast<double>(jj));                            
-                            double sigz = 0.0;
-
-                            double c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            double c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_)) ;
-                            double c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            double c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            double c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            double dzstore = pmlArr_[1].Dz_->point(ii,jj); 
-
-                            // Do the Bot left Corner
-                            if(ii!=0 && jj!=0)
-                            {   
-                                pmlArr_[1].Dz_->point(ii,jj) = c_dzd * pmlArr_[1].Dz_->point(ii,jj) - c_dzh * ((Hy_->point(ii,jj) - Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj) - Hx_->point(ii,jj-1)));
-                                Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[1].Dz_->point(ii,jj) - c_ezd0 * dzstore;
-                            }
-                            else if(ii!=0)
-                            {
-                                pmlArr_[1].Dz_->point(ii,jj) = c_dzd * pmlArr_[1].Dz_->point(ii,jj) - c_dzh * ((Hy_->point(ii,jj) - Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj) - 0));
-                                Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[1].Dz_->point(ii,jj) - c_ezd0 * dzstore;
-                            }
-                            else if(jj !=0)
-                            {
-                                pmlArr_[1].Dz_->point(ii,jj) = c_dzd * pmlArr_[1].Dz_->point(ii,jj) - c_dzh * ((Hy_->point(ii,jj) - 0) - (Hx_->point(ii,jj) - Hx_->point(ii,jj-1)));
-                                Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[1].Dz_->point(ii,jj) - c_ezd0 * dzstore;
-                            }
-                            else
-                            {
-                                pmlArr_[1].Dz_->point(ii,jj) = c_dzd * pmlArr_[1].Dz_->point(ii,jj) - c_dzh * ((Hy_->point(ii,jj) - 0) - (Hx_->point(ii,jj) - 0));
-                                
-                                Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[1].Dz_->point(ii,jj) - c_ezd0 * dzstore;
-                            }
-                            // Do the Bot Right Corner
-                            if(ii != 0 && jj !=0)
-                            {
-                                dzstore = pmlArr_[1].Dz_->point((nx_-1)-ii,jj);
-                                pmlArr_[1].Dz_->point((nx_-1)-ii,jj) = c_dzd * pmlArr_[1].Dz_->point((nx_-1)-ii,jj) - c_dzh * ((Hy_->point((nx_-1)-ii,jj) - Hy_->point((nx_-1)-ii-1,jj)) - (Hx_->point((nx_-1)-ii,jj) - Hx_->point((nx_-1)-ii,jj-1)));;
-                                Ez_->point((nx_-1)-ii,jj) = c_eze * Ez_->point((nx_-1)-ii,jj) + c_ezd1 * pmlArr_[1].Dz_->point((nx_-1)-ii,jj) - c_ezd0 * dzstore;
-                            }
-                            else if(jj!=0)
-                            {
-                                dzstore = pmlArr_[1].Dz_->point((nx_-1)-ii,jj);
-                                pmlArr_[1].Dz_->point((nx_-1)-ii,jj) = c_dzd * pmlArr_[1].Dz_->point((nx_-1)-ii,jj) - c_dzh * ((0 - Hy_->point((nx_-1)-ii-1,jj)) - (Hx_->point((nx_-1)-ii,jj) - Hx_->point((nx_-1)-ii,jj-1)));//boundray conditions
-                                Ez_->point((nx_-1)-ii,jj) = c_eze * Ez_->point((nx_-1)-ii,jj) + c_ezd1 * pmlArr_[1].Dz_->point((nx_-1)-ii,jj) - c_ezd0 * dzstore;
-                            }
-                            else if(ii!=0)
-                            {
-                                dzstore = pmlArr_[1].Dz_->point((nx_-1)-ii,jj);
-                                pmlArr_[1].Dz_->point((nx_-1)-ii,jj) = c_dzd * pmlArr_[1].Dz_->point((nx_-1)-ii,jj) - c_dzh * ((Hy_->point((nx_-1)-ii,jj) - Hy_->point((nx_-1)-ii-1,jj)) - (Hx_->point((nx_-1)-ii,jj) - 0));;
-                                Ez_->point((nx_-1)-ii,jj) = c_eze * Ez_->point((nx_-1)-ii,jj) + c_ezd1 * pmlArr_[1].Dz_->point((nx_-1)-ii,jj) - c_ezd0 * dzstore;
-                            }
-                            else
-                            {
-                                dzstore = pmlArr_[1].Dz_->point((nx_-1)-ii,jj);
-                                pmlArr_[1].Dz_->point((nx_-1)-ii,jj) = c_dzd * pmlArr_[1].Dz_->point((nx_-1)-ii,jj) - c_dzh * ((0 - Hy_->point((nx_-1)-ii-1,jj)) - (Hx_->point((nx_-1)-ii,jj) - 0));;
-                                Ez_->point((nx_-1)-ii,jj) = c_eze * Ez_->point((nx_-1)-ii,jj) + c_ezd1 * pmlArr_[1].Dz_->point((nx_-1)-ii,jj) - c_ezd0 * dzstore;
-                            }
-                            // Do the Top Left Corner
-                            if(jj != 0 && ii !=0)
-                            {
-                                dzstore = pmlArr_[1].Dz_end_->point(ii,jj);
-                                pmlArr_[1].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[1].Dz_end_->point(ii,jj) - c_dzh * ((Hy_->point(ii,(ny_-1)-jj) - Hy_->point(ii-1,(ny_-1)-jj)) - (Hx_->point(ii,(ny_-1)-jj) - Hx_->point(ii,(ny_-1)-jj-1)));
-                                Ez_->point(ii,(ny_-1)-jj) = c_eze * Ez_->point(ii,(ny_-1)-jj) + c_ezd1 * pmlArr_[1].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
-                            }
-                            else if(jj!=0)
-                            {
-                                dzstore = pmlArr_[1].Dz_end_->point(ii,jj);
-                                pmlArr_[1].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[1].Dz_end_->point(ii,jj) - c_dzh * ((Hy_->point(ii,(ny_-1)-jj) - 0) - (Hx_->point(ii,(ny_-1)-jj) - Hx_->point(ii,(ny_-1)-jj-1)));
-                                Ez_->point(ii,(ny_-1)-jj) = c_eze * Ez_->point(ii,(ny_-1)-jj) + c_ezd1 * pmlArr_[1].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
-                            }
-                            else if(ii!=0)
-                            {
-                                dzstore = pmlArr_[1].Dz_end_->point(ii,jj);
-                                pmlArr_[1].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[1].Dz_end_->point(ii,jj) - c_dzh * ((Hy_->point(ii,(ny_-1)-jj) - Hy_->point(ii-1,(ny_-1)-jj)) - (0 - Hx_->point(ii,(ny_-1)-jj-1))); // boudrays 
-                                Ez_->point(ii,(ny_-1)-jj) = c_eze * Ez_->point(ii,(ny_-1)-jj) + c_ezd1 * pmlArr_[1].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;   
-                            }
-                            else
-                            {
-                                dzstore = pmlArr_[1].Dz_end_->point(ii,jj);
-                                pmlArr_[1].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[1].Dz_end_->point(ii,jj) - c_dzh * ((Hy_->point(ii,(ny_-1)-jj) - 0) - (0 - Hx_->point(ii,(ny_-1)-jj-1))); // boudrays 
-                                Ez_->point(ii,(ny_-1)-jj) = c_eze * Ez_->point(ii,(ny_-1)-jj) + c_ezd1 * pmlArr_[1].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
-                            }
-                            // Do the Top Right Corner
-                            if(ii!=0 && jj!=0)
-                            {
-                                dzstore = pmlArr_[1].Dz_end_->point((nx_-1)-ii,jj);
-                                pmlArr_[1].Dz_end_->point((nx_-1)-ii,jj) = c_dzd * pmlArr_[1].Dz_end_->point((nx_-1)-ii,jj) - c_dzh * ((Hy_->point((nx_-1)-ii,(ny_-1)-jj) - Hy_->point((nx_-1)-ii-1,(ny_-1)-jj)) - (Hx_->point((nx_-1)-ii,(ny_-1)-jj) - Hx_->point((nx_-1)-ii,(ny_-1)-jj-1)));;
-                                Ez_->point((nx_-1)-ii,(ny_-1)-jj) = c_eze * Ez_->point((nx_-1)-ii,(ny_-1)-jj) + c_ezd1 * pmlArr_[1].Dz_end_->point((nx_-1)-ii,jj) - c_ezd0 * dzstore;
-                            }
-                            else if(jj!=0)
-                            {
-                                
-                                dzstore = pmlArr_[1].Dz_end_->point((nx_-1)-ii,jj);
-                                pmlArr_[1].Dz_end_->point((nx_-1)-ii,jj) = c_dzd * pmlArr_[1].Dz_end_->point((nx_-1)-ii,jj) - c_dzh * ((0 - Hy_->point((nx_-1)-ii-1,(ny_-1)-jj)) - (Hx_->point((nx_-1)-ii,(ny_-1)-jj) - Hx_->point((nx_-1)-ii,(ny_-1)-jj-1)));;
-                                Ez_->point((nx_-1)-ii,(ny_-1)-jj) = c_eze * Ez_->point((nx_-1)-ii,(ny_-1)-jj) + c_ezd1 * pmlArr_[1].Dz_end_->point((nx_-1)-ii,jj) - c_ezd0 * dzstore;
-                            }
-                            else if(ii!=0)
-                            {
-                                dzstore = pmlArr_[1].Dz_end_->point((nx_-1)-ii,jj);
-                                pmlArr_[1].Dz_end_->point((nx_-1)-ii,jj) = c_dzd * pmlArr_[1].Dz_end_->point((nx_-1)-ii,jj) - c_dzh * ((Hy_->point((nx_-1)-ii,(ny_-1)-jj) - Hy_->point((nx_-1)-ii-1,(ny_-1)-jj)) - (0 - Hx_->point((nx_-1)-ii,(ny_-1)-jj-1)));;
-                                Ez_->point((nx_-1)-ii,(ny_-1)-jj) = c_eze * Ez_->point((nx_-1)-ii,(ny_-1)-jj) + c_ezd1 * pmlArr_[1].Dz_end_->point((nx_-1)-ii,jj) - c_ezd0 * dzstore;
-                            }
-                            else
-                            {
-                                dzstore = pmlArr_[1].Dz_end_->point((nx_-1)-ii,jj);
-                                pmlArr_[1].Dz_end_->point((nx_-1)-ii,jj) = c_dzd * pmlArr_[1].Dz_end_->point((nx_-1)-ii,jj) - c_dzh * ((0 - Hy_->point((nx_-1)-ii-1,(ny_-1)-jj)) - (0 - Hx_->point((nx_-1)-ii,(ny_-1)-jj-1)));;
-                                Ez_->point((nx_-1)-ii,(ny_-1)-jj) = c_eze * Ez_->point((nx_-1)-ii,(ny_-1)-jj) + c_ezd1 * pmlArr_[1].Dz_end_->point((nx_-1)-ii,jj) - c_ezd0 * dzstore;
-                            }
-                        }
-                        break;
-                    case Z:
-                        throw logic_error("Z is not yet defined");
-                        break;
-                    default:
-                        throw logic_error("hit switch default");
-                        break;
-                }
-            }
-        }
-    }*/
     for(int ii = 0; ii < dtcArr_.size(); ii ++)
         ouputField(dtcArr_[ii]);
     tcur_ += dt_;

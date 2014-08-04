@@ -22,10 +22,10 @@ int main(int argc, char const *argv[])
     cout << FF.d_t() <<"\n";
     */
     FF.initializeGrid(IP);
-    cout<<"AND INITIALIZED THE GRID!" << endl;    
+    cout<<"AND INITIALIZED THE GRID!" << endl;
     for(int ii = 0; ii < 10000; ii++)
         FF.step();
     cout << "I am always in error\n";
-    return 0; 
+    return 0;
 }
- 
+

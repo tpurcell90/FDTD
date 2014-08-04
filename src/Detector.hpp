@@ -40,7 +40,7 @@ public:
             case field:
                 out = field_in->point(location_[0],location_[1]);
                 break;
-            case flux: 
+            case flux:
                 out = field_in->flux(location_,eps);
                 break;
             default:

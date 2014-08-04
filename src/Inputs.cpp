@@ -22,7 +22,7 @@ programInputs::programInputs(std::string fn) : filename_(fn)
     yPml_        = 0;
     courant_     = IP.get<double>("CompCell.courant", 0.5);
     output_base_ = IP.get<string>("CompCell.output", "dtc_out");
-    periodic_      = IP.get<bool>("PBC", true);    
+    periodic_      = IP.get<bool>("PBC", true);
     for (auto& iter : IP.get_child("SourceList"))
     {
         string p = iter.second.get<string>("profile");
@@ -99,7 +99,7 @@ programInputs::programInputs(std::string fn) : filename_(fn)
 
         boost::property_tree::ptree& pols = iter.second.get_child("pols");
         for(auto& iter2 : pols)
-        {            
+        {
             mater.push_back(iter2.second.get<double>("sigma"));
             mater.push_back(iter2.second.get<double>("gamma"));
             mater.push_back(iter2.second.get<double>("kappa"));
