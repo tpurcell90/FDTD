@@ -1233,76 +1233,7 @@ void FDTDField::step()
     {
 
     }
-    /*for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
-    {
-        for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
-        {
-            if(Ez_)
-            {
-                //Only True in Vac Once Mat/PML introduced vectorize it
-                double c_eze = 1.0;
-                double c_ezh = 1.0 * dt_/dx_;
-                if(ii != nx_-1 && ii != 0)
-                {
-                    if(jj!=0 && jj!=ny_-1)
-                    {
-                        Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
-                    }
-                    else if (jj != ny_-1)
-                    {
-                        Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-0));
-                    }
-                    else if (jj != 0)
-                    {
-                        Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (0-Hx_->point(ii,jj-1)));
-                    }
-                }
-                else if(ii != nx_-1)
-                {
-                    if(jj!=0 && jj!=ny_-1)
-                    {
-                        Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-0) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
-                    }
-                    else if (jj != ny_-1)
-                    {
-                        Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-0) - (Hx_->point(ii,jj)-0));
-                    }
-                    else if (jj != 0)
-                    {
-                        Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-0) - (0-Hx_->point(ii,jj-1)));
-                    }
-                }
-                else if (ii !=0)
-                {
-                    if(jj!=0 && jj!=ny_-1)
-                    {
-                        Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((0-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
-                    }
-                    else if (jj != ny_-1)
-                    {
-                        Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((0-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-0));
-                    }
-                    else if (jj != 0)
-                    {
-                        Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((0-Hy_->point(ii-1,jj)) - (0-Hx_->point(ii,jj-1)));
-                    }
-                }
 
-            }
-            else
-            {
-
-                //Only True in Vac Once Mat/PML introduced vectorize it
-                //
-                double c_exe = 1.0;
-                double c_exh = 1.0 * dt_/dx_;
-                double c_eye = 1.0;
-                double c_eyh = 1.0 * dt_/dy_;
-                Ey_->point(ii,jj) = c_eye * Ey_->point(ii,jj) - c_eyh * (Hz_->point(ii,jj) - Hz_->point(ii-1,jj));
-                Ex_->point(ii,jj) = c_exe * Ex_->point(ii,jj) + c_exh * (Hz_->point(ii,jj) - Hz_->point(ii,jj-1));
-            }
-        }
-    }*/
     if(Ez_)
     {
         for(int kk = 0; kk < pmlArr_.size(); kk++)
