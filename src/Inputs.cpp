@@ -65,7 +65,6 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         else if(d == Y)
         {
             yPml_ = find_pt(thickness);
-            cout << find_pt(x_size_)<<endl;
             //pmlArr_.push_back(UPML<double>(thickness,d, 4.0, exp(-16), find_pt(x_size_),1.0/res_,1.0/res_,string2pol(pol_)));
             pmlArr_.push_back(UPML<double>(yPml_,d, 4.0, exp(-16), find_pt(x_size_) + 1,1.0/res_,1.0/res_,string2pol(pol_)));
         }
@@ -75,7 +74,7 @@ programInputs::programInputs(std::string fn) : filename_(fn)
             throw logic_error("I would appricate it if you stick to the standard X,Y,Z directions. While it's fun to invent new ones, it is very hard to do calculations if I don't even understand what dimension I am in. Please try again!");
 
     }
-
+    cout << xPml_ << "\t" <<yPml_ <<endl;
     vector<double> loc(2,0.0);
     vector<double> size = {x_size_,y_size_};
     vector<double> mat(1,1.0);

@@ -2,18 +2,18 @@
     "CompCell" : {
         "procs"         : 1,
         "x_size"        : 40.0,
-        "y_size"        : 40.0,
+        "y_size"        : 30.0,
         "z_size"        : 0.0,
         "res"           : 20,
         "courant"       : 0.5
     },
     "PML" :  [
         {
-            "thickness" : 5.0,
+            "thickness" : 2.0,
             "direction" : "X"
         },
         {
-            "thickness" : 5.0,
+            "thickness" : 3.0,
             "direction" : "Y"
         }
     ],
@@ -25,7 +25,7 @@
             "cutoff"    : 16.00,
             "t_start"   : 0.00,
             "size_x"    : 2.00,
-            "size_y"    : 2.00,
+            "size_y"    : 3.00,
             "pol"       : "Ez",
             "loc_x"     : 0.00,
             "loc_y"     : 0.00
