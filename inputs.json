@@ -10,11 +10,11 @@
     "PML" :  [
         {
             "thickness" : 2.0,
-            "direction" : "X"
+            "direction" : "Y"
         },
         {
             "thickness" : 3.0,
-            "direction" : "Y"
+            "direction" : "X"
         }
     ],
     "SourceList"  : [
