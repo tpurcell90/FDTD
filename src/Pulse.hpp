@@ -41,7 +41,7 @@ public:
         return pul;
         //if(plsType_ == gaussian)
         //    return gauss_pulse(t);
-        //else if 
+        //else if
         //return T(0.0);
     }
     //Pulse functions
@@ -51,12 +51,12 @@ public:
         //if (t < param_[1]*param_[3])
    //return real(-1.0 / (imag*param_[0]) * (-1*param_[0]*imag + (param_[2]-t) / pow(2*param_[1],2)) * exp(-1*param_[0]*imag - pow(((param_[2]-t)/pow(2*param_[1],2.0)),2.0)));
         if (t < param_[2] * param_[1])
-            return exp(-1 * pow((t - param_[0])/param_[1],2.0));
+            return exp(-1 * pow((t - param_[3])/param_[1],2.0))*sin(2*M_PI*param_[0]*(t-param_[3]));
         else
             return T(0.0);
         // look for the best way to calculate gaussian pulse
     }
-    
+
     const T const_pulse(double t)
     {
         if (t < param_[2] * param_[1])

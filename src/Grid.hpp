@@ -6,9 +6,11 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <iomanip>
 #include <complex>
 #include <algorithm>
 #include <assert.h>
+#include <fstream>
 
 // Using template becuse I might need complex or real fields
 template <typename T> class Grid2D
@@ -64,6 +66,14 @@ public:
     T& operator()(const int x_val, const int y_val) {assert(0 <= x_val && x_val < nx && 0 <= y_val && y_val < ny ); return point(x_val,y_val); }
     const T& operator()(const int x_val, const int y_val) const { assert(0 <= x_val && x_val < nx && 0 <= y_val && y_val < ny );return vals[(y_val)*nx + x_val]; }
 
+    void gridOut(std::string filename)
+    {
+        std::ofstream outFile;
+        outFile.open(filename,std::ios_base::app);
+        for(int ii = 0; ii < nx; ii++)
+            for(int jj =0; jj < ny; jj++)
+                outFile<< ii << "\t" << jj << "\t" << point(ii,jj) <<std::endl;
+    }
 // Flux calculation
     double flux(std::vector<int> loc, double eps)
     {

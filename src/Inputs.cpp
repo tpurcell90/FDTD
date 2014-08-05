@@ -22,7 +22,8 @@ programInputs::programInputs(std::string fn) : filename_(fn)
     yPml_        = 0;
     courant_     = IP.get<double>("CompCell.courant", 0.5);
     output_base_ = IP.get<string>("CompCell.output", "dtc_out");
-    periodic_      = IP.get<bool>("PBC", true);
+    periodic_    = IP.get<bool>("CompCell.PBC", false);
+    tMax_        = IP.get<double>("CompCell.tLim",100.0);
     for (auto& iter : IP.get_child("SourceList"))
     {
         string p = iter.second.get<string>("profile");

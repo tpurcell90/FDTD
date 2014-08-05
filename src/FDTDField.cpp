@@ -1732,5 +1732,13 @@ void FDTDField::step()
     }
     for(int ii = 0; ii < dtcArr_.size(); ii ++)
         ouputField(dtcArr_[ii]);
+
+    /*string fname("fout/Hx/HxField_t" + to_string(static_cast<int>(tcur_/dt_))+".dat");
+    Hx_->gridOut(fname);
+    fname = "fout/Hy/HyField_t" + to_string(static_cast<int>(tcur_/dt_))+".dat";
+    Hy_->gridOut(fname);
+    fname = "fout/Ez/EzField_t" + to_string(static_cast<int>(tcur_/dt_))+".dat";
+    Ez_->gridOut(fname);*/
+
     tcur_ += dt_;
 }

@@ -26,6 +26,7 @@ public:
     double courant_;
     int xPml_, yPml_;
     bool periodic_;
+    double tMax_;
     std::string output_base_;
     string pol_;
     //vector<Source<double>> srcArr();
@@ -49,6 +50,7 @@ public:
 
     // convert double to int grid point
     int find_pt(double pt) {return floor(pt*static_cast<double>(res_) + 0.5);}
+    double tMax() {return tMax_;}
 
 	//Removes comment lines from the json file
 	void stripComments();
