@@ -15,14 +15,38 @@ protected:
     plsShape plsType_;
 
 public:
-    // Constructor
+    /**
+     * @brief Constructor
+     * @details Constructs a Pulse shape given the correct parameters
+     *
+     * @param param functional parameters of the pulse
+     * @param type Shape of the pulse
+     */
     Pulse(std::vector<T> param, plsShape type) : param_(param), plsType_(type) {}
-    // Copy Constructor
+    /**
+     * @brief Copy Constructor
+     * @details Constructs a Pulse from another Pulse
+     *
+     * @param o The pulseshpe to be copied
+     */
     Pulse(const Pulse& o) : param_(o.param_), plsType_(o.plsType_) {}
     //Acessor Functions
+    /**
+     * @brief Returns the parameters of the pulse
+     */
     std::vector<T> param() {return param_;}
+    /**
+     * @brief Retuns the pulse shape
+     * @return The Pulse shape
+     */
     plsShape type() {return plsType_;}
-
+    /**
+     * @brief Creates the pulse
+     * @details Returns the value of the pulse at a given time
+     *
+     * @param t current time
+     * @return the pulse value
+     */
     const T pulse(double t)
     {
         T pul;
@@ -45,6 +69,13 @@ public:
         //return T(0.0);
     }
     //Pulse functions
+    /**
+     * @brief Creates a gaussian pulse
+     * @details Returns the value of the gaussian pulse at a given time
+     *
+     * @param t current time
+     * @return the gaussian pulse value
+     */
     const T gauss_pulse(double t)
     {
         std::complex<double> imag(0.0,1.0);
@@ -56,7 +87,13 @@ public:
             return T(0.0);
         // look for the best way to calculate gaussian pulse
     }
-
+    /**
+     * @brief Creates a continuous pulse
+     * @details Returns the value of the continuous pulse at a given time
+     *
+     * @param t current time
+     * @return the continuous pulse value
+     */
     const T const_pulse(double t)
     {
         if (t < param_[2] * param_[1])

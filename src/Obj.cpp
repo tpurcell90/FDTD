@@ -5,6 +5,13 @@
 using namespace std;
 
 //Dielectric
+/**
+ * @brief Get the dielectric constant of the Object's Material
+ * @details Calculates the complex dielectric function of the object's mateial at a given frequency
+ *
+ * @param freq Frequency of light
+ * @return dielectric function at the frequncy
+ */
 cplx Obj::dielectric(double freq) //, double material_[])
 {
     cplx eps(material_[0],0.0);
@@ -14,7 +21,13 @@ cplx Obj::dielectric(double freq) //, double material_[])
     return eps;
 }
 
-//Determine if a point is in an object
+/**
+ * @brief Determine if a point is in an object
+ * @details Deterimes a point in vector form is inside the object or not
+ *
+ * @param v point to test if it's in an object
+ * @return True if inside the object false if not
+ */
 bool Obj::isObj(std::vector<double> v)
 {
     bool isIn = true;
@@ -32,6 +45,13 @@ bool Obj::isObj(std::vector<double> v)
         isIn = false;
     return isIn;
 }
+/**
+ * @brief Determines teh distance between two points
+ *
+ * @param pt1 The Second point
+ * @param pt2 The Second point
+ * @return The distance between points
+ */
 double Obj::dist(vector<double> pt1, vector<double> pt2)
 {
     double sum = 0;

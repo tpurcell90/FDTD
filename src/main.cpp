@@ -21,7 +21,7 @@ int main(int argc, char const *argv[])
     cout << FF.d_y() <<"\n";
     cout << FF.d_t() <<"\n";
     */
-    FF.initializeGrid(IP);
+    FF.initializeGrid();
     cout<<"AND INITIALIZED THE GRID!" << endl;
     while(FF.getTime() <= IP.tMax())
         FF.step();

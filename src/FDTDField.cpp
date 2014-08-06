@@ -14,7 +14,12 @@
 
 
 using namespace std;
-
+/**
+ * @brief Constructs a FDTD field from a programInputs object
+ * @details Constructs the FDTD field manger using the information from the inputs parameter. Sets dx, and dy to 1/res, dt_ is set to S/res, The unused fields are set to null, nx and ny are calculated by rouding the product of the physical cell size with the
+ *
+ * @param IP Input object created from an input file
+ */
 FDTDField::FDTDField(programInputs &IP)
 {
     //Define cell parameters
@@ -22,7 +27,7 @@ FDTDField::FDTDField(programInputs &IP)
     res_      = IP.res_;
     dx_       = 1.0/res_;
     dy_       = 1.0/res_;
-    dt_       = 0.99/(sqrt(pow(dx_,-2.0) + pow(dy_,-2.0)));
+    dt_       = IP.courant_ * dx_;
     nx_       = floor(static_cast<double>(res_) * static_cast<double>(IP.x_size_)+ 0.5) + 1; //Better way here; + 1 to include the 0 point
     ny_       = floor(static_cast<double>(res_) * static_cast<double>(IP.y_size_)+ 0.5) + 1; //Better way here; + 1 to include the 0 point
     srcArr_   = IP.srcArr_;
@@ -66,12 +71,6 @@ FDTDField::FDTDField(programInputs &IP)
     }
     else
     {
-        /*Hx_ = make_shared<Grid2D<double>>(nx_,ny_-1,dx_,dy_);
-        Hy_ = make_shared<Grid2D<double>>(nx_-1,ny_,dx_,dy_);
-        Ez_ = make_shared<Grid2D<double>>(nx_,ny_,dx_,dy_);
-        phys_Hx_ = make_shared<Grid2D<int>>(nx_,ny_-1,dx_,dy_);
-        phys_Hy_ = make_shared<Grid2D<int>>(nx_-1,ny_,dx_,dy_);
-        phys_Ez_ = make_shared<Grid2D<int>>(nx_,ny_,dx_,dy_);*/
         Hx_ = make_shared<Grid2D<double>>(nx_,ny_-1,dx_,dy_);
         Hy_= make_shared<Grid2D<double>>(nx_-1,ny_,dx_,dy_);
         Ez_ = make_shared<Grid2D<double>>(nx_,ny_,dx_,dy_);
@@ -87,10 +86,14 @@ FDTDField::FDTDField(programInputs &IP)
         phys_Ey_ = nullptr;
         phys_Hz_ = nullptr;
     }
-
 }
 
-void FDTDField::initializeGrid(programInputs &IP)
+/**
+ * @brief Initializes the physical grid for materials look up
+ * @details Initializes the physical grid for materials look up, sets the object to the number in the object array will overwrite to the last one if multiple objects exist at the same point
+ *
+ */
+void FDTDField::initializeGrid()
 {
     for(int ii = 0; ii < objArr_.size(); ii ++)
     {
@@ -174,12 +177,17 @@ void FDTDField::initializeGrid(programInputs &IP)
         }
     }
 }
-
+/**
+ * @brief Outputs the relevant field information to an output file specified by the detector
+ * @details Outputs the relevant field information to an output file specified by the detector
+ *
+ * @param d The Detector used for the output
+ */
 void FDTDField::ouputField(Detector<double> d) //iostream as input parameter?
 {
     ofstream outFile;
     outFile.open(d.outfile(), ios_base::app);
-    double eps = 1.00; // Change this but for a test it will work
+    double eps = 1.00;
     switch ( d.pol() )
     {
         case EZ:
@@ -212,7 +220,28 @@ void FDTDField::ouputField(Detector<double> d) //iostream as input parameter?
     }
     outFile.close();
 }
-
+/**
+ * @brief This performs one time update using the FDTD update equations and a UPML
+ * @details The function updates each point according to what it is. Because The units are scalable eps_0, mu_0 and c are all set to 1 leading to the following update equations
+ * For Normal Space TM modes
+ * \(E_z^{q+1}\left[i,j\right] = \frac{1 - \frac{\sigma\left[i,j\right]*d_t}{2*\epsilon\left[i,j\right]}}{1+\frac{\sigma\left[i,j\right]*d_t}{2\epsilon\left[i,j\right]}} E_z^q\left[i,j]\right] +\frac{\frac{dt}{\epsilon\left[i,j\right]}}{1+\frac{\sigma\left[i,j\right]*d_t}{2*\epsilon\left[i,j\right]}}\left\{\frac{1}{dx} \left(H_y^{q+\frac{1}{2}}\left[i+\frac{1}{2},j+\frac{1}{2}\right] - H_y^{q+\frac{1}{2}}\left[i-\frac{1}{2},j+\frac{1}{2}\right]\right) - \frac{1}{dy}\left(H_x^{q+\frac{1}{2}}\left[i+\frac{1}{2},j+\frac{1}{2}\right] - H_x^{q+\frac{1}{2}}\left[i+\frac{1}{2},j-\frac{1}{2}\right]\right) \right\}  \)
+ * \(H_x^{q+\frac{3}{2}}\left[i,j+\frac{1}{2}\right] =  \frac{1 - \frac{\sigma^*\left[i,j+\frac{1}{2}\right] d_t}{2*mu\left[i,j+\frac{1}{2}\right]d_t}{2\mu\left[i,j+\frac{1}{2}\right]}} H_x^{q+\frac{3}{2}}\left[i,j+\frac{1}{2}\right] + \frac{\frac{dt}{mu\left[i,j+\frac{1}{2}\right]}}{\sigma^*\left[i,j+\frac{1}{2}\right] d_t}{2*mu\left[i,j+\frac{1}{2}\right]d_t}{2\mu\left[i,j+\frac{1}{2}\right]}} \left\{ \frac{1}{dy} \left( E_z^{q+1}\left[i,j+1\right] - E_z^{q+1}\left[i,j\right]\right)  \right\}\)
+ * \(H_y^{q+\frac{3}{2}}\left[i+\frac{1}{2},j\right] =  \frac{1 - \frac{\sigma^*\left[i+\frac{1}{2},j\right] d_t}{2*mu\left[i+\frac{1}{2},j\right]d_t}{2\mu\left[i+\frac{1}{2},j\right]}} H_y^{q+\frac{3}{2}}\left[i+\frac{1}{2},j\right] + \frac{\frac{dt}{mu\left[i+\frac{1}{2},j\right]}}{\sigma^*\left[i+\frac{1}{2},j\right] d_t}{2*mu\left[i+\frac{1}{2},j\right]d_t}{2\mu\left[i+\frac{1}{2},j\right]}} \left\{ \frac{1}{dy} \left( E_z^{q+1}\left[i+1,j\right] - E_z^{q+1}\left[i,j\right]\right)  \right\}\)
+ *
+ * For UPML space TM mode
+ * \(D_z^{q+1}\left[i,j\right] = \frac{2 \epsilon \kappa_x - \sigma_x dt}{2 \epsilon  \kappa_x + \sigma_x dt} D_z^{q}\left[i,j\right] +  \frac{2  \epsilon  dt}{2  \epsilon  \kappa_x + \sigma_x  dt} \left\{\frac{1}{dx} \left(H_y^{q+\frac{1}{2}}\left[i+\frac{1}{2},j+\frac{1}{2}\right] - H_y^{q+\frac{1}{2}}\left[i-\frac{1}{2},j+\frac{1}{2}\right]\right) - \frac{1}{dy}\left(H_x^{q+\frac{1}{2}}\left[i+\frac{1}{2},j+\frac{1}{2}\right] - H_x^{q+\frac{1}{2}}\left[i+\frac{1}{2},j-\frac{1}{2}\right]\right) \right\}\)
+ *
+ *\(E_z^{q+1}\left[i,j\right] =  \frac{2 \epsilon \kappa_y - \sigma_y dt}{2 \epsilon  \kappa_y + \sigma_y dt} E_z^{q}\left[i,j\right] + \frac{1}{\left(2\epsilon \kappa_y +\sigma_y dt\right)\epsilon} \left\{ \left(2\epsilon\kappa_z + \sigma_z dt\right) D_z^{q+1}\left[i,j\right]  -\left(2\epsilon\kappa_z - \sigma_z dt\right) D_z^{q}\left[i,j\right] \right\} \)
+ *
+ *\(B_x^{q+\frac{3}{2}}\left[i,j+\frac{1}{2}\right] = \frac{2 \epsilon \kappa_y - \sigma_y dt}{2 \epsilon  \kappa_y + \sigma_y dt} B_x^{q+\frac{3}{2}}\left[i,j+\frac{1}{2}\right] - \frac{2  \epsilon  dt}{2  \epsilon  \kappa_y + \sigma_y  dt} \left\{ \frac{1}{dy} \left( E_z^{q+1}\left[i,j+1\right] - E_z^{q+1}\left[i,j\right]\right)  \right\} \)
+ *
+ *\(H_x^{q+\frac{3}{2}}\left[i,j+\frac{1}{2}\right] =  \frac{2 \epsilon \kappa_z - \sigma_z dt}{2 \epsilon  \kappa_z + \sigma_z dt} H_x^{q+\frac{1}{2}}\left[i,j+\frac{1}{2}\right] + \frac{1}{\left(2\epsilon \kappa_z +\sigma_z dt\right)\epsilon} \left\{ \left(2\epsilon\kappa_x + \sigma_x dt\right) B_x^{q+\frac{3}{2}}\left[i,j+\frac{1}{2}\right] -\left(2\epsilon\kappa_x - \sigma_x dt\right) B_x^{q+\frac{1}{2}}\left[i,j+\frac{1}{2}\right]\right\} \)
+ *
+ *\(B_y^{q+\frac{3}{2}}\left[i+\frac{1}{2},j\right] = \frac{2 \epsilon \kappa_z - \sigma_z dt}{2 \epsilon  \kappa_z + \sigma_z dt} B_y^{q+\frac{3}{2}}\left[i+\frac{1}{2},j\right] +  \frac{2  \epsilon  dt}{2  \epsilon  \kappa_z + \sigma_z  dt} \left\{ \frac{1}{dz} \frac{1}{dx} \left(E_z^{q+1}\left[i+1,j\right] - E_z^{q+1}\left[i,j\right)\right]     \right\} \)
+ *
+ *\(H_y^{q+\frac{3}{2}}\left[i+\frac{1}{2},j,\right]  = \frac{2 \epsilon \kappa_x - \sigma_x dt}{2 \epsilon  \kappa_x + \sigma_x dt} H_y^{q+\frac{1}{2}}\left[i+\frac{1}{2},j\right] + \frac{1}{\left(2\epsilon \kappa_x +\sigma_x dt\right)\epsilon} \left\{ \left(2\epsilon\kappa_y + \sigma_y dt\right) B_y^{q+\frac{3}{2}}\left[i+\frac{1}{2},j\right]  -\left(2\epsilon\kappa_y - \sigma_y dt\right) B_y^{q+\frac{1}{2}}\left[i+\frac{1}{2},j\right] \right\}  \)
+ *
+ */
 void FDTDField::step()
 {
     // Source
@@ -1733,12 +1762,12 @@ void FDTDField::step()
     for(int ii = 0; ii < dtcArr_.size(); ii ++)
         ouputField(dtcArr_[ii]);
 
-    /*string fname("fout/Hx/HxField_t" + to_string(static_cast<int>(tcur_/dt_))+".dat");
+    string fname("fout/Hx/HxField_t" + to_string(static_cast<int>(tcur_/dt_))+".dat");
     Hx_->gridOut(fname);
     fname = "fout/Hy/HyField_t" + to_string(static_cast<int>(tcur_/dt_))+".dat";
     Hy_->gridOut(fname);
     fname = "fout/Ez/EzField_t" + to_string(static_cast<int>(tcur_/dt_))+".dat";
-    Ez_->gridOut(fname);*/
+    Ez_->gridOut(fname);
 
     tcur_ += dt_;
 }

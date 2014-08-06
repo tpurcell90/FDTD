@@ -8,6 +8,12 @@
 
 using namespace std;
 
+/**
+ * @brief Constructs a Input file manager
+ * @details Takes in an input file name and converts real space parameters into FDTD space parameters
+ *
+ * @param fn Input File name
+ */
 programInputs::programInputs(std::string fn) : filename_(fn)
 {
     boost::property_tree::ptree IP;
@@ -175,6 +181,12 @@ void programInputs::stripComments()
 	//update filename;
 	filename_ = newfn;
 }
+/**
+ * @brief Converts the string from an input file into a polarization
+ *
+ * @param p String type of polarization
+ * @return The polarization
+ */
 Polarization programInputs::string2pol(string p)
 {
     if(p.compare("Ez") == 0)
@@ -193,6 +205,12 @@ Polarization programInputs::string2pol(string p)
         throw logic_error("Polarization undefined");
 
 }
+/**
+ * @brief Converts the string from an input file into a direction
+ *
+ * @param p String type of direction
+ * @return The direction
+ */
 Direction programInputs::string2dir(string dir)
 {
     if((dir.compare("x") == 0) || (dir.compare("X") == 0))
@@ -205,6 +223,12 @@ Direction programInputs::string2dir(string dir)
         throw logic_error("I would appricate it if you stick to the standard X,Y,Z directions. While it's fun to invent new ones, it is very hard to do calculations if I don't even understand what dimension I am in. Please try again!");
 
 }
+/**
+ * @brief Converts the string from an input file into a shape
+ *
+ * @param p String type of shape
+ * @return The shape
+ */
 Shape programInputs::string2shape(string s)
 {
     if(s.compare("sphere") == 0)
@@ -221,6 +245,12 @@ Shape programInputs::string2shape(string s)
         throw logic_error("Shape undefined");
 
 }
+/**
+ * @brief Converts the string from an input file into a Detector Type
+ *
+ * @param p String type of Detector Type
+ * @return The Detector Type
+ */
 dtcOutType programInputs::string2out(string t)
 {
     if(t.compare("field") == 0)
@@ -230,6 +260,12 @@ dtcOutType programInputs::string2out(string t)
     else
         throw logic_error("Output type undefined");
 }
+/**
+ * @brief Converts the string from an input file into a Pulse Shape
+ *
+ * @param p String type of Pulse Shape
+ * @return The Pulse Shape
+ */
 plsShape programInputs::string2prof(string p)
 {
     if(p.compare("gaussian") == 0)
