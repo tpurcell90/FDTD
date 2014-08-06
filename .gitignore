@@ -3,5 +3,7 @@
 *.dat
 *.o
 *.swp
+*.png
+fout
 output_data
 FDTD
