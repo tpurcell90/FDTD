@@ -34,7 +34,7 @@ public:
     std::vector<double> mat() {return material_;}
 
     // Dielectric Access function
-    cplx dielectric(double freq);
+    double dielectric(double freq);
     bool isObj(std::vector<double> v);
     double dist(std::vector<double> pt1,std::vector<double> pt2);
 };

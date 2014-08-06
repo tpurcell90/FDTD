@@ -5,7 +5,7 @@
         "y_size"        : 20.0,
         "z_size"        : 0.0,
         "res"           : 10,
-        "courant"       : 0.1,
+        "courant"       : 0.5,
         "tLim"          : 50.0
 
     },
@@ -13,28 +13,47 @@
         {
             "thickness" : 5.0,
             "direction" : "Y"
-        },
-        {
-            "thickness" : 5.0,
-            "direction" : "X"
         }
     ],
     "SourceList"  : [
 
         {
             "profile"   : "gaussian",
-            "fcen"      : 10.000,
-            "fwidth"    : 2.000,
+            "fcen"      : 3.000,
+            "fwidth"    : 3.000,
             "cutoff"    : 20.00,
-            "t_start"   : 10.00,
-            "size_x"    : 0.00,
+            "t_start"   : 15.00,
+            "size_x"    : 10.00,
             "size_y"    : 0.00,
             "pol"       : "Ez",
             "loc_x"     : 0.00,
-            "loc_y"     : 0.00
+            "loc_y"     : 2.00
+        },
+        {
+            "profile"   : "gaussian",
+            "fcen"      : 3.000,
+            "fwidth"    : 3.000,
+            "cutoff"    : 20.00,
+            "t_start"   : 15.00,
+            "size_x"    : 10.00,
+            "size_y"    : 0.00,
+            "pol"       : "Ez",
+            "loc_x"     : 0.00,
+            "loc_y"     : -2.00
         }
     ],
     "ObjectList": [
+        {
+            "shape"     : "block",
+            "loc_x"     : 0.00,
+            "loc_y"     : 5.00,
+            "size_x"    : 20.0,
+            "size_y"    : 10.0,
+            "eps"       : 1.00,
+            "pols"      : [
+
+            ]
+        }
     ],
     "DetectorList"  : [
         {

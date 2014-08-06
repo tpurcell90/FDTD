@@ -12,13 +12,13 @@ using namespace std;
  * @param freq Frequency of light
  * @return dielectric function at the frequncy
  */
-cplx Obj::dielectric(double freq) //, double material_[])
+double Obj::dielectric(double freq) //, double material_[])
 {
-    cplx eps(material_[0],0.0);
-    cplx i(0,1);
-    for(int ii = 0; ii < (material_.size()-1)/3; ii++)
-       eps += (pow(material_[3*ii+1],2.0) * material_[3*ii+2]) / (pow(material_[3*ii+1],2.0) - pow(freq,2.0) - i*freq*material_[3*ii+3]/(2*M_PI));
-    return eps;
+    //cplx eps(material_[0],0.0);
+    //cplx i(0,1);
+    //for(int ii = 0; ii < (material_.size()-1)/3; ii++)
+    //   eps += (pow(material_[3*ii+1],2.0) * material_[3*ii+2]) / (pow(material_[3*ii+1],2.0) - pow(freq,2.0) - i*freq*material_[3*ii+3]/(2*M_PI));
+    return material_[0];
 }
 
 /**
