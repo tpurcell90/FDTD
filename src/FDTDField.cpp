@@ -95,87 +95,135 @@ FDTDField::FDTDField(programInputs &IP)
  */
 void FDTDField::initializeGrid()
 {
-    for(int ii = 0; ii < objArr_.size(); ii ++)
+    for(int kk = 0; kk < objArr_.size(); kk ++)
     {
         if(Hz_)
         {
-            if(objArr_[ii].s() == sphere)
+            if(objArr_[kk].s() == sphere)
             {
-                for(int jj = 0; jj < nx_-1;jj ++)
+                for(int ii = 0; ii < nx_-1;ii ++)
                 {
-                    for(int kk = 0; kk < ny_-1; kk ++)
+                    for(int jj = 0; jj < ny_-1; jj ++)
                     {
-                        vector<double> pt({(jj+0.5)*dx_,kk*dy_});
-                        if(objArr_[ii].isObj(pt))
-                            phys_Ex_->point(jj,kk) = ii;
+                        vector<double> pt({(ii+0.5)*dx_,jj*dy_});
+                        if(objArr_[kk].isObj(pt))
+                            phys_Ex_->point(ii,jj) = kk;
                         pt[1] += 0.5*dy_;
-                        if(objArr_[ii].isObj(pt))
-                            phys_Hz_->point(jj,kk) = ii;
+                        if(objArr_[kk].isObj(pt))
+                            phys_Hz_->point(ii,jj) = kk;
 			            pt[0] -= 0.5*dx_;
-                        if(objArr_[ii].isObj(pt))
-                            phys_Ey_->point(jj,kk) = ii;
+                        if(objArr_[kk].isObj(pt))
+                            phys_Ey_->point(ii,jj) = kk;
                     }
                 }
             }
-            else if(objArr_[ii].s() == block)
+            else if(objArr_[kk].s() == block)
             {
-                for(int jj = 0; jj < nx_-1;jj ++)
+                for(int ii = 0; ii < nx_-1;ii ++)
                 {
-                    for(int kk = 0; kk < ny_-1; kk ++)
+                    for(int jj = 0; jj < ny_-1; jj ++)
                     {
-                        vector<double> pt({(jj+0.5)*dx_,kk*dy_});
-                        if(objArr_[ii].isObj(pt))
-                            phys_Ex_->point(jj,kk) = ii;
+                        vector<double> pt({(ii+0.5)*dx_,jj*dy_});
+                        if(objArr_[kk].isObj(pt)==true)
+                            phys_Ex_->point(ii,jj) = kk;
                         pt[1] += 0.5*dy_;
-                        if(objArr_[ii].isObj(pt))
-                            phys_Hz_->point(jj,kk) = ii;
+                        if(objArr_[kk].isObj(pt)==true)
+                            phys_Hz_->point(ii,jj) = kk;
                         pt[0] -= 0.5*dx_;
-                        if(objArr_[ii].isObj(pt))
-                            phys_Ey_->point(jj,kk) = ii;
+                        if(objArr_[kk].isObj(pt)==true)
+                            phys_Ey_->point(ii,jj) = kk;
                     }
                 }
             }
         }
         else
         {
-            if(objArr_[ii].s() == sphere)
+            if(objArr_[kk].s() == sphere)
             {
-                for(int jj = 0; jj < nx_-1;jj ++)
+                for(int ii = 0; ii < nx_-1;ii ++)
                 {
-                    for(int kk = 0; kk < ny_-1; kk ++)
+                    for(int jj = 0; jj < ny_-1; jj ++)
                     {
-                        vector<double> pt({(jj+0.5)*dx_,kk*dy_});
-                        if(objArr_[ii].isObj(pt))
-                            phys_Hx_->point(jj,kk) = ii;
-                        pt[1] += 0.5*dy_;
-                        if(objArr_[ii].isObj(pt))
-                            phys_Ez_->point(jj,kk) = ii;
+                        vector<double> pt({(ii+0.5-(nx_-1)/2.0)*dx_,(jj-static_cast<double>(ny_-1)/2.0)*dy_});
+                        if(objArr_[kk].isObj(pt)==true)
+                            phys_Hy_->point(ii,jj) = kk;
                         pt[0] -= 0.5*dx_;
-                        if(objArr_[ii].isObj(pt))
-                            phys_Hy_->point(jj,kk) = ii;
+                        if(objArr_[kk].isObj(pt)==true)
+                            phys_Ez_->point(ii,jj) = kk;
+                        pt[1] += 0.5*dy_;
+                        if(objArr_[kk].isObj(pt)==true)
+                            phys_Hx_->point(ii,jj) = kk;
                     }
                 }
+                for(int ii = 0; ii < nx_-1;ii ++)
+                {
+                    vector<double> pt({(ii+0.5-(nx_-1)/2.0)*dx_,(ny_-1-(ny_-1)/2.0)*dy_});
+                    if(objArr_[kk].isObj(pt)==true)
+                        phys_Hy_->point(ii,ny_-1) = kk;
+                    pt[0] -= 0.5*dx_;
+                    if(objArr_[kk].isObj(pt)==true)
+                        phys_Ez_->point(ii,ny_-1) = kk;
+                }
+                for(int jj = 0; jj < ny_-1; jj ++)
+                {
+                    vector<double> pt({(nx_-1-(nx_-1)/2.0)*dx_,(jj-(ny_-1)/2.0)*dy_});
+                    if(objArr_[kk].isObj(pt)==true)
+                        phys_Ez_->point(nx_-1,jj) = kk;
+                    pt[1] += 0.5*dy_;
+                    if(objArr_[kk].isObj(pt)==true)
+                        phys_Hx_->point(nx_-1,jj) = kk;
+                }
+                vector<double> pt({(nx_-1-(nx_-1)/2.0)*dx_,(ny_-1-(ny_-1)/2.0)*dy_});
+                if(objArr_[kk].isObj(pt)==true)
+                    phys_Ez_->point(nx_-1,ny_-1) = kk;
             }
-            else if(objArr_[ii].s() == block)
+            else if(objArr_[kk].s() == block)
             {
-                for(int jj = 0; jj < nx_-1;jj ++)
+                for(int ii = 0; ii < nx_-1;ii ++)
                 {
-                    for(int kk = 0; kk < ny_-1; kk ++)
+                    for(int jj = 0; jj < ny_-1; jj ++)
                     {
-                        vector<double> pt({(jj+0.5)*dx_,kk*dy_});
-                        if(objArr_[ii].isObj(pt))
-                            phys_Hx_->point(jj,kk) = ii;
-                        pt[1] += 0.5*dy_;
-                        if(objArr_[ii].isObj(pt))
-                            phys_Ez_->point(jj,kk) = ii;
+                        vector<double> pt({(ii+0.5-(nx_-1)/2.0)*dx_,(jj-static_cast<double>(ny_-1)/2.0)*dy_});
+                        if(objArr_[kk].isObj(pt)==true)
+                            phys_Hy_->point(ii,jj) = kk;
                         pt[0] -= 0.5*dx_;
-                        if(objArr_[ii].isObj(pt))
-                            phys_Hy_->point(jj,kk) = ii;
+                        if(objArr_[kk].isObj(pt)==true)
+                            phys_Ez_->point(ii,jj) = kk;
+                        pt[1] += 0.5*dy_;
+                        if(objArr_[kk].isObj(pt)==true)
+                            phys_Hx_->point(ii,jj) = kk;
                     }
                 }
+                for(int ii = 0; ii < nx_-1;ii ++)
+                {
+                    vector<double> pt({(ii+0.5-(nx_-1)/2.0)*dx_,(ny_-1-(ny_-1)/2.0)*dy_});
+                    if(objArr_[kk].isObj(pt)==true)
+                        phys_Hy_->point(ii,ny_-1) = kk;
+                    pt[0] -= 0.5*dx_;
+                    if(objArr_[kk].isObj(pt)==true)
+                        phys_Ez_->point(ii,ny_-1) = kk;
+                }
+                for(int jj = 0; jj < ny_-1; jj ++)
+                {
+                    vector<double> pt({(nx_-1-(nx_-1)/2.0)*dx_,(jj-(ny_-1)/2.0)*dy_});
+                    if(objArr_[kk].isObj(pt)==true)
+                        phys_Ez_->point(nx_-1,jj) = kk;
+                    pt[1] += 0.5*dy_;
+                    if(objArr_[kk].isObj(pt)==true)
+                        phys_Hx_->point(nx_-1,jj) = kk;
+                }
+                vector<double> pt({(nx_-1-(nx_-1)/2.0)*dx_,(ny_-1-(ny_-1)/2.0)*dy_});
+                if(objArr_[kk].isObj(pt)==true)
+                    phys_Ez_->point(nx_-1,ny_-1) = kk;
             }
         }
     }
+    /*string fname("fout/Hx/HxField_t" + to_string(static_cast<int>(tcur_/dt_))+".dat");
+    phys_Hx_->gridOut(fname);
+    fname = "fout/Hy/HyField_t" + to_string(static_cast<int>(tcur_/dt_))+".dat";
+    phys_Hy_->gridOut(fname);
+    fname = "fout/Ez/EzField_t" + to_string(static_cast<int>(tcur_/dt_))+".dat";
+    phys_Ez_->gridOut(fname);*/
 }
 /**
  * @brief Outputs the relevant field information to an output file specified by the detector
@@ -252,7 +300,8 @@ void FDTDField::step()
         switch ( srcArr_[kk].pol() )
         {
             case EZ: //if(srcArr[kk].pol() == EZ)
-                Ez_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
+                if(srcArr_[kk].prof().pulse(tcur_) != 0.0)
+                    Ez_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
                 break;
             case HX: //else if(srcArr[kk].pol() == HX)
                 Hx_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
