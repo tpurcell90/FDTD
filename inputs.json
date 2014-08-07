@@ -5,7 +5,7 @@
         "y_size"        : 10.0,
         "z_size"        : 0.0,
         "res"           : 10,
-        "courant"       : 0.5,
+        "courant"       : 0.05,
         "tLim"          : 250.0
 
     },
@@ -27,25 +27,15 @@
             "fwidth"    : 3.000,
             "cutoff"    : 7.00,
             "t_start"   : 10.00,
-            "size_x"    : 0.00,
+            "size_x"    : 4.00,
             "size_y"    : 4.00,
             "pol"       : "Ez",
-            "loc_x"     : -15.00,
+            "loc_x"     : -20.00,
             "loc_y"     : 0.00
         }
     ],
     "ObjectList": [
-        {
-            "shape"     : "block",
-            "loc_x"     : 10.0,
-            "loc_y"     : 0.00,
-            "size_x"    : 10.0,
-            "size_y"    : 5.0,
-            "eps"       : 4.0,
-            "pols"      : [
 
-            ]
-        }
     ],
     "DetectorList"  : [
         {

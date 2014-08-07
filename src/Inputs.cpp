@@ -81,10 +81,9 @@ programInputs::programInputs(std::string fn) : filename_(fn)
             throw logic_error("I would appricate it if you stick to the standard X,Y,Z directions. While it's fun to invent new ones, it is very hard to do calculations if I don't even understand what dimension I am in. Please try again!");
 
     }
-    cout << xPml_ << "\t" <<yPml_ <<endl;
     vector<double> loc(2,0.0);
     vector<double> size = {x_size_,y_size_};
-    vector<double> mat(1,1.0);
+    vector<double> mat = {1.0};
     objArr_.push_back(Obj(block,mat,size,loc));
     for (auto& iter : IP.get_child("ObjectList"))
     {

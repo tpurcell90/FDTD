@@ -1522,7 +1522,7 @@ void FDTDField::step()
     }
     if(Ez_)
     {
-        double eps;
+        double eps=1.0;
         double c_eze = 1.0;
         double c_ezh;
         if(xPML_ != 0 && yPML_ !=0)
@@ -1531,8 +1531,8 @@ void FDTDField::step()
             {
                 for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
                 {
-                    eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                    c_ezh = dt_/(eps*dx_);
+                    //eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                    c_ezh = dt_/(dx_);
                     Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                 }
             }
@@ -1543,18 +1543,18 @@ void FDTDField::step()
             {
                 for(int jj = 1; jj < ny_ - 1; jj ++)
                 {
-                    eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                    c_ezh = dt_/(eps*dx_);
+                    //eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                    c_ezh = dt_/(dx_);
                     Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                 }
             }
             for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
             {
-                eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                c_ezh = dt_/(eps*dx_);
+                //eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                c_ezh = dt_/(dx_);
                 Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)-0));
-                eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                c_ezh = dt_/(eps*dx_);
+                //eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                c_ezh = dt_/(dx_);
                 Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (0-Hx_->point(ii,ny_-1-1)));
             }
         }
@@ -1564,18 +1564,18 @@ void FDTDField::step()
             {
                 for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
                 {
-                    eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                    c_ezh = dt_/(eps*dx_);
+                    //eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                    c_ezh = dt_/(dx_);
                     Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                 }
             }
             for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
             {
-                eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                c_ezh = dt_/(eps*dx_);
+                //eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                c_ezh = dt_/(dx_);
                 Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezh * ((Hy_->point(0,jj)-0) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
-                eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                c_ezh = dt_/(eps*dx_);
+                //eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                c_ezh = dt_/(dx_);
                 Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezh * ((0-Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
             }
         }
@@ -1585,40 +1585,40 @@ void FDTDField::step()
             {
                 for(int jj = 1; jj < ny_ - 1; jj ++)
                 {
-                    eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                    c_ezh = dt_/(eps*dx_);
+                    //eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                    c_ezh = dt_/(dx_);
                     Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                 }
             }
             for(int jj = 1; jj < nx_ - 1; jj ++)
             {
-                eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                c_ezh = dt_/(eps*dx_);
+                //eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                c_ezh = dt_/(dx_);
                 Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezh * ((Hy_->point(0,jj)-0) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
-                eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                c_ezh = dt_/(eps*dx_);
+                //eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                c_ezh = dt_/(dx_);
                 Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezh * ((0-Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
             }
             for(int ii = 1; ii < nx_ - 1; ii ++)
             {
-                eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                c_ezh = dt_/(eps*dx_);
+                //eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                c_ezh = dt_/(dx_);
                 Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)-0));
-                eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                c_ezh = dt_/(eps*dx_);
+                //eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                c_ezh = dt_/(dx_);
                 Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (0-Hx_->point(ii,ny_-1-1)));
             }
-            eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-            c_ezh = dt_/(eps*dx_);
+            //eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+            c_ezh = dt_/(dx_);
             Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezh * ((Hy_->point(0,0)-0) - (Hx_->point(0,0)-0));
-            eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-            c_ezh = dt_/(eps*dx_);
+            //eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+            c_ezh = dt_/(dx_);
             Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezh * ((Hy_->point(0,ny_-1)-0) - (0-Hx_->point(0,ny_-1-1)));
-            eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-            c_ezh = dt_/(eps*dx_);
+            //eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+            c_ezh = dt_/(dx_);
             Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezh * ((0-Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0)-0));
-            eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-            c_ezh = dt_/(eps*dx_);
+            //eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+            c_ezh = dt_/(dx_);
             Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezh * ((0-Hy_->point(nx_-1-1,ny_-1)) - (0-Hx_->point(nx_-1,ny_-1-1)));
         }
     }
@@ -2441,7 +2441,7 @@ void FDTDField::step()
     }
     for(int ii = 0; ii < dtcArr_.size(); ii ++)
         ouputField(dtcArr_[ii]);
-    if(abs(tcur_ - floor(tcur_ + 0.5)) <= 1e-2)
+    if(abs(tcur_ - floor(tcur_ + 0.5)) <= 1e-4)
     {
         string fname("fout/Hx/HxField_t" + to_string(static_cast<int>(tcur_/dt_))+".dat");
         Hx_->gridOut(fname);
