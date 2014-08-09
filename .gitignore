@@ -7,3 +7,15 @@
 fout
 output_data
 FDTD
+ac*
+*.ac
+stamp*
+*.log
+*.status
+fdtd_config*
+install-sh
+Makefile
+Makefile.in
+missing
+stamp-h1
+autom4te.cache

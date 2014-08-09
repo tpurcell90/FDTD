@@ -148,10 +148,10 @@ public:
      * @param x unit cell location of the point in question
      * @return [description]
      */
-    double sigma(double x)
+    double sigma(double x,double eps)
     {
         if(x <= thickness_ -1)
-            return sigmaMax_ * pow((static_cast<double>(thickness_-1) - x) / static_cast<double>(thickness_-1) , m_);
+            return sigmaMax_ * sqrt(eps) * pow((static_cast<double>(thickness_-1) - x) / static_cast<double>(thickness_-1) , m_);
         else
             return 0.0;
     }

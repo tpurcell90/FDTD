@@ -190,7 +190,7 @@ void FDTDField::initializeGrid()
                         if(objArr_[kk].isObj(pt)==true)
                             phys_Ez_->point(ii,jj) = kk;
                         pt[1] += 0.5*dy_;
-                        if(objArr_[kk].isObj(pt)==true)
+                        if(objArr_[kk].isObj(pt)==true && kk ==1)
                             phys_Hx_->point(ii,jj) = kk;
                     }
                 }
@@ -218,12 +218,6 @@ void FDTDField::initializeGrid()
             }
         }
     }
-    /*string fname("fout/Hx/HxField_t" + to_string(static_cast<int>(tcur_/dt_))+".dat");
-    phys_Hx_->gridOut(fname);
-    fname = "fout/Hy/HyField_t" + to_string(static_cast<int>(tcur_/dt_))+".dat";
-    phys_Hy_->gridOut(fname);
-    fname = "fout/Ez/EzField_t" + to_string(static_cast<int>(tcur_/dt_))+".dat";
-    phys_Ez_->gridOut(fname);*/
 }
 /**
  * @brief Outputs the relevant field information to an output file specified by the detector
@@ -435,19 +429,20 @@ void FDTDField::step()
             {
                 case X:
                 {
-                    double sigxx = pmlArr_[kk].sigma(0.0);
-                    double sigxy = pmlArr_[kk].sigma(0.5);
+                    double sigxx;
+                    double sigxy;
                     double sigyx = 0.0;
                     double sigyy = 0.0;
 
                     double c_bxb; double c_bxe; double c_hxh; double c_hxb0; double c_hxb1;
                     double c_byb; double c_bye; double c_hyh;double c_hyb0; double c_hyb1;
-
                     if (yPML_== 0)
                     {
                         for (int jj = 0; jj < ny_-1; jj++)
                         {
                             eps    = objArr_[phys_Hx_->point(0,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                            sigxx  = pmlArr_[kk].sigma(0.0,eps);
+                            sigxy = pmlArr_[kk].sigma(0.5,eps);
                             c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                             c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                             c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -455,6 +450,8 @@ void FDTDField::step()
                             c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_) / eps;
 
                             eps    = objArr_[phys_Hy_->point(0,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                            sigxx  = pmlArr_[kk].sigma(0.0,eps);
+                            sigxy = pmlArr_[kk].sigma(0.5,eps);
                             c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                             c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                             c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -471,6 +468,8 @@ void FDTDField::step()
                             Hy_->point(0,jj) = c_hyh * Hy_->point(0,jj) + c_hyb1 * pmlArr_[kk].By_->point(0,jj) - c_hyb0 * bystore;
 
                             eps    = objArr_[phys_Hx_->point(nx_-1,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                            sigxx  = pmlArr_[kk].sigma(0.0,eps);
+                            sigxy = pmlArr_[kk].sigma(0.5,eps);
                             c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                             c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                             c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -482,6 +481,8 @@ void FDTDField::step()
                         }
                         //Top left corner
                         eps    = objArr_[phys_Hy_->point(0,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                        sigxx  = pmlArr_[kk].sigma(0.0,eps);
+                        sigxy = pmlArr_[kk].sigma(0.5,eps);
                         c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                         c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                         c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -492,13 +493,9 @@ void FDTDField::step()
                         Hy_->point(0,ny_-1) = c_hyh * Hy_->point(0,ny_-1) + c_hyb1 * pmlArr_[kk].By_->point(0,ny_-1) - c_hyb0 * bystore;
                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
                         {
-                            sigxx = pmlArr_[kk].sigma(static_cast<double>(ii));
-                            sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5);
-
-                            sigyx = 0.0;
-                            sigyy = 0.0;
-
-                            eps    = objArr_[phys_Hy_->point(ii,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                            eps    = objArr_[phys_Hy_->point(ii,ny_-1)].dielectric(1.0);
+                            sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                            sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
                             c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                             c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                             c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -512,9 +509,9 @@ void FDTDField::step()
 
                             for(int jj = 0; jj < ny_-1; jj ++)
                             {
-                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5);
-
                                 eps    = objArr_[phys_Hx_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                                sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -522,6 +519,8 @@ void FDTDField::step()
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_) / eps;
 
                                 eps    = objArr_[phys_Hy_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                                sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -538,15 +537,18 @@ void FDTDField::step()
                                 Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[kk].Bx_->point(ii,jj) - c_hxb0 * bxstore;
                                 Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[kk].By_->point(ii,jj) - c_hyb0 * bystore;
 
-                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5);
-                                eps    = objArr_[phys_Hx_->point(nx_-1-ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                                eps    = objArr_[phys_Hx_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
+                                sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_) / eps;
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_) / eps;
 
-                                eps    = objArr_[phys_Hy_->point(nx_-1-ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                                eps    = objArr_[phys_Hy_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
+                                sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -563,9 +565,9 @@ void FDTDField::step()
                                 Hy_->point(nx_-1-ii,jj) = c_hyh * Hy_->point((nx_-1) - ii,jj) + c_hyb1 * pmlArr_[kk].By_end_->point(ii,jj) - c_hyb0 * bystore;
                             }
                             // for the top row only upadate Hy
-
-                            sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5);
                             eps    = objArr_[phys_Hy_->point(nx_-1-ii,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                            sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                            sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
                             c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                             c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                             c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -619,8 +621,8 @@ void FDTDField::step()
                             for(int jj = yPML_; jj < ny_- yPML_; jj ++)
                             {
                                 //Update everything
-                                sigxx = pmlArr_[kk].sigma(static_cast<double>(ii));
-                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5);
+                                sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
                                 sigyx = 0.0;
                                 sigyy = 0.0;
 
@@ -675,10 +677,10 @@ void FDTDField::step()
                         {
                             kapz = 1.0; sigz = 0.0; eps = 1.0;
                             kapx = 1.0; kapy = 1.0;
-                            sigxx = pmlArr_[0].sigma(0.0);
-                            sigxy = pmlArr_[0].sigma(0.5);
-                            sigyx = pmlArr_[1].sigma(0.5);
-                            sigyy = pmlArr_[1].sigma(0.0);
+                            sigxx = pmlArr_[0].sigma(0.0,eps);
+                            sigxy = pmlArr_[0].sigma(0.5,eps);
+                            sigyx = pmlArr_[1].sigma(0.5,eps);
+                            sigyy = pmlArr_[1].sigma(0.0,eps);
 
                             eps    = objArr_[phys_Hx_->point(0,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                             c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
@@ -728,10 +730,10 @@ void FDTDField::step()
                             {
                                 kapz = 1.0; sigz = 0.0; eps = 1.0;
                                 kapx = 1.0; kapy = 1.0;
-                                sigxx = pmlArr_[0].sigma(static_cast<double>(ii));
-                                sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5);
-                                sigyx = pmlArr_[1].sigma(0.5);
-                                sigyy = pmlArr_[1].sigma(0.0);
+                                sigxx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
+                                sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
+                                sigyx = pmlArr_[1].sigma(0.5,eps);
+                                sigyy = pmlArr_[1].sigma(0.0,eps);
 
                                 eps    = objArr_[phys_Hx_->point(ii,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
@@ -755,7 +757,7 @@ void FDTDField::step()
                                 Hx_->point(ii,0) = c_hxh * Hx_->point(ii,0) + c_hxb1 * pmlArr_[0].Bx_->point(ii,0) - c_hxb0 * bxstore;
                                 Hy_->point(ii,0) = c_hyh * Hy_->point(ii,0) + c_hyb1 * pmlArr_[0].By_->point(ii,0) - c_hyb0 * bystore;
                                 //Bot Right
-                                sigxy = pmlArr_[0].sigma(static_cast<double>(ii) - 0.5);
+                                sigxy = pmlArr_[0].sigma(static_cast<double>(ii) - 0.5,eps);
                                 eps    = objArr_[phys_Hx_->point(nx_-1-ii,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
@@ -788,7 +790,7 @@ void FDTDField::step()
                                 pmlArr_[0].By_end_->point(ii,ny_-1) = c_byb * pmlArr_[0].By_end_->point(ii,ny_-1) + c_bye * (Ez_->point(nx_-1-ii+1,ny_-1)-Ez_->point(nx_-1-ii,ny_-1));
                                 Hy_->point(nx_-1-ii,ny_-1) = c_hyh * Hy_->point(nx_-1-ii,ny_-1) + c_hyb1 * pmlArr_[0].By_end_->point(ii,ny_-1) - c_hyb0 * bystore;
                                 //Top Left
-                                sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5);
+                                sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
                                 eps    = objArr_[phys_Hy_->point(ii,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
@@ -804,10 +806,10 @@ void FDTDField::step()
                             {
                                 kapz = 1.0; sigz = 0.0; eps = 1.0;
                                 kapx = 1.0; kapy = 1.0;
-                                sigxx = pmlArr_[0].sigma(0.0);
-                                sigxy = pmlArr_[0].sigma(0.5);
-                                sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5);
-                                sigyy = pmlArr_[1].sigma(static_cast<double>(jj));
+                                sigxx = pmlArr_[0].sigma(0.0,eps);
+                                sigxy = pmlArr_[0].sigma(0.5,eps);
+                                sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5,eps);
+                                sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
 
                                 eps    = objArr_[phys_Hx_->point(0,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
@@ -841,7 +843,7 @@ void FDTDField::step()
                                 pmlArr_[0].Bx_end_->point(0,jj) = c_bxb * pmlArr_[0].Bx_end_->point(0,jj) - c_bxe * (Ez_->point(nx_-1,jj+1)-Ez_->point(nx_-1,jj));
                                 Hx_->point(nx_-1,jj) = c_hxh * Hx_->point(nx_-1,jj) + c_hxb1 * pmlArr_[0].Bx_end_->point(0,jj) - c_hxb0 * bxstore;
                                 //Top Rigt
-                                sigyx = pmlArr_[1].sigma(static_cast<double>(jj) - 0.5);
+                                sigyx = pmlArr_[1].sigma(static_cast<double>(jj) - 0.5,eps);
                                 eps    = objArr_[phys_Hx_->point(nx_-1,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
@@ -879,10 +881,10 @@ void FDTDField::step()
                                 {
                                     kapz = 1.0; sigz = 0.0; eps = 1.0;
                                     kapx = 1.0; kapy = 1.0;
-                                    sigxx = pmlArr_[0].sigma(static_cast<double>(ii));
-                                    sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5);
-                                    sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5);
-                                    sigyy = pmlArr_[1].sigma(static_cast<double>(jj));
+                                    sigxx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
+                                    sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5,eps);
+                                    sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
 
                                     eps    = objArr_[phys_Hx_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
@@ -906,7 +908,7 @@ void FDTDField::step()
                                     Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[0].Bx_->point(ii,jj) - c_hxb0 * bxstore;
                                     Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[0].By_->point(ii,jj) - c_hyb0 * bystore;
                                     //Bot Right
-                                    sigxy = pmlArr_[0].sigma(static_cast<double>(ii) - 0.5);
+                                    sigxy = pmlArr_[0].sigma(static_cast<double>(ii) - 0.5,eps);
                                     eps    = objArr_[phys_Hx_->point(nx_-1-ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
@@ -928,7 +930,7 @@ void FDTDField::step()
                                     Hx_->point(nx_-1-ii,jj) = c_hxh * Hx_->point(nx_-1-ii,jj) + c_hxb1 * pmlArr_[0].Bx_end_->point(ii,jj) - c_hxb0 * bxstore;
                                     Hy_->point(nx_-1-ii,jj) = c_hyh * Hy_->point(nx_-1-ii,jj) + c_hyb1 * pmlArr_[0].By_end_->point(ii,jj) - c_hyb0 * bystore;
                                     //Top Right
-                                    sigyx = pmlArr_[1].sigma(static_cast<double>(jj) - 0.5);
+                                    sigyx = pmlArr_[1].sigma(static_cast<double>(jj) - 0.5,eps);
                                     eps    = objArr_[phys_Hx_->point(nx_-1-ii,ny_-1-jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
@@ -949,7 +951,7 @@ void FDTDField::step()
                                     Hx_->point(nx_-1-ii,ny_-1-jj) = c_hxh * Hx_->point(nx_-1-ii,ny_-1-jj) + c_hxb1 * pmlArr_[0].Bx_end_->point(ii,ny_-1-jj) - c_hxb0 * bxstore;
                                     Hy_->point(nx_-1-ii,ny_-1-jj) = c_hyh * Hy_->point(nx_-1-ii,ny_-1-jj) + c_hyb1 * pmlArr_[0].By_end_->point(ii,ny_-1-jj) - c_hyb0 * bystore;
                                     //Top Left
-                                    sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5);
+                                    sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
                                     eps    = objArr_[phys_Hx_->point(ii,ny_-1-jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
@@ -982,8 +984,8 @@ void FDTDField::step()
                     double sigz = 0.0;
                     double sigxx = 0.0;
                     double sigxy = 0.0;
-                    double sigyx = pmlArr_[kk].sigma(0.5);
-                    double sigyy = pmlArr_[kk].sigma(0.0);
+                    double sigyx = pmlArr_[kk].sigma(0.5,eps);
+                    double sigyy = pmlArr_[kk].sigma(0.0,eps);
 
                     double c_bxb; double c_bxe; double c_hxh; double c_hxb0; double c_hxb1;
                     double c_byb; double c_bye; double c_hyh; double c_hyb0; double c_hyb1;
@@ -1036,8 +1038,8 @@ void FDTDField::step()
                         Hx_->point(nx_-1,0) = c_hxh * Hx_->point(nx_-1,0) + c_hxb1 * pmlArr_[kk].Bx_->point(nx_-1,0) - c_hxb0 * bxstore;
                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
                         {
-                            sigyy = pmlArr_[kk].sigma(static_cast<double>(ii));
-                            sigyx = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5);
+                            sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                            sigyx = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
                             eps    = objArr_[phys_Hx_->point(nx_-1,ii)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                             c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                             c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
@@ -1052,7 +1054,7 @@ void FDTDField::step()
                             for(int jj = 0; jj < nx_-1; jj ++)
                             {
                                 //Update everything
-                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii) + 0.5));
+                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii) + 0.5),eps);
                                 eps    = objArr_[phys_Hx_->point(jj,ii)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
@@ -1075,7 +1077,7 @@ void FDTDField::step()
                                 Hx_->point(jj,ii) = c_hxh * Hx_->point(jj,ii) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,ii) - c_hxb0 * bxstore;
                                 Hy_->point(jj,ii) = c_hyh * Hy_->point(jj,ii) + c_hyb1 * pmlArr_[kk].By_->point(jj,ii) - c_hyb0 * bystore;
 
-                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii) - 0.5));
+                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii) - 0.5),eps);
                                 eps    = objArr_[phys_Hx_->point(jj,ny_-1-ii)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
@@ -1148,13 +1150,13 @@ void FDTDField::step()
                         }
                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
                         {
-                            sigyy = pmlArr_[kk].sigma(static_cast<double>(ii));
-                            sigyx = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5);
+                            sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                            sigyx = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
 
                             for(int jj = xPML_; jj < nx_-xPML_; jj ++)
                             {
                                 //Update everything
-                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii) + 0.5));
+                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii) + 0.5),eps);
                                 eps    = objArr_[phys_Hx_->point(jj,ii)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
@@ -1177,7 +1179,7 @@ void FDTDField::step()
                                 Hx_->point(jj,ii) = c_hxh * Hx_->point(jj,ii) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,ii) - c_hxb0 * bxstore;
                                 Hy_->point(jj,ii) = c_hyh * Hy_->point(jj,ii) + c_hyb1 * pmlArr_[kk].By_->point(jj,ii) - c_hyb0 * bystore;
 
-                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii) - 0.5));
+                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii) - 0.5),eps);
                                 eps    = objArr_[phys_Hx_->point(jj,ny_-1-ii)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
@@ -1205,10 +1207,10 @@ void FDTDField::step()
                         {
                             kapz = 1.0; sigz = 0.0; eps = 1.0;
                             kapx = 1.0; kapy = 1.0;
-                            sigxx = pmlArr_[1].sigma(0.0);
-                            sigxy = pmlArr_[1].sigma(0.5);
-                            sigyx = pmlArr_[0].sigma(0.5);
-                            sigyy = pmlArr_[0].sigma(0.0);
+                            sigxx = pmlArr_[1].sigma(0.0,eps);
+                            sigxy = pmlArr_[1].sigma(0.5,eps);
+                            sigyx = pmlArr_[0].sigma(0.5,eps);
+                            sigyy = pmlArr_[0].sigma(0.0,eps);
 
                             eps    = objArr_[phys_Hx_->point(0,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                             c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
@@ -1258,10 +1260,10 @@ void FDTDField::step()
                             {
                                 kapz = 1.0; sigz = 0.0; eps = 1.0;
                                 kapx = 1.0; kapy = 1.0;
-                                sigxx = pmlArr_[1].sigma(static_cast<double>(ii));
-                                sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5);
-                                sigyx = pmlArr_[0].sigma(0.5);
-                                sigyy = pmlArr_[0].sigma(0.0);
+                                sigxx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
+                                sigyx = pmlArr_[0].sigma(0.5,eps);
+                                sigyy = pmlArr_[0].sigma(0.0,eps);
 
                                 eps    = objArr_[phys_Hx_->point(ii,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
@@ -1285,7 +1287,7 @@ void FDTDField::step()
                                 Hx_->point(ii,0) = c_hxh * Hx_->point(ii,0) + c_hxb1 * pmlArr_[1].Bx_->point(ii,0) - c_hxb0 * bxstore;
                                 Hy_->point(ii,0) = c_hyh * Hy_->point(ii,0) + c_hyb1 * pmlArr_[1].By_->point(ii,0) - c_hyb0 * bystore;
                                 //Bot Right
-                                sigxy = pmlArr_[1].sigma(static_cast<double>(ii) - 0.5);
+                                sigxy = pmlArr_[1].sigma(static_cast<double>(ii) - 0.5,eps);
                                 eps    = objArr_[phys_Hx_->point(ii,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
@@ -1318,7 +1320,7 @@ void FDTDField::step()
                                 pmlArr_[1].By_end_->point(ii,ny_-1) = c_byb * pmlArr_[1].By_end_->point(ii,ny_-1) + c_bye * (Ez_->point(nx_-1-ii+1,ny_-1)-Ez_->point(nx_-1-ii,ny_-1));
                                 Hy_->point(nx_-1-ii,ny_-1) = c_hyh * Hy_->point(nx_-1-ii,ny_-1) + c_hyb1 * pmlArr_[1].By_end_->point(ii,ny_-1) - c_hyb0 * bystore;
                                 //Top Left
-                                sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5);
+                                sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
                                 eps    = objArr_[phys_Hy_->point(ii,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
@@ -1334,10 +1336,10 @@ void FDTDField::step()
                             {
                                 kapz = 1.0; sigz = 0.0; eps = 1.0;
                                 kapx = 1.0; kapy = 1.0;
-                                sigxx = pmlArr_[1].sigma(0.0);
-                                sigxy = pmlArr_[1].sigma(0.5);
-                                sigyx = pmlArr_[0].sigma(static_cast<double>(jj) + 0.5);
-                                sigyy = pmlArr_[0].sigma(static_cast<double>(jj));
+                                sigxx = pmlArr_[1].sigma(0.0,eps);
+                                sigxy = pmlArr_[1].sigma(0.5,eps);
+                                sigyx = pmlArr_[0].sigma(static_cast<double>(jj) + 0.5,eps);
+                                sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
 
                                 eps    = objArr_[phys_Hx_->point(0,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
@@ -1371,7 +1373,7 @@ void FDTDField::step()
                                 pmlArr_[1].Bx_end_->point(0,jj) = c_bxb * pmlArr_[1].Bx_end_->point(0,jj) - c_bxe * (Ez_->point(nx_-1,jj+1)-Ez_->point(nx_-1,jj));
                                 Hx_->point(nx_-1,jj) = c_hxh * Hx_->point(nx_-1,jj) + c_hxb1 * pmlArr_[1].Bx_end_->point(0,jj) - c_hxb0 * bxstore;
                                 //Top Rigt
-                                sigyx = pmlArr_[0].sigma(static_cast<double>(jj) - 0.5);
+                                sigyx = pmlArr_[0].sigma(static_cast<double>(jj) - 0.5,eps);
                                 eps    = objArr_[phys_Hx_->point(nx_-1,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
@@ -1409,10 +1411,10 @@ void FDTDField::step()
                                 {
                                     kapz = 1.0; sigz = 0.0; eps = 1.0;
                                     kapx = 1.0; kapy = 1.0;
-                                    sigxx = pmlArr_[1].sigma(static_cast<double>(ii));
-                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5);
-                                    sigyx = pmlArr_[0].sigma(static_cast<double>(jj) + 0.5);
-                                    sigyy = pmlArr_[0].sigma(static_cast<double>(jj));
+                                    sigxx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    sigyx = pmlArr_[0].sigma(static_cast<double>(jj) + 0.5,eps);
+                                    sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
 
                                     eps    = objArr_[phys_Hx_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
@@ -1436,7 +1438,7 @@ void FDTDField::step()
                                     Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[1].Bx_->point(ii,jj) - c_hxb0 * bxstore;
                                     Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[1].By_->point(ii,jj) - c_hyb0 * bystore;
                                     //Bot Right
-                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) - 0.5);
+                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) - 0.5,eps);
                                     eps    = objArr_[phys_Hx_->point(nx_-1-ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
@@ -1458,7 +1460,7 @@ void FDTDField::step()
                                     Hx_->point(nx_-1-ii,jj) = c_hxh * Hx_->point(nx_-1-ii,jj) + c_hxb1 * pmlArr_[1].Bx_end_->point(ii,jj) - c_hxb0 * bxstore;
                                     Hy_->point(nx_-1-ii,jj) = c_hyh * Hy_->point(nx_-1-ii,jj) + c_hyb1 * pmlArr_[1].By_end_->point(ii,jj) - c_hyb0 * bystore;
                                     //Top Right
-                                    sigyx = pmlArr_[0].sigma(static_cast<double>(jj) - 0.5);
+                                    sigyx = pmlArr_[0].sigma(static_cast<double>(jj) - 0.5,eps);
                                     eps    = objArr_[phys_Hx_->point(nx_-1-ii,ny_-1-jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
@@ -1479,7 +1481,7 @@ void FDTDField::step()
                                     Hx_->point(nx_-1-ii,ny_-1-jj) = c_hxh * Hx_->point(nx_-1-ii,ny_-1-jj) + c_hxb1 * pmlArr_[1].Bx_end_->point(ii,ny_-1-jj) - c_hxb0 * bxstore;
                                     Hy_->point(nx_-1-ii,ny_-1-jj) = c_hyh * Hy_->point(nx_-1-ii,ny_-1-jj) + c_hyb1 * pmlArr_[1].By_end_->point(ii,ny_-1-jj) - c_hyb0 * bystore;
                                     //Top Left
-                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5);
+                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
                                     eps    = objArr_[phys_Hx_->point(ii,ny_-1-jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
@@ -1522,7 +1524,7 @@ void FDTDField::step()
     }
     if(Ez_)
     {
-        double eps=1.0;
+        double eps;
         double c_eze = 1.0;
         double c_ezh;
         if(xPML_ != 0 && yPML_ !=0)
@@ -1531,8 +1533,8 @@ void FDTDField::step()
             {
                 for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
                 {
-                    //eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                    c_ezh = dt_/(dx_);
+                    eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                    c_ezh = dt_/(eps*dx_);
                     Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                 }
             }
@@ -1543,18 +1545,18 @@ void FDTDField::step()
             {
                 for(int jj = 1; jj < ny_ - 1; jj ++)
                 {
-                    //eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                    c_ezh = dt_/(dx_);
+                    eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                    c_ezh = dt_/(eps*dx_);
                     Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                 }
             }
             for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
             {
-                //eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                c_ezh = dt_/(dx_);
+                eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                c_ezh = dt_/(eps*dx_);
                 Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)-0));
-                //eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                c_ezh = dt_/(dx_);
+                eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                c_ezh = dt_/(eps*dx_);
                 Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (0-Hx_->point(ii,ny_-1-1)));
             }
         }
@@ -1564,18 +1566,18 @@ void FDTDField::step()
             {
                 for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
                 {
-                    //eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                    c_ezh = dt_/(dx_);
+                    eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                    c_ezh = dt_/(eps*dx_);
                     Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                 }
             }
             for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
             {
-                //eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                c_ezh = dt_/(dx_);
+                eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                c_ezh = dt_/(eps*dx_);
                 Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezh * ((Hy_->point(0,jj)-0) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
-                //eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                c_ezh = dt_/(dx_);
+                eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                c_ezh = dt_/(eps*dx_);
                 Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezh * ((0-Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
             }
         }
@@ -1585,40 +1587,40 @@ void FDTDField::step()
             {
                 for(int jj = 1; jj < ny_ - 1; jj ++)
                 {
-                    //eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                    c_ezh = dt_/(dx_);
+                    eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                    c_ezh = dt_/(eps*dx_);
                     Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                 }
             }
             for(int jj = 1; jj < nx_ - 1; jj ++)
             {
-                //eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                c_ezh = dt_/(dx_);
+                eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                c_ezh = dt_/(eps*dx_);
                 Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezh * ((Hy_->point(0,jj)-0) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
-                //eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                c_ezh = dt_/(dx_);
+                eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                c_ezh = dt_/(eps*dx_);
                 Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezh * ((0-Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
             }
             for(int ii = 1; ii < nx_ - 1; ii ++)
             {
-                //eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                c_ezh = dt_/(dx_);
+                eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                c_ezh = dt_/(eps*dx_);
                 Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)-0));
-                //eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-                c_ezh = dt_/(dx_);
+                eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                c_ezh = dt_/(eps*dx_);
                 Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (0-Hx_->point(ii,ny_-1-1)));
             }
-            //eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-            c_ezh = dt_/(dx_);
+            eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+            c_ezh = dt_/(eps*dx_);
             Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezh * ((Hy_->point(0,0)-0) - (Hx_->point(0,0)-0));
-            //eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-            c_ezh = dt_/(dx_);
+            eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+            c_ezh = dt_/(eps*dx_);
             Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezh * ((Hy_->point(0,ny_-1)-0) - (0-Hx_->point(0,ny_-1-1)));
-            //eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-            c_ezh = dt_/(dx_);
+            eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+            c_ezh = dt_/(eps*dx_);
             Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezh * ((0-Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0)-0));
-            //eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
-            c_ezh = dt_/(dx_);
+            eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+            c_ezh = dt_/(eps*dx_);
             Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezh * ((0-Hy_->point(nx_-1-1,ny_-1)) - (0-Hx_->point(nx_-1,ny_-1-1)));
         }
     }
@@ -1638,7 +1640,7 @@ void FDTDField::step()
                     double kapx = 1.0;
                     double kapy = 1.0;
                     double kapz = 1.0;
-                    double sigx = pmlArr_[kk].sigma(0.0);
+                    double sigx;
                     double sigy = 0.0;
                     double sigz = 0.0;
                     double c_dzd; double c_dzh; double c_eze; double c_ezd1; double c_ezd0;
@@ -1647,6 +1649,7 @@ void FDTDField::step()
                         for(int jj = 1; jj < ny_ - 1; jj++)
                         {
                             eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                            sigx = pmlArr_[kk].sigma(0.0,eps);
                             c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                             c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                             c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
@@ -1658,6 +1661,7 @@ void FDTDField::step()
                             Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezd1 * pmlArr_[kk].Dz_->point(0,jj) - c_ezd0 * dzstore;
 
                             eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                            sigx = pmlArr_[kk].sigma(0.0,eps);
                             c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                             c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                             c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
@@ -1669,6 +1673,7 @@ void FDTDField::step()
                             Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,jj) - c_ezd0 * dzstore;
                         }
                         eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                        sigx = pmlArr_[kk].sigma(0.0,eps);
                         c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                         c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                         c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
@@ -1679,7 +1684,8 @@ void FDTDField::step()
                         pmlArr_[kk].Dz_->point(0,ny_-1) = c_dzd * pmlArr_[kk].Dz_->point(0,ny_-1) + c_dzh * ((Hy_->point(0,ny_-1) - 0) - (0-Hx_->point(0,ny_-2))); // 0 is boundary condtion
                         Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_->point(0,ny_-1) - c_ezd0 * dzstore;
 
-                        eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                        eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                        sigx = pmlArr_[kk].sigma(0.0,eps);
                         c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                         c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                         c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
@@ -1690,6 +1696,7 @@ void FDTDField::step()
                         Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,ny_-1) - c_ezd0 * dzstore;
 
                         eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                        sigx = pmlArr_[kk].sigma(0.0,eps);
                         c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                         c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                         c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
@@ -1700,6 +1707,7 @@ void FDTDField::step()
                         Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezd1 * pmlArr_[kk].Dz_->point(0,0) - c_ezd0 * dzstore;
 
                         eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                        sigx = pmlArr_[kk].sigma(0.0,eps);
                         c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                         c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                         c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
@@ -1712,13 +1720,13 @@ void FDTDField::step()
                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
                         {
                             kapx = 1.0; kapy = 1.0; kapz = 1.0;
-                            sigx = pmlArr_[kk].sigma(static_cast<double>(ii));
                             sigy = 0.0; sigz = 0.0;
                             //double kapx = pmlArr_[kk].kappa(ii);
                             //Kappas change throughout
                             for(int jj =  1; jj < ny_ - 1; jj ++)
                             {
                                 eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                                sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                                 c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                                 c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                                 c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
@@ -1729,6 +1737,7 @@ void FDTDField::step()
                                 Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,jj) - c_ezd0 * dzstore;
 
                                 eps = objArr_[phys_Ez_->point(nx_-1-ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                                sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                                 c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                                 c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                                 c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
@@ -1739,6 +1748,7 @@ void FDTDField::step()
                                 Ez_->point(nx_-1-ii,jj) = c_eze * Ez_->point(nx_-1-ii,jj) + c_ezd1 * pmlArr_[kk].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
                             }
                             eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                            sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                             c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                             c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                             c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
@@ -1749,6 +1759,7 @@ void FDTDField::step()
                             Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,ny_-1) - c_ezd0 * dzstore;
 
                             eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                            sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                             c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                             c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                             c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
@@ -1759,6 +1770,7 @@ void FDTDField::step()
                             Ez_->point(nx_-1-ii,ny_-1) = c_eze * Ez_->point(nx_-1-ii,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(ii,ny_-1) - c_ezd0 * dzstore;
 
                             eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                            sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                             c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                             c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                             c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
@@ -1769,6 +1781,7 @@ void FDTDField::step()
                             Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,0) - c_ezd0 * dzstore;
 
                             eps = objArr_[phys_Ez_->point(nx_-1-ii,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
+                            sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                             c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                             c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                             c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
@@ -1806,7 +1819,7 @@ void FDTDField::step()
                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
                         {
                             kapx = 1.0; kapy = 1.0; kapz = 1.0;
-                            sigx = pmlArr_[kk].sigma(static_cast<double>(ii));
+                            sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                             sigy = 0.0; sigz = 0.0;
                             for(int jj =  yPML_; jj < ny_ - yPML_; jj ++)
                             {
@@ -1834,8 +1847,8 @@ void FDTDField::step()
                         if(kk == 0)
                         {
                             kapx = 1.0; kapy = 1.0; kapz = 1.0;
-                            sigx = pmlArr_[0].sigma(0);
-                            sigy = pmlArr_[1].sigma(0);
+                            sigx = pmlArr_[0].sigma(0,eps);
+                            sigy = pmlArr_[1].sigma(0,eps);
                             sigz = 0.0;
 
                             eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
@@ -1882,8 +1895,8 @@ void FDTDField::step()
                             for(int ii = 1; ii < pmlArr_[0].thickness(); ii++)
                             {
                                 kapx = 1.0; kapy = 1.0; kapz = 1.0;
-                                sigx = pmlArr_[0].sigma(static_cast<double>(ii));
-                                sigy = pmlArr_[1].sigma(0.0);
+                                sigx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
+                                sigy = pmlArr_[1].sigma(0.0,eps);
                                 sigz = 0.0;
 
                                 eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
@@ -1930,8 +1943,8 @@ void FDTDField::step()
                             for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
                             {
                                 kapx = 1.0; kapy = 1.0; kapz = 1.0;
-                                sigx = pmlArr_[0].sigma(static_cast<double>(0));
-                                sigy = pmlArr_[1].sigma(static_cast<double>(jj));
+                                sigx = pmlArr_[0].sigma(static_cast<double>(0),eps);
+                                sigy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
                                 sigz = 0.0;
 
                                 eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
@@ -1980,8 +1993,8 @@ void FDTDField::step()
                                 for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
                                 {
                                     kapx = 1.0; kapy = 1.0; kapz = 1.0;
-                                    sigx = pmlArr_[0].sigma(static_cast<double>(ii));
-                                    sigy = pmlArr_[1].sigma(static_cast<double>(jj));
+                                    sigx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
+                                    sigy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
                                     sigz = 0.0;
 
                                     eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
@@ -2035,7 +2048,7 @@ void FDTDField::step()
                     double eps = 1.0;
                     double kapx = 1.0; double kapy = 1.0; double kapz = 1.0;
                     double sigx = 0.0;
-                    double sigy = pmlArr_[kk].sigma(0.0); double sigz = 0.0;
+                    double sigy = pmlArr_[kk].sigma(0.0,eps); double sigz = 0.0;
 
                     double c_dzd; double c_dzh; double c_eze; double c_ezd1; double c_ezd0;
                     if(xPML_ == 0)
@@ -2109,7 +2122,7 @@ void FDTDField::step()
                             kapx = 1.0; kapy = 1.0;
                             kapz = 1.0;
                             sigx = 0.0;
-                            sigy = pmlArr_[kk].sigma(static_cast<double>(ii));
+                            sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                             sigz = 0.0;
 
                             for(int jj =  1; jj < nx_ - 1; jj ++)
@@ -2204,7 +2217,7 @@ void FDTDField::step()
                             kapx = 1.0; kapy = 1.0;
                             kapz = 1.0;
                             sigx = 0.0;
-                            sigy = pmlArr_[kk].sigma(static_cast<double>(ii));
+                            sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                             sigz = 0.0;
 
                             for(int jj =  xPML_; jj < nx_ - xPML_; jj ++)
@@ -2233,8 +2246,8 @@ void FDTDField::step()
                         if(kk == 0)
                         {
                             kapx = 1.0; kapy = 1.0; kapz = 1.0;
-                            sigx = pmlArr_[1].sigma(0);
-                            sigy = pmlArr_[0].sigma(0);
+                            sigx = pmlArr_[1].sigma(0,eps);
+                            sigy = pmlArr_[0].sigma(0,eps);
                             sigz = 0.0;
 
                             eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
@@ -2281,8 +2294,8 @@ void FDTDField::step()
                             for(int ii = 1; ii < pmlArr_[1].thickness(); ii++)
                             {
                                 kapx = 1.0; kapy = 1.0; kapz = 1.0;
-                                sigx = pmlArr_[1].sigma(static_cast<double>(ii));
-                                sigy = pmlArr_[0].sigma(0.0);
+                                sigx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                sigy = pmlArr_[0].sigma(0.0,eps);
                                 sigz = 0.0;
 
                                 eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
@@ -2329,8 +2342,8 @@ void FDTDField::step()
                             for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
                             {
                                 kapx = 1.0; kapy = 1.0; kapz = 1.0;
-                                sigx = pmlArr_[1].sigma(static_cast<double>(0));
-                                sigy = pmlArr_[0].sigma(static_cast<double>(jj));
+                                sigx = pmlArr_[1].sigma(static_cast<double>(0),eps);
+                                sigy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
                                 sigz = 0.0;
 
                                 eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
@@ -2379,8 +2392,8 @@ void FDTDField::step()
                                 for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
                                 {
                                     kapx = 1.0; kapy = 1.0; kapz = 1.0;
-                                    sigx = pmlArr_[1].sigma(static_cast<double>(ii));
-                                    sigy = pmlArr_[0].sigma(static_cast<double>(jj));
+                                    sigx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                    sigy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
                                     sigz = 0.0;
 
                                     eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0); ///< Will become freq dep once that becomes added into the equations
