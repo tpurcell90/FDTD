@@ -37,7 +37,10 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         pol_ = iter.second.get<string>("pol");
         Polarization pols = string2pol(pol_);
         vector<double> fxn ={};
-        fxn.push_back(iter.second.get<double>("fcen"));
+        fxn.push_back(courant_);
+        double f0 = iter.second.get<double>("fcen");
+        if(prof == continuous || prof == ricker)
+            fxn.push_back(f0);
         fxn.push_back(iter.second.get<double>("fwidth"));
         fxn.push_back(iter.second.get<double>("cutoff"));
         fxn.push_back(iter.second.get<double>("t_start"));
@@ -271,6 +274,8 @@ plsShape programInputs::string2prof(string p)
         return gaussian;
     else if(p.compare("continuous") == 0)
         return continuous;
+    else if(p.compare("ricker") == 0)
+        return ricker;
     else
         throw logic_error("Pulse sahpe undefined");
 }

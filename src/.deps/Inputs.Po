@@ -106,7 +106,7 @@ Inputs.o: Inputs.cpp /usr/include/stdc-predef.h Inputs.hpp enum.hpp \
  /usr/include/c++/4.8.3/bits/basic_ios.tcc /usr/include/c++/4.8.3/ostream \
  /usr/include/c++/4.8.3/bits/ostream.tcc \
  /usr/include/c++/4.8.3/bits/istream.tcc \
- /usr/include/c++/4.8.3/bits/sstream.tcc \
+ /usr/include/c++/4.8.3/bits/sstream.tcc /usr/include/c++/4.8.3/iostream \
  /usr/include/c++/4.8.3/functional /usr/include/c++/4.8.3/typeinfo \
  /usr/include/c++/4.8.3/tuple /usr/include/c++/4.8.3/utility \
  /usr/include/c++/4.8.3/bits/stl_relops.h /usr/include/c++/4.8.3/array \
@@ -119,8 +119,7 @@ Inputs.o: Inputs.cpp /usr/include/stdc-predef.h Inputs.hpp enum.hpp \
  /usr/include/c++/4.8.3/bits/shared_ptr.h \
  /usr/include/c++/4.8.3/bits/shared_ptr_base.h \
  /usr/include/c++/4.8.3/backward/auto_ptr.h \
- /usr/include/c++/4.8.3/iostream /usr/include/c++/4.8.3/iomanip \
- /usr/include/c++/4.8.3/locale \
+ /usr/include/c++/4.8.3/iomanip /usr/include/c++/4.8.3/locale \
  /usr/include/c++/4.8.3/bits/locale_facets_nonio.h \
  /usr/include/c++/4.8.3/ctime \
  /usr/include/c++/4.8.3/x86_64-redhat-linux/bits/time_members.h \
@@ -1199,6 +1198,8 @@ Pulse.hpp:
 
 /usr/include/c++/4.8.3/bits/sstream.tcc:
 
+/usr/include/c++/4.8.3/iostream:
+
 /usr/include/c++/4.8.3/functional:
 
 /usr/include/c++/4.8.3/typeinfo:
@@ -1232,8 +1233,6 @@ Grid.hpp:
 /usr/include/c++/4.8.3/bits/shared_ptr_base.h:
 
 /usr/include/c++/4.8.3/backward/auto_ptr.h:
-
-/usr/include/c++/4.8.3/iostream:
 
 /usr/include/c++/4.8.3/iomanip:
 

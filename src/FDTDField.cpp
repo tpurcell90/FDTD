@@ -24,6 +24,7 @@ FDTDField::FDTDField(programInputs &IP)
 {
     //Define cell parameters
     tcur_     = 0;
+    t_step_   = 0;
     res_      = IP.res_;
     dx_       = 1.0/res_;
     dy_       = 1.0/res_;
@@ -38,13 +39,13 @@ FDTDField::FDTDField(programInputs &IP)
     yPML_     = IP.yPml_;
     cout << xPML_ << "\t\t" << yPML_ <<endl;
     periodic_ = IP.periodic_;
-    for(int ii =0; ii < dtcArr_.size(); ii++)
+    /*for(int ii =0; ii < dtcArr_.size(); ii++)
     {
         ofstream outFile;
         outFile.open(dtcArr_[ii].outfile());
         outFile << "Output for the " << to_string(ii) << "th detector" << endl;
         outFile.close();
-    }
+    }*/
     // Create the Grids. Do I need a null constructor for the set that I disregard?
     if(IP.pol_.compare("Hz") == 0 || IP.pol_.compare("Ey") == 0 || IP.pol_.compare("Ex") == 0)
     {
@@ -2454,14 +2455,14 @@ void FDTDField::step()
     }
     for(int ii = 0; ii < dtcArr_.size(); ii ++)
         ouputField(dtcArr_[ii]);
-    if(abs(tcur_ - floor(tcur_ + 0.5)) <= 1e-4)
-    {
-        string fname("fout/Hx/HxField_t" + to_string(static_cast<int>(tcur_/dt_))+".dat");
+
+        /*string fname("fout/Hx/HxField_t" + to_string(static_cast<int>(tcur_/dt_))+".dat");
         Hx_->gridOut(fname);
         fname = "fout/Hy/HyField_t" + to_string(static_cast<int>(tcur_/dt_))+".dat";
         Hy_->gridOut(fname);
         fname = "fout/Ez/EzField_t" + to_string(static_cast<int>(tcur_/dt_))+".dat";
-        Ez_->gridOut(fname);
-    }
+        Ez_->gridOut(fname);*/
+
     tcur_ += dt_;
+    t_step_ ++;
 }
