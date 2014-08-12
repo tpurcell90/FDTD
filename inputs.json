@@ -4,7 +4,7 @@
         "x_size"        : 22.0,
         "y_size"        : 5.0,
         "z_size"        : 0.0,
-        "res"           : 50,
+        "res"           : 10,
         "courant"       : 0.5,
         "tLim"          : 300.0
 
@@ -19,7 +19,7 @@
 
         {
             "profile"   : "gaussian",
-            "fcen"      : 2.0,
+            "fcen"      : 1.0,
             "fwidth"    : 0.50,
             "cutoff"    : 10.00,
             "t_start"   : 5.00,
@@ -37,7 +37,7 @@
             "loc_y"     : 0.00,
             "size_x"    : 7.0,
             "size_y"    : 5.0,
-            "eps"       : 4.00,
+            "eps"       : 1.00,
             "pols"      : [
 
             ]

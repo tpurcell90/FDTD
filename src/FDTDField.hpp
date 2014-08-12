@@ -58,6 +58,8 @@ public:
 
     void ouputField(Detector<double> d);
     void step();
+    void updateH();
+    void updateE();
     std::vector<double> pml(int npml, int m, int ma);
 };
 

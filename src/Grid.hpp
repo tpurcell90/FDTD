@@ -157,7 +157,7 @@ public:
         T& pt = point(loc[0],loc[1]);
         // NEed to do something to determine if complex or not
         //return pow(point(loc[0],loc[1]),2.00) * eps / 2.00;
-        return std::real(pt*std::conj(pt) * eps / 2.0);
+        return std::real(pt*std::conj(pt) * sqrt(eps) / 2.0); // sqrt(eps) from eps*c
     }
 };
 

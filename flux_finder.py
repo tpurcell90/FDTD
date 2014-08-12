@@ -52,15 +52,21 @@ E_trans_freq = fftpack.fft(E_trans)
 pow_incd = E_incd_freq * E_incd_freq.conjugate() / 2.0
 pow_refl = E_refl_freq * E_refl_freq.conjugate() / 2.0
 
-pow_trans_incd = E_trans_incd_freq * E_trans_incd_freq.conjugate() / 2.0
-pow_trans = E_trans_freq * E_trans_freq.conjugate() / 2.0 * 4.0
+pow_trans_incd = E_trans_incd_freq * E_trans_incd_freq.conjugate()/2.0
+pow_trans = E_trans_freq * E_trans_freq.conjugate() / 2.0 * 3.0
 
 R = pow_refl / pow_incd
-T = pow_trans / pow_trans_incd
-
-
+T = pow_trans / pow_incd
 freq = fftpack.fftfreq(len(R), d = 0.01)
 
-plt.plot(freq[0:len(freq)/2],R[0:len(R)/2],freq[0:len(freq)/2],T[0:len(T)/2])
+outfile = open("RT.dat","w")
+for ii in range(len(T)):
+	if(freq[ii] >0 and freq[ii] < 2.0):
+		outfile.write(str(freq[ii]) + "\t\t" + str(R[ii].real) + '\t\t' + str(T[ii].real) + '\n')
+outfile.close()
+
+plt.legend()
+
+plt.plot(freq[0:len(freq)/2],R[0:len(R)/2],freq[0:len(freq)/2],T[0:len(T)/2], freq[0:len(freq)/2.0], (R+T)[0:len(freq)/2])
 
 plt.show()
