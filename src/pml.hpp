@@ -58,12 +58,12 @@ public:
         {
             if(pol == EX || pol == EY || pol == HZ)
             {
-                Dx_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                Dy_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                Bz_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                Dx_end_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                Dy_end_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                Bz_end_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
+                Dx_ = std::make_shared<Grid2D<T>>(thickness,nx,dx,dy);
+                Dy_ = std::make_shared<Grid2D<T>>(thickness,nx-1,dx,dy);
+                Bz_ = std::make_shared<Grid2D<T>>(thickness,nx-1,dx,dy);
+                Dx_end_ = std::make_shared<Grid2D<T>>(thickness,nx,dx,dy);
+                Dy_end_ = std::make_shared<Grid2D<T>>(thickness,nx-1,dx,dy);
+                Bz_end_ = std::make_shared<Grid2D<T>>(thickness,nx-1,dx,dy);
                 Bx_ = nullptr;
                 By_ = nullptr;
                 Dz_ = nullptr;
@@ -73,15 +73,15 @@ public:
             }
             else
             {
-                Bx_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                By_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                Dz_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
+                Bx_ = std::make_shared<Grid2D<T>>(thickness,nx-1,dx,dy);
+                By_ = std::make_shared<Grid2D<T>>(thickness,nx,dx,dy);
+                Dz_ = std::make_shared<Grid2D<T>>(thickness,nx,dx,dy);
                 Dx_ = nullptr;
                 Dy_ = nullptr;
                 Bz_ = nullptr;
-                Bx_end_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                By_end_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                Dz_end_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
+                Bx_end_ = std::make_shared<Grid2D<T>>(thickness,nx-1,dx,dy);
+                By_end_ = std::make_shared<Grid2D<T>>(thickness,nx,dx,dy);
+                Dz_end_ = std::make_shared<Grid2D<T>>(thickness,nx,dx,dy);
                 Dx_end_ = nullptr;
                 Dy_end_ = nullptr;
                 Bz_end_ = nullptr;
@@ -91,30 +91,30 @@ public:
         {
             if(pol == EX || pol == EY || pol == HZ)
             {
-                Dx_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                Dy_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                Bz_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
+                Dx_ = std::make_shared<Grid2D<T>>(nx-1,thickness,dx,dy);
+                Dy_ = std::make_shared<Grid2D<T>>(nx,thickness,dx,dy);
+                Bz_ = std::make_shared<Grid2D<T>>(nx-1,thickness,dx,dy);
                 Bx_ = nullptr;
                 By_ = nullptr;
                 Dz_ = nullptr;
-                Dx_end_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                Dy_end_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                Bz_end_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
+                Dx_end_ = std::make_shared<Grid2D<T>>(nx-1,thickness,dx,dy);
+                Dy_end_ = std::make_shared<Grid2D<T>>(nx,thickness,dx,dy);
+                Bz_end_ = std::make_shared<Grid2D<T>>(nx-1,thickness,dx,dy);
                 Bx_end_ = nullptr;
                 By_end_ = nullptr;
                 Dz_end_ = nullptr;
             }
             else
             {
-                Bx_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                By_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                Dz_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
+                Bx_ = std::make_shared<Grid2D<T>>(nx,thickness,dx,dy);
+                By_ = std::make_shared<Grid2D<T>>(nx-1,thickness,dx,dy);
+                Dz_ = std::make_shared<Grid2D<T>>(nx,thickness,dx,dy);
                 Dx_ = nullptr;
                 Dy_ = nullptr;
                 Bz_ = nullptr;
-                Bx_end_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                By_end_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                Dz_end_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
+                Bx_end_ = std::make_shared<Grid2D<T>>(nx,thickness,dx,dy);
+                By_end_ = std::make_shared<Grid2D<T>>(nx-1,thickness,dx,dy);
+                Dz_end_ = std::make_shared<Grid2D<T>>(nx,thickness,dx,dy);
                 Dx_end_ = nullptr;
                 Dy_end_ = nullptr;
                 Bz_end_ = nullptr;

@@ -26,15 +26,15 @@ protected:
     double dx_,dy_,dt_, tcur_;
     int res_, xPML_, yPML_, t_step_;
     std::shared_ptr<Grid2D<int>> phys_Ex_,phys_Ey_,phys_Ez_,phys_Hx_,phys_Hy_,phys_Hz_;
-    std::vector<Source<double>> srcArr_;
+    std::vector<Source<complex<double>>> srcArr_;
     std::vector<Obj> objArr_;
-    std::vector<Detector<double>> dtcArr_;
-    std::vector<UPML<double>> pmlArr_;
+    std::vector<Detector<complex<double>>> dtcArr_;
+    std::vector<UPML<complex<double>>> pmlArr_;
     bool periodic_;
 
 
 public:
-    std::shared_ptr<Grid2D<double>> Ex_,Ey_,Ez_,Hx_,Hy_,Hz_;
+    std::shared_ptr<Grid2D<complex<double>>> Ex_,Ey_,Ez_,Hx_,Hy_,Hz_;
     FDTDField(programInputs &IP);
     void initializeGrid();
 
@@ -46,7 +46,7 @@ public:
     double dt(){return dt_;}
     double getTime(){return tcur_;}
     Obj getObj(int n){return objArr_[n];}
-    std::vector<Detector<double>> getDtcArr(){return dtcArr_;}
+    std::vector<Detector<complex<double>>> getDtcArr(){return dtcArr_;}
     int getRes(){return res_;}
     std::shared_ptr<Grid2D<int>> getPhysEz(){return phys_Ez_;}
     std::shared_ptr<Grid2D<int>> getPhysEx(){return phys_Ex_;}
@@ -56,7 +56,7 @@ public:
     std::shared_ptr<Grid2D<int>> getPhysHz(){return phys_Hz_;}
 
 
-    void ouputField(Detector<double> d);
+    void ouputField(Detector<complex<double>> d);
     void step();
     void updateH();
     void updateE();

@@ -29,7 +29,7 @@ public:
      * @param pol polarization of the pulse
      * @param prof the Pulse for the source
      */
-    Source(Pulse<double> prof, Polarization pol,std::vector<int> loc) : profile(prof), polarization_(pol), location_(loc) {}
+    Source(Pulse<T> prof, Polarization pol,std::vector<int> loc) : profile(prof), polarization_(pol), location_(loc) {}
     // Copy Constructor
     /**
      * @brief Copy Constructor

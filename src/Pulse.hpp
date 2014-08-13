@@ -12,7 +12,7 @@ enum plsShape {gaussian, continuous, ricker};
 template <typename T> class Pulse
 {
 protected:
-    std::vector<T> param_;
+    std::vector<double> param_;
     plsShape plsType_;
 
 public:
@@ -23,7 +23,7 @@ public:
      * @param param functional parameters of the pulse
      * @param type Shape of the pulse
      */
-    Pulse(std::vector<T> param, plsShape type) : param_(param), plsType_(type) {}
+    Pulse(std::vector<double> param, plsShape type) : param_(param), plsType_(type) {}
     /**
      * @brief Copy Constructor
      * @details Constructs a Pulse from another Pulse
@@ -82,11 +82,11 @@ public:
      */
     const T gauss_pulse(double t)
     {
-        std::complex<double> imag(0.0,1.0);
+        std::complex<double> i(0.0,1.0);
         //if (t < param_[1]*param_[3])
    //return real(-1.0 / (imag*param_[0]) * (-1*param_[0]*imag + (param_[2]-t) / pow(2*param_[1],2)) * exp(-1*param_[0]*imag - pow(((param_[2]-t)/pow(2*param_[1],2.0)),2.0)));
         if (t < param_[1] * param_[2])
-            return exp(-1 * pow((t - param_[1]*param_[2]/2)/(sqrt(2)*param_[1]),2.0))*cos(2*M_PI*param_[0]*(t- param_[1]*param_[2]/2));
+            return exp(-1.0 * pow((t - param_[1]*param_[2]/2.0)/(sqrt(2.0)*param_[1]),2.0))*exp(i * 2.0*M_PI * param_[0] * (t- param_[1]*param_[2]/2.0));
         else
             return T(0.0);
         // look for the best way to calculate gaussian pulse
@@ -100,15 +100,16 @@ public:
      */
     const T const_pulse(double t)
     {
-        if (t*param_[1]/10.0 < param_[2] * param_[1])
-            return sin(2*M_PI * param_[1] * t);
+        std::complex<double> i(0.0,1.0);
+        if (t < param_[3] / param_[0])
+            return exp(i* 2.0*M_PI * param_[0] * t);
         else
             return T(0.0);
     }
     const T ricker_pulse(double t)
     {
-        if (t < param_[3] * param_[2]/ param_[1])
-            return (1-2*pow(M_PI*(t*param_[1] - param_[2]),2))*exp(-pow(M_PI*(t*param_[1] - param_[2]),2));
+        if (t < param_[2] * param_[1]/ param_[0])
+            return (1.0-2.0*pow(M_PI*(t*param_[0] - param_[1]),2.0))*exp(-pow(M_PI*(t*param_[0] - param_[1]),2.0));
         else
             return T(0.0);
     }

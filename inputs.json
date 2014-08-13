@@ -2,9 +2,9 @@
     "CompCell" : {
         "procs"         : 1,
         "x_size"        : 22.0,
-        "y_size"        : 5.0,
+        "y_size"        : 0.1,
         "z_size"        : 0.0,
-        "res"           : 10,
+        "res"           : 50,
         "courant"       : 0.5,
         "tLim"          : 300.0
 
@@ -24,7 +24,7 @@
             "cutoff"    : 10.00,
             "t_start"   : 5.00,
             "size_x"    : 0.00,
-            "size_y"    : 5.00,
+            "size_y"    : 0.10,
             "pol"       : "Ez",
             "loc_x"     : -7.00,
             "loc_y"     : 0.00
@@ -36,8 +36,8 @@
             "loc_x"     : 7.50,
             "loc_y"     : 0.00,
             "size_x"    : 7.0,
-            "size_y"    : 5.0,
-            "eps"       : 1.00,
+            "size_y"    : 0.1,
+            "eps"       : 9.00,
             "pols"      : [
 
             ]

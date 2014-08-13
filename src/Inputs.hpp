@@ -32,9 +32,9 @@ public:
     //vector<Source<double>> srcArr();
     vector<Obj> objArr_;
 	//Source Parameters Start with just Gaussian complicate later
-    vector<Source<double>> srcArr_;
-    vector<Detector<double>> dctArr_;
-    vector<UPML<double>> pmlArr_;
+    vector<Source<complex<double>>> srcArr_;
+    vector<Detector<complex<double>>> dctArr_;
+    vector<UPML<complex<double>>> pmlArr_;
 	//Geometry Will add parameters as I write
 	int n_struct_;
 

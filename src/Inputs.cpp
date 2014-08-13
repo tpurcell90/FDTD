@@ -55,7 +55,7 @@ programInputs::programInputs(std::string fn) : filename_(fn)
             for(int y = y_min; y <= y_max; y++)
             {
                 vector<int> loc = {x,y};
-                srcArr_.push_back(Source<double>(Pulse<double>(fxn,prof), pols, loc));
+                srcArr_.push_back(Source<complex<double>>(Pulse<complex<double>>(fxn,prof), pols, loc));
             }
     }
     for (auto& iter : IP.get_child("PML"))
@@ -67,13 +67,13 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         {
             xPml_ = find_pt(thickness);
             //pmlArr_.push_back(UPML<double>(thickness,d, 4.0, exp(-16), find_pt(y_size_),1.0/res_,1.0/res_,string2pol(pol_)));
-            pmlArr_.push_back(UPML<double>(xPml_,d, 4.0, exp(-16), find_pt(y_size_) + 1,1.0/res_,1.0/res_,string2pol(pol_)));
+            pmlArr_.push_back(UPML<complex<double>>(xPml_,d, 4.0, exp(-16), find_pt(y_size_) + 1,1.0/res_,1.0/res_,string2pol(pol_)));
         }
         else if(d == Y)
         {
             yPml_ = find_pt(thickness);
             //pmlArr_.push_back(UPML<double>(thickness,d, 4.0, exp(-16), find_pt(x_size_),1.0/res_,1.0/res_,string2pol(pol_)));
-            pmlArr_.push_back(UPML<double>(yPml_,d, 4.0, exp(-16), find_pt(x_size_) + 1,1.0/res_,1.0/res_,string2pol(pol_)));
+            pmlArr_.push_back(UPML<complex<double>>(yPml_,d, 4.0, exp(-16), find_pt(x_size_) + 1,1.0/res_,1.0/res_,string2pol(pol_)));
         }
         else if (d == Z)
             throw logic_error("While yes we could have a thrid dimension to run, I have yet to be implimented to do such a thing. So please accept this error as my sincerest appology.");
@@ -144,7 +144,7 @@ programInputs::programInputs(std::string fn) : filename_(fn)
             for(int y = y_min; y <= y_max; y++)
             {
                 vector<int> loc = {x,y};
-                dctArr_.push_back(Detector<double>(loc,t,out_name,p));
+                dctArr_.push_back(Detector<complex<double>>(loc,t,out_name,p));
             }
     }
     //Copies the json data to a file to check for debugging

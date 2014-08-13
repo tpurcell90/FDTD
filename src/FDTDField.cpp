@@ -55,9 +55,9 @@ FDTDField::FDTDField(programInputs &IP)
         }
         else
         {
-            Ex_ = make_shared<Grid2D<double>>(nx_-1,ny_,dx_,dy_);
-            Ey_ = make_shared<Grid2D<double>>(nx_,ny_-1,dx_,dy_);
-            Hz_ = make_shared<Grid2D<double>>(nx_-1,ny_-1,dx_,dy_);
+            Ex_ = make_shared<Grid2D<complex<double>>>(nx_-1,ny_,dx_,dy_);
+            Ey_ = make_shared<Grid2D<complex<double>>>(nx_,ny_-1,dx_,dy_);
+            Hz_ = make_shared<Grid2D<complex<double>>>(nx_-1,ny_-1,dx_,dy_);
             phys_Ex_ = make_shared<Grid2D<int>>(nx_-1,ny_,dx_,dy_);
             phys_Ey_ = make_shared<Grid2D<int>>(nx_,ny_-1,dx_,dy_);
             phys_Hz_ = make_shared<Grid2D<int>>(nx_-1,ny_-1,dx_,dy_);
@@ -72,9 +72,9 @@ FDTDField::FDTDField(programInputs &IP)
     }
     else
     {
-        Hx_ = make_shared<Grid2D<double>>(nx_,ny_-1,dx_,dy_);
-        Hy_= make_shared<Grid2D<double>>(nx_-1,ny_,dx_,dy_);
-        Ez_ = make_shared<Grid2D<double>>(nx_,ny_,dx_,dy_);
+        Hx_ = make_shared<Grid2D<complex<double>>>(nx_,ny_-1,dx_,dy_);
+        Hy_ = make_shared<Grid2D<complex<double>>>(nx_-1,ny_,dx_,dy_);
+        Ez_ = make_shared<Grid2D<complex<double>>>(nx_,ny_,dx_,dy_);
 
         phys_Hx_ = make_shared<Grid2D<int>>(nx_,ny_-1,dx_,dy_);
         phys_Hy_ = make_shared<Grid2D<int>>(nx_-1,ny_,dx_,dy_);
@@ -226,7 +226,7 @@ void FDTDField::initializeGrid()
  *
  * @param d The Detector used for the output
  */
-void FDTDField::ouputField(Detector<double> d) //iostream as input parameter?
+void FDTDField::ouputField(Detector<complex<double>> d) //iostream as input parameter?
 {
     ofstream outFile;
     outFile.open(d.outfile(), ios_base::app);
@@ -234,8 +234,8 @@ void FDTDField::ouputField(Detector<double> d) //iostream as input parameter?
     switch ( d.pol() )
     {
         case EZ:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez_,eps)<< "\t" << setw(10) << srcArr_[0].prof().pulse(tcur_) << endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez_,eps)<< "\t" << setw(10) << srcArr_[0].prof().pulse(tcur_) << endl;
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez_,eps).real()<< "\t" << setw(10) << srcArr_[0].prof().pulse(tcur_).real() << endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez_,eps).real()<< "\t" << setw(10) << srcArr_[0].prof().pulse(tcur_).real() << endl;
             break;
         case HX:
             outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hx_,eps)<< endl;
@@ -424,8 +424,8 @@ void FDTDField::updateH()
                             c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                             c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                             //Update both on the left side and Hx on the right
-                            double bxstore = pmlArr_[kk].Bx_->point(0,jj);
-                            double bystore = pmlArr_[kk].By_->point(0,jj);
+                            complex<double> bxstore = pmlArr_[kk].Bx_->point(0,jj);
+                            complex<double> bystore = pmlArr_[kk].By_->point(0,jj);
 
                             pmlArr_[kk].Bx_->point(0,jj) = c_bxb * pmlArr_[kk].Bx_->point(0,jj) - c_bxe * (Ez_->point(0,jj+1)-Ez_->point(0,jj));
                             pmlArr_[kk].By_->point(0,jj) = c_byb * pmlArr_[kk].By_->point(0,jj) + c_bye * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
@@ -454,7 +454,7 @@ void FDTDField::updateH()
                         c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
                         c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                         c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                        double bystore = pmlArr_[kk].By_->point(0,ny_-1);
+                        complex<double> bystore = pmlArr_[kk].By_->point(0,ny_-1);
                         pmlArr_[kk].By_->point(0,ny_-1) = c_byb * pmlArr_[kk].By_->point(0,ny_-1) + c_bye * (Ez_->point(0+1,ny_-1)-Ez_->point(0,ny_-1));
                         Hy_->point(0,ny_-1) = c_hyh * Hy_->point(0,ny_-1) + c_hyb1 * pmlArr_[kk].By_->point(0,ny_-1) - c_hyb0 * bystore;
                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
@@ -494,7 +494,7 @@ void FDTDField::updateH()
                                 c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                                 //Update everything
 
-                                double bxstore = pmlArr_[kk].Bx_->point(ii,jj);
+                                complex<double> bxstore = pmlArr_[kk].Bx_->point(ii,jj);
                                 bystore = pmlArr_[kk].By_->point(ii,jj);
 
                                 pmlArr_[kk].Bx_->point(ii,jj) = c_bxb * pmlArr_[kk].Bx_->point(ii,jj) - c_bxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
@@ -563,8 +563,8 @@ void FDTDField::updateH()
                             c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                             c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                             //Update both on the left side and Hx on the right
-                            double bxstore = pmlArr_[kk].Bx_->point(0,jj);
-                            double bystore = pmlArr_[kk].By_->point(0,jj);
+                            complex<double> bxstore = pmlArr_[kk].Bx_->point(0,jj);
+                            complex<double> bystore = pmlArr_[kk].By_->point(0,jj);
 
                             pmlArr_[kk].Bx_->point(0,jj) = c_bxb * pmlArr_[kk].Bx_->point(0,jj) - c_bxe * (Ez_->point(0,jj+1)-Ez_->point(0,jj));
                             pmlArr_[kk].By_->point(0,jj) = c_byb * pmlArr_[kk].By_->point(0,jj) + c_bye * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
@@ -606,8 +606,8 @@ void FDTDField::updateH()
                                 c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                                 c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
 
-                                double bxstore = pmlArr_[kk].Bx_->point(ii,jj);
-                                double bystore = pmlArr_[kk].By_->point(ii,jj);
+                                complex<double> bxstore = pmlArr_[kk].Bx_->point(ii,jj);
+                                complex<double> bystore = pmlArr_[kk].By_->point(ii,jj);
 
                                 pmlArr_[kk].Bx_->point(ii,jj) = c_bxb * pmlArr_[kk].Bx_->point(ii,jj) - c_bxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
                                 pmlArr_[kk].By_->point(ii,jj) = c_byb * pmlArr_[kk].By_->point(ii,jj) + c_bye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
@@ -663,8 +663,8 @@ void FDTDField::updateH()
                             c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
 
                             // Bot Left
-                            double bxstore = pmlArr_[0].Bx_->point(0,0);
-                            double bystore = pmlArr_[0].By_->point(0,0);
+                            complex<double> bxstore = pmlArr_[0].Bx_->point(0,0);
+                            complex<double> bystore = pmlArr_[0].By_->point(0,0);
                             pmlArr_[0].Bx_->point(0,0) = c_bxb * pmlArr_[0].Bx_->point(0,0) - c_bxe * (Ez_->point(0,0+1)-Ez_->point(0,0));
                             pmlArr_[0].By_->point(0,0) = c_byb * pmlArr_[0].By_->point(0,0) + c_bye * (Ez_->point(0+1,0)-Ez_->point(0,0));
                             Hx_->point(0,0) = c_hxh * Hx_->point(0,0) + c_hxb1 * pmlArr_[0].Bx_->point(0,0) - c_hxb0 * bxstore;
@@ -716,8 +716,8 @@ void FDTDField::updateH()
                                 c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
 
                                 // Bot Left
-                                double bxstore = pmlArr_[0].Bx_->point(ii,0);
-                                double bystore = pmlArr_[0].By_->point(ii,0);
+                                complex<double> bxstore = pmlArr_[0].Bx_->point(ii,0);
+                                complex<double> bystore = pmlArr_[0].By_->point(ii,0);
                                 pmlArr_[0].Bx_->point(ii,0) = c_bxb * pmlArr_[0].Bx_->point(ii,0) - c_bxe * (Ez_->point(ii,0+1)-Ez_->point(ii,0));
                                 pmlArr_[0].By_->point(ii,0) = c_byb * pmlArr_[0].By_->point(ii,0) + c_bye * (Ez_->point(ii+1,0)-Ez_->point(ii,0));
                                 Hx_->point(ii,0) = c_hxh * Hx_->point(ii,0) + c_hxb1 * pmlArr_[0].Bx_->point(ii,0) - c_hxb0 * bxstore;
@@ -766,7 +766,7 @@ void FDTDField::updateH()
                                 c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 bystore = pmlArr_[0].By_->point(ii,ny_-1);
                                 pmlArr_[0].By_->point(ii,ny_-1) = c_byb * pmlArr_[0].By_->point(ii,ny_-1) + c_bye * (Ez_->point(ii+1,ny_-1)-Ez_->point(ii,ny_-1));
-                                Hy_->point(ii,ny_-1) = c_hyh * Hy_->point(ii,ny_-1) + c_hyb1 * pmlArr_[0].By_->point(ii,ny_ - 1 - 0) - c_hyb0 * bystore;
+                                Hy_->point(ii,ny_-1) = c_hyh * Hy_->point(ii,ny_-1) + c_hyb1 * pmlArr_[0].By_->point(ii,ny_ - 1) - c_hyb0 * bystore;
                             }
                             for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
                             {
@@ -792,8 +792,8 @@ void FDTDField::updateH()
                                 c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
 
                                 // Bot Left
-                                double bxstore = pmlArr_[0].Bx_->point(0,jj);
-                                double bystore = pmlArr_[0].By_->point(0,jj);
+                                complex<double> bxstore = pmlArr_[0].Bx_->point(0,jj);
+                                complex<double> bystore = pmlArr_[0].By_->point(0,jj);
                                 pmlArr_[0].Bx_->point(0,jj) = c_bxb * pmlArr_[0].Bx_->point(0,jj) - c_bxe * (Ez_->point(0,jj+1)-Ez_->point(0,jj));
                                 pmlArr_[0].By_->point(0,jj) = c_byb * pmlArr_[0].By_->point(0,jj) + c_bye * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
                                 Hx_->point(0,jj) = c_hxh * Hx_->point(0,jj) + c_hxb1 * pmlArr_[0].Bx_->point(0,jj) - c_hxb0 * bxstore;
@@ -867,8 +867,8 @@ void FDTDField::updateH()
                                     c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
 
                                     // Bot Left
-                                    double bxstore = pmlArr_[0].Bx_->point(ii,jj);
-                                    double bystore = pmlArr_[0].By_->point(ii,jj);
+                                    complex<double> bxstore = pmlArr_[0].Bx_->point(ii,jj);
+                                    complex<double> bystore = pmlArr_[0].By_->point(ii,jj);
                                     pmlArr_[0].Bx_->point(ii,jj) = c_bxb * pmlArr_[0].Bx_->point(ii,jj) - c_bxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
                                     pmlArr_[0].By_->point(ii,jj) = c_byb * pmlArr_[0].By_->point(ii,jj) + c_bye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
                                     Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[0].Bx_->point(ii,jj) - c_hxb0 * bxstore;
@@ -974,8 +974,8 @@ void FDTDField::updateH()
                             c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                             c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                             //Update both on the bottom side and Hy on the top
-                            double bxstore = pmlArr_[kk].Bx_->point(jj,0);
-                            double bystore = pmlArr_[kk].By_->point(jj,0);
+                            complex<double> bxstore = pmlArr_[kk].Bx_->point(jj,0);
+                            complex<double> bystore = pmlArr_[kk].By_->point(jj,0);
                             pmlArr_[kk].Bx_->point(jj,0) = c_bxb * pmlArr_[kk].Bx_->point(jj,0) - c_bxe * (Ez_->point(jj,0+1)-Ez_->point(jj,0));
                             pmlArr_[kk].By_->point(jj,0) = c_byb * pmlArr_[kk].By_->point(jj,0) + c_bye * (Ez_->point(jj+1,0)-Ez_->point(jj,0));
                             //cout <<"H1"<<endl;
@@ -999,7 +999,7 @@ void FDTDField::updateH()
                         c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                         c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
                         c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                        double bxstore = pmlArr_[kk].Bx_->point(nx_-1,0);
+                        complex<double> bxstore = pmlArr_[kk].Bx_->point(nx_-1,0);
                         pmlArr_[kk].Bx_->point(nx_-1,0) = c_bxb * pmlArr_[kk].Bx_->point(nx_-1,0) - c_bxe * (Ez_->point(nx_-1,0+1)-Ez_->point(nx_-1,0));
                         Hx_->point(nx_-1,0) = c_hxh * Hx_->point(nx_-1,0) + c_hxb1 * pmlArr_[kk].Bx_->point(nx_-1,0) - c_hxb0 * bxstore;
                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
@@ -1036,14 +1036,14 @@ void FDTDField::updateH()
                                 c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
 
                                 bxstore = pmlArr_[kk].Bx_->point(jj,ii);
-                                double bystore = pmlArr_[kk].By_->point(jj,ii);
+                                complex<double> bystore = pmlArr_[kk].By_->point(jj,ii);
                                 pmlArr_[kk].Bx_->point(jj,ii) = c_bxb * pmlArr_[kk].Bx_->point(jj,ii) - c_bxe * (Ez_->point(jj,ii+1)-Ez_->point(jj,ii));
                                 pmlArr_[kk].By_->point(jj,ii) = c_byb * pmlArr_[kk].By_->point(jj,ii) + c_bye * (Ez_->point(jj+1,ii)-Ez_->point(jj,ii));
                                 //cout <<"H1"<<endl;
                                 Hx_->point(jj,ii) = c_hxh * Hx_->point(jj,ii) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,ii) - c_hxb0 * bxstore;
                                 Hy_->point(jj,ii) = c_hyh * Hy_->point(jj,ii) + c_hyb1 * pmlArr_[kk].By_->point(jj,ii) - c_hyb0 * bystore;
 
-                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii) - 0.5),eps);
+                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii)-0.5),eps);
                                 eps    = objArr_[phys_Hx_->point(jj,ny_-1-ii)].dielectric(1.0);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
@@ -1096,8 +1096,8 @@ void FDTDField::updateH()
                             c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                             c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                             //Update both on the bottom side and Hy on the top
-                            double bxstore = pmlArr_[kk].Bx_->point(jj,0);
-                            double bystore = pmlArr_[kk].By_->point(jj,0);
+                            complex<double> bxstore = pmlArr_[kk].Bx_->point(jj,0);
+                            complex<double> bystore = pmlArr_[kk].By_->point(jj,0);
                             pmlArr_[kk].Bx_->point(jj,0) = c_bxb * pmlArr_[kk].Bx_->point(jj,0) - c_bxe * (Ez_->point(jj,0+1)-Ez_->point(jj,0));
                             pmlArr_[kk].By_->point(jj,0) = c_byb * pmlArr_[kk].By_->point(jj,0) + c_bye * (Ez_->point(jj+1,0)-Ez_->point(jj,0));
                             //cout <<"H1"<<endl;
@@ -1137,15 +1137,15 @@ void FDTDField::updateH()
                                 c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                                 c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
 
-                                double bxstore = pmlArr_[kk].Bx_->point(jj,ii);
-                                double bystore = pmlArr_[kk].By_->point(jj,ii);
+                                complex<double> bxstore = pmlArr_[kk].Bx_->point(jj,ii);
+                                complex<double> bystore = pmlArr_[kk].By_->point(jj,ii);
                                 pmlArr_[kk].Bx_->point(jj,ii) = c_bxb * pmlArr_[kk].Bx_->point(jj,ii) - c_bxe * (Ez_->point(jj,ii+1)-Ez_->point(jj,ii));
                                 pmlArr_[kk].By_->point(jj,ii) = c_byb * pmlArr_[kk].By_->point(jj,ii) + c_bye * (Ez_->point(jj+1,ii)-Ez_->point(jj,ii));
                                 //cout <<"H1"<<endl;
                                 Hx_->point(jj,ii) = c_hxh * Hx_->point(jj,ii) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,ii) - c_hxb0 * bxstore;
                                 Hy_->point(jj,ii) = c_hyh * Hy_->point(jj,ii) + c_hyb1 * pmlArr_[kk].By_->point(jj,ii) - c_hyb0 * bystore;
 
-                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii) - 0.5),eps);
+                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii)-0.5),eps);
                                 eps    = objArr_[phys_Hx_->point(jj,ny_-1-ii)].dielectric(1.0);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
@@ -1193,8 +1193,8 @@ void FDTDField::updateH()
                             c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
 
                             // Bot Left
-                            double bxstore = pmlArr_[1].Bx_->point(0,0);
-                            double bystore = pmlArr_[1].By_->point(0,0);
+                            complex<double> bxstore = pmlArr_[1].Bx_->point(0,0);
+                            complex<double> bystore = pmlArr_[1].By_->point(0,0);
                             pmlArr_[1].Bx_->point(0,0) = c_bxb * pmlArr_[1].Bx_->point(0,0) - c_bxe * (Ez_->point(0,0+1)-Ez_->point(0,0));
                             pmlArr_[1].By_->point(0,0) = c_byb * pmlArr_[1].By_->point(0,0) + c_bye * (Ez_->point(0+1,0)-Ez_->point(0,0));
                             Hx_->point(0,0) = c_hxh * Hx_->point(0,0) + c_hxb1 * pmlArr_[1].Bx_->point(0,0) - c_hxb0 * bxstore;
@@ -1246,8 +1246,8 @@ void FDTDField::updateH()
                                 c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
 
                                 // Bot Left
-                                double bxstore = pmlArr_[1].Bx_->point(ii,0);
-                                double bystore = pmlArr_[1].By_->point(ii,0);
+                                complex<double> bxstore = pmlArr_[1].Bx_->point(ii,0);
+                                complex<double> bystore = pmlArr_[1].By_->point(ii,0);
                                 pmlArr_[1].Bx_->point(ii,0) = c_bxb * pmlArr_[1].Bx_->point(ii,0) - c_bxe * (Ez_->point(ii,0+1)-Ez_->point(ii,0));
                                 pmlArr_[1].By_->point(ii,0) = c_byb * pmlArr_[1].By_->point(ii,0) + c_bye * (Ez_->point(ii+1,0)-Ez_->point(ii,0));
                                 Hx_->point(ii,0) = c_hxh * Hx_->point(ii,0) + c_hxb1 * pmlArr_[1].Bx_->point(ii,0) - c_hxb0 * bxstore;
@@ -1296,7 +1296,7 @@ void FDTDField::updateH()
                                 c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 bystore = pmlArr_[1].By_->point(ii,ny_-1);
                                 pmlArr_[1].By_->point(ii,ny_-1) = c_byb * pmlArr_[1].By_->point(ii,ny_-1) + c_bye * (Ez_->point(ii+1,ny_-1)-Ez_->point(ii,ny_-1));
-                                Hy_->point(ii,ny_-1) = c_hyh * Hy_->point(ii,ny_-1) + c_hyb1 * pmlArr_[1].By_->point(ii,ny_ - 1 - 0) - c_hyb0 * bystore;
+                                Hy_->point(ii,ny_-1) = c_hyh * Hy_->point(ii,ny_-1) + c_hyb1 * pmlArr_[1].By_->point(ii,ny_ - 1) - c_hyb0 * bystore;
                             }
                             for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
                             {
@@ -1322,8 +1322,8 @@ void FDTDField::updateH()
                                 c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
 
                                 // Bot Left
-                                double bxstore = pmlArr_[1].Bx_->point(0,jj);
-                                double bystore = pmlArr_[1].By_->point(0,jj);
+                                complex<double> bxstore = pmlArr_[1].Bx_->point(0,jj);
+                                complex<double> bystore = pmlArr_[1].By_->point(0,jj);
                                 pmlArr_[1].Bx_->point(0,jj) = c_bxb * pmlArr_[1].Bx_->point(0,jj) - c_bxe * (Ez_->point(0,jj+1)-Ez_->point(0,jj));
                                 pmlArr_[1].By_->point(0,jj) = c_byb * pmlArr_[1].By_->point(0,jj) + c_bye * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
                                 Hx_->point(0,jj) = c_hxh * Hx_->point(0,jj) + c_hxb1 * pmlArr_[1].Bx_->point(0,jj) - c_hxb0 * bxstore;
@@ -1397,8 +1397,8 @@ void FDTDField::updateH()
                                     c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
 
                                     // Bot Left
-                                    double bxstore = pmlArr_[1].Bx_->point(ii,jj);
-                                    double bystore = pmlArr_[1].By_->point(ii,jj);
+                                    complex<double> bxstore = pmlArr_[1].Bx_->point(ii,jj);
+                                    complex<double> bystore = pmlArr_[1].By_->point(ii,jj);
                                     pmlArr_[1].Bx_->point(ii,jj) = c_bxb * pmlArr_[1].Bx_->point(ii,jj) - c_bxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
                                     pmlArr_[1].By_->point(ii,jj) = c_byb * pmlArr_[1].By_->point(ii,jj) + c_bye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
                                     Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[1].Bx_->point(ii,jj) - c_hxb0 * bxstore;
@@ -1536,10 +1536,10 @@ void FDTDField::updateE()
             {
                 eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
-                Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)-0));
+                Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)));
                 eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
-                Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (0-Hx_->point(ii,ny_-1-1)));
+                Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (-1.0*Hx_->point(ii,ny_-1-1)));
             }
         }
         else if(yPML_ != 0)
@@ -1557,10 +1557,10 @@ void FDTDField::updateE()
             {
                 eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
-                Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezh * ((Hy_->point(0,jj)-0) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
+                Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezh * ((Hy_->point(0,jj)) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
                 eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
-                Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezh * ((0-Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
+                Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezh * ((-1.0*Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
             }
         }
         else
@@ -1578,32 +1578,32 @@ void FDTDField::updateE()
             {
                 eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
-                Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezh * ((Hy_->point(0,jj)-0) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
+                Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezh * ((Hy_->point(0,jj)) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
                 eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
-                Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezh * ((0-Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
+                Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezh * ((-1.0*Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
             }
             for(int ii = 1; ii < nx_ - 1; ii ++)
             {
                 eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
-                Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)-0));
+                Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)));
                 eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
-                Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (0-Hx_->point(ii,ny_-1-1)));
+                Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (-1.0*Hx_->point(ii,ny_-1-1)));
             }
             eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0);
             c_ezh = dt_/(eps*dx_);
-            Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezh * ((Hy_->point(0,0)-0) - (Hx_->point(0,0)-0));
+            Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezh * ((Hy_->point(0,0)) - (Hx_->point(0,0)));
             eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
             c_ezh = dt_/(eps*dx_);
-            Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezh * ((Hy_->point(0,ny_-1)-0) - (0-Hx_->point(0,ny_-1-1)));
+            Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezh * ((Hy_->point(0,ny_-1)) - (-1.0*Hx_->point(0,ny_-1-1)));
             eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
             c_ezh = dt_/(eps*dx_);
-            Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezh * ((0-Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0)-0));
+            Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezh * ((-1.0*Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0)));
             eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
             c_ezh = dt_/(eps*dx_);
-            Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezh * ((0-Hy_->point(nx_-1-1,ny_-1)) - (0-Hx_->point(nx_-1,ny_-1-1)));
+            Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezh * ((-1.0*Hy_->point(nx_-1-1,ny_-1)) - (-1.0*Hx_->point(nx_-1,ny_-1-1)));
         }
     }
     else
@@ -1638,8 +1638,8 @@ void FDTDField::updateE()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
 
-                            double dzstore = pmlArr_[kk].Dz_->point(0,jj);
-                            pmlArr_[kk].Dz_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj) - 0) - (Hx_->point(0,jj)-Hx_->point(0,jj-1))); // 0 is boundary condtion
+                            complex<double> dzstore = pmlArr_[kk].Dz_->point(0,jj);
+                            pmlArr_[kk].Dz_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj)) - (Hx_->point(0,jj)-Hx_->point(0,jj-1))); // 0 is boundary condtion
                             Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezd1 * pmlArr_[kk].Dz_->point(0,jj) - c_ezd0 * dzstore;
 
                             eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
@@ -1651,7 +1651,7 @@ void FDTDField::updateE()
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
 
                             dzstore = pmlArr_[kk].Dz_end_->point(0,jj);
-                            pmlArr_[kk].Dz_end_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_end_->point(0,jj) + c_dzh * ((0 -Hy_->point((nx_-2),jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1))); // 0 is boundary condition
+                            pmlArr_[kk].Dz_end_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_end_->point(0,jj) + c_dzh * ((-1.0 *Hy_->point((nx_-2),jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1))); // 0 is boundary condition
                             Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,jj) - c_ezd0 * dzstore;
                         }
                         eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
@@ -1662,8 +1662,8 @@ void FDTDField::updateE()
                         c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                         c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
 
-                        double dzstore = pmlArr_[kk].Dz_->point(0,ny_-1);
-                        pmlArr_[kk].Dz_->point(0,ny_-1) = c_dzd * pmlArr_[kk].Dz_->point(0,ny_-1) + c_dzh * ((Hy_->point(0,ny_-1) - 0) - (0-Hx_->point(0,ny_-2))); // 0 is boundary condtion
+                        complex<double> dzstore = pmlArr_[kk].Dz_->point(0,ny_-1);
+                        pmlArr_[kk].Dz_->point(0,ny_-1) = c_dzd * pmlArr_[kk].Dz_->point(0,ny_-1) + c_dzh * ((Hy_->point(0,ny_-1)) - (-1.0*Hx_->point(0,ny_-2))); // 0 is boundary condtion
                         Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_->point(0,ny_-1) - c_ezd0 * dzstore;
 
                         eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
@@ -1674,7 +1674,7 @@ void FDTDField::updateE()
                         c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                         c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                         dzstore = pmlArr_[kk].Dz_end_->point(0,ny_-1);
-                        pmlArr_[kk].Dz_end_->point(0,ny_-1) = c_dzd * pmlArr_[kk].Dz_end_->point(0,ny_-1) + c_dzh * ((0 -Hy_->point(nx_-2,ny_-1)) - (0-Hx_->point(nx_-1,ny_-2))); // 0 is boundary condition
+                        pmlArr_[kk].Dz_end_->point(0,ny_-1) = c_dzd * pmlArr_[kk].Dz_end_->point(0,ny_-1) + c_dzh * ((-1.0 *Hy_->point(nx_-2,ny_-1)) - (-1.0*Hx_->point(nx_-1,ny_-2))); // 0 is boundary condition
                         Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,ny_-1) - c_ezd0 * dzstore;
 
                         eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0);
@@ -1685,7 +1685,7 @@ void FDTDField::updateE()
                         c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                         c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                         dzstore = pmlArr_[kk].Dz_->point(0,0);
-                        pmlArr_[kk].Dz_->point(0,0) = c_dzd * pmlArr_[kk].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0) - 0) - (Hx_->point(0,0)-0)); // 0 is boundary condtion
+                        pmlArr_[kk].Dz_->point(0,0) = c_dzd * pmlArr_[kk].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0)) - (Hx_->point(0,0))); // 0 is boundary condtion
                         Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezd1 * pmlArr_[kk].Dz_->point(0,0) - c_ezd0 * dzstore;
 
                         eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
@@ -1696,7 +1696,7 @@ void FDTDField::updateE()
                         c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                         c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                         dzstore = pmlArr_[kk].Dz_end_->point(0,0);
-                        pmlArr_[kk].Dz_end_->point(0,0) = c_dzd * pmlArr_[kk].Dz_end_->point(0,0) + c_dzh * ((0 -Hy_->point(nx_-2,0)) - (Hx_->point(nx_-1,0)-0)); // 0 is boundary condition
+                        pmlArr_[kk].Dz_end_->point(0,0) = c_dzd * pmlArr_[kk].Dz_end_->point(0,0) + c_dzh * ((-1.0 *Hy_->point(nx_-2,0)) - (Hx_->point(nx_-1,0))); // 0 is boundary condition
                         Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,0) - c_ezd0 * dzstore;
 
                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
@@ -1714,7 +1714,7 @@ void FDTDField::updateE()
                                 c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                double dzstore = pmlArr_[kk].Dz_->point(ii,jj);
+                                complex<double> dzstore = pmlArr_[kk].Dz_->point(ii,jj);
                                 pmlArr_[kk].Dz_->point(ii,jj) = c_dzd * pmlArr_[kk].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                                 Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,jj) - c_ezd0 * dzstore;
 
@@ -1736,8 +1736,8 @@ void FDTDField::updateE()
                             c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            double dzstore = pmlArr_[kk].Dz_->point(ii,ny_-1);
-                            pmlArr_[kk].Dz_->point(ii,ny_-1) = c_dzd * pmlArr_[kk].Dz_->point(ii,ny_-1) + c_dzh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (0-Hx_->point(ii,ny_-1-1)));
+                            complex<double> dzstore = pmlArr_[kk].Dz_->point(ii,ny_-1);
+                            pmlArr_[kk].Dz_->point(ii,ny_-1) = c_dzd * pmlArr_[kk].Dz_->point(ii,ny_-1) + c_dzh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (-1.0*Hx_->point(ii,ny_-1-1)));
                             Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,ny_-1) - c_ezd0 * dzstore;
 
                             eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1)].dielectric(1.0);
@@ -1748,7 +1748,7 @@ void FDTDField::updateE()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             dzstore = pmlArr_[kk].Dz_end_->point(ii,ny_-1);
-                            pmlArr_[kk].Dz_end_->point(ii,ny_-1) = c_dzd * pmlArr_[kk].Dz_end_->point(ii,ny_-1) + c_dzh * ((Hy_->point(nx_-1-ii,ny_-1)-Hy_->point(nx_-1-ii-1,ny_-1)) - (0-Hx_->point(nx_-1-ii,ny_-1-1)));
+                            pmlArr_[kk].Dz_end_->point(ii,ny_-1) = c_dzd * pmlArr_[kk].Dz_end_->point(ii,ny_-1) + c_dzh * ((Hy_->point(nx_-1-ii,ny_-1)-Hy_->point(nx_-1-ii-1,ny_-1)) - (-1.0*Hx_->point(nx_-1-ii,ny_-1-1)));
                             Ez_->point(nx_-1-ii,ny_-1) = c_eze * Ez_->point(nx_-1-ii,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(ii,ny_-1) - c_ezd0 * dzstore;
 
                             eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0);
@@ -1759,7 +1759,7 @@ void FDTDField::updateE()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             dzstore = pmlArr_[kk].Dz_->point(ii,0);
-                            pmlArr_[kk].Dz_->point(ii,0) = c_dzd * pmlArr_[kk].Dz_->point(ii,0) + c_dzh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)-0));
+                            pmlArr_[kk].Dz_->point(ii,0) = c_dzd * pmlArr_[kk].Dz_->point(ii,0) + c_dzh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)));
                             Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,0) - c_ezd0 * dzstore;
 
                             eps = objArr_[phys_Ez_->point(nx_-1-ii,0)].dielectric(1.0);
@@ -1770,7 +1770,7 @@ void FDTDField::updateE()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             dzstore = pmlArr_[kk].Dz_end_->point(ii,0);
-                            pmlArr_[kk].Dz_end_->point(ii,0) = c_dzd * pmlArr_[kk].Dz_end_->point(ii,0) + c_dzh * ((Hy_->point(nx_-1-ii,0)-Hy_->point(nx_-1-ii-1,0)) - (Hx_->point(nx_-1-ii,0)-0));
+                            pmlArr_[kk].Dz_end_->point(ii,0) = c_dzd * pmlArr_[kk].Dz_end_->point(ii,0) + c_dzh * ((Hy_->point(nx_-1-ii,0)-Hy_->point(nx_-1-ii-1,0)) - (Hx_->point(nx_-1-ii,0)));
                             Ez_->point(nx_-1-ii,0) = c_eze * Ez_->point(nx_-1-ii,0) + c_ezd1 * pmlArr_[kk].Dz_end_->point(ii,0) - c_ezd0 * dzstore;
                         }
                     }
@@ -1784,8 +1784,8 @@ void FDTDField::updateE()
                             c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            double dzstore = pmlArr_[kk].Dz_->point(0,jj);
-                            pmlArr_[kk].Dz_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj) - 0) - (Hx_->point(0,jj)-Hx_->point(0,jj-1))); // 0 is boundary condtion
+                            complex<double> dzstore = pmlArr_[kk].Dz_->point(0,jj);
+                            pmlArr_[kk].Dz_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj)) - (Hx_->point(0,jj)-Hx_->point(0,jj-1))); // 0 is boundary condtion
                             Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezd1 * pmlArr_[kk].Dz_->point(0,jj) - c_ezd0 * dzstore;
 
                             eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
@@ -1795,7 +1795,7 @@ void FDTDField::updateE()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             dzstore = pmlArr_[kk].Dz_end_->point(0,jj);
-                            pmlArr_[kk].Dz_end_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_end_->point(0,jj) + c_dzh * ((0 -Hy_->point((nx_-2),jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1))); // 0 is boundary condition
+                            pmlArr_[kk].Dz_end_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_end_->point(0,jj) + c_dzh * ((-1.0 *Hy_->point((nx_-2),jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1))); // 0 is boundary condition
                             Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,jj) - c_ezd0 * dzstore;
                         }
                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
@@ -1811,7 +1811,7 @@ void FDTDField::updateE()
                                 c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                double dzstore = pmlArr_[kk].Dz_->point(ii,jj);
+                                complex<double> dzstore = pmlArr_[kk].Dz_->point(ii,jj);
                                 pmlArr_[kk].Dz_->point(ii,jj) = c_dzd * pmlArr_[kk].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                                 Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,jj) - c_ezd0 * dzstore;
 
@@ -1840,8 +1840,8 @@ void FDTDField::updateE()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             //Bot Left
-                            double dzstore = pmlArr_[0].Dz_->point(0,0);
-                            pmlArr_[0].Dz_->point(0,0) = c_dzd * pmlArr_[0].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0)-0) - (Hx_->point(0,0)-0));
+                            complex<double> dzstore = pmlArr_[0].Dz_->point(0,0);
+                            pmlArr_[0].Dz_->point(0,0) = c_dzd * pmlArr_[0].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0)) - (Hx_->point(0,0)));
                             Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezd1 * pmlArr_[0].Dz_->point(0,0) - c_ezd0 * dzstore;
                             //Bot Right
                             eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
@@ -1851,7 +1851,7 @@ void FDTDField::updateE()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             dzstore = pmlArr_[0].Dz_end_->point(0,0);
-                            pmlArr_[0].Dz_end_->point(0,0) = c_dzd * pmlArr_[0].Dz_end_->point(0,0) + c_dzh * (0-Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0)-0);
+                            pmlArr_[0].Dz_end_->point(0,0) = c_dzd * pmlArr_[0].Dz_end_->point(0,0) + c_dzh * (-1.0*Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0));
                             Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezd1 * pmlArr_[0].Dz_end_->point(0,0) - c_ezd0 * dzstore;
                             //Top Right
                             eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
@@ -1861,7 +1861,7 @@ void FDTDField::updateE()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             dzstore = pmlArr_[0].Dz_end_->point(0,ny_-1);
-                            pmlArr_[0].Dz_end_->point(0,ny_-1) = c_dzd * pmlArr_[0].Dz_end_->point(0,ny_-1) + c_dzh * ((0-Hy_->point(nx_-1-1,ny_-1)) - (0-Hx_->point(nx_-1,ny_-1-1)));
+                            pmlArr_[0].Dz_end_->point(0,ny_-1) = c_dzd * pmlArr_[0].Dz_end_->point(0,ny_-1) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,ny_-1)) - (-1.0*Hx_->point(nx_-1,ny_-1-1)));
                             Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezd1 * pmlArr_[0].Dz_end_->point(0,ny_-1) - c_ezd0 * dzstore;
                             //Top Left
                             eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
@@ -1871,7 +1871,7 @@ void FDTDField::updateE()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             dzstore = pmlArr_[0].Dz_->point(0,ny_-1);
-                            pmlArr_[0].Dz_->point(0,ny_-1) = c_dzd * pmlArr_[0].Dz_->point(0,ny_-1) + c_dzh * ((Hy_->point(0,ny_-1)-0) - (0-Hx_->point(0,ny_-1-1)));
+                            pmlArr_[0].Dz_->point(0,ny_-1) = c_dzd * pmlArr_[0].Dz_->point(0,ny_-1) + c_dzh * ((Hy_->point(0,ny_-1)) - (-1.0*Hx_->point(0,ny_-1-1)));
                             Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezd1 * pmlArr_[0].Dz_->point(0,ny_-1) - c_ezd0 * dzstore;
 
                             for(int ii = 1; ii < pmlArr_[0].thickness(); ii++)
@@ -1889,7 +1889,7 @@ void FDTDField::updateE()
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 //Bot Left
                                 dzstore = pmlArr_[0].Dz_->point(ii,0);
-                                pmlArr_[0].Dz_->point(ii,0) = c_dzd * pmlArr_[0].Dz_->point(ii,0) + c_dzh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)-0));
+                                pmlArr_[0].Dz_->point(ii,0) = c_dzd * pmlArr_[0].Dz_->point(ii,0) + c_dzh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)));
                                 Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezd1 * pmlArr_[0].Dz_->point(ii,0) - c_ezd0 * dzstore;
                                 //Bot Right
                                 eps = objArr_[phys_Ez_->point(nx_-1-ii,0)].dielectric(1.0);
@@ -1899,7 +1899,7 @@ void FDTDField::updateE()
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 dzstore = pmlArr_[0].Dz_end_->point(ii,0);
-                                pmlArr_[0].Dz_end_->point(ii,0) = c_dzd * pmlArr_[0].Dz_end_->point(ii,0) + c_dzh * ((Hy_->point(nx_-1-ii,0)-Hy_->point(nx_-1-ii-1,0)) - (Hx_->point(nx_-1-ii,0)-0));
+                                pmlArr_[0].Dz_end_->point(ii,0) = c_dzd * pmlArr_[0].Dz_end_->point(ii,0) + c_dzh * ((Hy_->point(nx_-1-ii,0)-Hy_->point(nx_-1-ii-1,0)) - (Hx_->point(nx_-1-ii,0)));
                                 Ez_->point(nx_-1-ii,0) = c_eze * Ez_->point(nx_-1-ii,0) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,0) - c_ezd0 * dzstore;
                                 //Top Right
                                 eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0);
@@ -1909,7 +1909,7 @@ void FDTDField::updateE()
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 dzstore = pmlArr_[0].Dz_end_->point(ii,ny_-1);
-                                pmlArr_[0].Dz_end_->point(ii,ny_-1) = c_dzd * pmlArr_[0].Dz_end_->point(ii,ny_-1) + c_dzh * ((Hy_->point(nx_-1-ii,ny_-1)-Hy_->point(nx_-1-ii-1,ny_-1)) - (0-Hx_->point(nx_-1-ii,ny_-1-1)));
+                                pmlArr_[0].Dz_end_->point(ii,ny_-1) = c_dzd * pmlArr_[0].Dz_end_->point(ii,ny_-1) + c_dzh * ((Hy_->point(nx_-1-ii,ny_-1)-Hy_->point(nx_-1-ii-1,ny_-1)) - (-1.0*Hx_->point(nx_-1-ii,ny_-1-1)));
                                 Ez_->point(nx_-1-ii,ny_-1) = c_eze * Ez_->point(nx_-1-ii,ny_-1) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,ny_-1) - c_ezd0 * dzstore;
                                 //Top Left
                                 eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1)].dielectric(1.0);
@@ -1919,7 +1919,7 @@ void FDTDField::updateE()
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 dzstore = pmlArr_[0].Dz_->point(ii,ny_-1);
-                                pmlArr_[0].Dz_->point(ii,ny_-1) = c_dzd * pmlArr_[0].Dz_->point(ii,ny_-1) + c_dzh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (0-Hx_->point(ii,ny_-1-1)));
+                                pmlArr_[0].Dz_->point(ii,ny_-1) = c_dzd * pmlArr_[0].Dz_->point(ii,ny_-1) + c_dzh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (-1.0*Hx_->point(ii,ny_-1-1)));
                                 Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezd1 * pmlArr_[0].Dz_->point(ii,ny_-1) - c_ezd0 * dzstore;
                             }
                             for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
@@ -1937,7 +1937,7 @@ void FDTDField::updateE()
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 //Bot Left
                                 dzstore = pmlArr_[0].Dz_->point(0,jj);
-                                pmlArr_[0].Dz_->point(0,jj) = c_dzd * pmlArr_[0].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj)-0) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
+                                pmlArr_[0].Dz_->point(0,jj) = c_dzd * pmlArr_[0].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj)) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
                                 Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezd1 * pmlArr_[0].Dz_->point(0,jj) - c_ezd0 * dzstore;
                                 //Bot Right
                                 eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
@@ -1947,7 +1947,7 @@ void FDTDField::updateE()
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 dzstore = pmlArr_[0].Dz_end_->point(0,jj);
-                                pmlArr_[0].Dz_end_->point(0,jj) = c_dzd * pmlArr_[0].Dz_end_->point(0,jj) + c_dzh * ((0-Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
+                                pmlArr_[0].Dz_end_->point(0,jj) = c_dzd * pmlArr_[0].Dz_end_->point(0,jj) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
                                 Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(0,jj) - c_ezd0 * dzstore;
                                 //Top Right
                                 eps = objArr_[phys_Ez_->point(nx_-1,ny_-1-jj)].dielectric(1.0);
@@ -1957,7 +1957,7 @@ void FDTDField::updateE()
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 dzstore = pmlArr_[0].Dz_end_->point(0,ny_-1-jj);
-                                pmlArr_[0].Dz_end_->point(0,ny_-1-jj) = c_dzd * pmlArr_[0].Dz_end_->point(0,ny_-1-jj) + c_dzh * ((0-Hy_->point((nx_-1) - 0-1,ny_-1-jj)) - (Hx_->point((nx_-1) - 0,ny_-1-jj)-Hx_->point((nx_-1) - 0,ny_-1-jj-1)));
+                                pmlArr_[0].Dz_end_->point(0,ny_-1-jj) = c_dzd * pmlArr_[0].Dz_end_->point(0,ny_-1-jj) + c_dzh * ((-1.0*Hy_->point((nx_-1) - 0-1,ny_-1-jj)) - (Hx_->point((nx_-1) - 0,ny_-1-jj)-Hx_->point((nx_-1) - 0,ny_-1-jj-1)));
                                 Ez_->point((nx_-1) - 0,ny_-1-jj) = c_eze * Ez_->point((nx_-1) - 0,ny_-1-jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(0,ny_-1-jj) - c_ezd0 * dzstore;
                                 //Top Left
                                 eps = objArr_[phys_Ez_->point(0,ny_-1-jj)].dielectric(1.0);
@@ -1967,7 +1967,7 @@ void FDTDField::updateE()
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 dzstore = pmlArr_[0].Dz_->point(0,ny_-1-jj);
-                                pmlArr_[0].Dz_->point(0,ny_-1-jj) = c_dzd * pmlArr_[0].Dz_->point(0,ny_-1-jj) + c_dzh * ((Hy_->point(0,ny_-1-jj)-0) - (Hx_->point(0,ny_-1-jj)-Hx_->point(0,ny_-1-jj-1)));
+                                pmlArr_[0].Dz_->point(0,ny_-1-jj) = c_dzd * pmlArr_[0].Dz_->point(0,ny_-1-jj) + c_dzh * ((Hy_->point(0,ny_-1-jj)) - (Hx_->point(0,ny_-1-jj)-Hx_->point(0,ny_-1-jj-1)));
                                 Ez_->point(0,ny_-1-jj) = c_eze * Ez_->point(0,ny_-1-jj) + c_ezd1 * pmlArr_[0].Dz_->point(0,ny_-1-jj) - c_ezd0 * dzstore;
                             }
                             for(int ii = 1; ii < pmlArr_[0].thickness(); ii++)
@@ -2044,8 +2044,8 @@ void FDTDField::updateE()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
 
-                            double dzstore = pmlArr_[kk].Dz_->point(jj,0);
-                            pmlArr_[kk].Dz_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_->point(jj,0) + c_dzh * ((Hy_->point(jj,0)-Hy_->point(jj-1,0)) - (Hx_->point(jj,0)- 0)); // 0 is boundary condition
+                            complex<double> dzstore = pmlArr_[kk].Dz_->point(jj,0);
+                            pmlArr_[kk].Dz_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_->point(jj,0) + c_dzh * ((Hy_->point(jj,0)-Hy_->point(jj-1,0)) - (Hx_->point(jj,0))); // 0 is boundary condition
                             Ez_->point(jj,0) = c_eze * Ez_->point(jj,0) + c_ezd1 * pmlArr_[kk].Dz_->point(jj,0) - c_ezd0 * dzstore;
 
                             eps = objArr_[phys_Ez_->point(jj,ny_-1)].dielectric(1.0);
@@ -2055,7 +2055,7 @@ void FDTDField::updateE()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             dzstore = pmlArr_[kk].Dz_end_->point(jj,0);
-                            pmlArr_[kk].Dz_end_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_end_->point(jj,0) + c_dzh * ((Hy_->point(jj,ny_-1) - Hy_->point(jj - 1,ny_-1)) - (0 - Hx_->point(jj,ny_-1-1))); // 0 is boundary condtion
+                            pmlArr_[kk].Dz_end_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_end_->point(jj,0) + c_dzh * ((Hy_->point(jj,ny_-1) - Hy_->point(jj - 1,ny_-1)) - (-1.0 * Hx_->point(jj,ny_-1-1))); // 0 is boundary condtion
                             Ez_->point(jj,ny_-1) = c_eze * Ez_->point(jj,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(jj,0) - c_ezd0 * dzstore;
                         }
                         eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
@@ -2064,8 +2064,8 @@ void FDTDField::updateE()
                         c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                         c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                         c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                        double dzstore = pmlArr_[kk].Dz_->point(nx_-1,0);
-                        pmlArr_[kk].Dz_->point(nx_-1,0) = c_dzd * pmlArr_[kk].Dz_->point(nx_-1,0) + c_dzh * ((0-Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0)- 0)); // 0 is boundary condition
+                        complex<double> dzstore = pmlArr_[kk].Dz_->point(nx_-1,0);
+                        pmlArr_[kk].Dz_->point(nx_-1,0) = c_dzd * pmlArr_[kk].Dz_->point(nx_-1,0) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0))); // 0 is boundary condition
                         Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezd1 * pmlArr_[kk].Dz_->point(nx_-1,0) - c_ezd0 * dzstore;
 
                         eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
@@ -2075,7 +2075,7 @@ void FDTDField::updateE()
                         c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                         c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                         dzstore = pmlArr_[kk].Dz_end_->point(nx_-1,0);
-                        pmlArr_[kk].Dz_end_->point(nx_-1,0) = c_dzd * pmlArr_[kk].Dz_end_->point(nx_-1,0) + c_dzh * ((0 - Hy_->point(nx_-1 - 1,ny_-1)) - (0 - Hx_->point(nx_-1,ny_-1-1))); // 0 is boundary condtion
+                        pmlArr_[kk].Dz_end_->point(nx_-1,0) = c_dzd * pmlArr_[kk].Dz_end_->point(nx_-1,0) + c_dzh * ((-1.0 * Hy_->point(nx_-1 - 1,ny_-1)) - (-1.0 * Hx_->point(nx_-1,ny_-1-1))); // 0 is boundary condtion
                         Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(nx_-1,0) - c_ezd0 * dzstore;
 
                         eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0);
@@ -2085,7 +2085,7 @@ void FDTDField::updateE()
                         c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                         c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                         dzstore = pmlArr_[kk].Dz_->point(0,0);
-                        pmlArr_[kk].Dz_->point(0,0) = c_dzd * pmlArr_[kk].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0)-0) - (Hx_->point(0,0)- 0)); // 0 is boundary condition
+                        pmlArr_[kk].Dz_->point(0,0) = c_dzd * pmlArr_[kk].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0)) - (Hx_->point(0,0))); // 0 is boundary condition
                         Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezd1 * pmlArr_[kk].Dz_->point(0,0) - c_ezd0 * dzstore;
 
                         eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
@@ -2095,7 +2095,7 @@ void FDTDField::updateE()
                         c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                         c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                         dzstore = pmlArr_[kk].Dz_end_->point(0,0);
-                        pmlArr_[kk].Dz_end_->point(0,0) = c_dzd * pmlArr_[kk].Dz_end_->point(0,0) + c_dzh * ((Hy_->point(0,ny_-1) - 0) - (0 - Hx_->point(0,ny_-1-1))); // 0 is boundary condtion
+                        pmlArr_[kk].Dz_end_->point(0,0) = c_dzd * pmlArr_[kk].Dz_end_->point(0,0) + c_dzh * ((Hy_->point(0,ny_-1)) - (-1.0 * Hx_->point(0,ny_-1-1))); // 0 is boundary condtion
                         Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,0) - c_ezd0 * dzstore;
 
                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
@@ -2115,7 +2115,7 @@ void FDTDField::updateE()
                                 c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                double dzstore = pmlArr_[kk].Dz_->point(jj,ii);
+                                complex<double> dzstore = pmlArr_[kk].Dz_->point(jj,ii);
                                 pmlArr_[kk].Dz_->point(jj,ii) = c_dzd * pmlArr_[kk].Dz_->point(jj,ii) + c_dzh * ((Hy_->point(jj,ii)-Hy_->point(jj-1,ii)) - (Hx_->point(jj,ii)-Hx_->point(jj,ii-1)));
                                 Ez_->point(jj,ii) = c_eze * Ez_->point(jj,ii) + c_ezd1 * pmlArr_[kk].Dz_->point(jj,ii) - c_ezd0 * dzstore;
 
@@ -2135,8 +2135,8 @@ void FDTDField::updateE()
                             c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            double dzstore = pmlArr_[kk].Dz_->point(nx_-1,ii);
-                            pmlArr_[kk].Dz_->point(nx_-1,ii) = c_dzd * pmlArr_[kk].Dz_->point(nx_-1,ii) + c_dzh * ((0-Hy_->point(nx_-1-1,ii)) - (Hx_->point(nx_-1,ii)-Hx_->point(nx_-1,ii-1)));
+                            complex<double> dzstore = pmlArr_[kk].Dz_->point(nx_-1,ii);
+                            pmlArr_[kk].Dz_->point(nx_-1,ii) = c_dzd * pmlArr_[kk].Dz_->point(nx_-1,ii) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,ii)) - (Hx_->point(nx_-1,ii)-Hx_->point(nx_-1,ii-1)));
                             Ez_->point(nx_-1,ii) = c_eze * Ez_->point(nx_-1,ii) + c_ezd1 * pmlArr_[kk].Dz_->point(nx_-1,ii) - c_ezd0 * dzstore;
 
                             eps = objArr_[phys_Ez_->point(nx_-1, ny_-1-ii)].dielectric(1.0);
@@ -2146,7 +2146,7 @@ void FDTDField::updateE()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             dzstore = pmlArr_[kk].Dz_end_->point(nx_-1,ii);
-                            pmlArr_[kk].Dz_end_->point(nx_-1,ii) = c_dzd * pmlArr_[kk].Dz_end_->point(nx_-1,ii) + c_dzh * ((0 - Hy_->point(nx_-1-1,ny_-1-ii)) - (Hx_->point(nx_-1,ny_-1-ii) - Hx_->point(nx_-1,ny_-1-ii-1)));
+                            pmlArr_[kk].Dz_end_->point(nx_-1,ii) = c_dzd * pmlArr_[kk].Dz_end_->point(nx_-1,ii) + c_dzh * ((-1.0 * Hy_->point(nx_-1-1,ny_-1-ii)) - (Hx_->point(nx_-1,ny_-1-ii) - Hx_->point(nx_-1,ny_-1-ii-1)));
                             Ez_->point(nx_-1,ny_-1-ii) = c_eze * Ez_->point(nx_-1,ny_-1-ii) + c_ezd1 * pmlArr_[kk].Dz_end_->point(nx_-1,ii) - c_ezd0 * dzstore;
 
                             eps = objArr_[phys_Ez_->point(0, ii)].dielectric(1.0);
@@ -2156,7 +2156,7 @@ void FDTDField::updateE()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             dzstore = pmlArr_[kk].Dz_->point(0,ii);
-                            pmlArr_[kk].Dz_->point(0,ii) = c_dzd * pmlArr_[kk].Dz_->point(0,ii) + c_dzh * ((Hy_->point(0,ii)-0) - (Hx_->point(0,ii)-Hx_->point(0,ii-1)));
+                            pmlArr_[kk].Dz_->point(0,ii) = c_dzd * pmlArr_[kk].Dz_->point(0,ii) + c_dzh * ((Hy_->point(0,ii)) - (Hx_->point(0,ii)-Hx_->point(0,ii-1)));
                             Ez_->point(0,ii) = c_eze * Ez_->point(0,ii) + c_ezd1 * pmlArr_[kk].Dz_->point(0,ii) - c_ezd0 * dzstore;
 
                             eps = objArr_[phys_Ez_->point(0, ny_-1-ii)].dielectric(1.0);
@@ -2166,7 +2166,7 @@ void FDTDField::updateE()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             dzstore = pmlArr_[kk].Dz_end_->point(0,ii);
-                            pmlArr_[kk].Dz_end_->point(0,ii) = c_dzd * pmlArr_[kk].Dz_end_->point(0,ii) + c_dzh * ((Hy_->point(0,ny_-1-ii) - 0) - (Hx_->point(0,ny_-1-ii) - Hx_->point(0,ny_-1-ii-1)));
+                            pmlArr_[kk].Dz_end_->point(0,ii) = c_dzd * pmlArr_[kk].Dz_end_->point(0,ii) + c_dzh * ((Hy_->point(0,ny_-1-ii)) - (Hx_->point(0,ny_-1-ii) - Hx_->point(0,ny_-1-ii-1)));
                             Ez_->point(0,ny_-1-ii) = c_eze * Ez_->point(0,ny_-1-ii) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,ii) - c_ezd0 * dzstore;
                         }
                     }
@@ -2180,8 +2180,8 @@ void FDTDField::updateE()
                             c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            double dzstore = pmlArr_[kk].Dz_->point(jj,0);
-                            pmlArr_[kk].Dz_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_->point(jj,0) + c_dzh * ((Hy_->point(jj,0)-Hy_->point(jj-1,0)) - (Hx_->point(jj,0)- 0)); // 0 is boundary condition
+                            complex<double> dzstore = pmlArr_[kk].Dz_->point(jj,0);
+                            pmlArr_[kk].Dz_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_->point(jj,0) + c_dzh * ((Hy_->point(jj,0)-Hy_->point(jj-1,0)) - (Hx_->point(jj,0))); // 0 is boundary condition
                             Ez_->point(jj,0) = c_eze * Ez_->point(jj,0) + c_ezd1 * pmlArr_[kk].Dz_->point(jj,0) - c_ezd0 * dzstore;
 
                             eps = objArr_[phys_Ez_->point(jj, ny_-1)].dielectric(1.0);
@@ -2191,7 +2191,7 @@ void FDTDField::updateE()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             dzstore = pmlArr_[kk].Dz_end_->point(jj,0);
-                            pmlArr_[kk].Dz_end_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_end_->point(jj,0) + c_dzh * ((Hy_->point(jj,ny_-1) - Hy_->point(jj - 1,ny_-1)) - (0 - Hx_->point(jj,ny_-1-1))); // 0 is boundary condtion
+                            pmlArr_[kk].Dz_end_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_end_->point(jj,0) + c_dzh * ((Hy_->point(jj,ny_-1) - Hy_->point(jj - 1,ny_-1)) - (-1.0 * Hx_->point(jj,ny_-1-1))); // 0 is boundary condtion
                             Ez_->point(jj,ny_-1) = c_eze * Ez_->point(jj,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(jj,0) - c_ezd0 * dzstore;
                         }
                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
@@ -2210,7 +2210,7 @@ void FDTDField::updateE()
                                 c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                double dzstore = pmlArr_[kk].Dz_->point(jj,ii);
+                                complex<double> dzstore = pmlArr_[kk].Dz_->point(jj,ii);
                                 pmlArr_[kk].Dz_->point(jj,ii) = c_dzd * pmlArr_[kk].Dz_->point(jj,ii) + c_dzh * ((Hy_->point(jj,ii)-Hy_->point(jj-1,ii)) - (Hx_->point(jj,ii)-Hx_->point(jj,ii-1)));
                                 Ez_->point(jj,ii) = c_eze * Ez_->point(jj,ii) + c_ezd1 * pmlArr_[kk].Dz_->point(jj,ii) - c_ezd0 * dzstore;
 
@@ -2239,8 +2239,8 @@ void FDTDField::updateE()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             //Bot Left
-                            double dzstore = pmlArr_[1].Dz_->point(0,0);
-                            pmlArr_[1].Dz_->point(0,0) = c_dzd * pmlArr_[1].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0)-0) - (Hx_->point(0,0)-0));
+                            complex<double> dzstore = pmlArr_[1].Dz_->point(0,0);
+                            pmlArr_[1].Dz_->point(0,0) = c_dzd * pmlArr_[1].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0)) - (Hx_->point(0,0)));
                             Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezd1 * pmlArr_[1].Dz_->point(0,0) - c_ezd0 * dzstore;
                             //Bot Right
                             eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
@@ -2250,7 +2250,7 @@ void FDTDField::updateE()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             dzstore = pmlArr_[1].Dz_end_->point(0,0);
-                            pmlArr_[1].Dz_end_->point(0,0) = c_dzd * pmlArr_[1].Dz_end_->point(0,0) + c_dzh * (0-Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0)-0);
+                            pmlArr_[1].Dz_end_->point(0,0) = c_dzd * pmlArr_[1].Dz_end_->point(0,0) + c_dzh * (-1.0*Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0));
                             Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezd1 * pmlArr_[1].Dz_end_->point(0,0) - c_ezd0 * dzstore;
                             //Top Right
                             eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
@@ -2260,7 +2260,7 @@ void FDTDField::updateE()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             dzstore = pmlArr_[1].Dz_end_->point(0,ny_-1);
-                            pmlArr_[1].Dz_end_->point(0,ny_-1) = c_dzd * pmlArr_[1].Dz_end_->point(0,ny_-1) + c_dzh * ((0-Hy_->point(nx_-1-1,ny_-1)) - (0-Hx_->point(nx_-1,ny_-1-1)));
+                            pmlArr_[1].Dz_end_->point(0,ny_-1) = c_dzd * pmlArr_[1].Dz_end_->point(0,ny_-1) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,ny_-1)) - (-1.0*Hx_->point(nx_-1,ny_-1-1)));
                             Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezd1 * pmlArr_[1].Dz_end_->point(0,ny_-1) - c_ezd0 * dzstore;
                             //Top Left
                             eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
@@ -2270,7 +2270,7 @@ void FDTDField::updateE()
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             dzstore = pmlArr_[1].Dz_->point(0,ny_-1);
-                            pmlArr_[1].Dz_->point(0,ny_-1) = c_dzd * pmlArr_[1].Dz_->point(0,ny_-1) + c_dzh * ((Hy_->point(0,ny_-1)-0) - (0-Hx_->point(0,ny_-1-1)));
+                            pmlArr_[1].Dz_->point(0,ny_-1) = c_dzd * pmlArr_[1].Dz_->point(0,ny_-1) + c_dzh * ((Hy_->point(0,ny_-1)) - (-1.0*Hx_->point(0,ny_-1-1)));
                             Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezd1 * pmlArr_[1].Dz_->point(0,ny_-1) - c_ezd0 * dzstore;
 
                             for(int ii = 1; ii < pmlArr_[1].thickness(); ii++)
@@ -2288,7 +2288,7 @@ void FDTDField::updateE()
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 //Bot Left
                                 dzstore = pmlArr_[1].Dz_->point(ii,0);
-                                pmlArr_[1].Dz_->point(ii,0) = c_dzd * pmlArr_[1].Dz_->point(ii,0) + c_dzh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)-0));
+                                pmlArr_[1].Dz_->point(ii,0) = c_dzd * pmlArr_[1].Dz_->point(ii,0) + c_dzh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)));
                                 Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezd1 * pmlArr_[1].Dz_->point(ii,0) - c_ezd0 * dzstore;
                                 //Bot Right
                                 eps = objArr_[phys_Ez_->point(nx_-1-ii,0)].dielectric(1.0);
@@ -2298,7 +2298,7 @@ void FDTDField::updateE()
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 dzstore = pmlArr_[1].Dz_end_->point(ii,0);
-                                pmlArr_[1].Dz_end_->point(ii,0) = c_dzd * pmlArr_[1].Dz_end_->point(ii,0) + c_dzh * ((Hy_->point(nx_-1-ii,0)-Hy_->point(nx_-1-ii-1,0)) - (Hx_->point(nx_-1-ii,0)-0));
+                                pmlArr_[1].Dz_end_->point(ii,0) = c_dzd * pmlArr_[1].Dz_end_->point(ii,0) + c_dzh * ((Hy_->point(nx_-1-ii,0)-Hy_->point(nx_-1-ii-1,0)) - (Hx_->point(nx_-1-ii,0)));
                                 Ez_->point(nx_-1-ii,0) = c_eze * Ez_->point(nx_-1-ii,0) + c_ezd1 * pmlArr_[1].Dz_end_->point(ii,0) - c_ezd0 * dzstore;
                                 //Top Right
                                 eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0);
@@ -2308,7 +2308,7 @@ void FDTDField::updateE()
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 dzstore = pmlArr_[1].Dz_end_->point(ii,ny_-1);
-                                pmlArr_[1].Dz_end_->point(ii,ny_-1) = c_dzd * pmlArr_[1].Dz_end_->point(ii,ny_-1) + c_dzh * ((Hy_->point(nx_-1-ii,ny_-1)-Hy_->point(nx_-1-ii-1,ny_-1)) - (0-Hx_->point(nx_-1-ii,ny_-1-1)));
+                                pmlArr_[1].Dz_end_->point(ii,ny_-1) = c_dzd * pmlArr_[1].Dz_end_->point(ii,ny_-1) + c_dzh * ((Hy_->point(nx_-1-ii,ny_-1)-Hy_->point(nx_-1-ii-1,ny_-1)) - (-1.0*Hx_->point(nx_-1-ii,ny_-1-1)));
                                 Ez_->point(nx_-1-ii,ny_-1) = c_eze * Ez_->point(nx_-1-ii,ny_-1) + c_ezd1 * pmlArr_[1].Dz_end_->point(ii,ny_-1) - c_ezd0 * dzstore;
                                 //Top Left
                                 eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1)].dielectric(1.0);
@@ -2318,7 +2318,7 @@ void FDTDField::updateE()
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 dzstore = pmlArr_[1].Dz_->point(ii,ny_-1);
-                                pmlArr_[1].Dz_->point(ii,ny_-1) = c_dzd * pmlArr_[1].Dz_->point(ii,ny_-1) + c_dzh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (0-Hx_->point(ii,ny_-1-1)));
+                                pmlArr_[1].Dz_->point(ii,ny_-1) = c_dzd * pmlArr_[1].Dz_->point(ii,ny_-1) + c_dzh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (-1.0*Hx_->point(ii,ny_-1-1)));
                                 Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezd1 * pmlArr_[1].Dz_->point(ii,ny_-1) - c_ezd0 * dzstore;
                             }
                             for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
@@ -2336,7 +2336,7 @@ void FDTDField::updateE()
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 //Bot Left
                                 dzstore = pmlArr_[1].Dz_->point(0,jj);
-                                pmlArr_[1].Dz_->point(0,jj) = c_dzd * pmlArr_[1].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj)-0) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
+                                pmlArr_[1].Dz_->point(0,jj) = c_dzd * pmlArr_[1].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj)) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
                                 Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezd1 * pmlArr_[1].Dz_->point(0,jj) - c_ezd0 * dzstore;
                                 //Bot Right
                                 eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
@@ -2346,7 +2346,7 @@ void FDTDField::updateE()
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 dzstore = pmlArr_[1].Dz_end_->point(0,jj);
-                                pmlArr_[1].Dz_end_->point(0,jj) = c_dzd * pmlArr_[1].Dz_end_->point(0,jj) + c_dzh * ((0-Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
+                                pmlArr_[1].Dz_end_->point(0,jj) = c_dzd * pmlArr_[1].Dz_end_->point(0,jj) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
                                 Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezd1 * pmlArr_[1].Dz_end_->point(0,jj) - c_ezd0 * dzstore;
                                 //Top Right
                                 eps = objArr_[phys_Ez_->point(nx_-1,ny_-1-jj)].dielectric(1.0);
@@ -2356,7 +2356,7 @@ void FDTDField::updateE()
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 dzstore = pmlArr_[1].Dz_end_->point(0,ny_-1-jj);
-                                pmlArr_[1].Dz_end_->point(0,ny_-1-jj) = c_dzd * pmlArr_[1].Dz_end_->point(0,ny_-1-jj) + c_dzh * ((0-Hy_->point((nx_-1) - 0-1,ny_-1-jj)) - (Hx_->point((nx_-1) - 0,ny_-1-jj)-Hx_->point((nx_-1) - 0,ny_-1-jj-1)));
+                                pmlArr_[1].Dz_end_->point(0,ny_-1-jj) = c_dzd * pmlArr_[1].Dz_end_->point(0,ny_-1-jj) + c_dzh * ((-1.0*Hy_->point((nx_-1) - 0-1,ny_-1-jj)) - (Hx_->point((nx_-1) - 0,ny_-1-jj)-Hx_->point((nx_-1) - 0,ny_-1-jj-1)));
                                 Ez_->point((nx_-1) - 0,ny_-1-jj) = c_eze * Ez_->point((nx_-1) - 0,ny_-1-jj) + c_ezd1 * pmlArr_[1].Dz_end_->point(0,ny_-1-jj) - c_ezd0 * dzstore;
                                 //Top Left
                                 eps = objArr_[phys_Ez_->point(0,ny_-1-jj)].dielectric(1.0);
@@ -2366,7 +2366,7 @@ void FDTDField::updateE()
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 dzstore = pmlArr_[1].Dz_->point(0,ny_-1-jj);
-                                pmlArr_[1].Dz_->point(0,ny_-1-jj) = c_dzd * pmlArr_[1].Dz_->point(0,ny_-1-jj) + c_dzh * ((Hy_->point(0,ny_-1-jj)-0) - (Hx_->point(0,ny_-1-jj)-Hx_->point(0,ny_-1-jj-1)));
+                                pmlArr_[1].Dz_->point(0,ny_-1-jj) = c_dzd * pmlArr_[1].Dz_->point(0,ny_-1-jj) + c_dzh * ((Hy_->point(0,ny_-1-jj)) - (Hx_->point(0,ny_-1-jj)-Hx_->point(0,ny_-1-jj-1)));
                                 Ez_->point(0,ny_-1-jj) = c_eze * Ez_->point(0,ny_-1-jj) + c_ezd1 * pmlArr_[1].Dz_->point(0,ny_-1-jj) - c_ezd0 * dzstore;
                             }
                             for(int ii = 1; ii < pmlArr_[1].thickness(); ii++)
