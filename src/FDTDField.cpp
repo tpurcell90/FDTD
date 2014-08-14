@@ -2451,7 +2451,7 @@ void FDTDField::step()
         switch ( srcArr_[kk].pol() )
         {
             case EZ: //if(srcArr[kk].pol() == EZ)
-                if(srcArr_[kk].prof().pulse(tcur_) != 0.0)
+                if(abs(srcArr_[kk].prof().pulse(tcur_).real()) > 1.0e-70)
                     Ez_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
                 break;
             case HX: //else if(srcArr[kk].pol() == HX)
@@ -2475,10 +2475,42 @@ void FDTDField::step()
         }
     }
     updateH();
+
     updateE();
+    for(int kk = 0; kk < srcArr_.size(); kk ++)
+    {
+        int ii = srcArr_[kk].loc()[0];
+        int jj = srcArr_[kk].loc()[1];
+        switch ( srcArr_[kk].pol() )
+        {
+            case EZ: //if(srcArr[kk].pol() == EZ)
+                if(abs(srcArr_[kk].prof().pulse(tcur_).real()) > 1.0e-70)
+                    Ez_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
+                break;
+            case HX: //else if(srcArr[kk].pol() == HX)
+                Hx_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
+                break;
+            case HY: //else if(srcArr[kk].pol() == HY)
+                Hy_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
+                break;
+            case HZ: //else if(srcArr[kk].pol() == HZ)
+                Hz_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
+                break;
+            case EX: //else if(srcArr[kk].pol() == EX)
+                Ex_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
+                break;
+            case EY: //else if(srcArr[kk].pol() == EY)
+                Ey_ -> point(ii,jj) = srcArr_[kk].prof().pulse(tcur_);
+                break;
+            default:
+                throw logic_error("reached a default case in a switch state that should never happen!");
+                break;
+        }
+    }
     for(int ii = 0; ii < dtcArr_.size(); ii ++)
         ouputField(dtcArr_[ii]);
-    if(abs(tcur_-floor(tcur_+0.5)) >1e7)
+    //if(abs(tcur_-floor(tcur_+0.5)) < 1e-7)
+    if(true)
     {
         string fname("fout/Hx/HxField_t" + to_string(static_cast<int>(tcur_/dt_))+".dat");
         Hx_->gridOut(fname);

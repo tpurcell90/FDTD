@@ -21,7 +21,7 @@ for f in onlyfiles:
     field_file.close()
     field = np.ndarray(shape=(max(x_val)+1,max(y_val)+1), dtype=float)
     for jj in range(len(x_val)):
-        field[x_val[jj],y_val[jj]] = field_val[jj]
+        field[x_val[jj],y_val[jj]] = np.log10(abs(field_val[jj]))
     field_slices.append(field)
     plt.imshow(field,extent=[-25,25,-25,25], aspect='auto')
     plt.colorbar()
