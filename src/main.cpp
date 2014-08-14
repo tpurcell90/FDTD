@@ -1,6 +1,7 @@
 #include <iostream>
 #include "Inputs.hpp"
 #include "FDTDField.hpp"
+#include "toBitMap.hpp"
 
 using namespace std;
 int main(int argc, char const *argv[])
@@ -23,8 +24,14 @@ int main(int argc, char const *argv[])
     */
     FF.initializeGrid();
     cout<<"AND INITIALIZED THE GRID!" << endl;
+    int count = 0;
     while(FF.getTime() <= IP.tMax())
+    {
         FF.step();
+        string filename = "fout/Ez/testImageT" + to_string(FF.getTime()) + ".bmp";
+        cout << filename << endl;
+        if (count++ % 10 == 0) fieldToBitMap(FF, filename);
+    }
     cout << "I am always in error\n";
     return 0;
 }
