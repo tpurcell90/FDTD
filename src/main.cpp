@@ -28,9 +28,9 @@ int main(int argc, char const *argv[])
     while(FF.getTime() <= IP.tMax())
     {
         FF.step();
-        string filename = "fout/Ez/testImageT" + to_string(FF.getTime()) + ".bmp";
-        cout << filename << endl;
-        if (count++ % 10 == 0) fieldToBitMap(FF, filename);
+        //string filename = "fout/Ez/testImageT" + to_string(FF.getTime()) + ".bmp";
+        //cout << filename << endl;
+        //if (count++ % 20 == 0) fieldToBitMap(FF, filename);
     }
     cout << "I am always in error\n";
     return 0;

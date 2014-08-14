@@ -28,7 +28,7 @@ void fieldToBitMap (FDTDField &F, string filename)
 
       //Adjust this to tune the color
       r = int(255.0*real((min + F.Ez_->point(i,j)))/(max-min));// //red[i][j]*255;
-      g = int(255.0*real((min + F.Ez_->point(i,j)))/(max-min)); ;//green[i][j]*255;
+      g = 0;//int(255.0*real((min + F.Ez_->point(i,j)))/(max-min)); ;//green[i][j]*255;
       b = 0;//blue[i][j]*255;
       if (r > 255) r=255;
       // if (g > 255) g=255;

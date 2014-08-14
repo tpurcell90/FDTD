@@ -1,30 +1,30 @@
 {
     "CompCell" : {
         "procs"         : 1,
-        "x_size"        : 5.0,
-        "y_size"        : 5.0,
+        "x_size"        : 20.0,
+        "y_size"        : 20.0,
         "z_size"        : 0.0,
         "res"           : 20,
         "courant"       : 0.5,
-        "tLim"          : 15.0
+        "tLim"          : 30.0
 
     },
     "PML" :  [
         {
-            "thickness" : 2.0,
-            "direction" : "Y"
+            "thickness" : 6.0,
+            "direction" : "X"
         },
         {
-            "thickness" : 2.0,
-            "direction" : "X"
+            "thickness" : 6.0,
+            "direction" : "Y"
         }
     ],
     "SourceList"  : [
 
         {
             "profile"   : "gaussian",
-            "fcen"      : 1.0,
-            "fwidth"    : 1.0,
+            "fcen"      : 2.0,
+            "fwidth"    : 0.5,
             "cutoff"    : 10.00,
             "t_start"   : 5.00,
             "size_x"    : 0.0,
@@ -39,32 +39,32 @@
     ],
     "DetectorList"  : [
         {
-            "loc_x"     : 0.75,
-            "loc_y"     : 0.75,
+            "loc_x"     : 1.00,
+            "loc_y"     : 0.00,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",
             "pol"       : "Ez"
         },
         {
-            "loc_x"     : -0.75,
-            "loc_y"     : -0.75,
+            "loc_x"     : 0.00,
+            "loc_y"     : 1.00,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",
             "pol"       : "Ez"
         },
         {
-            "loc_x"     : 0.75,
-            "loc_y"     : -0.75,
+            "loc_x"     : 0.00,
+            "loc_y"     : -1.00,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",
             "pol"       : "Ez"
         },
         {
-            "loc_x"     : -0.75,
-            "loc_y"     : 0.75,
+            "loc_x"     : -1.00,
+            "loc_y"     : 0.00,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",

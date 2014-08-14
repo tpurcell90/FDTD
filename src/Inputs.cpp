@@ -37,8 +37,8 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         pol_ = iter.second.get<string>("pol");
         Polarization pols = string2pol(pol_);
         vector<double> fxn ={};
-        fxn.push_back(iter.second.get<double>("fcen"));
-        fxn.push_back(iter.second.get<double>("fwidth"));
+        fxn.push_back(iter.second.get<double>("fcen") * courant_/res_);
+        fxn.push_back(iter.second.get<double>("fwidth")*res_/courant_);
         fxn.push_back(iter.second.get<double>("cutoff"));
         fxn.push_back(iter.second.get<double>("t_start"));
         // Now I need to write the funciton class for the source to take in

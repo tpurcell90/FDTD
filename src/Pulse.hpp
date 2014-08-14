@@ -80,13 +80,13 @@ public:
      * @param t current time
      * @return the gaussian pulse value
      */
-    const T gauss_pulse(double t)
+    const T gauss_pulse(double n)
     {
         std::complex<double> i(0.0,1.0);
         //if (t < param_[1]*param_[3])
    //return real(-1.0 / (imag*param_[0]) * (-1*param_[0]*imag + (param_[2]-t) / pow(2*param_[1],2)) * exp(-1*param_[0]*imag - pow(((param_[2]-t)/pow(2*param_[1],2.0)),2.0)));
-        if (t < param_[1] * param_[2])
-            return exp(-1.0 * pow((t - param_[1]*param_[2]/2.0)/(sqrt(2.0)*param_[1]),2.0))*exp(i * 2.0*M_PI * param_[0] * (t- param_[1]*param_[2]/2.0));
+        if (n < param_[1] * param_[2])
+            return exp(-1.0 * pow((n - param_[1]*param_[2]/2.0)/(sqrt(2.0)*param_[1]),2.0))*exp(i * 2.0*M_PI * param_[0] * (n- param_[1]*param_[2]/2.0));
         else
             return T(0.0);
         // look for the best way to calculate gaussian pulse

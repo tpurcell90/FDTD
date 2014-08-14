@@ -26,8 +26,6 @@ protected:
     //PMLTopBot tb_;
     double m_;
     double R0_;
-    std::vector<double> kappa_;
-    std::vector<double> sigma_;
     double sigmaMax_;
     double kappaMax_;
 
