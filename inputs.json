@@ -6,7 +6,7 @@
         "z_size"        : 0.0,
         "res"           : 20,
         "courant"       : 0.50,
-        "tLim"          : 3.0
+        "tLim"          : 30.0
 
     },
     "PML" :  [
@@ -22,10 +22,10 @@
     "SourceList"  : [
 
         {
-            "profile"   : "ricker",
-            "fcen"      : 0.5,
+            "profile"   : "gaussian",
+            "fcen"      : 1.00,
             "fwidth"    : 1.0,
-            "cutoff"    : 5.00,
+            "cutoff"    : 12.00,
             "t_start"   : 5.00,
             "size_x"    : 0.0,
             "size_y"    : 0.0,
@@ -39,16 +39,16 @@
     ],
     "DetectorList"  : [
         {
-            "loc_x"     : -0.5,
-            "loc_y"     : 0.00,
+            "loc_x"     : -0.75,
+            "loc_y"     : -0.50,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",
             "pol"       : "Ez"
         },
         {
-            "loc_x"     : 0.0,
-            "loc_y"     : 0.00,
+            "loc_x"     : 0.75,
+            "loc_y"     : 0.50,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",

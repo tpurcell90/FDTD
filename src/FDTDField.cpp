@@ -234,8 +234,8 @@ void FDTDField::ouputField(Detector<complex<double>> d) //iostream as input para
     switch ( d.pol() )
     {
         case EZ:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez_,eps).real()<< "\t" << setw(10) << srcArr_[0].prof().pulse(tcur_).real() << endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez_,eps).real()<< "\t" << setw(10) << srcArr_[0].prof().pulse(tcur_).real() << endl;
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez_,eps).real()<< "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez_,eps).real()<< "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
             break;
         case HX:
             outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hx_,eps)<< endl;
@@ -1500,25 +1500,9 @@ void FDTDField::updateE()
             {
                 for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
                 {
-                    /*eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
+                    eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
                     c_ezh = dt_/(eps*dx_);
-                    Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));*/
-                    if(ii == srcX && jj == srcY)
-                    {
-                        cout <<srcY << "\t" <<srcX<<endl;
-                        if(abs(real(srcArr_[0].prof().pulse(tcur_))) < -1.0e-70)
-                        {
-                            eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
-                            c_ezh = dt_/(eps*dx_);
-                            Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
-                        }
-                    }
-                    else
-                    {
-                        eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
-                        c_ezh = dt_/(eps*dx_);
-                        Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
-                    }
+                    Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                 }
             }
         }
@@ -2445,9 +2429,14 @@ void FDTDField::step()
     // Source
     for(int kk = 0; kk < srcArr_.size(); kk ++)
     {
-        if(abs(real(srcArr_[kk].prof().pulse(tcur_))) > 1.0e-70)
-            Ez_ -> point(srcArr_[kk].loc()[0],srcArr_[kk].loc()[1]) = srcArr_[kk].prof().pulse(tcur_);
-
+        if(abs(real(srcArr_[kk].prof().pulse(static_cast<double>(t_step_)))) > 1.0e-70)
+        {
+            int ii = srcArr_[kk].loc()[0];
+            int jj = srcArr_[kk].loc()[1];
+            double eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
+            double c_ezj = dt_/(eps);
+            Ez_ -> point(ii,jj) += c_ezj * srcArr_[kk].prof().pulse(static_cast<double>(t_step_));
+        }
         /*switch ( srcArr_[kk].pol() )
         {
             case EZ: //if(srcArr[kk].pol() == EZ)
@@ -2475,7 +2464,6 @@ void FDTDField::step()
         }*/
     }
     updateH();
-    cout << Ez_ ->point(srcArr_[0].loc()[0],srcArr_[0].loc()[1]) <<endl;
 
     updateE();
     for(int ii = 0; ii < dtcArr_.size(); ii ++)

@@ -37,10 +37,24 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         pol_ = iter.second.get<string>("pol");
         Polarization pols = string2pol(pol_);
         vector<double> fxn ={};
-        fxn.push_back(iter.second.get<double>("fcen") );
-        fxn.push_back(iter.second.get<double>("fwidth"));
-        fxn.push_back(iter.second.get<double>("cutoff"));
-        fxn.push_back(iter.second.get<double>("t_start"));
+        if(prof == gaussian)
+        {
+            fxn.push_back(iter.second.get<double>("fcen") * courant_/res_);
+            fxn.push_back(iter.second.get<double>("fwidth")*res_/courant_);
+            fxn.push_back(iter.second.get<double>("cutoff"));
+        }
+        else if(prof == continuous)
+        {
+            fxn.push_back(iter.second.get<double>("fcen") * courant_/res_);
+            fxn.push_back(iter.second.get<double>("cutoff"));
+            fxn.push_back(courant_/res_);
+        }
+        else if(prof == ricker)
+        {
+            fxn.push_back(iter.second.get<double>("fcen") * courant_/res_);
+            fxn.push_back(iter.second.get<double>("fwidth"));
+            fxn.push_back(iter.second.get<double>("cutoff"));
+        }
         // Now I need to write the funciton class for the source to take in
         double sz_x  = iter.second.get<double>("size_x");
         double sz_y  = iter.second.get<double>("size_y");
