@@ -22,3 +22,4 @@ autom4te.cache
 depcomp
 configure
 .dirstamp
+configure.ac

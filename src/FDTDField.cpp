@@ -5,7 +5,7 @@
 #include <iostream>
 #include <memory>
 #include <fstream>
-#include "mkl.h"
+//#include "mkl.h"
 // #include <random>
 // #include <stdexcept>
 // #include <string>
@@ -297,14 +297,15 @@ void FDTDField::updateH()
 
             for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
             {
-                copy_n(Hx_->point(xPML_,jj), nx_-2*xPML_, hstore);
+                /*copy_n(Hx_->point(xPML_,jj), nx_-2*xPML_, hstore);
                 transform(hstore.data(), hstore.data()+hstore.size(), hstore.data(),[&](double a){return a*c_hxh;})
                 zaxpy(nx_-2*xPML_, -c_hxe, &Ez_->point(xPML_,jj+1), 1, hstore.data(),1);
                 zaxpy(nx_-2*xPML_, c_hxe, &Ez_->point(xPML_,jj), 1, hstore.data(),1);
-                copy_n(hxstore_->point(xPML_,jj), nx_-2*xPML_, Hx_->point(xPML_,jj));
+                copy_n(hxstore_->point(xPML_,jj), nx_-2*xPML_, Hx_->point(xPML_,jj));*/
                 for(int ii = xPML_; ii < nx_-xPML_; ii++)
                 {
                     Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
+                    Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) - c_hxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
                 }
             }
             /*for(int ii = xPML_; ii < nx_-xPML_; ii++)
@@ -395,7 +396,6 @@ void FDTDField::updateH()
                         {
                             eps    = objArr_[phys_Hx_->point(0,jj)].dielectric(1.0);
                             sigxx  = pmlArr_[kk].sigma(0.0,eps);
-                            sigxy = pmlArr_[kk].sigma(0.5,eps);
                             c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                             c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                             c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -403,7 +403,6 @@ void FDTDField::updateH()
                             c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                             eps    = objArr_[phys_Hy_->point(0,jj)].dielectric(1.0);
-                            sigxx  = pmlArr_[kk].sigma(0.0,eps);
                             sigxy = pmlArr_[kk].sigma(0.5,eps);
                             c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                             c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
@@ -422,7 +421,6 @@ void FDTDField::updateH()
 
                             eps    = objArr_[phys_Hx_->point(nx_-1,jj)].dielectric(1.0);
                             sigxx  = pmlArr_[kk].sigma(0.0,eps);
-                            sigxy = pmlArr_[kk].sigma(0.5,eps);
                             c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                             c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                             c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -434,7 +432,6 @@ void FDTDField::updateH()
                         }
                         //Top left corner
                         eps    = objArr_[phys_Hy_->point(0,ny_-1)].dielectric(1.0);
-                        sigxx  = pmlArr_[kk].sigma(0.0,eps);
                         sigxy = pmlArr_[kk].sigma(0.5,eps);
                         c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                         c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
@@ -447,7 +444,6 @@ void FDTDField::updateH()
                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
                         {
                             eps    = objArr_[phys_Hy_->point(ii,ny_-1)].dielectric(1.0);
-                            sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                             sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
                             c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                             c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
@@ -464,7 +460,6 @@ void FDTDField::updateH()
                             {
                                 eps    = objArr_[phys_Hx_->point(ii,jj)].dielectric(1.0);
                                 sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -472,7 +467,6 @@ void FDTDField::updateH()
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                 eps    = objArr_[phys_Hy_->point(ii,jj)].dielectric(1.0);
-                                sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                                 sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
@@ -491,7 +485,6 @@ void FDTDField::updateH()
                                 Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[kk].By_->point(ii,jj) - c_hyb0 * bystore;
 
                                 eps    = objArr_[phys_Hx_->point(nx_-1-ii,jj)].dielectric(1.0);
-                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
                                 sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
@@ -501,7 +494,6 @@ void FDTDField::updateH()
 
                                 eps    = objArr_[phys_Hy_->point(nx_-1-ii,jj)].dielectric(1.0);
                                 sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
-                                sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -519,7 +511,6 @@ void FDTDField::updateH()
                             }
                             // for the top row only upadate Hy
                             eps    = objArr_[phys_Hy_->point(nx_-1-ii,ny_-1)].dielectric(1.0);
-                            sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                             sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
                             c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                             c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
@@ -537,6 +528,7 @@ void FDTDField::updateH()
                         for (int jj = yPML_; jj < ny_- yPML_; jj++)
                         {
                             eps    = objArr_[phys_Hx_->point(0,jj)].dielectric(1.0);
+                            sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                             c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                             c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                             c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -544,6 +536,7 @@ void FDTDField::updateH()
                             c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                             eps    = objArr_[phys_Hy_->point(0,jj)].dielectric(1.0);
+                            sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
                             c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                             c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                             c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -560,6 +553,7 @@ void FDTDField::updateH()
                             Hy_->point(0,jj) = c_hyh * Hy_->point(0,jj) + c_hyb1 * pmlArr_[kk].By_->point(0,jj) - c_hyb0 * bystore;
 
                             eps    = objArr_[phys_Hx_->point(nx_-1,jj)].dielectric(1.0);
+                            sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                             c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                             c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                             c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -574,12 +568,11 @@ void FDTDField::updateH()
                             for(int jj = yPML_; jj < ny_- yPML_; jj ++)
                             {
                                 //Update everything
-                                sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
                                 sigyx = 0.0;
                                 sigyy = 0.0;
 
                                 eps    = objArr_[phys_Hx_->point(ii,jj)].dielectric(1.0);
+                                sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -587,6 +580,7 @@ void FDTDField::updateH()
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                 eps    = objArr_[phys_Hy_->point(ii,jj)].dielectric(1.0);
+                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -603,6 +597,7 @@ void FDTDField::updateH()
                                 Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[kk].By_->point(ii,jj) - c_hyb0 * bystore;
 
                                 eps    = objArr_[phys_Hx_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -610,6 +605,7 @@ void FDTDField::updateH()
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                 eps    = objArr_[phys_Hy_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -687,12 +683,10 @@ void FDTDField::updateH()
                             {
                                 kapz = 1.0; sigz = 0.0; eps = 1.0;
                                 kapx = 1.0; kapy = 1.0;
-                                sigxx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
-                                sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
-                                sigyx = pmlArr_[1].sigma(0.5,eps);
-                                sigyy = pmlArr_[1].sigma(0.0,eps);
 
                                 eps    = objArr_[phys_Hx_->point(ii,0)].dielectric(1.0);
+                                sigxx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
+                                sigyy = pmlArr_[1].sigma(0.0,eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -700,6 +694,8 @@ void FDTDField::updateH()
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                 eps    = objArr_[phys_Hy_->point(ii,0)].dielectric(1.0);
+                                sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
+                                sigyx = pmlArr_[1].sigma(0.5,eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -714,8 +710,9 @@ void FDTDField::updateH()
                                 Hx_->point(ii,0) = c_hxh * Hx_->point(ii,0) + c_hxb1 * pmlArr_[0].Bx_->point(ii,0) - c_hxb0 * bxstore;
                                 Hy_->point(ii,0) = c_hyh * Hy_->point(ii,0) + c_hyb1 * pmlArr_[0].By_->point(ii,0) - c_hyb0 * bystore;
                                 //Bot Right
-                                sigxy = pmlArr_[0].sigma(static_cast<double>(ii) - 0.5,eps);
                                 eps    = objArr_[phys_Hx_->point(nx_-1-ii,0)].dielectric(1.0);
+                                sigxx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
+                                sigyy = pmlArr_[1].sigma(0.0,eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -723,6 +720,8 @@ void FDTDField::updateH()
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                 eps    = objArr_[phys_Hy_->point(nx_-1-ii,0)].dielectric(1.0);
+                                sigxy = pmlArr_[0].sigma(static_cast<double>(ii) - 0.5,eps);
+                                sigyy = pmlArr_[1].sigma(0.0,eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -737,6 +736,8 @@ void FDTDField::updateH()
                                 Hy_->point(nx_-1-ii,0) = c_hyh * Hy_->point(nx_-1-ii,0) + c_hyb1 * pmlArr_[0].By_end_->point(ii,0) - c_hyb0 * bystore;
                                 //Top Right
                                 eps    = objArr_[phys_Hy_->point(nx_-1-ii,ny_-1)].dielectric(1.0);
+                                sigxy = pmlArr_[0].sigma(static_cast<double>(ii) - 0.5,eps);
+                                sigyy = pmlArr_[1].sigma(0.0,eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -747,8 +748,9 @@ void FDTDField::updateH()
                                 pmlArr_[0].By_end_->point(ii,ny_-1) = c_byb * pmlArr_[0].By_end_->point(ii,ny_-1) + c_bye * (Ez_->point(nx_-1-ii+1,ny_-1)-Ez_->point(nx_-1-ii,ny_-1));
                                 Hy_->point(nx_-1-ii,ny_-1) = c_hyh * Hy_->point(nx_-1-ii,ny_-1) + c_hyb1 * pmlArr_[0].By_end_->point(ii,ny_-1) - c_hyb0 * bystore;
                                 //Top Left
-                                sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
                                 eps    = objArr_[phys_Hy_->point(ii,ny_-1)].dielectric(1.0);
+                                sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
+                                sigyy = pmlArr_[1].sigma(0.0,eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -763,12 +765,10 @@ void FDTDField::updateH()
                             {
                                 kapz = 1.0; sigz = 0.0; eps = 1.0;
                                 kapx = 1.0; kapy = 1.0;
-                                sigxx = pmlArr_[0].sigma(0.0,eps);
-                                sigxy = pmlArr_[0].sigma(0.5,eps);
-                                sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5,eps);
-                                sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
 
                                 eps    = objArr_[phys_Hx_->point(0,jj)].dielectric(1.0);
+                                sigxx = pmlArr_[0].sigma(0.0,eps);
+                                sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5,eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -776,6 +776,8 @@ void FDTDField::updateH()
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                 eps    = objArr_[phys_Hy_->point(0,jj)].dielectric(1.0);
+                                sigxy = pmlArr_[0].sigma(0.5,eps);
+                                sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -791,6 +793,8 @@ void FDTDField::updateH()
                                 Hy_->point(0,jj) = c_hyh * Hy_->point(0,jj) + c_hyb1 * pmlArr_[0].By_->point(0,jj) - c_hyb0 * bystore;
                                 //Bot Right
                                 eps    = objArr_[phys_Hx_->point(nx_-1,jj)].dielectric(1.0);
+                                sigxx = pmlArr_[0].sigma(0.0,eps);
+                                sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5,eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -800,8 +804,9 @@ void FDTDField::updateH()
                                 pmlArr_[0].Bx_end_->point(0,jj) = c_bxb * pmlArr_[0].Bx_end_->point(0,jj) - c_bxe * (Ez_->point(nx_-1,jj+1)-Ez_->point(nx_-1,jj));
                                 Hx_->point(nx_-1,jj) = c_hxh * Hx_->point(nx_-1,jj) + c_hxb1 * pmlArr_[0].Bx_end_->point(0,jj) - c_hxb0 * bxstore;
                                 //Top Rigt
-                                sigyx = pmlArr_[1].sigma(static_cast<double>(jj) - 0.5,eps);
                                 eps    = objArr_[phys_Hx_->point(nx_-1,jj)].dielectric(1.0);
+                                sigxx = pmlArr_[0].sigma(0.0,eps);
+                                sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5,eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -813,6 +818,8 @@ void FDTDField::updateH()
                                 Hx_->point(nx_-1,ny_-1-jj) = c_hxh * Hx_->point(nx_-1,ny_-1-jj) + c_hxb1 * pmlArr_[0].Bx_end_->point(0,ny_-1-jj) - c_hxb0 * bxstore;
                                 //Top Left
                                 eps    = objArr_[phys_Hx_->point(0,ny_-1-jj)].dielectric(1.0);
+                                sigxx = pmlArr_[0].sigma(0.0,eps);
+                                sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5,eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -820,6 +827,8 @@ void FDTDField::updateH()
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                 eps    = objArr_[phys_Hy_->point(0,ny_-1-jj)].dielectric(1.0);
+                                sigyx = pmlArr_[1].sigma(static_cast<double>(jj) - 0.5,eps);
+                                sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -838,12 +847,10 @@ void FDTDField::updateH()
                                 {
                                     kapz = 1.0; sigz = 0.0; eps = 1.0;
                                     kapx = 1.0; kapy = 1.0;
-                                    sigxx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
-                                    sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
-                                    sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5,eps);
-                                    sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
 
                                     eps    = objArr_[phys_Hx_->point(ii,jj)].dielectric(1.0);
+                                    sigxx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
+                                    sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5,eps);
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                     c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -851,6 +858,8 @@ void FDTDField::updateH()
                                     c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                     eps    = objArr_[phys_Hy_->point(ii,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
                                     c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                     c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -865,8 +874,9 @@ void FDTDField::updateH()
                                     Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[0].Bx_->point(ii,jj) - c_hxb0 * bxstore;
                                     Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[0].By_->point(ii,jj) - c_hyb0 * bystore;
                                     //Bot Right
-                                    sigxy = pmlArr_[0].sigma(static_cast<double>(ii) - 0.5,eps);
                                     eps    = objArr_[phys_Hx_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                    sigxx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
+                                    sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5,eps);
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                     c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -874,6 +884,8 @@ void FDTDField::updateH()
                                     c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                     eps    = objArr_[phys_Hy_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[0].sigma(static_cast<double>(ii) - 0.5,eps);
+                                    sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
                                     c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                     c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -887,8 +899,9 @@ void FDTDField::updateH()
                                     Hx_->point(nx_-1-ii,jj) = c_hxh * Hx_->point(nx_-1-ii,jj) + c_hxb1 * pmlArr_[0].Bx_end_->point(ii,jj) - c_hxb0 * bxstore;
                                     Hy_->point(nx_-1-ii,jj) = c_hyh * Hy_->point(nx_-1-ii,jj) + c_hyb1 * pmlArr_[0].By_end_->point(ii,jj) - c_hyb0 * bystore;
                                     //Top Right
-                                    sigyx = pmlArr_[1].sigma(static_cast<double>(jj) - 0.5,eps);
                                     eps    = objArr_[phys_Hx_->point(nx_-1-ii,ny_-1-jj)].dielectric(1.0);
+                                    sigyx = pmlArr_[1].sigma(static_cast<double>(jj) - 0.5,eps);
+                                    sigxx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                     c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -896,6 +909,8 @@ void FDTDField::updateH()
                                     c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                     eps    = objArr_[phys_Hy_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[0].sigma(static_cast<double>(ii) - 0.5,eps);
+                                    sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
                                     c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                     c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -908,8 +923,9 @@ void FDTDField::updateH()
                                     Hx_->point(nx_-1-ii,ny_-1-jj) = c_hxh * Hx_->point(nx_-1-ii,ny_-1-jj) + c_hxb1 * pmlArr_[0].Bx_end_->point(ii,ny_-1-jj) - c_hxb0 * bxstore;
                                     Hy_->point(nx_-1-ii,ny_-1-jj) = c_hyh * Hy_->point(nx_-1-ii,ny_-1-jj) + c_hyb1 * pmlArr_[0].By_end_->point(ii,ny_-1-jj) - c_hyb0 * bystore;
                                     //Top Left
-                                    sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
                                     eps    = objArr_[phys_Hx_->point(ii,ny_-1-jj)].dielectric(1.0);
+                                    sigyx = pmlArr_[1].sigma(static_cast<double>(jj) - 0.5,eps);
+                                    sigxx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                     c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -917,6 +933,8 @@ void FDTDField::updateH()
                                     c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                     eps    = objArr_[phys_Hy_->point(ii,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
                                     c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                     c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -1081,6 +1099,7 @@ void FDTDField::updateH()
                         for (int jj = xPML_; jj < nx_-xPML_; jj++)
                         {
                             eps    = objArr_[phys_Hx_->point(jj,0)].dielectric(1.0);
+                            sigyx = pmlArr_[kk].sigma(0.5,eps);
                             c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                             c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                             c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -1088,6 +1107,7 @@ void FDTDField::updateH()
                             c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                             eps    = objArr_[phys_Hy_->point(jj,0)].dielectric(1.0);
+                            sigyy = pmlArr_[kk].sigma(0.0,eps);
                             c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                             c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                             c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -1103,6 +1123,7 @@ void FDTDField::updateH()
                             Hy_->point(jj,0) = c_hyh * Hy_->point(jj,0) + c_hyb1 * pmlArr_[kk].By_->point(jj,0) - c_hyb0 * bystore;
 
                             eps    = objArr_[phys_Hy_->point(jj,ny_-1)].dielectric(1.0);
+                            sigyy = pmlArr_[kk].sigma(0.0,eps);
                             c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                             c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                             c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -1114,14 +1135,11 @@ void FDTDField::updateH()
                         }
                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
                         {
-                            sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                            sigyx = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
-
                             for(int jj = xPML_; jj < nx_-xPML_; jj ++)
                             {
                                 //Update everything
-                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii) + 0.5),eps);
                                 eps    = objArr_[phys_Hx_->point(jj,ii)].dielectric(1.0);
+                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii) + 0.5),eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -1129,6 +1147,7 @@ void FDTDField::updateH()
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                 eps    = objArr_[phys_Hy_->point(jj,ii)].dielectric(1.0);
+                                sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -1143,8 +1162,8 @@ void FDTDField::updateH()
                                 Hx_->point(jj,ii) = c_hxh * Hx_->point(jj,ii) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,ii) - c_hxb0 * bxstore;
                                 Hy_->point(jj,ii) = c_hyh * Hy_->point(jj,ii) + c_hyb1 * pmlArr_[kk].By_->point(jj,ii) - c_hyb0 * bystore;
 
-                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii)-0.5),eps);
                                 eps    = objArr_[phys_Hx_->point(jj,ny_-1-ii)].dielectric(1.0);
+                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii)-0.5),eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -1152,6 +1171,7 @@ void FDTDField::updateH()
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                 eps    = objArr_[phys_Hy_->point(jj,ny_-1-ii)].dielectric(1.0);
+                                sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -1171,12 +1191,10 @@ void FDTDField::updateH()
                         {
                             kapz = 1.0; sigz = 0.0; eps = 1.0;
                             kapx = 1.0; kapy = 1.0;
-                            sigxx = pmlArr_[1].sigma(0.0,eps);
-                            sigxy = pmlArr_[1].sigma(0.5,eps);
-                            sigyx = pmlArr_[0].sigma(0.5,eps);
-                            sigyy = pmlArr_[0].sigma(0.0,eps);
 
                             eps    = objArr_[phys_Hx_->point(0,0)].dielectric(1.0);
+                            sigxx = pmlArr_[1].sigma(0.0,eps);
+                            sigyx = pmlArr_[0].sigma(0.5,eps);
                             c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                             c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                             c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -1184,6 +1202,8 @@ void FDTDField::updateH()
                             c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                             eps    = objArr_[phys_Hy_->point(0,0)].dielectric(1.0);
+                            sigxy = pmlArr_[1].sigma(0.5,eps);
+                            sigyy = pmlArr_[0].sigma(0.0,eps);
                             c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                             c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                             c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -1199,6 +1219,8 @@ void FDTDField::updateH()
                             Hy_->point(0,0) = c_hyh * Hy_->point(0,0) + c_hyb1 * pmlArr_[1].By_->point(0,0) - c_hyb0 * bystore;
                             //Bot Right
                             eps    = objArr_[phys_Hx_->point(nx_-1,0)].dielectric(1.0);
+                            sigxx = pmlArr_[1].sigma(0.0,eps);
+                            sigyx = pmlArr_[0].sigma(0.5,eps);
                             c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                             c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                             c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -1211,6 +1233,8 @@ void FDTDField::updateH()
                             //Top Left
 
                             eps    = objArr_[phys_Hy_->point(0,ny_-1)].dielectric(1.0);
+                            sigxy = pmlArr_[1].sigma(0.5,eps);
+                            sigyy = pmlArr_[0].sigma(0.0,eps);
                             c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                             c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                             c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -1224,12 +1248,9 @@ void FDTDField::updateH()
                             {
                                 kapz = 1.0; sigz = 0.0; eps = 1.0;
                                 kapx = 1.0; kapy = 1.0;
-                                sigxx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
-                                sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
-                                sigyx = pmlArr_[0].sigma(0.5,eps);
-                                sigyy = pmlArr_[0].sigma(0.0,eps);
 
                                 eps    = objArr_[phys_Hx_->point(ii,0)].dielectric(1.0);
+
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -1237,6 +1258,8 @@ void FDTDField::updateH()
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                 eps    = objArr_[phys_Hy_->point(ii,0)].dielectric(1.0);
+                                sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
+                                sigyy = pmlArr_[0].sigma(0.0,eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -1251,8 +1274,9 @@ void FDTDField::updateH()
                                 Hx_->point(ii,0) = c_hxh * Hx_->point(ii,0) + c_hxb1 * pmlArr_[1].Bx_->point(ii,0) - c_hxb0 * bxstore;
                                 Hy_->point(ii,0) = c_hyh * Hy_->point(ii,0) + c_hyb1 * pmlArr_[1].By_->point(ii,0) - c_hyb0 * bystore;
                                 //Bot Right
-                                sigxy = pmlArr_[1].sigma(static_cast<double>(ii) - 0.5,eps);
                                 eps    = objArr_[phys_Hx_->point(ii,0)].dielectric(1.0);
+                                sigxx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                sigyx = pmlArr_[0].sigma(0.5,eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -1260,6 +1284,8 @@ void FDTDField::updateH()
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                 eps    = objArr_[phys_Hy_->point(ii,0)].dielectric(1.0);
+                                sigxy = pmlArr_[1].sigma(static_cast<double>(ii) - 0.5,eps);
+                                sigyy = pmlArr_[0].sigma(0.0,eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -1274,6 +1300,8 @@ void FDTDField::updateH()
                                 Hy_->point(nx_-1-ii,0) = c_hyh * Hy_->point(nx_-1-ii,0) + c_hyb1 * pmlArr_[1].By_end_->point(ii,0) - c_hyb0 * bystore;
                                 //Top Right
                                 eps    = objArr_[phys_Hy_->point(nx_-ii-1,ny_-1)].dielectric(1.0);
+                                sigxy = pmlArr_[1].sigma(static_cast<double>(ii) - 0.5,eps);
+                                sigyy = pmlArr_[0].sigma(0.0,eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -1284,8 +1312,9 @@ void FDTDField::updateH()
                                 pmlArr_[1].By_end_->point(ii,ny_-1) = c_byb * pmlArr_[1].By_end_->point(ii,ny_-1) + c_bye * (Ez_->point(nx_-1-ii+1,ny_-1)-Ez_->point(nx_-1-ii,ny_-1));
                                 Hy_->point(nx_-1-ii,ny_-1) = c_hyh * Hy_->point(nx_-1-ii,ny_-1) + c_hyb1 * pmlArr_[1].By_end_->point(ii,ny_-1) - c_hyb0 * bystore;
                                 //Top Left
-                                sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
                                 eps    = objArr_[phys_Hy_->point(ii,ny_-1)].dielectric(1.0);
+                                sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
+                                sigyy = pmlArr_[0].sigma(0.0,eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -1300,12 +1329,10 @@ void FDTDField::updateH()
                             {
                                 kapz = 1.0; sigz = 0.0; eps = 1.0;
                                 kapx = 1.0; kapy = 1.0;
-                                sigxx = pmlArr_[1].sigma(0.0,eps);
-                                sigxy = pmlArr_[1].sigma(0.5,eps);
-                                sigyx = pmlArr_[0].sigma(static_cast<double>(jj) + 0.5,eps);
-                                sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
 
                                 eps    = objArr_[phys_Hx_->point(0,jj)].dielectric(1.0);
+                                sigxx = pmlArr_[1].sigma(0.0,eps);
+                                sigyx = pmlArr_[0].sigma(static_cast<double>(jj) + 0.5,eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -1313,7 +1340,8 @@ void FDTDField::updateH()
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                 eps    = objArr_[phys_Hy_->point(0,jj)].dielectric(1.0);
-                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                sigxy = pmlArr_[1].sigma(0.5,eps);
+                                sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
                                 c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -1328,6 +1356,8 @@ void FDTDField::updateH()
                                 Hy_->point(0,jj) = c_hyh * Hy_->point(0,jj) + c_hyb1 * pmlArr_[1].By_->point(0,jj) - c_hyb0 * bystore;
                                 //Bot Right
                                 eps    = objArr_[phys_Hx_->point(nx_-1,jj)].dielectric(1.0);
+                                sigxx = pmlArr_[1].sigma(0.0,eps);
+                                sigyx = pmlArr_[0].sigma(static_cast<double>(jj) - 0.5,eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -1337,8 +1367,9 @@ void FDTDField::updateH()
                                 pmlArr_[1].Bx_end_->point(0,jj) = c_bxb * pmlArr_[1].Bx_end_->point(0,jj) - c_bxe * (Ez_->point(nx_-1,jj+1)-Ez_->point(nx_-1,jj));
                                 Hx_->point(nx_-1,jj) = c_hxh * Hx_->point(nx_-1,jj) + c_hxb1 * pmlArr_[1].Bx_end_->point(0,jj) - c_hxb0 * bxstore;
                                 //Top Rigt
-                                sigyx = pmlArr_[0].sigma(static_cast<double>(jj) - 0.5,eps);
                                 eps    = objArr_[phys_Hx_->point(nx_-1,jj)].dielectric(1.0);
+                                sigxy = pmlArr_[1].sigma(0.5,eps);
+                                sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -1350,6 +1381,8 @@ void FDTDField::updateH()
                                 Hx_->point(nx_-1,ny_-1-jj) = c_hxh * Hx_->point(nx_-1,ny_-1-jj) + c_hxb1 * pmlArr_[1].Bx_end_->point(0,ny_-1-jj) - c_hxb0 * bxstore;
                                 //Top Left
                                 eps    = objArr_[phys_Hx_->point(0,ny_-1-jj)].dielectric(1.0);
+                                sigxx = pmlArr_[1].sigma(0.0,eps);
+                                sigyx = pmlArr_[0].sigma(static_cast<double>(jj) - 0.5,eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -1357,6 +1390,8 @@ void FDTDField::updateH()
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                 eps    = objArr_[phys_Hy_->point(0,ny_-1-jj)].dielectric(1.0);
+                                sigxy = pmlArr_[1].sigma(0.5,eps);
+                                sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -1375,12 +1410,10 @@ void FDTDField::updateH()
                                 {
                                     kapz = 1.0; sigz = 0.0; eps = 1.0;
                                     kapx = 1.0; kapy = 1.0;
-                                    sigxx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
-                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
-                                    sigyx = pmlArr_[0].sigma(static_cast<double>(jj) + 0.5,eps);
-                                    sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
 
                                     eps    = objArr_[phys_Hx_->point(ii,jj)].dielectric(1.0);
+                                    sigxx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                    sigyx = pmlArr_[0].sigma(static_cast<double>(jj) + 0.5,eps);
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                     c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -1388,6 +1421,8 @@ void FDTDField::updateH()
                                     c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                     eps    = objArr_[phys_Hy_->point(ii,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
                                     c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                     c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -1402,8 +1437,9 @@ void FDTDField::updateH()
                                     Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[1].Bx_->point(ii,jj) - c_hxb0 * bxstore;
                                     Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[1].By_->point(ii,jj) - c_hyb0 * bystore;
                                     //Bot Right
-                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) - 0.5,eps);
                                     eps    = objArr_[phys_Hx_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                    sigxx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                    sigyx = pmlArr_[0].sigma(static_cast<double>(jj) + 0.5,eps);
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                     c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -1411,6 +1447,8 @@ void FDTDField::updateH()
                                     c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                     eps    = objArr_[phys_Hy_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) - 0.5,eps);
+                                    sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
                                     c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                     c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -1424,8 +1462,10 @@ void FDTDField::updateH()
                                     Hx_->point(nx_-1-ii,jj) = c_hxh * Hx_->point(nx_-1-ii,jj) + c_hxb1 * pmlArr_[1].Bx_end_->point(ii,jj) - c_hxb0 * bxstore;
                                     Hy_->point(nx_-1-ii,jj) = c_hyh * Hy_->point(nx_-1-ii,jj) + c_hyb1 * pmlArr_[1].By_end_->point(ii,jj) - c_hyb0 * bystore;
                                     //Top Right
-                                    sigyx = pmlArr_[0].sigma(static_cast<double>(jj) - 0.5,eps);
                                     eps    = objArr_[phys_Hx_->point(nx_-1-ii,ny_-1-jj)].dielectric(1.0);
+                                    sigyx = pmlArr_[0].sigma(static_cast<double>(jj) - 0.5,eps);
+                                    sigxx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                    c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                     c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -1433,6 +1473,8 @@ void FDTDField::updateH()
                                     c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                     eps    = objArr_[phys_Hy_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) - 0.5,eps);
+                                    sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
                                     c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                     c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -1445,8 +1487,9 @@ void FDTDField::updateH()
                                     Hx_->point(nx_-1-ii,ny_-1-jj) = c_hxh * Hx_->point(nx_-1-ii,ny_-1-jj) + c_hxb1 * pmlArr_[1].Bx_end_->point(ii,ny_-1-jj) - c_hxb0 * bxstore;
                                     Hy_->point(nx_-1-ii,ny_-1-jj) = c_hyh * Hy_->point(nx_-1-ii,ny_-1-jj) + c_hyb1 * pmlArr_[1].By_end_->point(ii,ny_-1-jj) - c_hyb0 * bystore;
                                     //Top Left
-                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
                                     eps    = objArr_[phys_Hx_->point(ii,ny_-1-jj)].dielectric(1.0);
+                                    sigyx = pmlArr_[0].sigma(static_cast<double>(jj) - 0.5,eps);
+                                    sigxx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                     c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -1454,6 +1497,8 @@ void FDTDField::updateH()
                                     c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                     eps    = objArr_[phys_Hy_->point(ii,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
                                     c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                     c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
