@@ -5,7 +5,8 @@
 #include <iostream>
 #include <memory>
 #include <fstream>
-//#include "mkl.h"
+#include <algorithm>
+#include "utilities.hpp"
 // #include <random>
 // #include <stdexcept>
 // #include <string>
@@ -114,7 +115,7 @@ void FDTDField::initializeGrid()
                         pt[1] += 0.5*dy_;
                         if(objArr_[kk].isObj(pt))
                             phys_Hz_->point(ii,jj) = kk;
-			            pt[0] -= 0.5*dx_;
+                        pt[0] -= 0.5*dx_;
                         if(objArr_[kk].isObj(pt))
                             phys_Ey_->point(ii,jj) = kk;
                     }
@@ -186,7 +187,8 @@ void FDTDField::initializeGrid()
                 {
                     for(int jj = 0; jj < ny_-1; jj ++)
                     {
-                        pt={(ii+0.5-(nx_-1)/2.0)*dx_,(jj-static_cast<doube>(ny_-1)/2.0)*dy_});
+                        pt[0] = (ii+0.5-(nx_-1)/2.0)*dx_;
+                        pt[1] = (jj-static_cast<double>(ny_-1)/2.0)*dy_;
                         if(objArr_[kk].isObj(pt)==true)
                             phys_Hy_->point(ii,jj) = kk;
                         pt[0] -= 0.5*dx_;
@@ -199,7 +201,8 @@ void FDTDField::initializeGrid()
                 }
                 for(int ii = 0; ii < nx_-1;ii ++)
                 {
-                    pt={(ii+0.5-(nx_-1)/2.0)*dx_,(ny_-1-(ny_-1)/2.0)*y_});
+                    pt[0]=(ii+0.5-(nx_-1)/2.0)*dx_;
+                    pt[1]=(ny_-1-(ny_-1)/2.0)*dy_;
                     if(objArr_[kk].isObj(pt)==true)
                         phys_Hy_->point(ii,ny_-1) = kk;
                     pt[0] -= 0.5*dx_;
@@ -208,14 +211,16 @@ void FDTDField::initializeGrid()
                 }
                 for(int jj = 0; jj < ny_-1; jj ++)
                 {
-                    pt={(nx_-1-(nx_-1)/2.0)*dx_,(jj-(ny_-1)/2.0)*dy_};
+                    pt[0]=(nx_-1-(nx_-1)/2.0)*dx_;
+                    pt[1]=(jj-(ny_-1)/2.0)*dy_;
                     if(objArr_[kk].isObj(pt)==true)
                         phys_Ez_->point(nx_-1,jj) = kk;
                     pt[1] += 0.5*dy_;
                     if(objArr_[kk].isObj(pt)==true)
                         phys_Hx_->point(nx_-1,jj) = kk;
                 }
-                pt={(nx_-1-(nx_-1)/2.0)*dx_,(ny_-1-(ny_-1)/2.0)*d_});
+                pt[0]=(nx_-1-(nx_-1)/2.0)*dx_;
+                pt[1]=(ny_-1-(ny_-1)/2.0)*dy_;
                 if(objArr_[kk].isObj(pt)==true)
                     phys_Ez_->point(nx_-1,ny_-1) = kk;
             }
@@ -293,19 +298,17 @@ void FDTDField::updateH()
         double c_hye = 1.0 * dt_/dy_;
         if(xPML_ != 0 && yPML_ !=0)
         {
-            vector<complex<double> hstore(nx_-2*xPML_,0.0);
-
+            vector<complex<double>> hstore(nx_-(2*xPML_),0.0);
             for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
             {
-                /*copy_n(Hx_->point(xPML_,jj), nx_-2*xPML_, hstore);
-                transform(hstore.data(), hstore.data()+hstore.size(), hstore.data(),[&](double a){return a*c_hxh;})
-                zaxpy(nx_-2*xPML_, -c_hxe, &Ez_->point(xPML_,jj+1), 1, hstore.data(),1);
-                zaxpy(nx_-2*xPML_, c_hxe, &Ez_->point(xPML_,jj), 1, hstore.data(),1);
-                copy_n(hxstore_->point(xPML_,jj), nx_-2*xPML_, Hx_->point(xPML_,jj));*/
+                copy_n(&Hx_->point(xPML_,jj), nx_-2*xPML_, hstore.data());
+                transform(hstore.data(), hstore.data()+hstore.size(), hstore.data(),[&](complex<double> &a){return a*c_hxh;});
+                zaxpy_(nx_-2*xPML_, -1.0*c_hxe, &Ez_->point(xPML_,jj+1), 1, hstore.data(),1);
+                zaxpy_(nx_-2*xPML_, c_hxe, &Ez_->point(xPML_,jj), 1, hstore.data(),1);
+                copy_n(hstore.data(), nx_-2*xPML_,&Hx_->point(xPML_,jj));
                 for(int ii = xPML_; ii < nx_-xPML_; ii++)
                 {
                     Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
-                    Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) - c_hxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
                 }
             }
             /*for(int ii = xPML_; ii < nx_-xPML_; ii++)
@@ -318,6 +321,7 @@ void FDTDField::updateH()
                 Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
             }*/
         }
+
         else if(xPML_ != 0)
         {
             for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
