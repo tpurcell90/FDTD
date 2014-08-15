@@ -1,21 +1,17 @@
 {
     "CompCell" : {
         "procs"         : 1,
-        "x_size"        : 5.0,
-        "y_size"        : 5.0,
+        "y_size"        : 26.0,
+        "x_size"        : 0.5,
         "z_size"        : 0.0,
-        "res"           : 20,
-        "courant"       : 0.50,
-        "tLim"          : 30.0
+        "res"           : 50,
+        "courant"       : 0.5,
+        "tLim"          : 300.0
 
     },
     "PML" :  [
         {
-            "thickness" : 2,
-            "direction" : "X"
-        },
-        {
-            "thickness" : 2,
+            "thickness" : 5.0,
             "direction" : "Y"
         }
     ],
@@ -23,34 +19,44 @@
 
         {
             "profile"   : "gaussian",
-            "fcen"      : 1.00,
-            "fwidth"    : 1.0,
-            "cutoff"    : 12.00,
-            "t_start"   : 5.00,
-            "size_x"    : 0.0,
-            "size_y"    : 0.0,
+            "fcen"      : 1.0,
+            "fwidth"    : 0.50,
+            "cutoff"    : 10.00,
+            "t_start"   : 0.00,
+            "size_y"    : 0.00,
+            "size_x"    : 0.50,
             "pol"       : "Ez",
-            "loc_x"     : 0.0,
-            "loc_y"     : 0.0
+            "loc_y"     : -7.00,
+            "loc_x"     : 0.00
         }
     ],
     "ObjectList": [
+        {
+            "shape"     : "block",
+            "loc_y"     : 8.50,
+            "loc_x"     : 0.00,
+            "size_y"    : 9.0,
+            "size_x"    : 0.5,
+            "eps"       : 1.00,
+            "pols"      : [
 
+            ]
+        }
     ],
     "DetectorList"  : [
         {
-            "loc_x"     : -0.75,
-            "loc_y"     : -0.50,
-            "size_x"    : 0.00,
+            "loc_y"     : 6.00,
+            "loc_x"     : 0.00,
             "size_y"    : 0.00,
+            "size_x"    : 0.00,
             "type"      : "field",
             "pol"       : "Ez"
         },
         {
-            "loc_x"     : 0.75,
-            "loc_y"     : 0.50,
-            "size_x"    : 0.00,
+            "loc_y"     : -6.00,
+            "loc_x"     : 0.00,
             "size_y"    : 0.00,
+            "size_x"    : 0.00,
             "type"      : "field",
             "pol"       : "Ez"
         }
