@@ -56,6 +56,7 @@ public:
     std::shared_ptr<Grid2D<int>> getPhysHz(){return phys_Hz_;}
 
 
+
     void ouputField(Detector<complex<double>> d);
     void step();
     void updateH();

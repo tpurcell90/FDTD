@@ -47,10 +47,7 @@ public:
      */
     UPML(int thickness, Direction d, double m, double R0, int nx, double dx, double dy, Polarization pol) : thickness_(thickness), d_(d), m_(m), R0_(R0)
     {
-        //double sigma0 = -log(R0_)*log(g_)/(2.0*dx*pow(g,static_cast<double>(thickness_)/dx) - 1.00); // eta should be in the denominator eta = sqrt(mu_0*Material(1,2)/epsilon_0/Material(1,1));
-        sigmaMax_ = -(m_+1)*log(R0_)/(2*thickness_*dx); // eta should be included
-        //double sigmaMax_ = (m+1.0)/(150.0*M_PI*dx);
-        //sigmaMax_ = 0.8*(m_+1)/dx;
+        sigmaMax_ = -(m_+1)*log(R0_)/(2*thickness_*dx); // eta should be included;
         kappaMax_ = 1.0;
         if(d == X)
         {

@@ -2,10 +2,15 @@
 #include "Inputs.hpp"
 #include "FDTDField.hpp"
 #include "toBitMap.hpp"
+#include <cstdio>
+#include <ctime>
 
 using namespace std;
 int main(int argc, char const *argv[])
 {
+    clock_t start;
+    double duration= 0.0;
+    start = clock();
     if (argc < 2)
     {
         cout << "Provide an input json file" << endl;
@@ -32,6 +37,8 @@ int main(int argc, char const *argv[])
         //cout << filename << endl;
         //if (count++ % 20 == 0) fieldToBitMap(FF, filename);
     }
+    duration = ( clock() - start ) / (double) CLOCKS_PER_SEC;
+    cout <<duration<<endl;
     cout << "I am always in error\n";
     return 0;
 }
