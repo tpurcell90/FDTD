@@ -301,28 +301,29 @@ void FDTDField::updateH()
         double c_hye = 1.0 * dt_/dy_;
         if(xPML_ != 0 && yPML_ !=0)
         {
-            vector<complex<double>> hstore(nx_-(2*xPML_),0.0);
+            vector<complex<double>> hxstore(nx_-(2*xPML_),0.0);
             for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
             {
-                /*copy_n(&Hx_->point(xPML_,jj), nx_-2*xPML_, hstore.data());
-                transform(hstore.data(), hstore.data()+hstore.size(), hstore.data(),[&](complex<double> &a){return a*c_hxh;});
-                zaxpy_(nx_-2*xPML_, -1.0*c_hxe, &Ez_->point(xPML_,jj+1), 1, hstore.data(),1);
-                zaxpy_(nx_-2*xPML_, c_hxe, &Ez_->point(xPML_,jj), 1, hstore.data(),1);
-                copy_n(hstore.data(), nx_-2*xPML_,&Hx_->point(xPML_,jj));*/
+                /*copy_n(&Hx_->point(xPML_,jj), nx_-2*xPML_, hxstore.data());
+                transform(hxstore.data(), hxstore.data()+hxstore.size(), hxstore.data(),[&](complex<double> &a){return a*c_hxh;});
+                zaxpy_(nx_-2*xPML_, -1.0*c_hxe, &Ez_->point(xPML_,jj+1), 1, hxstore.data(),1);
+                zaxpy_(nx_-2*xPML_, c_hxe, &Ez_->point(xPML_,jj), 1, hxstore.data(),1);
+                copy_n(hxstore.data(), nx_-2*xPML_,&Hx_->point(xPML_,jj));*/
                 for(int ii = xPML_; ii < nx_-xPML_; ii++)
                 {
                     Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) - c_hxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
                     Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
                 }
             }
-            /*for(int ii = xPML_; ii < nx_-xPML_; ii++)
+            /*vector<complex<double>> hystore(ny_-(2*yPML_),0.0);
+            for(int ii = xPML_; ii < nx_-xPML_; ii++)
             {
-                copy_n(Hy_->point(xPML_,jj), nx_-2*xPML_, hstore);
-                transform(hstore.data(), hstore.data()+hstore.size(), hstore.data(),[&](double a){return a*c_hxh;})
-                zaxpy(nx_-2*xPML_, -c_hye, &Ez_->point(xPML_,jj), 1, hstore.data(),1);
-                zaxpy(nx_-2*xPML_, c_hye, &Ez_->point(xPML_,jj), 1, hstore.data(),1);
-                copy_n(hxstore_->point(xPML_,jj), nx_-2*xPML_, Hx_->point(xPML_,jj));
-                Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
+                zcopy_(ny_-2*yPML_, &Hy_->point(ii,yPML_), nx_-1, hystore.data(),1);
+                transform(hystore.data(), hystore.data()+hystore.size(), hystore.data(),[&](complex<double> a){return a*c_hyh;});
+                zaxpy_(ny_-2*yPML_, c_hye, &Ez_->point(ii+1,yPML_), nx_, hystore.data(),1);
+                zaxpy_(ny_-2*yPML_, -1.0*c_hye, &Ez_->point(ii,yPML_), nx_, hystore.data(),1);
+                zcopy_(ny_-2*yPML_, hystore.data(), 1, &Hy_->point(ii,yPML_), nx_-1);
+                //Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
             }*/
         }
 

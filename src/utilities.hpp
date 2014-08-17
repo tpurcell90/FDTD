@@ -26,6 +26,8 @@ extern "C"
 
   void zaxpy_(const int*, const std::complex<double>*, const std::complex<double>*, const int*, const std::complex<double>*, const int*);
 
+  void zcopy_(const int*, const std::complex<double>*, const int*, std::complex<double>*, const int*);
+
   void zgemm3m_(const char* transa, const char* transb, const int* m, const int* n, const int* k,
                const std::complex<double>* alpha, const std::complex<double>* a, const int* lda, const std::complex<double>* b, const int* ldb,
                const std::complex<double>* beta, std::complex<double>* c, const int* ldc);
@@ -35,6 +37,7 @@ extern "C"
   int izamax_(const int*, const std::complex<double>*, const int*);
 
   int izamin_(const int*, const std::complex<double>*, const int*);
+
 }
 
 //LAPACK
@@ -87,6 +90,8 @@ namespace
   void daxpy_(const int a, const double b, const double* c, const int d, double* e, const int f) { ::daxpy_(&a,&b,c,&d,e,&f); }
 
   void zaxpy_(const int a, const std::complex<double> b, const std::complex<double>* c, const int d, std::complex<double>* e, const int f) { ::zaxpy_(&a,&b,c,&d,e,&f); }
+
+  void zcopy_(const int a, const std::complex<double>* b, const int c, std::complex<double>* d, const int e) { ::zcopy_(&a,b,&c,d,&e);}
 
   void zgemm3m_(const char* transa, const char* transb, const int m, const int n, const int k,
                  const std::complex<double> alpha, const std::complex<double>* a, const int lda, const std::complex<double>* b, const int ldb,
