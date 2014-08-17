@@ -4,13 +4,13 @@ import os,sys
 from os import listdir
 from os.path import isfile, join
 
-mypath = "/home/tap620/git/FDTD/fout/Ez"
+mypath = "/home/tap620/git/FDTD/fout/Hx"
 onlyfiles = [ f for f in listdir(mypath) if isfile(join(mypath,f)) ]
 field_slices = []
 ii = 0
 for f in onlyfiles:
     print(ii)
-    field_file = open('fout/Ez/'+f)
+    field_file = open('fout/Hx/'+f)
     x_val = []
     y_val = []
     field_val = []
@@ -21,11 +21,11 @@ for f in onlyfiles:
     field_file.close()
     field = np.ndarray(shape=(max(x_val)+1,max(y_val)+1), dtype=float)
     for jj in range(len(x_val)):
-        field[x_val[jj],y_val[jj]] = np.log10(abs(field_val[jj]))
+        field[x_val[jj],y_val[jj]] = field_val[jj]
     field_slices.append(field)
     plt.imshow(field,extent=[-25,25,-25,25], aspect='auto')
     plt.colorbar()
-    plt.savefig('fout/Ez/img/'+f[:-4] + ".png")
+    plt.savefig('fout/Hx/img/'+f[:-4] + ".png")
     plt.clf()
     ii +=1
     del field, field_val,x_val,y_val

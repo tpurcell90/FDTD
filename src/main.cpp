@@ -5,12 +5,14 @@
 #include <cstdio>
 #include <ctime>
 
+
 using namespace std;
 int main(int argc, char const *argv[])
 {
     clock_t start;
     double duration= 0.0;
     start = clock();
+
     if (argc < 2)
     {
         cout << "Provide an input json file" << endl;

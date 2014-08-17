@@ -4,9 +4,10 @@
         "y_size"        : 20.0,
         "x_size"        : 15.0,
         "z_size"        : 0.0,
-        "res"           : 20,
+        "res"           : 50,
         "courant"       : 0.5,
-        "tLim"          : 125.0
+        "tLim"          : 0.0,
+        "precalcPML"    : true
 
     },
     "PML" :  [

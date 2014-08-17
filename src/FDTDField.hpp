@@ -31,6 +31,7 @@ protected:
     std::vector<Detector<complex<double>>> dtcArr_;
     std::vector<UPML<complex<double>>> pmlArr_;
     bool periodic_;
+    bool precalcPML_;
 
 
 public:

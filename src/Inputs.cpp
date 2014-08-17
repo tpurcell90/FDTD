@@ -2,7 +2,6 @@
 #include <iostream>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
-#include <boost/foreach.hpp>
 #include <iterator>
 #include <vector>
 
@@ -30,6 +29,7 @@ programInputs::programInputs(std::string fn) : filename_(fn)
     output_base_ = IP.get<string>("CompCell.output", "dtc_out");
     periodic_    = IP.get<bool>("CompCell.PBC", false);
     tMax_        = IP.get<double>("CompCell.tLim",100.0);
+    pmlCalc_     = IP.get<bool>("precalcPML",true);
     for (auto& iter : IP.get_child("SourceList"))
     {
         string p = iter.second.get<string>("profile");
@@ -81,13 +81,13 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         {
             xPml_ = find_pt(thickness);
             //pmlArr_.push_back(UPML<double>(thickness,d, 4.0, exp(-16), find_pt(y_size_),1.0/res_,1.0/res_,string2pol(pol_)));
-            pmlArr_.push_back(UPML<complex<double>>(xPml_,d, 4.0, exp(-16), find_pt(y_size_) + 1,1.0/res_,1.0/res_,string2pol(pol_)));
+            pmlArr_.push_back(UPML<complex<double>>(xPml_,d, 4.0, exp(-16), find_pt(y_size_) + 1,1.0/res_,1.0/res_,string2pol(pol_),pmlCalc_));
         }
         else if(d == Y)
         {
             yPml_ = find_pt(thickness);
             //pmlArr_.push_back(UPML<double>(thickness,d, 4.0, exp(-16), find_pt(x_size_),1.0/res_,1.0/res_,string2pol(pol_)));
-            pmlArr_.push_back(UPML<complex<double>>(yPml_,d, 4.0, exp(-16), find_pt(x_size_) + 1,1.0/res_,1.0/res_,string2pol(pol_)));
+            pmlArr_.push_back(UPML<complex<double>>(yPml_,d, 4.0, exp(-16), find_pt(x_size_) + 1,1.0/res_,1.0/res_,string2pol(pol_),pmlCalc_));
         }
         else if (d == Z)
             throw logic_error("While yes we could have a thrid dimension to run, I have yet to be implimented to do such a thing. So please accept this error as my sincerest appology.");
