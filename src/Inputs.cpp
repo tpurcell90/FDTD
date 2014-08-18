@@ -29,7 +29,7 @@ programInputs::programInputs(std::string fn) : filename_(fn)
     output_base_ = IP.get<string>("CompCell.output", "dtc_out");
     periodic_    = IP.get<bool>("CompCell.PBC", false);
     tMax_        = IP.get<double>("CompCell.tLim",100.0);
-    pmlCalc_     = IP.get<bool>("precalcPML",true);
+    pmlCalc_     = IP.get<bool>("CompCell.precalcPML",true);
     for (auto& iter : IP.get_child("SourceList"))
     {
         string p = iter.second.get<string>("profile");

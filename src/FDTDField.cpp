@@ -40,19 +40,8 @@ FDTDField::FDTDField(programInputs &IP)
     xPML_       = IP.xPml_;
     yPML_       = IP.yPml_;
     precalcPML_ = IP.pmlCalc_;
-    cout << precalcPML_ <<endl;
     periodic_   = IP.periodic_;
 
-    // Initialize all the PML vectors to empty
-
-    /*for(int ii =0; ii < dtcArr_.size(); ii++)
-    {
-        ofstream outFile;
-        outFile.open(dtcArr_[ii].outfile());
-        outFile << "Output for the " << to_string(ii) << "th detector" << endl;
-        outFile.close();
-    }*/
-    // Create the Grids. Do I need a null constructor for the set that I disregard?
     if(IP.pol_.compare("Hz") == 0 || IP.pol_.compare("Ey") == 0 || IP.pol_.compare("Ex") == 0)
     {
         if(periodic_)
@@ -232,7 +221,6 @@ void FDTDField::initializeGrid()
     }
     if(precalcPML_ == true)
     {
-        cout << "hi"<<endl;
         for(int kk = 0; kk < pmlArr_.size(); kk++)
         {
             double eps=0.0;
@@ -1669,21 +1657,24 @@ void FDTDField::updateH()
         double c_hye = 1.0 * dt_/dy_;
         if(xPML_ != 0 && yPML_ !=0)
         {
-            vector<complex<double>> hxstore(nx_-(2*xPML_),0.0);
-            for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
+            /*for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
             {
-                /*copy_n(&Hx_->point(xPML_,jj), nx_-2*xPML_, hxstore.data());
-                transform(hxstore.data(), hxstore.data()+hxstore.size(), hxstore.data(),[&](complex<double> &a){return a*c_hxh;});
-                zaxpy_(nx_-2*xPML_, -1.0*c_hxe, &Ez_->point(xPML_,jj+1), 1, hxstore.data(),1);
-                zaxpy_(nx_-2*xPML_, c_hxe, &Ez_->point(xPML_,jj), 1, hxstore.data(),1);
-                copy_n(hxstore.data(), nx_-2*xPML_,&Hx_->point(xPML_,jj));*/
                 for(int ii = xPML_; ii < nx_-xPML_; ii++)
                 {
                     Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) - c_hxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
                     Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
                 }
+            }*/
+            vector<complex<double>> hxstore(nx_-(2*xPML_),0.0);
+            for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
+            {
+                copy_n(&Hx_->point(xPML_,jj), nx_-2*xPML_, hxstore.data());
+                transform(hxstore.data(), hxstore.data()+hxstore.size(), hxstore.data(),[&](complex<double> &a){return a*c_hxh;});
+                zaxpy_(nx_-2*xPML_, -1.0*c_hxe, &Ez_->point(xPML_,jj+1), 1, hxstore.data(),1);
+                zaxpy_(nx_-2*xPML_, c_hxe, &Ez_->point(xPML_,jj), 1, hxstore.data(),1);
+                copy_n(hxstore.data(), nx_-2*xPML_,&Hx_->point(xPML_,jj));
             }
-            /*vector<complex<double>> hystore(ny_-(2*yPML_),0.0);
+            vector<complex<double>> hystore(ny_-(2*yPML_),0.0);
             for(int ii = xPML_; ii < nx_-xPML_; ii++)
             {
                 zcopy_(ny_-2*yPML_, &Hy_->point(ii,yPML_), nx_-1, hystore.data(),1);
@@ -1691,13 +1682,30 @@ void FDTDField::updateH()
                 zaxpy_(ny_-2*yPML_, c_hye, &Ez_->point(ii+1,yPML_), nx_, hystore.data(),1);
                 zaxpy_(ny_-2*yPML_, -1.0*c_hye, &Ez_->point(ii,yPML_), nx_, hystore.data(),1);
                 zcopy_(ny_-2*yPML_, hystore.data(), 1, &Hy_->point(ii,yPML_), nx_-1);
-                //Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
-            }*/
+            }
         }
 
         else if(xPML_ != 0)
         {
-            for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
+            vector<complex<double>> hxstore(nx_-(2*xPML_),0.0);
+            vector<complex<double>> hystore(ny_,0.0);
+            for(int jj = 0; jj < ny_-1; jj++)
+            {
+                copy_n(&Hx_->point(xPML_,jj), nx_-2*xPML_, hxstore.data());
+                transform(hxstore.data(), hxstore.data()+hxstore.size(), hxstore.data(),[&](complex<double> &a){return a*c_hxh;});
+                zaxpy_(nx_-2*xPML_, -1.0*c_hxe, &Ez_->point(xPML_,jj+1), 1, hxstore.data(),1);
+                zaxpy_(nx_-2*xPML_, c_hxe, &Ez_->point(xPML_,jj), 1, hxstore.data(),1);
+                copy_n(hxstore.data(), nx_-2*xPML_,&Hx_->point(xPML_,jj));
+            }
+            for(int ii = xPML_; ii < nx_-xPML_; ii++)
+            {
+                zcopy_(ny_, &Hy_->point(ii,0), nx_-1, hystore.data(),1);
+                transform(hystore.data(), hystore.data()+hystore.size(), hystore.data(),[&](complex<double> a){return a*c_hyh;});
+                zaxpy_(ny_, c_hye, &Ez_->point(ii+1,0), nx_, hystore.data(),1);
+                zaxpy_(ny_, -1.0*c_hye, &Ez_->point(ii,0), nx_, hystore.data(),1);
+                zcopy_(ny_, hystore.data(), 1, &Hy_->point(ii,0), nx_-1);
+            }
+            /*for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
             {
                 for(int jj = 0; jj < ny_ - 1; jj ++)
                 {
@@ -1708,11 +1716,29 @@ void FDTDField::updateH()
             for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
             {
                 Hy_->point(ii,ny_-1) = c_hyh * Hy_->point(ii,ny_-1) + c_hye * (Ez_->point(ii+1,ny_-1)-Ez_->point(ii,ny_-1));
-            }
+            }*/
         }
         else if(yPML_ != 0)
         {
-            for(int ii = 0; ii < nx_ - 1; ii ++)
+            vector<complex<double>> hxstore(nx_,0.0);
+            for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
+            {
+                copy_n(&Hx_->point(0,jj), nx_, hxstore.data());
+                transform(hxstore.data(), hxstore.data()+hxstore.size(), hxstore.data(),[&](complex<double> &a){return a*c_hxh;});
+                zaxpy_(nx_, -1.0*c_hxe, &Ez_->point(0,jj+1), 1, hxstore.data(),1);
+                zaxpy_(nx_, c_hxe, &Ez_->point(0,jj), 1, hxstore.data(),1);
+                copy_n(hxstore.data(), nx_,&Hx_->point(0,jj));
+            }
+            vector<complex<double>> hystore(ny_-(2*yPML_),0.0);
+            for(int ii = 0; ii < nx_-1; ii++)
+            {
+                zcopy_(ny_-2*yPML_, &Hy_->point(ii,yPML_), nx_-1, hystore.data(),1);
+                transform(hystore.data(), hystore.data()+hystore.size(), hystore.data(),[&](complex<double> a){return a*c_hyh;});
+                zaxpy_(ny_-2*yPML_, c_hye, &Ez_->point(ii+1,yPML_), nx_, hystore.data(),1);
+                zaxpy_(ny_-2*yPML_, -1.0*c_hye, &Ez_->point(ii,yPML_), nx_, hystore.data(),1);
+                zcopy_(ny_-2*yPML_, hystore.data(), 1, &Hy_->point(ii,yPML_), nx_-1);
+            }
+            /*for(int ii = 0; ii < nx_ - 1; ii ++)
             {
                 for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
                 {
@@ -1723,11 +1749,29 @@ void FDTDField::updateH()
             for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
             {
                 Hx_->point(nx_-1,jj) = c_hxh * Hx_->point(nx_-1,jj) - c_hxe * (Ez_->point(nx_-1,jj+1)-Ez_->point(nx_-1,jj));
-            }
+            }*/
         }
         else
         {
-            for(int ii = 0; ii < nx_ - 1; ii ++)
+            vector<complex<double>> hxstore(nx_,0.0);
+            vector<complex<double>> hystore(ny_,0.0);
+            for(int jj = 0; jj < ny_-1; jj ++)
+            {
+                copy_n(&Hx_->point(0,jj), nx_, hxstore.data());
+                transform(hxstore.data(), hxstore.data()+hxstore.size(), hxstore.data(),[&](complex<double> &a){return a*c_hxh;});
+                zaxpy_(nx_, -1.0*c_hxe, &Ez_->point(0,jj+1), 1, hxstore.data(),1);
+                zaxpy_(nx_, c_hxe, &Ez_->point(0,jj), 1, hxstore.data(),1);
+                copy_n(hxstore.data(), nx_,&Hx_->point(0,jj));
+            }
+            for(int ii = 0; ii < nx_ -1; ii++)
+            {
+                zcopy_(ny_, &Hy_->point(ii,0), nx_-1, hystore.data(),1);
+                transform(hystore.data(), hystore.data()+hystore.size(), hystore.data(),[&](complex<double> a){return a*c_hyh;});
+                zaxpy_(ny_, c_hye, &Ez_->point(ii+1,0), nx_, hystore.data(),1);
+                zaxpy_(ny_, -1.0*c_hye, &Ez_->point(ii,0), nx_, hystore.data(),1);
+                zcopy_(ny_, hystore.data(), 1, &Hy_->point(ii,0), nx_-1);
+            }
+            /*for(int ii = 0; ii < nx_ - 1; ii ++)
             {
                 for(int jj = 0; jj < ny_ - 1; jj ++)
                 {
@@ -1743,7 +1787,7 @@ void FDTDField::updateH()
             for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
             {
                 Hy_->point(ii,ny_-1) = c_hyh * Hy_->point(ii,ny_-1) + c_hye * (Ez_->point(ii+1,ny_-1)-Ez_->point(ii,ny_-1));
-            }
+            }*/
         }
     }
     if(precalcPML_ ==false)
