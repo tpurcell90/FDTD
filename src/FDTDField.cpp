@@ -1596,7 +1596,6 @@ void FDTDField::initializeGrid()
                     break;
             }
         }
-
     }
 }
 /**
@@ -1747,130 +1746,149 @@ void FDTDField::updateH()
             }
         }
     }
-
-    if(Ez_)
+    if(precalcPML_ ==false)
     {
-        for(int kk = 0; kk < pmlArr_.size(); kk++)
+        if(Ez_)
         {
-            double eps=0.0;
-            double kapx = 1.0; double kapy = 1.0; double kapz = 1.0;
-            double sigz = 0.0;
-            switch(pmlArr_[kk].d())
+            for(int kk = 0; kk < pmlArr_.size(); kk++)
             {
-                case X:
+                double eps=0.0;
+                double kapx = 1.0; double kapy = 1.0; double kapz = 1.0;
+                double sigz = 0.0;
+                switch(pmlArr_[kk].d())
                 {
-                    double sigxx=0.0;
-                    double sigxy=0.0;
-                    double sigyx = 0.0;
-                    double sigyy = 0.0;
-
-                    double c_bxb=0.0; double c_bxe=0.0; double c_hxh=0.0; double c_hxb0=0.0; double c_hxb1=0.0;
-                    double c_byb=0.0; double c_bye=0.0; double c_hyh=0.0;double c_hyb0=0.0; double c_hyb1=0.0;
-
-                    complex<double> bxstore(0.0,0.0); complex<double> bystore(0.0,0.0);
-                    if (yPML_== 0)
+                    case X:
                     {
-                        for (int jj = 0; jj < ny_-1; jj++)
-                        {
-                            eps    = objArr_[phys_Hx_->point(0,jj)].dielectric(1.0);
-                            sigxx  = pmlArr_[kk].sigma(0.0,eps);
-                            c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                            c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                            c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                        double sigxx=0.0;
+                        double sigxy=0.0;
+                        double sigyx = 0.0;
+                        double sigyy = 0.0;
 
-                            eps    = objArr_[phys_Hy_->point(0,jj)].dielectric(1.0);
+                        double c_bxb=0.0; double c_bxe=0.0; double c_hxh=0.0; double c_hxb0=0.0; double c_hxb1=0.0;
+                        double c_byb=0.0; double c_bye=0.0; double c_hyh=0.0;double c_hyb0=0.0; double c_hyb1=0.0;
+
+                        complex<double> bxstore(0.0,0.0); complex<double> bystore(0.0,0.0);
+                        if (yPML_== 0)
+                        {
+                            for (int jj = 0; jj < ny_-1; jj++)
+                            {
+                                eps    = objArr_[phys_Hx_->point(0,jj)].dielectric(1.0);
+                                sigxx  = pmlArr_[kk].sigma(0.0,eps);
+                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                eps    = objArr_[phys_Hy_->point(0,jj)].dielectric(1.0);
+                                sigxy = pmlArr_[kk].sigma(0.5,eps);
+                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                //Update both on the left side and Hx on the right
+                                bxstore = pmlArr_[kk].Bx_->point(0,jj);
+                                bystore = pmlArr_[kk].By_->point(0,jj);
+
+                                pmlArr_[kk].Bx_->point(0,jj) = c_bxb * pmlArr_[kk].Bx_->point(0,jj) - c_bxe * (Ez_->point(0,jj+1)-Ez_->point(0,jj));
+                                pmlArr_[kk].By_->point(0,jj) = c_byb * pmlArr_[kk].By_->point(0,jj) + c_bye * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
+
+                                Hx_->point(0,jj) = c_hxh * Hx_->point(0,jj) + c_hxb1 * pmlArr_[kk].Bx_->point(0,jj) - c_hxb0 * bxstore;
+                                Hy_->point(0,jj) = c_hyh * Hy_->point(0,jj) + c_hyb1 * pmlArr_[kk].By_->point(0,jj) - c_hyb0 * bystore;
+
+                                eps    = objArr_[phys_Hx_->point(nx_-1,jj)].dielectric(1.0);
+                                sigxx  = pmlArr_[kk].sigma(0.0,eps);
+                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                bxstore = pmlArr_[kk].Bx_end_->point(0,jj);
+                                pmlArr_[kk].Bx_end_->point(0,jj) = c_bxb * pmlArr_[kk].Bx_end_->point(0,jj) - c_bxe * (Ez_->point(nx_-1, jj+1)-Ez_->point(nx_-1,jj));
+                                Hx_->point(nx_-1,jj) = c_hxh * Hx_->point(nx_-1,jj) + c_hxb1 * pmlArr_[kk].Bx_end_->point(0,jj) - c_hxb0 * bxstore;
+                            }
+                            //Top left corner
+                            eps    = objArr_[phys_Hy_->point(0,ny_-1)].dielectric(1.0);
                             sigxy = pmlArr_[kk].sigma(0.5,eps);
                             c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                             c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                             c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
                             c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                             c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            //Update both on the left side and Hx on the right
-                            bxstore = pmlArr_[kk].Bx_->point(0,jj);
-                            bystore = pmlArr_[kk].By_->point(0,jj);
-
-                            pmlArr_[kk].Bx_->point(0,jj) = c_bxb * pmlArr_[kk].Bx_->point(0,jj) - c_bxe * (Ez_->point(0,jj+1)-Ez_->point(0,jj));
-                            pmlArr_[kk].By_->point(0,jj) = c_byb * pmlArr_[kk].By_->point(0,jj) + c_bye * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
-
-                            Hx_->point(0,jj) = c_hxh * Hx_->point(0,jj) + c_hxb1 * pmlArr_[kk].Bx_->point(0,jj) - c_hxb0 * bxstore;
-                            Hy_->point(0,jj) = c_hyh * Hy_->point(0,jj) + c_hyb1 * pmlArr_[kk].By_->point(0,jj) - c_hyb0 * bystore;
-
-                            eps    = objArr_[phys_Hx_->point(nx_-1,jj)].dielectric(1.0);
-                            sigxx  = pmlArr_[kk].sigma(0.0,eps);
-                            c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                            c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                            c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                            bxstore = pmlArr_[kk].Bx_end_->point(0,jj);
-                            pmlArr_[kk].Bx_end_->point(0,jj) = c_bxb * pmlArr_[kk].Bx_end_->point(0,jj) - c_bxe * (Ez_->point(nx_-1, jj+1)-Ez_->point(nx_-1,jj));
-                            Hx_->point(nx_-1,jj) = c_hxh * Hx_->point(nx_-1,jj) + c_hxb1 * pmlArr_[kk].Bx_end_->point(0,jj) - c_hxb0 * bxstore;
-                        }
-                        //Top left corner
-                        eps    = objArr_[phys_Hy_->point(0,ny_-1)].dielectric(1.0);
-                        sigxy = pmlArr_[kk].sigma(0.5,eps);
-                        c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                        c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                        c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                        c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                        c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                        bystore = pmlArr_[kk].By_->point(0,ny_-1);
-                        pmlArr_[kk].By_->point(0,ny_-1) = c_byb * pmlArr_[kk].By_->point(0,ny_-1) + c_bye * (Ez_->point(0+1,ny_-1)-Ez_->point(0,ny_-1));
-                        Hy_->point(0,ny_-1) = c_hyh * Hy_->point(0,ny_-1) + c_hyb1 * pmlArr_[kk].By_->point(0,ny_-1) - c_hyb0 * bystore;
-                        for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
-                        {
-                            eps    = objArr_[phys_Hy_->point(ii,ny_-1)].dielectric(1.0);
-                            sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
-                            c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                            c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-                            //top row
-                            bystore = pmlArr_[kk].By_->point(ii,ny_-1);
-                            pmlArr_[kk].By_->point(ii,ny_-1) = c_byb * pmlArr_[kk].By_->point(ii,ny_-1) + c_bye * (Ez_->point(ii+1,ny_-1)-Ez_->point(ii,ny_-1));
-                            Hy_->point(ii,ny_-1) = c_hyh * Hy_->point(ii,ny_-1) + c_hyb1 * pmlArr_[kk].By_->point(ii,ny_-1) - c_hyb0 * bystore;
-
-                            for(int jj = 0; jj < ny_-1; jj ++)
+                            bystore = pmlArr_[kk].By_->point(0,ny_-1);
+                            pmlArr_[kk].By_->point(0,ny_-1) = c_byb * pmlArr_[kk].By_->point(0,ny_-1) + c_bye * (Ez_->point(0+1,ny_-1)-Ez_->point(0,ny_-1));
+                            Hy_->point(0,ny_-1) = c_hyh * Hy_->point(0,ny_-1) + c_hyb1 * pmlArr_[kk].By_->point(0,ny_-1) - c_hyb0 * bystore;
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
                             {
-                                eps    = objArr_[phys_Hx_->point(ii,jj)].dielectric(1.0);
-                                sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-                                eps    = objArr_[phys_Hy_->point(ii,jj)].dielectric(1.0);
+                                eps    = objArr_[phys_Hy_->point(ii,ny_-1)].dielectric(1.0);
                                 sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
                                 c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                                 c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                //Update everything
 
-                                bxstore = pmlArr_[kk].Bx_->point(ii,jj);
-                                bystore = pmlArr_[kk].By_->point(ii,jj);
+                                //top row
+                                bystore = pmlArr_[kk].By_->point(ii,ny_-1);
+                                pmlArr_[kk].By_->point(ii,ny_-1) = c_byb * pmlArr_[kk].By_->point(ii,ny_-1) + c_bye * (Ez_->point(ii+1,ny_-1)-Ez_->point(ii,ny_-1));
+                                Hy_->point(ii,ny_-1) = c_hyh * Hy_->point(ii,ny_-1) + c_hyb1 * pmlArr_[kk].By_->point(ii,ny_-1) - c_hyb0 * bystore;
 
-                                pmlArr_[kk].Bx_->point(ii,jj) = c_bxb * pmlArr_[kk].Bx_->point(ii,jj) - c_bxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
-                                pmlArr_[kk].By_->point(ii,jj) = c_byb * pmlArr_[kk].By_->point(ii,jj) + c_bye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
+                                for(int jj = 0; jj < ny_-1; jj ++)
+                                {
+                                    eps    = objArr_[phys_Hx_->point(ii,jj)].dielectric(1.0);
+                                    sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
-                                Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[kk].Bx_->point(ii,jj) - c_hxb0 * bxstore;
-                                Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[kk].By_->point(ii,jj) - c_hyb0 * bystore;
+                                    eps    = objArr_[phys_Hy_->point(ii,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    //Update everything
 
-                                eps    = objArr_[phys_Hx_->point(nx_-1-ii,jj)].dielectric(1.0);
-                                sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    bxstore = pmlArr_[kk].Bx_->point(ii,jj);
+                                    bystore = pmlArr_[kk].By_->point(ii,jj);
 
-                                eps    = objArr_[phys_Hy_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                    pmlArr_[kk].Bx_->point(ii,jj) = c_bxb * pmlArr_[kk].Bx_->point(ii,jj) - c_bxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
+                                    pmlArr_[kk].By_->point(ii,jj) = c_byb * pmlArr_[kk].By_->point(ii,jj) + c_bye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
+
+                                    Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[kk].Bx_->point(ii,jj) - c_hxb0 * bxstore;
+                                    Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[kk].By_->point(ii,jj) - c_hyb0 * bystore;
+
+                                    eps    = objArr_[phys_Hx_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                    sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    eps    = objArr_[phys_Hy_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
+                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    bxstore = pmlArr_[kk].Bx_end_->point(ii,jj);
+                                    bystore = pmlArr_[kk].By_end_->point(ii,jj);
+
+                                    pmlArr_[kk].Bx_end_->point(ii,jj) = c_bxb * pmlArr_[kk].Bx_end_->point(ii,jj) - c_bxe * (Ez_->point(nx_-1-ii, jj+1)-Ez_->point(nx_-1-ii,jj));
+                                    pmlArr_[kk].By_end_->point(ii,jj) = c_byb * pmlArr_[kk].By_end_->point(ii,jj) + c_bye * (Ez_->point(nx_-1-ii+1, jj)-Ez_->point(nx_-1-ii,jj));
+
+                                    Hx_->point(nx_-1-ii,jj) = c_hxh * Hx_->point((nx_-1) - ii,jj) + c_hxb1 * pmlArr_[kk].Bx_end_->point(ii,jj) - c_hxb0 * bxstore;
+                                    Hy_->point(nx_-1-ii,jj) = c_hyh * Hy_->point((nx_-1) - ii,jj) + c_hyb1 * pmlArr_[kk].By_end_->point(ii,jj) - c_hyb0 * bystore;
+                                }
+                                // for the top row only upadate Hy
+                                eps    = objArr_[phys_Hy_->point(nx_-1-ii,ny_-1)].dielectric(1.0);
                                 sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
@@ -1878,272 +1896,17 @@ void FDTDField::updateH()
                                 c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                                 c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
 
-                                bxstore = pmlArr_[kk].Bx_end_->point(ii,jj);
-                                bystore = pmlArr_[kk].By_end_->point(ii,jj);
-
-                                pmlArr_[kk].Bx_end_->point(ii,jj) = c_bxb * pmlArr_[kk].Bx_end_->point(ii,jj) - c_bxe * (Ez_->point(nx_-1-ii, jj+1)-Ez_->point(nx_-1-ii,jj));
-                                pmlArr_[kk].By_end_->point(ii,jj) = c_byb * pmlArr_[kk].By_end_->point(ii,jj) + c_bye * (Ez_->point(nx_-1-ii+1, jj)-Ez_->point(nx_-1-ii,jj));
-
-                                Hx_->point(nx_-1-ii,jj) = c_hxh * Hx_->point((nx_-1) - ii,jj) + c_hxb1 * pmlArr_[kk].Bx_end_->point(ii,jj) - c_hxb0 * bxstore;
-                                Hy_->point(nx_-1-ii,jj) = c_hyh * Hy_->point((nx_-1) - ii,jj) + c_hyb1 * pmlArr_[kk].By_end_->point(ii,jj) - c_hyb0 * bystore;
-                            }
-                            // for the top row only upadate Hy
-                            eps    = objArr_[phys_Hy_->point(nx_-1-ii,ny_-1)].dielectric(1.0);
-                            sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
-                            c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                            c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-                            bystore = pmlArr_[kk].By_end_->point(ii,ny_-1);
-                            pmlArr_[kk].By_end_->point(ii,ny_-1) = c_byb * pmlArr_[kk].By_end_->point(ii,ny_-1) + c_bye * (Ez_->point(nx_-1-ii+1, ny_-1)-Ez_->point(nx_-1-ii,ny_-1));
-                            Hy_->point(nx_-1-ii,ny_-1) = c_hyh * Hy_->point(nx_-1-ii,ny_-1) + c_hyb1 * pmlArr_[kk].By_end_->point(ii,ny_-1) - c_hyb0 * bystore;
-                        }
-                    }
-                    else
-                    {
-                        for (int jj = yPML_; jj < ny_- yPML_; jj++)
-                        {
-                            eps    = objArr_[phys_Hx_->point(0,jj)].dielectric(1.0);
-                            sigxx  = pmlArr_[kk].sigma(0.0,eps);
-                            c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                            c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                            c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-                            eps    = objArr_[phys_Hy_->point(0,jj)].dielectric(1.0);
-                            sigxy  = pmlArr_[kk].sigma(0.5,eps);
-                            c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                            c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            //Update both on the left side and Hx on the right
-                            bxstore = pmlArr_[kk].Bx_->point(0,jj);
-                            bystore = pmlArr_[kk].By_->point(0,jj);
-
-                            pmlArr_[kk].Bx_->point(0,jj) = c_bxb * pmlArr_[kk].Bx_->point(0,jj) - c_bxe * (Ez_->point(0,jj+1)-Ez_->point(0,jj));
-                            pmlArr_[kk].By_->point(0,jj) = c_byb * pmlArr_[kk].By_->point(0,jj) + c_bye * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
-
-                            Hx_->point(0,jj) = c_hxh * Hx_->point(0,jj) + c_hxb1 * pmlArr_[kk].Bx_->point(0,jj) - c_hxb0 * bxstore;
-                            Hy_->point(0,jj) = c_hyh * Hy_->point(0,jj) + c_hyb1 * pmlArr_[kk].By_->point(0,jj) - c_hyb0 * bystore;
-
-                            eps    = objArr_[phys_Hx_->point(nx_-1,jj)].dielectric(1.0);
-                            sigxx = pmlArr_[kk].sigma(0.0,eps);
-                            c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                            c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                            c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                            bxstore = pmlArr_[kk].Bx_end_->point(0,jj);
-                            pmlArr_[kk].Bx_end_->point(0,jj) = c_bxb * pmlArr_[kk].Bx_end_->point(0,jj) - c_bxe * (Ez_->point(nx_-1, jj+1)-Ez_->point(nx_-1,jj));
-                            Hx_->point(nx_-1,jj) = c_hxh * Hx_->point(nx_-1,jj) + c_hxb1 * pmlArr_[kk].Bx_end_->point(0,jj) - c_hxb0 * bxstore;
-                        }
-                        for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
-                        {
-                            for(int jj = yPML_; jj < ny_- yPML_; jj ++)
-                            {
-                                //Update everything
-                                eps    = objArr_[phys_Hx_->point(ii,jj)].dielectric(1.0);
-                                sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-                                eps    = objArr_[phys_Hy_->point(ii,jj)].dielectric(1.0);
-                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
-                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-                                bxstore = pmlArr_[kk].Bx_->point(ii,jj);
-                                bystore = pmlArr_[kk].By_->point(ii,jj);
-
-                                pmlArr_[kk].Bx_->point(ii,jj) = c_bxb * pmlArr_[kk].Bx_->point(ii,jj) - c_bxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
-                                pmlArr_[kk].By_->point(ii,jj) = c_byb * pmlArr_[kk].By_->point(ii,jj) + c_bye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
-
-                                Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[kk].Bx_->point(ii,jj) - c_hxb0 * bxstore;
-                                Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[kk].By_->point(ii,jj) - c_hyb0 * bystore;
-
-                                eps    = objArr_[phys_Hx_->point(nx_-1-ii,jj)].dielectric(1.0);
-                                sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-                                eps    = objArr_[phys_Hy_->point(nx_-1-ii,jj)].dielectric(1.0);
-                                sigxy  = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
-                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-                                bxstore = pmlArr_[kk].Bx_end_->point(ii,jj);
-                                bystore = pmlArr_[kk].By_end_->point(ii,jj);
-
-                                pmlArr_[kk].Bx_end_->point(ii,jj) = c_bxb * pmlArr_[kk].Bx_end_->point(ii,jj) - c_bxe * (Ez_->point(nx_-1-ii, jj+1)-Ez_->point(nx_-1-ii,jj));
-                                pmlArr_[kk].By_end_->point(ii,jj) = c_byb * pmlArr_[kk].By_end_->point(ii,jj) + c_bye * (Ez_->point(nx_-1-ii+1, jj)-Ez_->point(nx_-1-ii,jj));
-
-                                Hx_->point(nx_-1-ii,jj) = c_hxh * Hx_->point(nx_-1-ii,jj) + c_hxb1 * pmlArr_[kk].Bx_end_->point(ii,jj) - c_hxb0 * bxstore;
-                                Hy_->point(nx_-1-ii,jj) = c_hyh * Hy_->point(nx_-1-ii,jj) + c_hyb1 * pmlArr_[kk].By_end_->point(ii,jj) - c_hyb0 * bystore;
+                                bystore = pmlArr_[kk].By_end_->point(ii,ny_-1);
+                                pmlArr_[kk].By_end_->point(ii,ny_-1) = c_byb * pmlArr_[kk].By_end_->point(ii,ny_-1) + c_bye * (Ez_->point(nx_-1-ii+1, ny_-1)-Ez_->point(nx_-1-ii,ny_-1));
+                                Hy_->point(nx_-1-ii,ny_-1) = c_hyh * Hy_->point(nx_-1-ii,ny_-1) + c_hyb1 * pmlArr_[kk].By_end_->point(ii,ny_-1) - c_hyb0 * bystore;
                             }
                         }
-                        if(kk==0)
+                        else
                         {
-                            kapz = 1.0; sigz = 0.0; eps = 1.0;
-                            kapx = 1.0; kapy = 1.0;
-
-                            eps    = objArr_[phys_Hx_->point(0,0)].dielectric(1.0);
-                            sigxx = pmlArr_[0].sigma(0.0,eps);
-                            sigyx = pmlArr_[1].sigma(0.5,eps);
-                            c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                            c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                            c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-                            eps    = objArr_[phys_Hy_->point(0,0)].dielectric(1.0);
-                            sigxy = pmlArr_[0].sigma(0.5,eps);
-                            sigyy = pmlArr_[1].sigma(0.0,eps);
-                            c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                            c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-                            // Bot Left
-                            bxstore = pmlArr_[0].Bx_->point(0,0);
-                            bystore = pmlArr_[0].By_->point(0,0);
-                            pmlArr_[0].Bx_->point(0,0) = c_bxb * pmlArr_[0].Bx_->point(0,0) - c_bxe * (Ez_->point(0,0+1)-Ez_->point(0,0));
-                            pmlArr_[0].By_->point(0,0) = c_byb * pmlArr_[0].By_->point(0,0) + c_bye * (Ez_->point(0+1,0)-Ez_->point(0,0));
-                            Hx_->point(0,0) = c_hxh * Hx_->point(0,0) + c_hxb1 * pmlArr_[0].Bx_->point(0,0) - c_hxb0 * bxstore;
-                            Hy_->point(0,0) = c_hyh * Hy_->point(0,0) + c_hyb1 * pmlArr_[0].By_->point(0,0) - c_hyb0 * bystore;
-                            //Bot Right
-                            eps    = objArr_[phys_Hx_->point(nx_-1,0)].dielectric(1.0);
-                            sigxx = pmlArr_[0].sigma(0.0,eps);
-                            sigyx = pmlArr_[1].sigma(0.5,eps);
-                            c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                            c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                            c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-                            bxstore = pmlArr_[0].Bx_end_->point(0,0);
-                            pmlArr_[0].Bx_end_->point(0,0) = c_bxb * pmlArr_[0].Bx_end_->point(0,0) - c_bxe * (Ez_->point(nx_-1,0+1)-Ez_->point(nx_-1,0));
-                            Hx_->point(nx_-1,0) = c_hxh * Hx_->point(nx_-1,0) + c_hxb1 * pmlArr_[0].Bx_end_->point(0,0) - c_hxb0 * bxstore;
-                            //Top Left
-
-                            eps    = objArr_[phys_Hy_->point(0,ny_-1)].dielectric(1.0);
-                            sigxy = pmlArr_[0].sigma(0.5,eps);
-                            sigyy = pmlArr_[1].sigma(0.0,eps);
-                            c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                            c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-                            bystore = pmlArr_[0].By_->point(0,ny_-1);
-                            pmlArr_[0].By_->point(0,ny_-1) = c_byb * pmlArr_[0].By_->point(0,ny_-1) + c_bye * (Ez_->point(0+1,ny_-1)-Ez_->point(0,ny_-1));
-                            Hy_->point(0,ny_-1) = c_hyh * Hy_->point(0,ny_-1) + c_hyb1 * pmlArr_[0].By_->point(0,ny_-1) - c_hyb0 * bystore;
-                            for(int ii = 1; ii < pmlArr_[0].thickness(); ii++)
+                            for (int jj = yPML_; jj < ny_- yPML_; jj++)
                             {
-                                kapz = 1.0; sigz = 0.0; eps = 1.0;
-                                kapx = 1.0; kapy = 1.0;
-
-                                eps    = objArr_[phys_Hx_->point(ii,0)].dielectric(1.0);
-                                sigxx  = pmlArr_[0].sigma(static_cast<double>(ii),eps);
-                                sigyx  = pmlArr_[0].sigma(0.5,eps);
-                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-                                eps    = objArr_[phys_Hy_->point(ii,0)].dielectric(1.0);
-                                sigxy  = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
-                                sigyy  = pmlArr_[0].sigma(0.0,eps);
-                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-                                // Bot Left
-                                bxstore = pmlArr_[0].Bx_->point(ii,0);
-                                bystore = pmlArr_[0].By_->point(ii,0);
-                                pmlArr_[0].Bx_->point(ii,0) = c_bxb * pmlArr_[0].Bx_->point(ii,0) - c_bxe * (Ez_->point(ii,0+1)-Ez_->point(ii,0));
-                                pmlArr_[0].By_->point(ii,0) = c_byb * pmlArr_[0].By_->point(ii,0) + c_bye * (Ez_->point(ii+1,0)-Ez_->point(ii,0));
-                                Hx_->point(ii,0) = c_hxh * Hx_->point(ii,0) + c_hxb1 * pmlArr_[0].Bx_->point(ii,0) - c_hxb0 * bxstore;
-                                Hy_->point(ii,0) = c_hyh * Hy_->point(ii,0) + c_hyb1 * pmlArr_[0].By_->point(ii,0) - c_hyb0 * bystore;
-                                //Bot Right
-                                eps    = objArr_[phys_Hx_->point(nx_-1-ii,0)].dielectric(1.0);
-                                sigxx  = pmlArr_[0].sigma(static_cast<double>(ii),eps);
-                                sigyx  = pmlArr_[0].sigma(0.5,eps);
-                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-                                eps    = objArr_[phys_Hy_->point(nx_-1-ii,0)].dielectric(1.0);
-                                sigxy = pmlArr_[0].sigma(static_cast<double>(ii) - 0.5,eps);
-                                sigyy = pmlArr_[1].sigma(0.0,eps);
-                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-                                bxstore = pmlArr_[0].Bx_end_->point(ii,0);
-                                bystore = pmlArr_[0].By_end_->point(ii,0);
-                                pmlArr_[0].Bx_end_->point(ii,0) = c_bxb * pmlArr_[0].Bx_end_->point(ii,0) - c_bxe * (Ez_->point(nx_-1-ii,0+1)-Ez_->point(nx_-1-ii,0));
-                                pmlArr_[0].By_end_->point(ii,0) = c_byb * pmlArr_[0].By_end_->point(ii,0) + c_bye * (Ez_->point(nx_-1-ii+1,0)-Ez_->point(nx_-1-ii,0));
-                                Hx_->point(nx_-1-ii,0) = c_hxh * Hx_->point(nx_-1-ii,0) + c_hxb1 * pmlArr_[0].Bx_end_->point(ii,0) - c_hxb0 * bxstore;
-                                Hy_->point(nx_-1-ii,0) = c_hyh * Hy_->point(nx_-1-ii,0) + c_hyb1 * pmlArr_[0].By_end_->point(ii,0) - c_hyb0 * bystore;
-                                //Top Right
-                                eps    = objArr_[phys_Hy_->point(nx_-1-ii,ny_-1)].dielectric(1.0);
-                                sigxy = pmlArr_[0].sigma(static_cast<double>(ii) - 0.5,eps);
-                                sigyy = pmlArr_[1].sigma(0.0,eps);
-                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                bystore = pmlArr_[0].By_end_->point(ii,ny_-1);
-                                pmlArr_[0].By_end_->point(ii,ny_-1) = c_byb * pmlArr_[0].By_end_->point(ii,ny_-1) + c_bye * (Ez_->point(nx_-1-ii+1,ny_-1)-Ez_->point(nx_-1-ii,ny_-1));
-                                Hy_->point(nx_-1-ii,ny_-1) = c_hyh * Hy_->point(nx_-1-ii,ny_-1) + c_hyb1 * pmlArr_[0].By_end_->point(ii,ny_-1) - c_hyb0 * bystore;
-                                //Top Left
-                                eps    = objArr_[phys_Hy_->point(ii,ny_-1)].dielectric(1.0);
-                                sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
-                                sigyy = pmlArr_[1].sigma(0.0,eps);
-                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                bystore = pmlArr_[0].By_->point(ii,ny_-1);
-                                pmlArr_[0].By_->point(ii,ny_-1) = c_byb * pmlArr_[0].By_->point(ii,ny_-1) + c_bye * (Ez_->point(ii+1,ny_-1)-Ez_->point(ii,ny_-1));
-                                Hy_->point(ii,ny_-1) = c_hyh * Hy_->point(ii,ny_-1) + c_hyb1 * pmlArr_[0].By_->point(ii,ny_ - 1) - c_hyb0 * bystore;
-                            }
-                            for(int jj = 1; jj < pmlArr_[0].thickness(); jj++)
-                            {
-                                kapz = 1.0; sigz = 0.0; eps = 1.0;
-                                kapx = 1.0; kapy = 1.0;
-
                                 eps    = objArr_[phys_Hx_->point(0,jj)].dielectric(1.0);
-                                sigxx = pmlArr_[0].sigma(0.0,eps);
-                                sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5,eps);
+                                sigxx  = pmlArr_[kk].sigma(0.0,eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -2151,81 +1914,40 @@ void FDTDField::updateH()
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                 eps    = objArr_[phys_Hy_->point(0,jj)].dielectric(1.0);
-                                sigxy = pmlArr_[0].sigma(0.5,eps);
-                                sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                sigxy  = pmlArr_[kk].sigma(0.5,eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
                                 c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                                 c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                //Update both on the left side and Hx on the right
+                                bxstore = pmlArr_[kk].Bx_->point(0,jj);
+                                bystore = pmlArr_[kk].By_->point(0,jj);
 
-                                // Bot Left
-                                bxstore = pmlArr_[0].Bx_->point(0,jj);
-                                bystore = pmlArr_[0].By_->point(0,jj);
-                                pmlArr_[0].Bx_->point(0,jj) = c_bxb * pmlArr_[0].Bx_->point(0,jj) - c_bxe * (Ez_->point(0,jj+1)-Ez_->point(0,jj));
-                                pmlArr_[0].By_->point(0,jj) = c_byb * pmlArr_[0].By_->point(0,jj) + c_bye * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
-                                Hx_->point(0,jj) = c_hxh * Hx_->point(0,jj) + c_hxb1 * pmlArr_[0].Bx_->point(0,jj) - c_hxb0 * bxstore;
-                                Hy_->point(0,jj) = c_hyh * Hy_->point(0,jj) + c_hyb1 * pmlArr_[0].By_->point(0,jj) - c_hyb0 * bystore;
-                                //Bot Right
+                                pmlArr_[kk].Bx_->point(0,jj) = c_bxb * pmlArr_[kk].Bx_->point(0,jj) - c_bxe * (Ez_->point(0,jj+1)-Ez_->point(0,jj));
+                                pmlArr_[kk].By_->point(0,jj) = c_byb * pmlArr_[kk].By_->point(0,jj) + c_bye * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
+
+                                Hx_->point(0,jj) = c_hxh * Hx_->point(0,jj) + c_hxb1 * pmlArr_[kk].Bx_->point(0,jj) - c_hxb0 * bxstore;
+                                Hy_->point(0,jj) = c_hyh * Hy_->point(0,jj) + c_hyb1 * pmlArr_[kk].By_->point(0,jj) - c_hyb0 * bystore;
+
                                 eps    = objArr_[phys_Hx_->point(nx_-1,jj)].dielectric(1.0);
-                                sigxx = pmlArr_[0].sigma(0.0,eps);
-                                sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5,eps);
+                                sigxx = pmlArr_[kk].sigma(0.0,eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                                bxstore = pmlArr_[0].Bx_end_->point(0,jj);
-                                pmlArr_[0].Bx_end_->point(0,jj) = c_bxb * pmlArr_[0].Bx_end_->point(0,jj) - c_bxe * (Ez_->point(nx_-1,jj+1)-Ez_->point(nx_-1,jj));
-                                Hx_->point(nx_-1,jj) = c_hxh * Hx_->point(nx_-1,jj) + c_hxb1 * pmlArr_[0].Bx_end_->point(0,jj) - c_hxb0 * bxstore;
-                                //Top Rigt
-                                eps    = objArr_[phys_Hx_->point(nx_-1,ny_-1-jj)].dielectric(1.0);
-                                sigxx = pmlArr_[0].sigma(0.0,eps);
-                                sigyx = pmlArr_[1].sigma(static_cast<double>(jj) - 0.5,eps);
-                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-                                bxstore = pmlArr_[0].Bx_end_->point(0,ny_-1-jj);
-                                pmlArr_[0].Bx_end_->point(0,ny_-1-jj) = c_bxb * pmlArr_[0].Bx_end_->point(0,ny_-1-jj) - c_bxe * (Ez_->point(nx_-1,ny_-1-jj+1)-Ez_->point(nx_-1,ny_-1-jj));
-                                Hx_->point(nx_-1,ny_-1-jj) = c_hxh * Hx_->point(nx_-1,ny_-1-jj) + c_hxb1 * pmlArr_[0].Bx_end_->point(0,ny_-1-jj) - c_hxb0 * bxstore;
-                                //Top Left
-                                eps    = objArr_[phys_Hx_->point(0,ny_-1-jj)].dielectric(1.0);
-                                sigxx = pmlArr_[0].sigma(0.0,eps);
-                                sigyx = pmlArr_[1].sigma(static_cast<double>(jj) - 0.5,eps);
-                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-                                eps    = objArr_[phys_Hy_->point(0,ny_-1-jj)].dielectric(1.0);
-                                sigxy = pmlArr_[0].sigma(0.5,eps);
-                                sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
-                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                bxstore = pmlArr_[0].Bx_->point(0,ny_-1-jj);
-                                bystore = pmlArr_[0].By_->point(0,ny_-1-jj);
-                                pmlArr_[0].Bx_->point(0,ny_-1-jj) = c_bxb * pmlArr_[0].Bx_->point(0,ny_-1-jj) - c_bxe * (Ez_->point(0,ny_-1-jj+1)-Ez_->point(0,ny_-1-jj));
-                                pmlArr_[0].By_->point(0,ny_-1-jj) = c_byb * pmlArr_[0].By_->point(0,ny_-1-jj) + c_bye * (Ez_->point(0+1,ny_-1-jj)-Ez_->point(0,ny_-1-jj));
-                                Hx_->point(0,ny_-1-jj) = c_hxh * Hx_->point(0,ny_-1-jj) + c_hxb1 * pmlArr_[0].Bx_->point(0,ny_-1-jj) - c_hxb0 * bxstore;
-                                Hy_->point(0,ny_-1-jj) = c_hyh * Hy_->point(0,ny_-1-jj) + c_hyb1 * pmlArr_[0].By_->point(0,ny_-1-jj) - c_hyb0 * bystore;
+                                bxstore = pmlArr_[kk].Bx_end_->point(0,jj);
+                                pmlArr_[kk].Bx_end_->point(0,jj) = c_bxb * pmlArr_[kk].Bx_end_->point(0,jj) - c_bxe * (Ez_->point(nx_-1, jj+1)-Ez_->point(nx_-1,jj));
+                                Hx_->point(nx_-1,jj) = c_hxh * Hx_->point(nx_-1,jj) + c_hxb1 * pmlArr_[kk].Bx_end_->point(0,jj) - c_hxb0 * bxstore;
                             }
-                            for(int ii = 1; ii < pmlArr_[0].thickness(); ii++)
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
                             {
-                                for(int jj = 1; jj < pmlArr_[0].thickness(); jj++)
+                                for(int jj = yPML_; jj < ny_- yPML_; jj ++)
                                 {
-                                    kapz = 1.0; sigz = 0.0; eps = 1.0;
-                                    kapx = 1.0; kapy = 1.0;
-
+                                    //Update everything
                                     eps    = objArr_[phys_Hx_->point(ii,jj)].dielectric(1.0);
-                                    sigxx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
-                                    sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5,eps);
+                                    sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                     c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
@@ -2233,7 +1955,203 @@ void FDTDField::updateH()
                                     c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
                                     eps    = objArr_[phys_Hy_->point(ii,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    bxstore = pmlArr_[kk].Bx_->point(ii,jj);
+                                    bystore = pmlArr_[kk].By_->point(ii,jj);
+
+                                    pmlArr_[kk].Bx_->point(ii,jj) = c_bxb * pmlArr_[kk].Bx_->point(ii,jj) - c_bxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
+                                    pmlArr_[kk].By_->point(ii,jj) = c_byb * pmlArr_[kk].By_->point(ii,jj) + c_bye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
+
+                                    Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[kk].Bx_->point(ii,jj) - c_hxb0 * bxstore;
+                                    Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[kk].By_->point(ii,jj) - c_hyb0 * bystore;
+
+                                    eps    = objArr_[phys_Hx_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                    sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    eps    = objArr_[phys_Hy_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                    sigxy  = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
+                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    bxstore = pmlArr_[kk].Bx_end_->point(ii,jj);
+                                    bystore = pmlArr_[kk].By_end_->point(ii,jj);
+
+                                    pmlArr_[kk].Bx_end_->point(ii,jj) = c_bxb * pmlArr_[kk].Bx_end_->point(ii,jj) - c_bxe * (Ez_->point(nx_-1-ii, jj+1)-Ez_->point(nx_-1-ii,jj));
+                                    pmlArr_[kk].By_end_->point(ii,jj) = c_byb * pmlArr_[kk].By_end_->point(ii,jj) + c_bye * (Ez_->point(nx_-1-ii+1, jj)-Ez_->point(nx_-1-ii,jj));
+
+                                    Hx_->point(nx_-1-ii,jj) = c_hxh * Hx_->point(nx_-1-ii,jj) + c_hxb1 * pmlArr_[kk].Bx_end_->point(ii,jj) - c_hxb0 * bxstore;
+                                    Hy_->point(nx_-1-ii,jj) = c_hyh * Hy_->point(nx_-1-ii,jj) + c_hyb1 * pmlArr_[kk].By_end_->point(ii,jj) - c_hyb0 * bystore;
+                                }
+                            }
+                            if(kk==0)
+                            {
+                                kapz = 1.0; sigz = 0.0; eps = 1.0;
+                                kapx = 1.0; kapy = 1.0;
+
+                                eps    = objArr_[phys_Hx_->point(0,0)].dielectric(1.0);
+                                sigxx = pmlArr_[0].sigma(0.0,eps);
+                                sigyx = pmlArr_[1].sigma(0.5,eps);
+                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                eps    = objArr_[phys_Hy_->point(0,0)].dielectric(1.0);
+                                sigxy = pmlArr_[0].sigma(0.5,eps);
+                                sigyy = pmlArr_[1].sigma(0.0,eps);
+                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                // Bot Left
+                                bxstore = pmlArr_[0].Bx_->point(0,0);
+                                bystore = pmlArr_[0].By_->point(0,0);
+                                pmlArr_[0].Bx_->point(0,0) = c_bxb * pmlArr_[0].Bx_->point(0,0) - c_bxe * (Ez_->point(0,0+1)-Ez_->point(0,0));
+                                pmlArr_[0].By_->point(0,0) = c_byb * pmlArr_[0].By_->point(0,0) + c_bye * (Ez_->point(0+1,0)-Ez_->point(0,0));
+                                Hx_->point(0,0) = c_hxh * Hx_->point(0,0) + c_hxb1 * pmlArr_[0].Bx_->point(0,0) - c_hxb0 * bxstore;
+                                Hy_->point(0,0) = c_hyh * Hy_->point(0,0) + c_hyb1 * pmlArr_[0].By_->point(0,0) - c_hyb0 * bystore;
+                                //Bot Right
+                                eps    = objArr_[phys_Hx_->point(nx_-1,0)].dielectric(1.0);
+                                sigxx = pmlArr_[0].sigma(0.0,eps);
+                                sigyx = pmlArr_[1].sigma(0.5,eps);
+                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                bxstore = pmlArr_[0].Bx_end_->point(0,0);
+                                pmlArr_[0].Bx_end_->point(0,0) = c_bxb * pmlArr_[0].Bx_end_->point(0,0) - c_bxe * (Ez_->point(nx_-1,0+1)-Ez_->point(nx_-1,0));
+                                Hx_->point(nx_-1,0) = c_hxh * Hx_->point(nx_-1,0) + c_hxb1 * pmlArr_[0].Bx_end_->point(0,0) - c_hxb0 * bxstore;
+                                //Top Left
+
+                                eps    = objArr_[phys_Hy_->point(0,ny_-1)].dielectric(1.0);
+                                sigxy = pmlArr_[0].sigma(0.5,eps);
+                                sigyy = pmlArr_[1].sigma(0.0,eps);
+                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                bystore = pmlArr_[0].By_->point(0,ny_-1);
+                                pmlArr_[0].By_->point(0,ny_-1) = c_byb * pmlArr_[0].By_->point(0,ny_-1) + c_bye * (Ez_->point(0+1,ny_-1)-Ez_->point(0,ny_-1));
+                                Hy_->point(0,ny_-1) = c_hyh * Hy_->point(0,ny_-1) + c_hyb1 * pmlArr_[0].By_->point(0,ny_-1) - c_hyb0 * bystore;
+                                for(int ii = 1; ii < pmlArr_[0].thickness(); ii++)
+                                {
+                                    kapz = 1.0; sigz = 0.0; eps = 1.0;
+                                    kapx = 1.0; kapy = 1.0;
+
+                                    eps    = objArr_[phys_Hx_->point(ii,0)].dielectric(1.0);
+                                    sigxx  = pmlArr_[0].sigma(static_cast<double>(ii),eps);
+                                    sigyx  = pmlArr_[0].sigma(0.5,eps);
+                                    c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    eps    = objArr_[phys_Hy_->point(ii,0)].dielectric(1.0);
+                                    sigxy  = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    sigyy  = pmlArr_[0].sigma(0.0,eps);
+                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    // Bot Left
+                                    bxstore = pmlArr_[0].Bx_->point(ii,0);
+                                    bystore = pmlArr_[0].By_->point(ii,0);
+                                    pmlArr_[0].Bx_->point(ii,0) = c_bxb * pmlArr_[0].Bx_->point(ii,0) - c_bxe * (Ez_->point(ii,0+1)-Ez_->point(ii,0));
+                                    pmlArr_[0].By_->point(ii,0) = c_byb * pmlArr_[0].By_->point(ii,0) + c_bye * (Ez_->point(ii+1,0)-Ez_->point(ii,0));
+                                    Hx_->point(ii,0) = c_hxh * Hx_->point(ii,0) + c_hxb1 * pmlArr_[0].Bx_->point(ii,0) - c_hxb0 * bxstore;
+                                    Hy_->point(ii,0) = c_hyh * Hy_->point(ii,0) + c_hyb1 * pmlArr_[0].By_->point(ii,0) - c_hyb0 * bystore;
+                                    //Bot Right
+                                    eps    = objArr_[phys_Hx_->point(nx_-1-ii,0)].dielectric(1.0);
+                                    sigxx  = pmlArr_[0].sigma(static_cast<double>(ii),eps);
+                                    sigyx  = pmlArr_[0].sigma(0.5,eps);
+                                    c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    eps    = objArr_[phys_Hy_->point(nx_-1-ii,0)].dielectric(1.0);
+                                    sigxy = pmlArr_[0].sigma(static_cast<double>(ii) - 0.5,eps);
+                                    sigyy = pmlArr_[1].sigma(0.0,eps);
+                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    bxstore = pmlArr_[0].Bx_end_->point(ii,0);
+                                    bystore = pmlArr_[0].By_end_->point(ii,0);
+                                    pmlArr_[0].Bx_end_->point(ii,0) = c_bxb * pmlArr_[0].Bx_end_->point(ii,0) - c_bxe * (Ez_->point(nx_-1-ii,0+1)-Ez_->point(nx_-1-ii,0));
+                                    pmlArr_[0].By_end_->point(ii,0) = c_byb * pmlArr_[0].By_end_->point(ii,0) + c_bye * (Ez_->point(nx_-1-ii+1,0)-Ez_->point(nx_-1-ii,0));
+                                    Hx_->point(nx_-1-ii,0) = c_hxh * Hx_->point(nx_-1-ii,0) + c_hxb1 * pmlArr_[0].Bx_end_->point(ii,0) - c_hxb0 * bxstore;
+                                    Hy_->point(nx_-1-ii,0) = c_hyh * Hy_->point(nx_-1-ii,0) + c_hyb1 * pmlArr_[0].By_end_->point(ii,0) - c_hyb0 * bystore;
+                                    //Top Right
+                                    eps    = objArr_[phys_Hy_->point(nx_-1-ii,ny_-1)].dielectric(1.0);
+                                    sigxy = pmlArr_[0].sigma(static_cast<double>(ii) - 0.5,eps);
+                                    sigyy = pmlArr_[1].sigma(0.0,eps);
+                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    bystore = pmlArr_[0].By_end_->point(ii,ny_-1);
+                                    pmlArr_[0].By_end_->point(ii,ny_-1) = c_byb * pmlArr_[0].By_end_->point(ii,ny_-1) + c_bye * (Ez_->point(nx_-1-ii+1,ny_-1)-Ez_->point(nx_-1-ii,ny_-1));
+                                    Hy_->point(nx_-1-ii,ny_-1) = c_hyh * Hy_->point(nx_-1-ii,ny_-1) + c_hyb1 * pmlArr_[0].By_end_->point(ii,ny_-1) - c_hyb0 * bystore;
+                                    //Top Left
+                                    eps    = objArr_[phys_Hy_->point(ii,ny_-1)].dielectric(1.0);
                                     sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    sigyy = pmlArr_[1].sigma(0.0,eps);
+                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    bystore = pmlArr_[0].By_->point(ii,ny_-1);
+                                    pmlArr_[0].By_->point(ii,ny_-1) = c_byb * pmlArr_[0].By_->point(ii,ny_-1) + c_bye * (Ez_->point(ii+1,ny_-1)-Ez_->point(ii,ny_-1));
+                                    Hy_->point(ii,ny_-1) = c_hyh * Hy_->point(ii,ny_-1) + c_hyb1 * pmlArr_[0].By_->point(ii,ny_ - 1) - c_hyb0 * bystore;
+                                }
+                                for(int jj = 1; jj < pmlArr_[0].thickness(); jj++)
+                                {
+                                    kapz = 1.0; sigz = 0.0; eps = 1.0;
+                                    kapx = 1.0; kapy = 1.0;
+
+                                    eps    = objArr_[phys_Hx_->point(0,jj)].dielectric(1.0);
+                                    sigxx = pmlArr_[0].sigma(0.0,eps);
+                                    sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5,eps);
+                                    c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    eps    = objArr_[phys_Hy_->point(0,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[0].sigma(0.5,eps);
                                     sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
                                     c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
@@ -2242,400 +2160,425 @@ void FDTDField::updateH()
                                     c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
 
                                     // Bot Left
-                                    bxstore = pmlArr_[0].Bx_->point(ii,jj);
-                                    bystore = pmlArr_[0].By_->point(ii,jj);
-                                    pmlArr_[0].Bx_->point(ii,jj) = c_bxb * pmlArr_[0].Bx_->point(ii,jj) - c_bxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
-                                    pmlArr_[0].By_->point(ii,jj) = c_byb * pmlArr_[0].By_->point(ii,jj) + c_bye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
-                                    Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[0].Bx_->point(ii,jj) - c_hxb0 * bxstore;
-                                    Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[0].By_->point(ii,jj) - c_hyb0 * bystore;
+                                    bxstore = pmlArr_[0].Bx_->point(0,jj);
+                                    bystore = pmlArr_[0].By_->point(0,jj);
+                                    pmlArr_[0].Bx_->point(0,jj) = c_bxb * pmlArr_[0].Bx_->point(0,jj) - c_bxe * (Ez_->point(0,jj+1)-Ez_->point(0,jj));
+                                    pmlArr_[0].By_->point(0,jj) = c_byb * pmlArr_[0].By_->point(0,jj) + c_bye * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
+                                    Hx_->point(0,jj) = c_hxh * Hx_->point(0,jj) + c_hxb1 * pmlArr_[0].Bx_->point(0,jj) - c_hxb0 * bxstore;
+                                    Hy_->point(0,jj) = c_hyh * Hy_->point(0,jj) + c_hyb1 * pmlArr_[0].By_->point(0,jj) - c_hyb0 * bystore;
                                     //Bot Right
-                                    eps    = objArr_[phys_Hx_->point(nx_-1-ii,jj)].dielectric(1.0);
-                                    sigxx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
+                                    eps    = objArr_[phys_Hx_->point(nx_-1,jj)].dielectric(1.0);
+                                    sigxx = pmlArr_[0].sigma(0.0,eps);
                                     sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5,eps);
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                     c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-                                    eps    = objArr_[phys_Hy_->point(nx_-1-ii,jj)].dielectric(1.0);
-                                    sigxy = pmlArr_[0].sigma(static_cast<double>(ii) - 0.5,eps);
-                                    sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
-                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-                                    bxstore = pmlArr_[0].Bx_end_->point(ii,jj);
-                                    bystore = pmlArr_[0].By_end_->point(ii,jj);
-                                    pmlArr_[0].Bx_end_->point(ii,jj) = c_bxb * pmlArr_[0].Bx_end_->point(ii,jj) - c_bxe * (Ez_->point(nx_-1-ii,jj+1)-Ez_->point(nx_-1-ii,jj));
-                                    pmlArr_[0].By_end_->point(ii,jj) = c_byb * pmlArr_[0].By_end_->point(ii,jj) + c_bye * (Ez_->point(nx_-1-ii+1,jj)-Ez_->point(nx_-1-ii,jj));
-                                    Hx_->point(nx_-1-ii,jj) = c_hxh * Hx_->point(nx_-1-ii,jj) + c_hxb1 * pmlArr_[0].Bx_end_->point(ii,jj) - c_hxb0 * bxstore;
-                                    Hy_->point(nx_-1-ii,jj) = c_hyh * Hy_->point(nx_-1-ii,jj) + c_hyb1 * pmlArr_[0].By_end_->point(ii,jj) - c_hyb0 * bystore;
-                                    //Top Right
-                                    eps    = objArr_[phys_Hx_->point(nx_-1-ii,ny_-1-jj)].dielectric(1.0);
+                                    bxstore = pmlArr_[0].Bx_end_->point(0,jj);
+                                    pmlArr_[0].Bx_end_->point(0,jj) = c_bxb * pmlArr_[0].Bx_end_->point(0,jj) - c_bxe * (Ez_->point(nx_-1,jj+1)-Ez_->point(nx_-1,jj));
+                                    Hx_->point(nx_-1,jj) = c_hxh * Hx_->point(nx_-1,jj) + c_hxb1 * pmlArr_[0].Bx_end_->point(0,jj) - c_hxb0 * bxstore;
+                                    //Top Rigt
+                                    eps    = objArr_[phys_Hx_->point(nx_-1,ny_-1-jj)].dielectric(1.0);
+                                    sigxx = pmlArr_[0].sigma(0.0,eps);
                                     sigyx = pmlArr_[1].sigma(static_cast<double>(jj) - 0.5,eps);
-                                    sigxx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                     c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
-                                    eps    = objArr_[phys_Hy_->point(nx_-1-ii,ny_-1-jj)].dielectric(1.0);
-                                    sigxy = pmlArr_[0].sigma(static_cast<double>(ii) - 0.5,eps);
-                                    sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
-                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                    bxstore = pmlArr_[0].Bx_end_->point(ii,ny_-1-jj);
-                                    bystore = pmlArr_[0].By_end_->point(ii,ny_-1-jj);
-                                    pmlArr_[0].Bx_end_->point(ii,ny_-1-jj) = c_bxb * pmlArr_[0].Bx_end_->point(ii,ny_-1-jj) - c_bxe * (Ez_->point(nx_-1-ii,ny_-1-jj+1)-Ez_->point(nx_-1-ii,ny_-1-jj));
-                                    pmlArr_[0].By_end_->point(ii,ny_-1-jj) = c_byb * pmlArr_[0].By_end_->point(ii,ny_-1-jj) + c_bye * (Ez_->point(nx_-1-ii+1,ny_-1-jj)-Ez_->point(nx_-1-ii,ny_-1-jj));
-                                    Hx_->point(nx_-1-ii,ny_-1-jj) = c_hxh * Hx_->point(nx_-1-ii,ny_-1-jj) + c_hxb1 * pmlArr_[0].Bx_end_->point(ii,ny_-1-jj) - c_hxb0 * bxstore;
-                                    Hy_->point(nx_-1-ii,ny_-1-jj) = c_hyh * Hy_->point(nx_-1-ii,ny_-1-jj) + c_hyb1 * pmlArr_[0].By_end_->point(ii,ny_-1-jj) - c_hyb0 * bystore;
+                                    bxstore = pmlArr_[0].Bx_end_->point(0,ny_-1-jj);
+                                    pmlArr_[0].Bx_end_->point(0,ny_-1-jj) = c_bxb * pmlArr_[0].Bx_end_->point(0,ny_-1-jj) - c_bxe * (Ez_->point(nx_-1,ny_-1-jj+1)-Ez_->point(nx_-1,ny_-1-jj));
+                                    Hx_->point(nx_-1,ny_-1-jj) = c_hxh * Hx_->point(nx_-1,ny_-1-jj) + c_hxb1 * pmlArr_[0].Bx_end_->point(0,ny_-1-jj) - c_hxb0 * bxstore;
                                     //Top Left
-                                    eps    = objArr_[phys_Hx_->point(ii,ny_-1-jj)].dielectric(1.0);
+                                    eps    = objArr_[phys_Hx_->point(0,ny_-1-jj)].dielectric(1.0);
+                                    sigxx = pmlArr_[0].sigma(0.0,eps);
                                     sigyx = pmlArr_[1].sigma(static_cast<double>(jj) - 0.5,eps);
-                                    sigxx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                     c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
-                                    eps    = objArr_[phys_Hy_->point(ii,ny_-1-jj)].dielectric(1.0);
-                                    sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    eps    = objArr_[phys_Hy_->point(0,ny_-1-jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[0].sigma(0.5,eps);
                                     sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
                                     c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                     c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
                                     c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                                     c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                    bxstore = pmlArr_[0].Bx_->point(ii,ny_-1-jj);
-                                    bystore = pmlArr_[0].By_->point(ii,ny_-1-jj);
-                                    pmlArr_[0].Bx_->point(ii,ny_-1-jj) = c_bxb * pmlArr_[0].Bx_->point(ii,ny_-1-jj) - c_bxe * (Ez_->point(ii,ny_-1-jj+1)-Ez_->point(ii,ny_-1-jj));
-                                    pmlArr_[0].By_->point(ii,ny_-1-jj) = c_byb * pmlArr_[0].By_->point(ii,ny_-1-jj) + c_bye * (Ez_->point(ii+1,ny_-1-jj)-Ez_->point(ii,ny_-1-jj));
-                                    Hx_->point(ii,ny_-1-jj) = c_hxh * Hx_->point(ii,ny_-1-jj) + c_hxb1 * pmlArr_[0].Bx_->point(ii,ny_-1-jj) - c_hxb0 * bxstore;
-                                    Hy_->point(ii,ny_-1-jj) = c_hyh * Hy_->point(ii,ny_-1-jj) + c_hyb1 * pmlArr_[0].By_->point(ii,ny_-1-jj) - c_hyb0 * bystore;
+                                    bxstore = pmlArr_[0].Bx_->point(0,ny_-1-jj);
+                                    bystore = pmlArr_[0].By_->point(0,ny_-1-jj);
+                                    pmlArr_[0].Bx_->point(0,ny_-1-jj) = c_bxb * pmlArr_[0].Bx_->point(0,ny_-1-jj) - c_bxe * (Ez_->point(0,ny_-1-jj+1)-Ez_->point(0,ny_-1-jj));
+                                    pmlArr_[0].By_->point(0,ny_-1-jj) = c_byb * pmlArr_[0].By_->point(0,ny_-1-jj) + c_bye * (Ez_->point(0+1,ny_-1-jj)-Ez_->point(0,ny_-1-jj));
+                                    Hx_->point(0,ny_-1-jj) = c_hxh * Hx_->point(0,ny_-1-jj) + c_hxb1 * pmlArr_[0].Bx_->point(0,ny_-1-jj) - c_hxb0 * bxstore;
+                                    Hy_->point(0,ny_-1-jj) = c_hyh * Hy_->point(0,ny_-1-jj) + c_hyb1 * pmlArr_[0].By_->point(0,ny_-1-jj) - c_hyb0 * bystore;
+                                }
+                                for(int ii = 1; ii < pmlArr_[0].thickness(); ii++)
+                                {
+                                    for(int jj = 1; jj < pmlArr_[0].thickness(); jj++)
+                                    {
+                                        kapz = 1.0; sigz = 0.0; eps = 1.0;
+                                        kapx = 1.0; kapy = 1.0;
+
+                                        eps    = objArr_[phys_Hx_->point(ii,jj)].dielectric(1.0);
+                                        sigxx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
+                                        sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5,eps);
+                                        c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                        c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                        c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                        eps    = objArr_[phys_Hy_->point(ii,jj)].dielectric(1.0);
+                                        sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
+                                        sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                        c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                        c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                        // Bot Left
+                                        bxstore = pmlArr_[0].Bx_->point(ii,jj);
+                                        bystore = pmlArr_[0].By_->point(ii,jj);
+                                        pmlArr_[0].Bx_->point(ii,jj) = c_bxb * pmlArr_[0].Bx_->point(ii,jj) - c_bxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
+                                        pmlArr_[0].By_->point(ii,jj) = c_byb * pmlArr_[0].By_->point(ii,jj) + c_bye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
+                                        Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[0].Bx_->point(ii,jj) - c_hxb0 * bxstore;
+                                        Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[0].By_->point(ii,jj) - c_hyb0 * bystore;
+                                        //Bot Right
+                                        eps    = objArr_[phys_Hx_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                        sigxx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
+                                        sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5,eps);
+                                        c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                        c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                        c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                        eps    = objArr_[phys_Hy_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                        sigxy = pmlArr_[0].sigma(static_cast<double>(ii) - 0.5,eps);
+                                        sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                        c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                        c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                        bxstore = pmlArr_[0].Bx_end_->point(ii,jj);
+                                        bystore = pmlArr_[0].By_end_->point(ii,jj);
+                                        pmlArr_[0].Bx_end_->point(ii,jj) = c_bxb * pmlArr_[0].Bx_end_->point(ii,jj) - c_bxe * (Ez_->point(nx_-1-ii,jj+1)-Ez_->point(nx_-1-ii,jj));
+                                        pmlArr_[0].By_end_->point(ii,jj) = c_byb * pmlArr_[0].By_end_->point(ii,jj) + c_bye * (Ez_->point(nx_-1-ii+1,jj)-Ez_->point(nx_-1-ii,jj));
+                                        Hx_->point(nx_-1-ii,jj) = c_hxh * Hx_->point(nx_-1-ii,jj) + c_hxb1 * pmlArr_[0].Bx_end_->point(ii,jj) - c_hxb0 * bxstore;
+                                        Hy_->point(nx_-1-ii,jj) = c_hyh * Hy_->point(nx_-1-ii,jj) + c_hyb1 * pmlArr_[0].By_end_->point(ii,jj) - c_hyb0 * bystore;
+                                        //Top Right
+                                        eps    = objArr_[phys_Hx_->point(nx_-1-ii,ny_-1-jj)].dielectric(1.0);
+                                        sigyx = pmlArr_[1].sigma(static_cast<double>(jj) - 0.5,eps);
+                                        sigxx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
+                                        c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                        c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                        c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                        eps    = objArr_[phys_Hy_->point(nx_-1-ii,ny_-1-jj)].dielectric(1.0);
+                                        sigxy = pmlArr_[0].sigma(static_cast<double>(ii) - 0.5,eps);
+                                        sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                        c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                        c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        bxstore = pmlArr_[0].Bx_end_->point(ii,ny_-1-jj);
+                                        bystore = pmlArr_[0].By_end_->point(ii,ny_-1-jj);
+                                        pmlArr_[0].Bx_end_->point(ii,ny_-1-jj) = c_bxb * pmlArr_[0].Bx_end_->point(ii,ny_-1-jj) - c_bxe * (Ez_->point(nx_-1-ii,ny_-1-jj+1)-Ez_->point(nx_-1-ii,ny_-1-jj));
+                                        pmlArr_[0].By_end_->point(ii,ny_-1-jj) = c_byb * pmlArr_[0].By_end_->point(ii,ny_-1-jj) + c_bye * (Ez_->point(nx_-1-ii+1,ny_-1-jj)-Ez_->point(nx_-1-ii,ny_-1-jj));
+                                        Hx_->point(nx_-1-ii,ny_-1-jj) = c_hxh * Hx_->point(nx_-1-ii,ny_-1-jj) + c_hxb1 * pmlArr_[0].Bx_end_->point(ii,ny_-1-jj) - c_hxb0 * bxstore;
+                                        Hy_->point(nx_-1-ii,ny_-1-jj) = c_hyh * Hy_->point(nx_-1-ii,ny_-1-jj) + c_hyb1 * pmlArr_[0].By_end_->point(ii,ny_-1-jj) - c_hyb0 * bystore;
+                                        //Top Left
+                                        eps    = objArr_[phys_Hx_->point(ii,ny_-1-jj)].dielectric(1.0);
+                                        sigyx = pmlArr_[1].sigma(static_cast<double>(jj) - 0.5,eps);
+                                        sigxx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
+                                        c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                        c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                        c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                        eps    = objArr_[phys_Hy_->point(ii,ny_-1-jj)].dielectric(1.0);
+                                        sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
+                                        sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                        c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                        c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        bxstore = pmlArr_[0].Bx_->point(ii,ny_-1-jj);
+                                        bystore = pmlArr_[0].By_->point(ii,ny_-1-jj);
+                                        pmlArr_[0].Bx_->point(ii,ny_-1-jj) = c_bxb * pmlArr_[0].Bx_->point(ii,ny_-1-jj) - c_bxe * (Ez_->point(ii,ny_-1-jj+1)-Ez_->point(ii,ny_-1-jj));
+                                        pmlArr_[0].By_->point(ii,ny_-1-jj) = c_byb * pmlArr_[0].By_->point(ii,ny_-1-jj) + c_bye * (Ez_->point(ii+1,ny_-1-jj)-Ez_->point(ii,ny_-1-jj));
+                                        Hx_->point(ii,ny_-1-jj) = c_hxh * Hx_->point(ii,ny_-1-jj) + c_hxb1 * pmlArr_[0].Bx_->point(ii,ny_-1-jj) - c_hxb0 * bxstore;
+                                        Hy_->point(ii,ny_-1-jj) = c_hyh * Hy_->point(ii,ny_-1-jj) + c_hyb1 * pmlArr_[0].By_->point(ii,ny_-1-jj) - c_hyb0 * bystore;
+                                    }
                                 }
                             }
                         }
+                        break;
                     }
-                    break;
-                }
-                case Y:
-                {
-                    double eps = 1.0;
-                    double kapx = 1.0; double kapy = 1.0; double kapz = 1.0;
-                    double sigz = 0.0;
-                    double sigxx = 0.0;
-                    double sigxy = 0.0;
-                    double sigyx = 0.0;
-                    double sigyy = 0.0;
-
-                    double c_bxb = 0.0; double c_bxe = 0.0; double c_hxh = 0.0; double c_hxb0 = 0.0; double c_hxb1 = 0.0;
-                    double c_byb = 0.0; double c_bye = 0.0; double c_hyh = 0.0; double c_hyb0 = 0.0; double c_hyb1 = 0.0;
-
-                    complex<double>bxstore(0.0,0.0); complex<double>bystore(0.0,0.0);
-                    if (xPML_== 0)
+                    case Y:
                     {
-                        for (int jj = 0; jj < nx_-1; jj++)
+                        double eps = 1.0;
+                        double kapx = 1.0; double kapy = 1.0; double kapz = 1.0;
+                        double sigz = 0.0;
+                        double sigxx = 0.0;
+                        double sigxy = 0.0;
+                        double sigyx = 0.0;
+                        double sigyy = 0.0;
+
+                        double c_bxb = 0.0; double c_bxe = 0.0; double c_hxh = 0.0; double c_hxb0 = 0.0; double c_hxb1 = 0.0;
+                        double c_byb = 0.0; double c_bye = 0.0; double c_hyh = 0.0; double c_hyb0 = 0.0; double c_hyb1 = 0.0;
+
+                        complex<double>bxstore(0.0,0.0); complex<double>bystore(0.0,0.0);
+                        if (xPML_== 0)
                         {
-                            eps    = objArr_[phys_Hx_->point(jj,0)].dielectric(1.0);
+                            for (int jj = 0; jj < nx_-1; jj++)
+                            {
+                                eps    = objArr_[phys_Hx_->point(jj,0)].dielectric(1.0);
+                                sigyx  = pmlArr_[kk].sigma(0.5,eps);
+                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                eps    = objArr_[phys_Hy_->point(jj,0)].dielectric(1.0);
+                                sigyy  = pmlArr_[kk].sigma(0.0,eps);
+                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                //Update both on the bottom side and Hy on the top
+                                bxstore = pmlArr_[kk].Bx_->point(jj,0);
+                                bystore = pmlArr_[kk].By_->point(jj,0);
+                                pmlArr_[kk].Bx_->point(jj,0) = c_bxb * pmlArr_[kk].Bx_->point(jj,0) - c_bxe * (Ez_->point(jj,0+1)-Ez_->point(jj,0));
+                                pmlArr_[kk].By_->point(jj,0) = c_byb * pmlArr_[kk].By_->point(jj,0) + c_bye * (Ez_->point(jj+1,0)-Ez_->point(jj,0));
+                                //cout <<"H1"<<endl;
+                                Hx_->point(jj,0) = c_hxh * Hx_->point(jj,0) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,0) - c_hxb0 * bxstore;
+                                Hy_->point(jj,0) = c_hyh * Hy_->point(jj,0) + c_hyb1 * pmlArr_[kk].By_->point(jj,0) - c_hyb0 * bystore;
+
+                                eps    = objArr_[phys_Hy_->point(jj,ny_-1)].dielectric(1.0);
+                                sigyy  = pmlArr_[kk].sigma(0.0,eps);
+                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                bystore = pmlArr_[kk].By_end_->point(jj,0);
+                                pmlArr_[kk].By_end_->point(jj,0) = c_byb * pmlArr_[kk].By_end_->point(jj,0) + c_bye * (Ez_->point(jj+1, ny_-1)-Ez_->point(jj,ny_-1));
+                                Hy_->point(jj,ny_-1) = c_hyh * Hy_->point(jj,ny_-1) + c_hyb1 * pmlArr_[kk].By_end_->point(jj,0) - c_hyb0 * bystore;
+                            }
+                            //Top left corner
+                            eps    = objArr_[phys_Hx_->point(nx_-1,0)].dielectric(1.0);
                             sigyx  = pmlArr_[kk].sigma(0.5,eps);
                             c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                             c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                             c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                             c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
                             c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-                            eps    = objArr_[phys_Hy_->point(jj,0)].dielectric(1.0);
-                            sigyy  = pmlArr_[kk].sigma(0.0,eps);
-                            c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                            c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            //Update both on the bottom side and Hy on the top
-                            bxstore = pmlArr_[kk].Bx_->point(jj,0);
-                            bystore = pmlArr_[kk].By_->point(jj,0);
-                            pmlArr_[kk].Bx_->point(jj,0) = c_bxb * pmlArr_[kk].Bx_->point(jj,0) - c_bxe * (Ez_->point(jj,0+1)-Ez_->point(jj,0));
-                            pmlArr_[kk].By_->point(jj,0) = c_byb * pmlArr_[kk].By_->point(jj,0) + c_bye * (Ez_->point(jj+1,0)-Ez_->point(jj,0));
-                            //cout <<"H1"<<endl;
-                            Hx_->point(jj,0) = c_hxh * Hx_->point(jj,0) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,0) - c_hxb0 * bxstore;
-                            Hy_->point(jj,0) = c_hyh * Hy_->point(jj,0) + c_hyb1 * pmlArr_[kk].By_->point(jj,0) - c_hyb0 * bystore;
-
-                            eps    = objArr_[phys_Hy_->point(jj,ny_-1)].dielectric(1.0);
-                            sigyy  = pmlArr_[kk].sigma(0.0,eps);
-                            c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                            c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            bystore = pmlArr_[kk].By_end_->point(jj,0);
-                            pmlArr_[kk].By_end_->point(jj,0) = c_byb * pmlArr_[kk].By_end_->point(jj,0) + c_bye * (Ez_->point(jj+1, ny_-1)-Ez_->point(jj,ny_-1));
-                            Hy_->point(jj,ny_-1) = c_hyh * Hy_->point(jj,ny_-1) + c_hyb1 * pmlArr_[kk].By_end_->point(jj,0) - c_hyb0 * bystore;
-                        }
-                        //Top left corner
-                        eps    = objArr_[phys_Hx_->point(nx_-1,0)].dielectric(1.0);
-                        sigyx  = pmlArr_[kk].sigma(0.5,eps);
-                        c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                        c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                        c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                        c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                        c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                        bxstore = pmlArr_[kk].Bx_->point(nx_-1,0);
-                        pmlArr_[kk].Bx_->point(nx_-1,0) = c_bxb * pmlArr_[kk].Bx_->point(nx_-1,0) - c_bxe * (Ez_->point(nx_-1,0+1)-Ez_->point(nx_-1,0));
-                        Hx_->point(nx_-1,0) = c_hxh * Hx_->point(nx_-1,0) + c_hxb1 * pmlArr_[kk].Bx_->point(nx_-1,0) - c_hxb0 * bxstore;
-                        for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
-                        {
-                            eps    = objArr_[phys_Hx_->point(nx_-1,ii)].dielectric(1.0);
-                            sigyx = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
-                            c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                            c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                            c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-                            //right col
-                            bxstore = pmlArr_[kk].Bx_->point(nx_-1,ii);
-                            pmlArr_[kk].Bx_->point(nx_-1,ii) = c_bxb * pmlArr_[kk].Bx_->point(nx_-1,ii) - c_bxe * (Ez_->point(nx_-1,ii+1)-Ez_->point(nx_-1,ii));
-                            Hx_->point(nx_-1,ii) = c_hxh * Hx_->point(nx_-1,ii) + c_hxb1 * pmlArr_[kk].Bx_->point(nx_-1,ii) - c_hxb0 * bxstore;
-                            for(int jj = 0; jj < nx_-1; jj ++)
+                            bxstore = pmlArr_[kk].Bx_->point(nx_-1,0);
+                            pmlArr_[kk].Bx_->point(nx_-1,0) = c_bxb * pmlArr_[kk].Bx_->point(nx_-1,0) - c_bxe * (Ez_->point(nx_-1,0+1)-Ez_->point(nx_-1,0));
+                            Hx_->point(nx_-1,0) = c_hxh * Hx_->point(nx_-1,0) + c_hxb1 * pmlArr_[kk].Bx_->point(nx_-1,0) - c_hxb0 * bxstore;
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
                             {
-                                //Update everything
-                                eps    = objArr_[phys_Hx_->point(jj,ii)].dielectric(1.0);
-                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii) + 0.5),eps);
+                                eps    = objArr_[phys_Hx_->point(nx_-1,ii)].dielectric(1.0);
+                                sigyx = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
-                                eps    = objArr_[phys_Hy_->point(jj,ii)].dielectric(1.0);
-                                sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                //right col
+                                bxstore = pmlArr_[kk].Bx_->point(nx_-1,ii);
+                                pmlArr_[kk].Bx_->point(nx_-1,ii) = c_bxb * pmlArr_[kk].Bx_->point(nx_-1,ii) - c_bxe * (Ez_->point(nx_-1,ii+1)-Ez_->point(nx_-1,ii));
+                                Hx_->point(nx_-1,ii) = c_hxh * Hx_->point(nx_-1,ii) + c_hxb1 * pmlArr_[kk].Bx_->point(nx_-1,ii) - c_hxb0 * bxstore;
+                                for(int jj = 0; jj < nx_-1; jj ++)
+                                {
+                                    //Update everything
+                                    eps    = objArr_[phys_Hx_->point(jj,ii)].dielectric(1.0);
+                                    sigyx = pmlArr_[kk].sigma(static_cast<double>((ii) + 0.5),eps);
+                                    c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
-                                bxstore = pmlArr_[kk].Bx_->point(jj,ii);
-                                bystore = pmlArr_[kk].By_->point(jj,ii);
-                                pmlArr_[kk].Bx_->point(jj,ii) = c_bxb * pmlArr_[kk].Bx_->point(jj,ii) - c_bxe * (Ez_->point(jj,ii+1)-Ez_->point(jj,ii));
-                                pmlArr_[kk].By_->point(jj,ii) = c_byb * pmlArr_[kk].By_->point(jj,ii) + c_bye * (Ez_->point(jj+1,ii)-Ez_->point(jj,ii));
-                                //cout <<"H1"<<endl;
-                                Hx_->point(jj,ii) = c_hxh * Hx_->point(jj,ii) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,ii) - c_hxb0 * bxstore;
-                                Hy_->point(jj,ii) = c_hyh * Hy_->point(jj,ii) + c_hyb1 * pmlArr_[kk].By_->point(jj,ii) - c_hyb0 * bystore;
+                                    eps    = objArr_[phys_Hy_->point(jj,ii)].dielectric(1.0);
+                                    sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
 
-                                eps    = objArr_[phys_Hx_->point(jj,ny_-1-ii)].dielectric(1.0);
-                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii)-0.5),eps);
+                                    bxstore = pmlArr_[kk].Bx_->point(jj,ii);
+                                    bystore = pmlArr_[kk].By_->point(jj,ii);
+                                    pmlArr_[kk].Bx_->point(jj,ii) = c_bxb * pmlArr_[kk].Bx_->point(jj,ii) - c_bxe * (Ez_->point(jj,ii+1)-Ez_->point(jj,ii));
+                                    pmlArr_[kk].By_->point(jj,ii) = c_byb * pmlArr_[kk].By_->point(jj,ii) + c_bye * (Ez_->point(jj+1,ii)-Ez_->point(jj,ii));
+                                    //cout <<"H1"<<endl;
+                                    Hx_->point(jj,ii) = c_hxh * Hx_->point(jj,ii) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,ii) - c_hxb0 * bxstore;
+                                    Hy_->point(jj,ii) = c_hyh * Hy_->point(jj,ii) + c_hyb1 * pmlArr_[kk].By_->point(jj,ii) - c_hyb0 * bystore;
+
+                                    eps    = objArr_[phys_Hx_->point(jj,ny_-1-ii)].dielectric(1.0);
+                                    sigyx = pmlArr_[kk].sigma(static_cast<double>((ii)-0.5),eps);
+                                    c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    eps    = objArr_[phys_Hy_->point(jj,ny_-1-ii)].dielectric(1.0);
+                                    sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    bxstore = pmlArr_[kk].Bx_end_->point(jj,ii);
+                                    bystore = pmlArr_[kk].By_end_->point(jj,ii);
+                                    pmlArr_[kk].Bx_end_->point(jj,ii) = c_bxb * pmlArr_[kk].Bx_end_->point(jj,ii) - c_bxe * (Ez_->point(jj,ny_-1-ii+1)-Ez_->point(jj,ny_-1-ii));
+                                    pmlArr_[kk].By_end_->point(jj,ii) = c_byb * pmlArr_[kk].By_end_->point(jj,ii) + c_bye * (Ez_->point(jj+1,ny_-1-ii)-Ez_->point(jj,ny_-1-ii));
+                                    //cout <<"H2"<<endl;
+                                    Hx_->point(jj,ny_-1-ii) = c_hxh * Hx_->point(jj,ny_-1-ii) + c_hxb1 * pmlArr_[kk].Bx_end_->point(jj,ii) - c_hxb0 * bxstore;
+                                    Hy_->point(jj,ny_-1-ii) = c_hyh * Hy_->point(jj,ny_-1-ii) + c_hyb1 * pmlArr_[kk].By_end_->point(jj,ii) - c_hyb0 * bystore;
+                                }
+                                // for the right only upadate Hx
+                                eps    = objArr_[phys_Hx_->point(nx_-1,ny_-1-ii)].dielectric(1.0);
+                                sigyx = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-                                eps    = objArr_[phys_Hy_->point(jj,ny_-1-ii)].dielectric(1.0);
-                                sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-                                bxstore = pmlArr_[kk].Bx_end_->point(jj,ii);
-                                bystore = pmlArr_[kk].By_end_->point(jj,ii);
-                                pmlArr_[kk].Bx_end_->point(jj,ii) = c_bxb * pmlArr_[kk].Bx_end_->point(jj,ii) - c_bxe * (Ez_->point(jj,ny_-1-ii+1)-Ez_->point(jj,ny_-1-ii));
-                                pmlArr_[kk].By_end_->point(jj,ii) = c_byb * pmlArr_[kk].By_end_->point(jj,ii) + c_bye * (Ez_->point(jj+1,ny_-1-ii)-Ez_->point(jj,ny_-1-ii));
-                                //cout <<"H2"<<endl;
-                                Hx_->point(jj,ny_-1-ii) = c_hxh * Hx_->point(jj,ny_-1-ii) + c_hxb1 * pmlArr_[kk].Bx_end_->point(jj,ii) - c_hxb0 * bxstore;
-                                Hy_->point(jj,ny_-1-ii) = c_hyh * Hy_->point(jj,ny_-1-ii) + c_hyb1 * pmlArr_[kk].By_end_->point(jj,ii) - c_hyb0 * bystore;
-                            }
-                            // for the right only upadate Hx
-                            eps    = objArr_[phys_Hx_->point(nx_-1,ny_-1-ii)].dielectric(1.0);
-                            sigyx = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
-                            c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                            c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                            c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                            bxstore = pmlArr_[kk].Bx_end_->point(nx_-1,ii);
-                            pmlArr_[kk].Bx_end_->point(nx_-1,ii) = c_bxb * pmlArr_[kk].Bx_end_->point(nx_-1,ii) - c_bxe * (Ez_->point(nx_-1,ny_-1-ii+1)-Ez_->point(nx_-1,ny_-1-ii));
-                            Hx_->point(nx_-1,ny_-1-ii) = c_hxh * Hx_->point(nx_-1,ny_-1-ii) + c_hxb1 * pmlArr_[kk].Bx_end_->point(nx_-1,ii) - c_hxb0 * bxstore;
-                        }
-                    }
-                    else
-                    {
-                        for (int jj = xPML_; jj < nx_-xPML_; jj++)
-                        {
-                            eps    = objArr_[phys_Hx_->point(jj,0)].dielectric(1.0);
-                            sigyx = pmlArr_[kk].sigma(0.5,eps);
-                            c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                            c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                            c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-                            eps    = objArr_[phys_Hy_->point(jj,0)].dielectric(1.0);
-                            sigyy = pmlArr_[kk].sigma(0.0,eps);
-                            c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                            c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            //Update both on the bottom side and Hy on the top
-                            bxstore = pmlArr_[kk].Bx_->point(jj,0);
-                            bystore = pmlArr_[kk].By_->point(jj,0);
-                            pmlArr_[kk].Bx_->point(jj,0) = c_bxb * pmlArr_[kk].Bx_->point(jj,0) - c_bxe * (Ez_->point(jj,0+1)-Ez_->point(jj,0));
-                            pmlArr_[kk].By_->point(jj,0) = c_byb * pmlArr_[kk].By_->point(jj,0) + c_bye * (Ez_->point(jj+1,0)-Ez_->point(jj,0));
-                            //cout <<"H1"<<endl;
-                            Hx_->point(jj,0) = c_hxh * Hx_->point(jj,0) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,0) - c_hxb0 * bxstore;
-                            Hy_->point(jj,0) = c_hyh * Hy_->point(jj,0) + c_hyb1 * pmlArr_[kk].By_->point(jj,0) - c_hyb0 * bystore;
-
-                            eps    = objArr_[phys_Hy_->point(jj,ny_-1)].dielectric(1.0);
-                            sigyy = pmlArr_[kk].sigma(0.0,eps);
-                            c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                            c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            bystore = pmlArr_[kk].By_end_->point(jj,0);
-                            pmlArr_[kk].By_end_->point(jj,0) = c_byb * pmlArr_[kk].By_end_->point(jj,0) + c_bye * (Ez_->point(jj+1,ny_-1)-Ez_->point(jj,ny_-1));
-                            Hy_->point(jj,ny_-1) = c_hyh * Hy_->point(jj,ny_-1) + c_hyb1 * pmlArr_[kk].By_end_->point(jj,0) - c_hyb0 * bystore;
-                        }
-                        for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
-                        {
-                            for(int jj = xPML_; jj < nx_-xPML_; jj ++)
-                            {
-                                //Update everything
-                                eps    = objArr_[phys_Hx_->point(jj,ii)].dielectric(1.0);
-                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii) + 0.5),eps);
-                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-                                eps    = objArr_[phys_Hy_->point(jj,ii)].dielectric(1.0);
-                                sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-                                bxstore = pmlArr_[kk].Bx_->point(jj,ii);
-                                bystore = pmlArr_[kk].By_->point(jj,ii);
-                                pmlArr_[kk].Bx_->point(jj,ii) = c_bxb * pmlArr_[kk].Bx_->point(jj,ii) - c_bxe * (Ez_->point(jj,ii+1)-Ez_->point(jj,ii));
-                                pmlArr_[kk].By_->point(jj,ii) = c_byb * pmlArr_[kk].By_->point(jj,ii) + c_bye * (Ez_->point(jj+1,ii)-Ez_->point(jj,ii));
-                                //cout <<"H1"<<endl;
-                                Hx_->point(jj,ii) = c_hxh * Hx_->point(jj,ii) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,ii) - c_hxb0 * bxstore;
-                                Hy_->point(jj,ii) = c_hyh * Hy_->point(jj,ii) + c_hyb1 * pmlArr_[kk].By_->point(jj,ii) - c_hyb0 * bystore;
-
-                                eps    = objArr_[phys_Hx_->point(jj,ny_-1-ii)].dielectric(1.0);
-                                sigyx = pmlArr_[kk].sigma(static_cast<double>((ii)-0.5),eps);
-                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-                                eps    = objArr_[phys_Hy_->point(jj,ny_-1-ii)].dielectric(1.0);
-                                sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-                                bxstore = pmlArr_[kk].Bx_end_->point(jj,ii);
-                                bystore = pmlArr_[kk].By_end_->point(jj,ii);
-                                pmlArr_[kk].Bx_end_->point(jj,ii) = c_bxb * pmlArr_[kk].Bx_end_->point(jj,ii) - c_bxe * (Ez_->point(jj,ny_-1-ii+1)-Ez_->point(jj,ny_-1-ii));
-                                pmlArr_[kk].By_end_->point(jj,ii) = c_byb * pmlArr_[kk].By_end_->point(jj,ii) + c_bye * (Ez_->point(jj+1,ny_-1-ii)-Ez_->point(jj,ny_-1-ii));
-                                //cout <<"H2"<<endl;
-                                Hx_->point(jj,ny_-1-ii) = c_hxh * Hx_->point(jj,ny_-1-ii) + c_hxb1 * pmlArr_[kk].Bx_end_->point(jj,ii) - c_hxb0 * bxstore;
-                                Hy_->point(jj,ny_-1-ii) = c_hyh * Hy_->point(jj,ny_-1-ii) + c_hyb1 * pmlArr_[kk].By_end_->point(jj,ii) - c_hyb0 * bystore;
+                                bxstore = pmlArr_[kk].Bx_end_->point(nx_-1,ii);
+                                pmlArr_[kk].Bx_end_->point(nx_-1,ii) = c_bxb * pmlArr_[kk].Bx_end_->point(nx_-1,ii) - c_bxe * (Ez_->point(nx_-1,ny_-1-ii+1)-Ez_->point(nx_-1,ny_-1-ii));
+                                Hx_->point(nx_-1,ny_-1-ii) = c_hxh * Hx_->point(nx_-1,ny_-1-ii) + c_hxb1 * pmlArr_[kk].Bx_end_->point(nx_-1,ii) - c_hxb0 * bxstore;
                             }
                         }
-                        if(kk==0)
+                        else
                         {
-                            kapz = 1.0; sigz = 0.0; eps = 1.0;
-                            kapx = 1.0; kapy = 1.0;
+                            for (int jj = xPML_; jj < nx_-xPML_; jj++)
+                            {
+                                eps    = objArr_[phys_Hx_->point(jj,0)].dielectric(1.0);
+                                sigyx = pmlArr_[kk].sigma(0.5,eps);
+                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
-                            eps    = objArr_[phys_Hx_->point(0,0)].dielectric(1.0);
-                            sigxx = pmlArr_[1].sigma(0.0,eps);
-                            sigyx = pmlArr_[0].sigma(0.5,eps);
-                            c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                            c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                            c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                eps    = objArr_[phys_Hy_->point(jj,0)].dielectric(1.0);
+                                sigyy = pmlArr_[kk].sigma(0.0,eps);
+                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                //Update both on the bottom side and Hy on the top
+                                bxstore = pmlArr_[kk].Bx_->point(jj,0);
+                                bystore = pmlArr_[kk].By_->point(jj,0);
+                                pmlArr_[kk].Bx_->point(jj,0) = c_bxb * pmlArr_[kk].Bx_->point(jj,0) - c_bxe * (Ez_->point(jj,0+1)-Ez_->point(jj,0));
+                                pmlArr_[kk].By_->point(jj,0) = c_byb * pmlArr_[kk].By_->point(jj,0) + c_bye * (Ez_->point(jj+1,0)-Ez_->point(jj,0));
+                                //cout <<"H1"<<endl;
+                                Hx_->point(jj,0) = c_hxh * Hx_->point(jj,0) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,0) - c_hxb0 * bxstore;
+                                Hy_->point(jj,0) = c_hyh * Hy_->point(jj,0) + c_hyb1 * pmlArr_[kk].By_->point(jj,0) - c_hyb0 * bystore;
 
-                            eps    = objArr_[phys_Hy_->point(0,0)].dielectric(1.0);
-                            sigxy = pmlArr_[1].sigma(0.5,eps);
-                            sigyy = pmlArr_[0].sigma(0.0,eps);
-                            c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                            c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                eps    = objArr_[phys_Hy_->point(jj,ny_-1)].dielectric(1.0);
+                                sigyy = pmlArr_[kk].sigma(0.0,eps);
+                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                bystore = pmlArr_[kk].By_end_->point(jj,0);
+                                pmlArr_[kk].By_end_->point(jj,0) = c_byb * pmlArr_[kk].By_end_->point(jj,0) + c_bye * (Ez_->point(jj+1,ny_-1)-Ez_->point(jj,ny_-1));
+                                Hy_->point(jj,ny_-1) = c_hyh * Hy_->point(jj,ny_-1) + c_hyb1 * pmlArr_[kk].By_end_->point(jj,0) - c_hyb0 * bystore;
+                            }
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
+                            {
+                                for(int jj = xPML_; jj < nx_-xPML_; jj ++)
+                                {
+                                    //Update everything
+                                    eps    = objArr_[phys_Hx_->point(jj,ii)].dielectric(1.0);
+                                    sigyx = pmlArr_[kk].sigma(static_cast<double>((ii) + 0.5),eps);
+                                    c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
-                            // Bot Left
-                            bxstore = pmlArr_[1].Bx_->point(0,0);
-                            bystore = pmlArr_[1].By_->point(0,0);
-                            pmlArr_[1].Bx_->point(0,0) = c_bxb * pmlArr_[1].Bx_->point(0,0) - c_bxe * (Ez_->point(0,0+1)-Ez_->point(0,0));
-                            pmlArr_[1].By_->point(0,0) = c_byb * pmlArr_[1].By_->point(0,0) + c_bye * (Ez_->point(0+1,0)-Ez_->point(0,0));
-                            Hx_->point(0,0) = c_hxh * Hx_->point(0,0) + c_hxb1 * pmlArr_[1].Bx_->point(0,0) - c_hxb0 * bxstore;
-                            Hy_->point(0,0) = c_hyh * Hy_->point(0,0) + c_hyb1 * pmlArr_[1].By_->point(0,0) - c_hyb0 * bystore;
-                            //Bot Right
-                            eps    = objArr_[phys_Hx_->point(nx_-1,0)].dielectric(1.0);
-                            sigxx = pmlArr_[1].sigma(0.0,eps);
-                            sigyx = pmlArr_[0].sigma(0.5,eps);
-                            c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                            c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                            c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    eps    = objArr_[phys_Hy_->point(jj,ii)].dielectric(1.0);
+                                    sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
 
-                            bxstore = pmlArr_[1].Bx_end_->point(0,0);
-                            pmlArr_[1].Bx_end_->point(0,0) = c_bxb * pmlArr_[1].Bx_end_->point(0,0) - c_bxe * (Ez_->point(nx_-1,0+1)-Ez_->point(nx_-1,0));
-                            Hx_->point(nx_-1,0) = c_hxh * Hx_->point(nx_-1,0) + c_hxb1 * pmlArr_[1].Bx_end_->point(0,0) - c_hxb0 * bxstore;
-                            //Top Left
+                                    bxstore = pmlArr_[kk].Bx_->point(jj,ii);
+                                    bystore = pmlArr_[kk].By_->point(jj,ii);
+                                    pmlArr_[kk].Bx_->point(jj,ii) = c_bxb * pmlArr_[kk].Bx_->point(jj,ii) - c_bxe * (Ez_->point(jj,ii+1)-Ez_->point(jj,ii));
+                                    pmlArr_[kk].By_->point(jj,ii) = c_byb * pmlArr_[kk].By_->point(jj,ii) + c_bye * (Ez_->point(jj+1,ii)-Ez_->point(jj,ii));
+                                    //cout <<"H1"<<endl;
+                                    Hx_->point(jj,ii) = c_hxh * Hx_->point(jj,ii) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,ii) - c_hxb0 * bxstore;
+                                    Hy_->point(jj,ii) = c_hyh * Hy_->point(jj,ii) + c_hyb1 * pmlArr_[kk].By_->point(jj,ii) - c_hyb0 * bystore;
 
-                            eps    = objArr_[phys_Hy_->point(0,ny_-1)].dielectric(1.0);
-                            sigxy = pmlArr_[1].sigma(0.5,eps);
-                            sigyy = pmlArr_[0].sigma(0.0,eps);
-                            c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                            c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                            c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                            c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    eps    = objArr_[phys_Hx_->point(jj,ny_-1-ii)].dielectric(1.0);
+                                    sigyx = pmlArr_[kk].sigma(static_cast<double>((ii)-0.5),eps);
+                                    c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
-                            bystore = pmlArr_[1].By_->point(0,ny_-1);
-                            pmlArr_[1].By_->point(0,ny_-1) = c_byb * pmlArr_[1].By_->point(0,ny_-1) + c_bye * (Ez_->point(0+1,ny_-1)-Ez_->point(0,ny_-1));
-                            Hy_->point(0,ny_-1) = c_hyh * Hy_->point(0,ny_-1) + c_hyb1 * pmlArr_[1].By_->point(0,ny_-1) - c_hyb0 * bystore;
-                            for(int ii = 1; ii < pmlArr_[1].thickness(); ii++)
+                                    eps    = objArr_[phys_Hy_->point(jj,ny_-1-ii)].dielectric(1.0);
+                                    sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    bxstore = pmlArr_[kk].Bx_end_->point(jj,ii);
+                                    bystore = pmlArr_[kk].By_end_->point(jj,ii);
+                                    pmlArr_[kk].Bx_end_->point(jj,ii) = c_bxb * pmlArr_[kk].Bx_end_->point(jj,ii) - c_bxe * (Ez_->point(jj,ny_-1-ii+1)-Ez_->point(jj,ny_-1-ii));
+                                    pmlArr_[kk].By_end_->point(jj,ii) = c_byb * pmlArr_[kk].By_end_->point(jj,ii) + c_bye * (Ez_->point(jj+1,ny_-1-ii)-Ez_->point(jj,ny_-1-ii));
+                                    //cout <<"H2"<<endl;
+                                    Hx_->point(jj,ny_-1-ii) = c_hxh * Hx_->point(jj,ny_-1-ii) + c_hxb1 * pmlArr_[kk].Bx_end_->point(jj,ii) - c_hxb0 * bxstore;
+                                    Hy_->point(jj,ny_-1-ii) = c_hyh * Hy_->point(jj,ny_-1-ii) + c_hyb1 * pmlArr_[kk].By_end_->point(jj,ii) - c_hyb0 * bystore;
+                                }
+                            }
+                            if(kk==0)
                             {
                                 kapz = 1.0; sigz = 0.0; eps = 1.0;
                                 kapx = 1.0; kapy = 1.0;
 
-                                eps    = objArr_[phys_Hx_->point(ii,0)].dielectric(1.0);
-                                sigxx  = pmlArr_[1].sigma(static_cast<double>(ii),eps);
-                                sigyx  = pmlArr_[1].sigma(0.5,eps);
+                                eps    = objArr_[phys_Hx_->point(0,0)].dielectric(1.0);
+                                sigxx = pmlArr_[1].sigma(0.0,eps);
+                                sigyx = pmlArr_[0].sigma(0.5,eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
-                                eps    = objArr_[phys_Hy_->point(ii,0)].dielectric(1.0);
-                                sigxy  = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
-                                sigyy  = pmlArr_[1].sigma(0.0,eps);
+                                eps    = objArr_[phys_Hy_->point(0,0)].dielectric(1.0);
+                                sigxy = pmlArr_[1].sigma(0.5,eps);
+                                sigyy = pmlArr_[0].sigma(0.0,eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
@@ -2643,153 +2586,128 @@ void FDTDField::updateH()
                                 c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
 
                                 // Bot Left
-                                bxstore = pmlArr_[1].Bx_->point(ii,0);
-                                bystore = pmlArr_[1].By_->point(ii,0);
-                                pmlArr_[1].Bx_->point(ii,0) = c_bxb * pmlArr_[1].Bx_->point(ii,0) - c_bxe * (Ez_->point(ii,0+1)-Ez_->point(ii,0));
-                                pmlArr_[1].By_->point(ii,0) = c_byb * pmlArr_[1].By_->point(ii,0) + c_bye * (Ez_->point(ii+1,0)-Ez_->point(ii,0));
-                                Hx_->point(ii,0) = c_hxh * Hx_->point(ii,0) + c_hxb1 * pmlArr_[1].Bx_->point(ii,0) - c_hxb0 * bxstore;
-                                Hy_->point(ii,0) = c_hyh * Hy_->point(ii,0) + c_hyb1 * pmlArr_[1].By_->point(ii,0) - c_hyb0 * bystore;
+                                bxstore = pmlArr_[1].Bx_->point(0,0);
+                                bystore = pmlArr_[1].By_->point(0,0);
+                                pmlArr_[1].Bx_->point(0,0) = c_bxb * pmlArr_[1].Bx_->point(0,0) - c_bxe * (Ez_->point(0,0+1)-Ez_->point(0,0));
+                                pmlArr_[1].By_->point(0,0) = c_byb * pmlArr_[1].By_->point(0,0) + c_bye * (Ez_->point(0+1,0)-Ez_->point(0,0));
+                                Hx_->point(0,0) = c_hxh * Hx_->point(0,0) + c_hxb1 * pmlArr_[1].Bx_->point(0,0) - c_hxb0 * bxstore;
+                                Hy_->point(0,0) = c_hyh * Hy_->point(0,0) + c_hyb1 * pmlArr_[1].By_->point(0,0) - c_hyb0 * bystore;
                                 //Bot Right
-                                eps    = objArr_[phys_Hx_->point(nx_-1-ii,0)].dielectric(1.0);
-                                sigxx  = pmlArr_[1].sigma(static_cast<double>(ii),eps);
-                                sigyx  = pmlArr_[1].sigma(0.5,eps);
+                                eps    = objArr_[phys_Hx_->point(nx_-1,0)].dielectric(1.0);
+                                sigxx = pmlArr_[1].sigma(0.0,eps);
+                                sigyx = pmlArr_[0].sigma(0.5,eps);
                                 c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                 c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                 c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
-                                eps    = objArr_[phys_Hy_->point(nx_-1-ii,0)].dielectric(1.0);
-                                sigxy = pmlArr_[1].sigma(static_cast<double>(ii) - 0.5,eps);
-                                sigyy = pmlArr_[0].sigma(0.0,eps);
-                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-                                bxstore = pmlArr_[1].Bx_end_->point(ii,0);
-                                bystore = pmlArr_[1].By_end_->point(ii,0);
-                                pmlArr_[1].Bx_end_->point(ii,0) = c_bxb * pmlArr_[1].Bx_end_->point(ii,0) - c_bxe * (Ez_->point(nx_-1-ii,0+1)-Ez_->point(nx_-1-ii,0));
-                                pmlArr_[1].By_end_->point(ii,0) = c_byb * pmlArr_[1].By_end_->point(ii,0) + c_bye * (Ez_->point(nx_-1-ii+1,0)-Ez_->point(nx_-1-ii,0));
-                                Hx_->point(nx_-1-ii,0) = c_hxh * Hx_->point(nx_-1-ii,0) + c_hxb1 * pmlArr_[1].Bx_end_->point(ii,0) - c_hxb0 * bxstore;
-                                Hy_->point(nx_-1-ii,0) = c_hyh * Hy_->point(nx_-1-ii,0) + c_hyb1 * pmlArr_[1].By_end_->point(ii,0) - c_hyb0 * bystore;
-                                //Top Right
-                                eps    = objArr_[phys_Hy_->point(nx_-1-ii,ny_-1)].dielectric(1.0);
-                                sigxy = pmlArr_[1].sigma(static_cast<double>(ii) - 0.5,eps);
-                                sigyy = pmlArr_[0].sigma(0.0,eps);
-                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                bystore = pmlArr_[1].By_end_->point(ii,ny_-1);
-                                pmlArr_[1].By_end_->point(ii,ny_-1) = c_byb * pmlArr_[1].By_end_->point(ii,ny_-1) + c_bye * (Ez_->point(nx_-1-ii+1,ny_-1)-Ez_->point(nx_-1-ii,ny_-1));
-                                Hy_->point(nx_-1-ii,ny_-1) = c_hyh * Hy_->point(nx_-1-ii,ny_-1) + c_hyb1 * pmlArr_[1].By_end_->point(ii,ny_-1) - c_hyb0 * bystore;
+                                bxstore = pmlArr_[1].Bx_end_->point(0,0);
+                                pmlArr_[1].Bx_end_->point(0,0) = c_bxb * pmlArr_[1].Bx_end_->point(0,0) - c_bxe * (Ez_->point(nx_-1,0+1)-Ez_->point(nx_-1,0));
+                                Hx_->point(nx_-1,0) = c_hxh * Hx_->point(nx_-1,0) + c_hxb1 * pmlArr_[1].Bx_end_->point(0,0) - c_hxb0 * bxstore;
                                 //Top Left
-                                eps    = objArr_[phys_Hy_->point(ii,ny_-1)].dielectric(1.0);
-                                sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
+
+                                eps    = objArr_[phys_Hy_->point(0,ny_-1)].dielectric(1.0);
+                                sigxy = pmlArr_[1].sigma(0.5,eps);
                                 sigyy = pmlArr_[0].sigma(0.0,eps);
                                 c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                 c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                 c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
                                 c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                                 c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                bystore = pmlArr_[1].By_->point(ii,ny_-1);
-                                pmlArr_[1].By_->point(ii,ny_-1) = c_byb * pmlArr_[1].By_->point(ii,ny_-1) + c_bye * (Ez_->point(ii+1,ny_-1)-Ez_->point(ii,ny_-1));
-                                Hy_->point(ii,ny_-1) = c_hyh * Hy_->point(ii,ny_-1) + c_hyb1 * pmlArr_[1].By_->point(ii,ny_ - 1) - c_hyb0 * bystore;
-                            }
-                            for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
-                            {
-                                kapz = 1.0; sigz = 0.0; eps = 1.0;
-                                kapx = 1.0; kapy = 1.0;
 
-                                eps    = objArr_[phys_Hx_->point(0,jj)].dielectric(1.0);
-                                sigxx = pmlArr_[1].sigma(0.0,eps);
-                                sigyx = pmlArr_[0].sigma(static_cast<double>(jj) + 0.5,eps);
-                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                bystore = pmlArr_[1].By_->point(0,ny_-1);
+                                pmlArr_[1].By_->point(0,ny_-1) = c_byb * pmlArr_[1].By_->point(0,ny_-1) + c_bye * (Ez_->point(0+1,ny_-1)-Ez_->point(0,ny_-1));
+                                Hy_->point(0,ny_-1) = c_hyh * Hy_->point(0,ny_-1) + c_hyb1 * pmlArr_[1].By_->point(0,ny_-1) - c_hyb0 * bystore;
+                                for(int ii = 1; ii < pmlArr_[1].thickness(); ii++)
+                                {
+                                    kapz = 1.0; sigz = 0.0; eps = 1.0;
+                                    kapx = 1.0; kapy = 1.0;
 
-                                eps    = objArr_[phys_Hy_->point(0,jj)].dielectric(1.0);
-                                sigxy = pmlArr_[1].sigma(0.5,eps);
-                                sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
-                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    eps    = objArr_[phys_Hx_->point(ii,0)].dielectric(1.0);
+                                    sigxx  = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                    sigyx  = pmlArr_[1].sigma(0.5,eps);
+                                    c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
-                                // Bot Left
-                                bxstore = pmlArr_[1].Bx_->point(0,jj);
-                                bystore = pmlArr_[1].By_->point(0,jj);
-                                pmlArr_[1].Bx_->point(0,jj) = c_bxb * pmlArr_[1].Bx_->point(0,jj) - c_bxe * (Ez_->point(0,jj+1)-Ez_->point(0,jj));
-                                pmlArr_[1].By_->point(0,jj) = c_byb * pmlArr_[1].By_->point(0,jj) + c_bye * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
-                                Hx_->point(0,jj) = c_hxh * Hx_->point(0,jj) + c_hxb1 * pmlArr_[1].Bx_->point(0,jj) - c_hxb0 * bxstore;
-                                Hy_->point(0,jj) = c_hyh * Hy_->point(0,jj) + c_hyb1 * pmlArr_[1].By_->point(0,jj) - c_hyb0 * bystore;
-                                //Bot Right
-                                eps    = objArr_[phys_Hx_->point(nx_-1,jj)].dielectric(1.0);
-                                sigxx = pmlArr_[1].sigma(0.0,eps);
-                                sigyx = pmlArr_[0].sigma(static_cast<double>(jj) + 0.5,eps);
-                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                                bxstore = pmlArr_[1].Bx_end_->point(0,jj);
-                                pmlArr_[1].Bx_end_->point(0,jj) = c_bxb * pmlArr_[1].Bx_end_->point(0,jj) - c_bxe * (Ez_->point(nx_-1,jj+1)-Ez_->point(nx_-1,jj));
-                                Hx_->point(nx_-1,jj) = c_hxh * Hx_->point(nx_-1,jj) + c_hxb1 * pmlArr_[1].Bx_end_->point(0,jj) - c_hxb0 * bxstore;
-                                //Top Rigt
-                                eps    = objArr_[phys_Hx_->point(nx_-1,ny_-1-jj)].dielectric(1.0);
-                                sigxx = pmlArr_[1].sigma(0.0,eps);
-                                sigyx = pmlArr_[0].sigma(static_cast<double>(jj) - 0.5,eps);
-                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    eps    = objArr_[phys_Hy_->point(ii,0)].dielectric(1.0);
+                                    sigxy  = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    sigyy  = pmlArr_[1].sigma(0.0,eps);
+                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
 
-                                bxstore = pmlArr_[1].Bx_end_->point(0,ny_-1-jj);
-                                pmlArr_[1].Bx_end_->point(0,ny_-1-jj) = c_bxb * pmlArr_[1].Bx_end_->point(0,ny_-1-jj) - c_bxe * (Ez_->point(nx_-1,ny_-1-jj+1)-Ez_->point(nx_-1,ny_-1-jj));
-                                Hx_->point(nx_-1,ny_-1-jj) = c_hxh * Hx_->point(nx_-1,ny_-1-jj) + c_hxb1 * pmlArr_[1].Bx_end_->point(0,ny_-1-jj) - c_hxb0 * bxstore;
-                                //Top Left
-                                eps    = objArr_[phys_Hx_->point(0,ny_-1-jj)].dielectric(1.0);
-                                sigxx = pmlArr_[1].sigma(0.0,eps);
-                                sigyx = pmlArr_[0].sigma(static_cast<double>(jj) - 0.5,eps);
-                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
-                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    // Bot Left
+                                    bxstore = pmlArr_[1].Bx_->point(ii,0);
+                                    bystore = pmlArr_[1].By_->point(ii,0);
+                                    pmlArr_[1].Bx_->point(ii,0) = c_bxb * pmlArr_[1].Bx_->point(ii,0) - c_bxe * (Ez_->point(ii,0+1)-Ez_->point(ii,0));
+                                    pmlArr_[1].By_->point(ii,0) = c_byb * pmlArr_[1].By_->point(ii,0) + c_bye * (Ez_->point(ii+1,0)-Ez_->point(ii,0));
+                                    Hx_->point(ii,0) = c_hxh * Hx_->point(ii,0) + c_hxb1 * pmlArr_[1].Bx_->point(ii,0) - c_hxb0 * bxstore;
+                                    Hy_->point(ii,0) = c_hyh * Hy_->point(ii,0) + c_hyb1 * pmlArr_[1].By_->point(ii,0) - c_hyb0 * bystore;
+                                    //Bot Right
+                                    eps    = objArr_[phys_Hx_->point(nx_-1-ii,0)].dielectric(1.0);
+                                    sigxx  = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                    sigyx  = pmlArr_[1].sigma(0.5,eps);
+                                    c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
-                                eps    = objArr_[phys_Hy_->point(0,ny_-1-jj)].dielectric(1.0);
-                                sigxy = pmlArr_[1].sigma(0.5,eps);
-                                sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
-                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                bxstore = pmlArr_[1].Bx_->point(0,ny_-1-jj);
-                                bystore = pmlArr_[1].By_->point(0,ny_-1-jj);
-                                pmlArr_[1].Bx_->point(0,ny_-1-jj) = c_bxb * pmlArr_[1].Bx_->point(0,ny_-1-jj) - c_bxe * (Ez_->point(0,ny_-1-jj+1)-Ez_->point(0,ny_-1-jj));
-                                pmlArr_[1].By_->point(0,ny_-1-jj) = c_byb * pmlArr_[1].By_->point(0,ny_-1-jj) + c_bye * (Ez_->point(0+1,ny_-1-jj)-Ez_->point(0,ny_-1-jj));
-                                Hx_->point(0,ny_-1-jj) = c_hxh * Hx_->point(0,ny_-1-jj) + c_hxb1 * pmlArr_[1].Bx_->point(0,ny_-1-jj) - c_hxb0 * bxstore;
-                                Hy_->point(0,ny_-1-jj) = c_hyh * Hy_->point(0,ny_-1-jj) + c_hyb1 * pmlArr_[1].By_->point(0,ny_-1-jj) - c_hyb0 * bystore;
-                            }
-                            for(int ii = 1; ii < pmlArr_[1].thickness(); ii++)
-                            {
+                                    eps    = objArr_[phys_Hy_->point(nx_-1-ii,0)].dielectric(1.0);
+                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) - 0.5,eps);
+                                    sigyy = pmlArr_[0].sigma(0.0,eps);
+                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    bxstore = pmlArr_[1].Bx_end_->point(ii,0);
+                                    bystore = pmlArr_[1].By_end_->point(ii,0);
+                                    pmlArr_[1].Bx_end_->point(ii,0) = c_bxb * pmlArr_[1].Bx_end_->point(ii,0) - c_bxe * (Ez_->point(nx_-1-ii,0+1)-Ez_->point(nx_-1-ii,0));
+                                    pmlArr_[1].By_end_->point(ii,0) = c_byb * pmlArr_[1].By_end_->point(ii,0) + c_bye * (Ez_->point(nx_-1-ii+1,0)-Ez_->point(nx_-1-ii,0));
+                                    Hx_->point(nx_-1-ii,0) = c_hxh * Hx_->point(nx_-1-ii,0) + c_hxb1 * pmlArr_[1].Bx_end_->point(ii,0) - c_hxb0 * bxstore;
+                                    Hy_->point(nx_-1-ii,0) = c_hyh * Hy_->point(nx_-1-ii,0) + c_hyb1 * pmlArr_[1].By_end_->point(ii,0) - c_hyb0 * bystore;
+                                    //Top Right
+                                    eps    = objArr_[phys_Hy_->point(nx_-1-ii,ny_-1)].dielectric(1.0);
+                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) - 0.5,eps);
+                                    sigyy = pmlArr_[0].sigma(0.0,eps);
+                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    bystore = pmlArr_[1].By_end_->point(ii,ny_-1);
+                                    pmlArr_[1].By_end_->point(ii,ny_-1) = c_byb * pmlArr_[1].By_end_->point(ii,ny_-1) + c_bye * (Ez_->point(nx_-1-ii+1,ny_-1)-Ez_->point(nx_-1-ii,ny_-1));
+                                    Hy_->point(nx_-1-ii,ny_-1) = c_hyh * Hy_->point(nx_-1-ii,ny_-1) + c_hyb1 * pmlArr_[1].By_end_->point(ii,ny_-1) - c_hyb0 * bystore;
+                                    //Top Left
+                                    eps    = objArr_[phys_Hy_->point(ii,ny_-1)].dielectric(1.0);
+                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    sigyy = pmlArr_[0].sigma(0.0,eps);
+                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    c_bxe = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    bystore = pmlArr_[1].By_->point(ii,ny_-1);
+                                    pmlArr_[1].By_->point(ii,ny_-1) = c_byb * pmlArr_[1].By_->point(ii,ny_-1) + c_bye * (Ez_->point(ii+1,ny_-1)-Ez_->point(ii,ny_-1));
+                                    Hy_->point(ii,ny_-1) = c_hyh * Hy_->point(ii,ny_-1) + c_hyb1 * pmlArr_[1].By_->point(ii,ny_ - 1) - c_hyb0 * bystore;
+                                }
                                 for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
                                 {
                                     kapz = 1.0; sigz = 0.0; eps = 1.0;
                                     kapx = 1.0; kapy = 1.0;
 
-                                    eps    = objArr_[phys_Hx_->point(ii,jj)].dielectric(1.0);
-                                    sigxx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                    eps    = objArr_[phys_Hx_->point(0,jj)].dielectric(1.0);
+                                    sigxx = pmlArr_[1].sigma(0.0,eps);
                                     sigyx = pmlArr_[0].sigma(static_cast<double>(jj) + 0.5,eps);
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
@@ -2797,8 +2715,8 @@ void FDTDField::updateH()
                                     c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
-                                    eps    = objArr_[phys_Hy_->point(ii,jj)].dielectric(1.0);
-                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    eps    = objArr_[phys_Hy_->point(0,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[1].sigma(0.5,eps);
                                     sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
                                     c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
@@ -2807,105 +2725,615 @@ void FDTDField::updateH()
                                     c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
 
                                     // Bot Left
-                                    bxstore = pmlArr_[1].Bx_->point(ii,jj);
-                                    bystore = pmlArr_[1].By_->point(ii,jj);
-                                    pmlArr_[1].Bx_->point(ii,jj) = c_bxb * pmlArr_[1].Bx_->point(ii,jj) - c_bxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
-                                    pmlArr_[1].By_->point(ii,jj) = c_byb * pmlArr_[1].By_->point(ii,jj) + c_bye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
-                                    Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[1].Bx_->point(ii,jj) - c_hxb0 * bxstore;
-                                    Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[1].By_->point(ii,jj) - c_hyb0 * bystore;
+                                    bxstore = pmlArr_[1].Bx_->point(0,jj);
+                                    bystore = pmlArr_[1].By_->point(0,jj);
+                                    pmlArr_[1].Bx_->point(0,jj) = c_bxb * pmlArr_[1].Bx_->point(0,jj) - c_bxe * (Ez_->point(0,jj+1)-Ez_->point(0,jj));
+                                    pmlArr_[1].By_->point(0,jj) = c_byb * pmlArr_[1].By_->point(0,jj) + c_bye * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
+                                    Hx_->point(0,jj) = c_hxh * Hx_->point(0,jj) + c_hxb1 * pmlArr_[1].Bx_->point(0,jj) - c_hxb0 * bxstore;
+                                    Hy_->point(0,jj) = c_hyh * Hy_->point(0,jj) + c_hyb1 * pmlArr_[1].By_->point(0,jj) - c_hyb0 * bystore;
                                     //Bot Right
-                                    eps    = objArr_[phys_Hx_->point(nx_-1-ii,jj)].dielectric(1.0);
-                                    sigxx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                    eps    = objArr_[phys_Hx_->point(nx_-1,jj)].dielectric(1.0);
+                                    sigxx = pmlArr_[1].sigma(0.0,eps);
                                     sigyx = pmlArr_[0].sigma(static_cast<double>(jj) + 0.5,eps);
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                     c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-                                    eps    = objArr_[phys_Hy_->point(nx_-1-ii,jj)].dielectric(1.0);
-                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) - 0.5,eps);
-                                    sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
-                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-                                    bxstore = pmlArr_[1].Bx_end_->point(ii,jj);
-                                    bystore = pmlArr_[1].By_end_->point(ii,jj);
-                                    pmlArr_[1].Bx_end_->point(ii,jj) = c_bxb * pmlArr_[1].Bx_end_->point(ii,jj) - c_bxe * (Ez_->point(nx_-1-ii,jj+1)-Ez_->point(nx_-1-ii,jj));
-                                    pmlArr_[1].By_end_->point(ii,jj) = c_byb * pmlArr_[1].By_end_->point(ii,jj) + c_bye * (Ez_->point(nx_-1-ii+1,jj)-Ez_->point(nx_-1-ii,jj));
-                                    Hx_->point(nx_-1-ii,jj) = c_hxh * Hx_->point(nx_-1-ii,jj) + c_hxb1 * pmlArr_[1].Bx_end_->point(ii,jj) - c_hxb0 * bxstore;
-                                    Hy_->point(nx_-1-ii,jj) = c_hyh * Hy_->point(nx_-1-ii,jj) + c_hyb1 * pmlArr_[1].By_end_->point(ii,jj) - c_hyb0 * bystore;
-                                    //Top Right
-                                    eps    = objArr_[phys_Hx_->point(nx_-1-ii,ny_-1-jj)].dielectric(1.0);
+                                    bxstore = pmlArr_[1].Bx_end_->point(0,jj);
+                                    pmlArr_[1].Bx_end_->point(0,jj) = c_bxb * pmlArr_[1].Bx_end_->point(0,jj) - c_bxe * (Ez_->point(nx_-1,jj+1)-Ez_->point(nx_-1,jj));
+                                    Hx_->point(nx_-1,jj) = c_hxh * Hx_->point(nx_-1,jj) + c_hxb1 * pmlArr_[1].Bx_end_->point(0,jj) - c_hxb0 * bxstore;
+                                    //Top Rigt
+                                    eps    = objArr_[phys_Hx_->point(nx_-1,ny_-1-jj)].dielectric(1.0);
+                                    sigxx = pmlArr_[1].sigma(0.0,eps);
                                     sigyx = pmlArr_[0].sigma(static_cast<double>(jj) - 0.5,eps);
-                                    sigxx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                     c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
-                                    eps    = objArr_[phys_Hy_->point(nx_-1-ii,ny_-1-jj)].dielectric(1.0);
-                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) - 0.5,eps);
-                                    sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
-                                    c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-                                    c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
-                                    c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                    c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                    c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                    bxstore = pmlArr_[1].Bx_end_->point(ii,ny_-1-jj);
-                                    bystore = pmlArr_[1].By_end_->point(ii,ny_-1-jj);
-                                    pmlArr_[1].Bx_end_->point(ii,ny_-1-jj) = c_bxb * pmlArr_[1].Bx_end_->point(ii,ny_-1-jj) - c_bxe * (Ez_->point(nx_-1-ii,ny_-1-jj+1)-Ez_->point(nx_-1-ii,ny_-1-jj));
-                                    pmlArr_[1].By_end_->point(ii,ny_-1-jj) = c_byb * pmlArr_[1].By_end_->point(ii,ny_-1-jj) + c_bye * (Ez_->point(nx_-1-ii+1,ny_-1-jj)-Ez_->point(nx_-1-ii,ny_-1-jj));
-                                    Hx_->point(nx_-1-ii,ny_-1-jj) = c_hxh * Hx_->point(nx_-1-ii,ny_-1-jj) + c_hxb1 * pmlArr_[1].Bx_end_->point(ii,ny_-1-jj) - c_hxb0 * bxstore;
-                                    Hy_->point(nx_-1-ii,ny_-1-jj) = c_hyh * Hy_->point(nx_-1-ii,ny_-1-jj) + c_hyb1 * pmlArr_[1].By_end_->point(ii,ny_-1-jj) - c_hyb0 * bystore;
+                                    bxstore = pmlArr_[1].Bx_end_->point(0,ny_-1-jj);
+                                    pmlArr_[1].Bx_end_->point(0,ny_-1-jj) = c_bxb * pmlArr_[1].Bx_end_->point(0,ny_-1-jj) - c_bxe * (Ez_->point(nx_-1,ny_-1-jj+1)-Ez_->point(nx_-1,ny_-1-jj));
+                                    Hx_->point(nx_-1,ny_-1-jj) = c_hxh * Hx_->point(nx_-1,ny_-1-jj) + c_hxb1 * pmlArr_[1].Bx_end_->point(0,ny_-1-jj) - c_hxb0 * bxstore;
                                     //Top Left
-                                    eps    = objArr_[phys_Hx_->point(ii,ny_-1-jj)].dielectric(1.0);
+                                    eps    = objArr_[phys_Hx_->point(0,ny_-1-jj)].dielectric(1.0);
+                                    sigxx = pmlArr_[1].sigma(0.0,eps);
                                     sigyx = pmlArr_[0].sigma(static_cast<double>(jj) - 0.5,eps);
-                                    sigxx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
                                     c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
                                     c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
                                     c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
 
-                                    eps    = objArr_[phys_Hy_->point(ii,ny_-1-jj)].dielectric(1.0);
-                                    sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    eps    = objArr_[phys_Hy_->point(0,ny_-1-jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[1].sigma(0.5,eps);
                                     sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
                                     c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                     c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
                                     c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
                                     c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                                     c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-                                    bxstore = pmlArr_[1].Bx_->point(ii,ny_-1-jj);
-                                    bystore = pmlArr_[1].By_->point(ii,ny_-1-jj);
-                                    pmlArr_[1].Bx_->point(ii,ny_-1-jj) = c_bxb * pmlArr_[1].Bx_->point(ii,ny_-1-jj) - c_bxe * (Ez_->point(ii,ny_-1-jj+1)-Ez_->point(ii,ny_-1-jj));
-                                    pmlArr_[1].By_->point(ii,ny_-1-jj) = c_byb * pmlArr_[1].By_->point(ii,ny_-1-jj) + c_bye * (Ez_->point(ii+1,ny_-1-jj)-Ez_->point(ii,ny_-1-jj));
-                                    Hx_->point(ii,ny_-1-jj) = c_hxh * Hx_->point(ii,ny_-1-jj) + c_hxb1 * pmlArr_[1].Bx_->point(ii,ny_-1-jj) - c_hxb0 * bxstore;
-                                    Hy_->point(ii,ny_-1-jj) = c_hyh * Hy_->point(ii,ny_-1-jj) + c_hyb1 * pmlArr_[1].By_->point(ii,ny_-1-jj) - c_hyb0 * bystore;
+                                    bxstore = pmlArr_[1].Bx_->point(0,ny_-1-jj);
+                                    bystore = pmlArr_[1].By_->point(0,ny_-1-jj);
+                                    pmlArr_[1].Bx_->point(0,ny_-1-jj) = c_bxb * pmlArr_[1].Bx_->point(0,ny_-1-jj) - c_bxe * (Ez_->point(0,ny_-1-jj+1)-Ez_->point(0,ny_-1-jj));
+                                    pmlArr_[1].By_->point(0,ny_-1-jj) = c_byb * pmlArr_[1].By_->point(0,ny_-1-jj) + c_bye * (Ez_->point(0+1,ny_-1-jj)-Ez_->point(0,ny_-1-jj));
+                                    Hx_->point(0,ny_-1-jj) = c_hxh * Hx_->point(0,ny_-1-jj) + c_hxb1 * pmlArr_[1].Bx_->point(0,ny_-1-jj) - c_hxb0 * bxstore;
+                                    Hy_->point(0,ny_-1-jj) = c_hyh * Hy_->point(0,ny_-1-jj) + c_hyb1 * pmlArr_[1].By_->point(0,ny_-1-jj) - c_hyb0 * bystore;
+                                }
+                                for(int ii = 1; ii < pmlArr_[1].thickness(); ii++)
+                                {
+                                    for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
+                                    {
+                                        kapz = 1.0; sigz = 0.0; eps = 1.0;
+                                        kapx = 1.0; kapy = 1.0;
+
+                                        eps    = objArr_[phys_Hx_->point(ii,jj)].dielectric(1.0);
+                                        sigxx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                        sigyx = pmlArr_[0].sigma(static_cast<double>(jj) + 0.5,eps);
+                                        c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                        c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                        c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                        eps    = objArr_[phys_Hy_->point(ii,jj)].dielectric(1.0);
+                                        sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
+                                        sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
+                                        c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                        c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                        // Bot Left
+                                        bxstore = pmlArr_[1].Bx_->point(ii,jj);
+                                        bystore = pmlArr_[1].By_->point(ii,jj);
+                                        pmlArr_[1].Bx_->point(ii,jj) = c_bxb * pmlArr_[1].Bx_->point(ii,jj) - c_bxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
+                                        pmlArr_[1].By_->point(ii,jj) = c_byb * pmlArr_[1].By_->point(ii,jj) + c_bye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
+                                        Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[1].Bx_->point(ii,jj) - c_hxb0 * bxstore;
+                                        Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[1].By_->point(ii,jj) - c_hyb0 * bystore;
+                                        //Bot Right
+                                        eps    = objArr_[phys_Hx_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                        sigxx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                        sigyx = pmlArr_[0].sigma(static_cast<double>(jj) + 0.5,eps);
+                                        c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                        c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                        c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                        eps    = objArr_[phys_Hy_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                        sigxy = pmlArr_[1].sigma(static_cast<double>(ii) - 0.5,eps);
+                                        sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
+                                        c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                        c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                        bxstore = pmlArr_[1].Bx_end_->point(ii,jj);
+                                        bystore = pmlArr_[1].By_end_->point(ii,jj);
+                                        pmlArr_[1].Bx_end_->point(ii,jj) = c_bxb * pmlArr_[1].Bx_end_->point(ii,jj) - c_bxe * (Ez_->point(nx_-1-ii,jj+1)-Ez_->point(nx_-1-ii,jj));
+                                        pmlArr_[1].By_end_->point(ii,jj) = c_byb * pmlArr_[1].By_end_->point(ii,jj) + c_bye * (Ez_->point(nx_-1-ii+1,jj)-Ez_->point(nx_-1-ii,jj));
+                                        Hx_->point(nx_-1-ii,jj) = c_hxh * Hx_->point(nx_-1-ii,jj) + c_hxb1 * pmlArr_[1].Bx_end_->point(ii,jj) - c_hxb0 * bxstore;
+                                        Hy_->point(nx_-1-ii,jj) = c_hyh * Hy_->point(nx_-1-ii,jj) + c_hyb1 * pmlArr_[1].By_end_->point(ii,jj) - c_hyb0 * bystore;
+                                        //Top Right
+                                        eps    = objArr_[phys_Hx_->point(nx_-1-ii,ny_-1-jj)].dielectric(1.0);
+                                        sigyx = pmlArr_[0].sigma(static_cast<double>(jj) - 0.5,eps);
+                                        sigxx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                        c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                        c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                        c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                        eps    = objArr_[phys_Hy_->point(nx_-1-ii,ny_-1-jj)].dielectric(1.0);
+                                        sigxy = pmlArr_[1].sigma(static_cast<double>(ii) - 0.5,eps);
+                                        sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
+                                        c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                        c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        bxstore = pmlArr_[1].Bx_end_->point(ii,ny_-1-jj);
+                                        bystore = pmlArr_[1].By_end_->point(ii,ny_-1-jj);
+                                        pmlArr_[1].Bx_end_->point(ii,ny_-1-jj) = c_bxb * pmlArr_[1].Bx_end_->point(ii,ny_-1-jj) - c_bxe * (Ez_->point(nx_-1-ii,ny_-1-jj+1)-Ez_->point(nx_-1-ii,ny_-1-jj));
+                                        pmlArr_[1].By_end_->point(ii,ny_-1-jj) = c_byb * pmlArr_[1].By_end_->point(ii,ny_-1-jj) + c_bye * (Ez_->point(nx_-1-ii+1,ny_-1-jj)-Ez_->point(nx_-1-ii,ny_-1-jj));
+                                        Hx_->point(nx_-1-ii,ny_-1-jj) = c_hxh * Hx_->point(nx_-1-ii,ny_-1-jj) + c_hxb1 * pmlArr_[1].Bx_end_->point(ii,ny_-1-jj) - c_hxb0 * bxstore;
+                                        Hy_->point(nx_-1-ii,ny_-1-jj) = c_hyh * Hy_->point(nx_-1-ii,ny_-1-jj) + c_hyb1 * pmlArr_[1].By_end_->point(ii,ny_-1-jj) - c_hyb0 * bystore;
+                                        //Top Left
+                                        eps    = objArr_[phys_Hx_->point(ii,ny_-1-jj)].dielectric(1.0);
+                                        sigyx = pmlArr_[0].sigma(static_cast<double>(jj) - 0.5,eps);
+                                        sigxx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                        c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                        c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                        c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                        eps    = objArr_[phys_Hy_->point(ii,ny_-1-jj)].dielectric(1.0);
+                                        sigxy = pmlArr_[1].sigma(static_cast<double>(ii) + 0.5,eps);
+                                        sigyy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
+                                        c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                        c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                        c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                        bxstore = pmlArr_[1].Bx_->point(ii,ny_-1-jj);
+                                        bystore = pmlArr_[1].By_->point(ii,ny_-1-jj);
+                                        pmlArr_[1].Bx_->point(ii,ny_-1-jj) = c_bxb * pmlArr_[1].Bx_->point(ii,ny_-1-jj) - c_bxe * (Ez_->point(ii,ny_-1-jj+1)-Ez_->point(ii,ny_-1-jj));
+                                        pmlArr_[1].By_->point(ii,ny_-1-jj) = c_byb * pmlArr_[1].By_->point(ii,ny_-1-jj) + c_bye * (Ez_->point(ii+1,ny_-1-jj)-Ez_->point(ii,ny_-1-jj));
+                                        Hx_->point(ii,ny_-1-jj) = c_hxh * Hx_->point(ii,ny_-1-jj) + c_hxb1 * pmlArr_[1].Bx_->point(ii,ny_-1-jj) - c_hxb0 * bxstore;
+                                        Hy_->point(ii,ny_-1-jj) = c_hyh * Hy_->point(ii,ny_-1-jj) + c_hyb1 * pmlArr_[1].By_->point(ii,ny_-1-jj) - c_hyb0 * bystore;
+                                    }
                                 }
                             }
                         }
+                        break;
                     }
-                    break;
+                    case Z:
+                    {
+                        throw logic_error("Z dir not implimented");
+                        break;
+                    }
+                    default:
+                        throw logic_error("how did you get here, it is a switch default try again");
+                        break;
                 }
-                case Z:
-                {
-                    throw logic_error("Z dir not implimented");
-                    break;
-                }
-                default:
-                    throw logic_error("how did you get here, it is a switch default try again");
-                    break;
             }
         }
     }
     else
     {
+        if(Ez_)
+        {
+            for(int kk = 0; kk < pmlArr_.size(); kk++)
+            {
+                double kapx = 1.0; double kapy = 1.0; double kapz = 1.0;
+                double sigz = 0.0;
+                switch(pmlArr_[kk].d())
+                {
+                    case X:
+                    {
+                        complex<double> bxstore(0.0,0.0); complex<double> bystore(0.0,0.0);
+                        if (yPML_== 0)
+                        {
+                            for (int jj = 0; jj < ny_-1; jj++)
+                            {
+                                //Update both on the left side and Hx on the right
+                                bxstore = pmlArr_[kk].Bx_->point(0,jj);
+                                bystore = pmlArr_[kk].By_->point(0,jj);
 
+                                pmlArr_[kk].Bx_->point(0,jj) = pmlArr_[kk].c_bxb_0_ -> point(0,jj) * pmlArr_[kk].Bx_->point(0,jj) - pmlArr_[kk].c_bxe_0_ -> point(0,jj) * (Ez_->point(0,jj+1)-Ez_->point(0,jj));
+                                pmlArr_[kk].By_->point(0,jj) = pmlArr_[kk].c_byb_0_ -> point(0,jj) * pmlArr_[kk].By_->point(0,jj) + pmlArr_[kk].c_bye_0_ -> point(0,jj) * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
+
+                                Hx_->point(0,jj) = pmlArr_[kk].c_hxh_0_ -> point(0,jj) * Hx_->point(0,jj) + pmlArr_[kk].c_hxb1_0_ -> point(0,jj) * pmlArr_[kk].Bx_->point(0,jj) - pmlArr_[kk].c_hxb0_0_ -> point(0,jj) * bxstore;
+                                Hy_->point(0,jj) = pmlArr_[kk].c_hyh_0_ -> point(0,jj) * Hy_->point(0,jj) + pmlArr_[kk].c_hyb1_0_ -> point(0,jj) * pmlArr_[kk].By_->point(0,jj) - pmlArr_[kk].c_hyb0_0_ -> point(0,jj) * bystore;
+
+                                bxstore = pmlArr_[kk].Bx_end_->point(0,jj);
+                                pmlArr_[kk].Bx_end_->point(0,jj) = pmlArr_[kk].c_bxb_n_ -> point(0,jj) * pmlArr_[kk].Bx_end_->point(0,jj) - pmlArr_[kk].c_bxe_n_ -> point(0,jj) * (Ez_->point(nx_-1, jj+1)-Ez_->point(nx_-1,jj));
+                                Hx_->point(nx_-1,jj) = pmlArr_[kk].c_hxh_n_ -> point(0,jj) * Hx_->point(nx_-1,jj) + pmlArr_[kk].c_hxb1_n_ -> point(0,jj) * pmlArr_[kk].Bx_end_->point(0,jj) - pmlArr_[kk].c_hxb0_n_ -> point(0,jj) * bxstore;
+                            }
+                            //Top left corner
+                            bystore = pmlArr_[kk].By_->point(0,ny_-1);
+                            pmlArr_[kk].By_->point(0,ny_-1) = pmlArr_[kk].c_byb_0_ -> point(0,ny_-1) * pmlArr_[kk].By_->point(0,ny_-1) + pmlArr_[kk].c_bye_0_ -> point(0,ny_-1) * (Ez_->point(0+1,ny_-1)-Ez_->point(0,ny_-1));
+                            Hy_->point(0,ny_-1) = pmlArr_[kk].c_hyh_0_ -> point(0,ny_-1) * Hy_->point(0,ny_-1) + pmlArr_[kk].c_hyb1_0_ -> point(0,ny_-1) * pmlArr_[kk].By_->point(0,ny_-1) - pmlArr_[kk].c_hyb0_0_ -> point(0,ny_-1) * bystore;
+
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
+                            {
+                                //top row
+                                bystore = pmlArr_[kk].By_->point(ii,ny_-1);
+                                pmlArr_[kk].By_->point(ii,ny_-1) = pmlArr_[kk].c_byb_0_ -> point(ii,ny_-1) * pmlArr_[kk].By_->point(ii,ny_-1) + pmlArr_[kk].c_bye_0_ -> point(ii,ny_-1) * (Ez_->point(ii+1,ny_-1)-Ez_->point(ii,ny_-1));
+                                Hy_->point(ii,ny_-1) = pmlArr_[kk].c_hyh_0_ -> point(ii,ny_-1) * Hy_->point(ii,ny_-1) + pmlArr_[kk].c_hyb1_0_ -> point(ii,ny_-1) * pmlArr_[kk].By_->point(ii,ny_-1) - pmlArr_[kk].c_hyb0_0_ -> point(ii,ny_-1) * bystore;
+
+                                for(int jj = 0; jj < ny_-1; jj ++)
+                                {
+                                    //Update everything
+                                    bxstore = pmlArr_[kk].Bx_->point(ii,jj);
+                                    bystore = pmlArr_[kk].By_->point(ii,jj);
+
+                                    pmlArr_[kk].Bx_->point(ii,jj) = pmlArr_[kk].c_bxb_0_ -> point(ii,jj) * pmlArr_[kk].Bx_->point(ii,jj) - pmlArr_[kk].c_bxe_0_ -> point(ii,jj) * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
+                                    pmlArr_[kk].By_->point(ii,jj) = pmlArr_[kk].c_byb_0_ -> point(ii,jj) * pmlArr_[kk].By_->point(ii,jj) + pmlArr_[kk].c_bye_0_ -> point(ii,jj) * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
+
+                                    Hx_->point(ii,jj) = pmlArr_[kk].c_hxh_0_ -> point(ii,jj) * Hx_->point(ii,jj) + pmlArr_[kk].c_hxb1_0_ -> point(ii,jj) * pmlArr_[kk].Bx_->point(ii,jj) - pmlArr_[kk].c_hxb0_0_ -> point(ii,jj) * bxstore;
+                                    Hy_->point(ii,jj) = pmlArr_[kk].c_hyh_0_ -> point(ii,jj) * Hy_->point(ii,jj) + pmlArr_[kk].c_hyb1_0_ -> point(ii,jj) * pmlArr_[kk].By_->point(ii,jj) - pmlArr_[kk].c_hyb0_0_ -> point(ii,jj) * bystore;
+
+                                    bxstore = pmlArr_[kk].Bx_end_->point(ii,jj);
+                                    bystore = pmlArr_[kk].By_end_->point(ii,jj);
+
+                                    pmlArr_[kk].Bx_end_->point(ii,jj) = pmlArr_[kk].c_bxb_n_ -> point(ii,jj) * pmlArr_[kk].Bx_end_->point(ii,jj) - pmlArr_[kk].c_bxe_n_ -> point(ii,jj) * (Ez_->point(nx_-1-ii, jj+1)-Ez_->point(nx_-1-ii,jj));
+                                    pmlArr_[kk].By_end_->point(ii,jj) = pmlArr_[kk].c_byb_n_ -> point(ii,jj) * pmlArr_[kk].By_end_->point(ii,jj) + pmlArr_[kk].c_bye_n_ -> point(ii,jj) * (Ez_->point(nx_-1-ii+1, jj)-Ez_->point(nx_-1-ii,jj));
+
+                                    Hx_->point(nx_-1-ii,jj) = pmlArr_[kk].c_hxh_n_ -> point(ii,jj) * Hx_->point((nx_-1) - ii,jj) + pmlArr_[kk].c_hxb1_n_ -> point(ii,jj) * pmlArr_[kk].Bx_end_->point(ii,jj) - pmlArr_[kk].c_hxb0_n_ -> point(ii,jj) * bxstore;
+                                    Hy_->point(nx_-1-ii,jj) = pmlArr_[kk].c_hyh_n_ -> point(ii,jj) * Hy_->point((nx_-1) - ii,jj) + pmlArr_[kk].c_hyb1_n_ -> point(ii,jj) * pmlArr_[kk].By_end_->point(ii,jj) - pmlArr_[kk].c_hyb0_n_ -> point(ii,jj) * bystore;
+                                }
+                                // for the top row only upadate Hy
+
+                                bystore = pmlArr_[kk].By_end_->point(ii,ny_-1);
+                                pmlArr_[kk].By_end_->point(ii,ny_-1) = pmlArr_[kk].c_byb_n_ -> point(ii,ny_-1) * pmlArr_[kk].By_end_->point(ii,ny_-1) + pmlArr_[kk].c_bye_n_ -> point(ii,ny_-1) * (Ez_->point(nx_-1-ii+1, ny_-1)-Ez_->point(nx_-1-ii,ny_-1));
+                                Hy_->point(nx_-1-ii,ny_-1) = pmlArr_[kk].c_hyh_n_ -> point(ii,ny_-1) * Hy_->point(nx_-1-ii,ny_-1) + pmlArr_[kk].c_hyb1_n_ -> point(ii,ny_-1) * pmlArr_[kk].By_end_->point(ii,ny_-1) - pmlArr_[kk].c_hyb0_n_ -> point(ii,ny_-1) * bystore;
+                            }
+                        }
+                        else
+                        {
+                            for (int jj = yPML_; jj < ny_- yPML_; jj++)
+                            {
+                                //Update both on the left side and Hx on the right
+                                bxstore = pmlArr_[kk].Bx_->point(0,jj);
+                                bystore = pmlArr_[kk].By_->point(0,jj);
+
+                                pmlArr_[kk].Bx_->point(0,jj) = pmlArr_[kk].c_bxb_0_ -> point(0,jj) * pmlArr_[kk].Bx_->point(0,jj) - pmlArr_[kk].c_bxe_0_ -> point(0,jj) * (Ez_->point(0,jj+1)-Ez_->point(0,jj));
+                                pmlArr_[kk].By_->point(0,jj) = pmlArr_[kk].c_byb_0_ -> point(0,jj) * pmlArr_[kk].By_->point(0,jj) + pmlArr_[kk].c_bye_0_ -> point(0,jj) * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
+
+                                Hx_->point(0,jj) = pmlArr_[kk].c_hxh_0_ -> point(0,jj) * Hx_->point(0,jj) + pmlArr_[kk].c_hxb1_0_ -> point(0,jj) * pmlArr_[kk].Bx_->point(0,jj) - pmlArr_[kk].c_hxb0_0_ -> point(0,jj) * bxstore;
+                                Hy_->point(0,jj) = pmlArr_[kk].c_hyh_0_ -> point(0,jj) * Hy_->point(0,jj) + pmlArr_[kk].c_hyb1_0_ -> point(0,jj) * pmlArr_[kk].By_->point(0,jj) - pmlArr_[kk].c_hyb0_0_ -> point(0,jj) * bystore;
+
+                                bxstore = pmlArr_[kk].Bx_end_->point(0,jj);
+                                pmlArr_[kk].Bx_end_->point(0,jj) = pmlArr_[kk].c_bxb_n_ -> point(0,jj) * pmlArr_[kk].Bx_end_->point(0,jj) - pmlArr_[kk].c_bxe_n_ -> point(0,jj) * (Ez_->point(nx_-1, jj+1)-Ez_->point(nx_-1,jj));
+                                Hx_->point(nx_-1,jj) = pmlArr_[kk].c_hxh_n_ -> point(0,jj) * Hx_->point(nx_-1,jj) + pmlArr_[kk].c_hxb1_n_ -> point(0,jj) * pmlArr_[kk].Bx_end_->point(0,jj) - pmlArr_[kk].c_hxb0_n_ -> point(0,jj) * bxstore;
+                            }
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
+                            {
+                                for(int jj = yPML_; jj < ny_- yPML_; jj ++)
+                                {
+                                    //Update everything
+                                    bxstore = pmlArr_[kk].Bx_->point(ii,jj);
+                                    bystore = pmlArr_[kk].By_->point(ii,jj);
+
+                                    pmlArr_[kk].Bx_->point(ii,jj) = pmlArr_[kk].c_bxb_0_ -> point(ii,jj) * pmlArr_[kk].Bx_->point(ii,jj) - pmlArr_[kk].c_bxe_0_ -> point(ii,jj) * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
+                                    pmlArr_[kk].By_->point(ii,jj) = pmlArr_[kk].c_byb_0_ -> point(ii,jj) * pmlArr_[kk].By_->point(ii,jj) + pmlArr_[kk].c_bye_0_ -> point(ii,jj) * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
+
+                                    Hx_->point(ii,jj) = pmlArr_[kk].c_hxh_0_ -> point(ii,jj) * Hx_->point(ii,jj) + pmlArr_[kk].c_hxb1_0_ -> point(ii,jj) * pmlArr_[kk].Bx_->point(ii,jj) - pmlArr_[kk].c_hxb0_0_ -> point(ii,jj) * bxstore;
+                                    Hy_->point(ii,jj) = pmlArr_[kk].c_hyh_0_ -> point(ii,jj) * Hy_->point(ii,jj) + pmlArr_[kk].c_hyb1_0_ -> point(ii,jj) * pmlArr_[kk].By_->point(ii,jj) - pmlArr_[kk].c_hyb0_0_ -> point(ii,jj) * bystore;
+
+                                    bxstore = pmlArr_[kk].Bx_end_->point(ii,jj);
+                                    bystore = pmlArr_[kk].By_end_->point(ii,jj);
+
+                                    pmlArr_[kk].Bx_end_->point(ii,jj) = pmlArr_[kk].c_bxb_n_ -> point(ii,jj) * pmlArr_[kk].Bx_end_->point(ii,jj) - pmlArr_[kk].c_bxe_n_ -> point(ii,jj) * (Ez_->point(nx_-1-ii, jj+1)-Ez_->point(nx_-1-ii,jj));
+                                    pmlArr_[kk].By_end_->point(ii,jj) = pmlArr_[kk].c_byb_n_ -> point(ii,jj) * pmlArr_[kk].By_end_->point(ii,jj) + pmlArr_[kk].c_bye_n_ -> point(ii,jj) * (Ez_->point(nx_-1-ii+1, jj)-Ez_->point(nx_-1-ii,jj));
+
+                                    Hx_->point(nx_-1-ii,jj) = pmlArr_[kk].c_hxh_n_ -> point(ii,jj) * Hx_->point(nx_-1-ii,jj) + pmlArr_[kk].c_hxb1_n_ -> point(ii,jj) * pmlArr_[kk].Bx_end_->point(ii,jj) - pmlArr_[kk].c_hxb0_n_ -> point(ii,jj) * bxstore;
+                                    Hy_->point(nx_-1-ii,jj) = pmlArr_[kk].c_hyh_n_ -> point(ii,jj) * Hy_->point(nx_-1-ii,jj) + pmlArr_[kk].c_hyb1_n_ -> point(ii,jj) * pmlArr_[kk].By_end_->point(ii,jj) - pmlArr_[kk].c_hyb0_n_ -> point(ii,jj) * bystore;
+                                }
+                            }
+                            if(kk==0)
+                            {
+                                // Bot Left
+                                bxstore = pmlArr_[0].Bx_->point(0,0);
+                                bystore = pmlArr_[0].By_->point(0,0);
+                                pmlArr_[0].Bx_->point(0,0) = pmlArr_[0].c_bxb_0_ -> point(0,0) * pmlArr_[0].Bx_->point(0,0) - pmlArr_[0].c_bxe_0_ -> point(0,0) * (Ez_->point(0,0+1)-Ez_->point(0,0));
+                                pmlArr_[0].By_->point(0,0) = pmlArr_[0].c_byb_0_ -> point(0,0) * pmlArr_[0].By_->point(0,0) + pmlArr_[0].c_bye_0_ -> point(0,0) * (Ez_->point(0+1,0)-Ez_->point(0,0));
+                                Hx_->point(0,0) = pmlArr_[0].c_hxh_0_ -> point(0,0) * Hx_->point(0,0) + pmlArr_[0].c_hxb1_0_ -> point(0,0) * pmlArr_[0].Bx_->point(0,0) - pmlArr_[0].c_hxb0_0_ -> point(0,0) * bxstore;
+                                Hy_->point(0,0) = pmlArr_[0].c_hyh_0_ -> point(0,0) * Hy_->point(0,0) + pmlArr_[0].c_hyb1_0_ -> point(0,0) * pmlArr_[0].By_->point(0,0) - pmlArr_[0].c_hyb0_0_ -> point(0,0) * bystore;
+                                //Bot Right
+                                bxstore = pmlArr_[0].Bx_end_->point(0,0);
+                                pmlArr_[0].Bx_end_->point(0,0) = pmlArr_[0].c_bxb_n_ -> point(0,0) * pmlArr_[0].Bx_end_->point(0,0) - pmlArr_[0].c_bxe_n_ -> point(0,0) * (Ez_->point(nx_-1,0+1)-Ez_->point(nx_-1,0));
+                                Hx_->point(nx_-1,0) = pmlArr_[0].c_hxh_n_ -> point(0,0) * Hx_->point(nx_-1,0) + pmlArr_[0].c_hxb1_n_ -> point(0,0) * pmlArr_[0].Bx_end_->point(0,0) - pmlArr_[0].c_hxb0_n_ -> point(0,0) * bxstore;
+                                //Top Left
+                                bystore = pmlArr_[0].By_->point(0,ny_-1);
+                                pmlArr_[0].By_->point(0,ny_-1) = pmlArr_[0].c_byb_0_ -> point(0,ny_-1) * pmlArr_[0].By_->point(0,ny_-1) + pmlArr_[0].c_bye_0_ -> point(0,ny_-1) * (Ez_->point(0+1,ny_-1)-Ez_->point(0,ny_-1));
+                                Hy_->point(0,ny_-1) = pmlArr_[0].c_hyh_0_ -> point(0,ny_-1) * Hy_->point(0,ny_-1) + pmlArr_[0].c_hyb1_0_ -> point(0,ny_-1) * pmlArr_[0].By_->point(0,ny_-1) - pmlArr_[0].c_hyb0_0_ -> point(0,ny_-1) * bystore;
+
+                                for(int ii = 1; ii < pmlArr_[0].thickness(); ii++)
+                                {
+                                    // Bot Left
+                                    bxstore = pmlArr_[0].Bx_->point(ii,0);
+                                    bystore = pmlArr_[0].By_->point(ii,0);
+                                    pmlArr_[0].Bx_->point(ii,0) = pmlArr_[0].c_bxb_0_ -> point(ii,0) * pmlArr_[0].Bx_->point(ii,0) - pmlArr_[0].c_bxe_0_ -> point(ii,0) * (Ez_->point(ii,0+1)-Ez_->point(ii,0));
+                                    pmlArr_[0].By_->point(ii,0) = pmlArr_[0].c_byb_0_ -> point(ii,0) * pmlArr_[0].By_->point(ii,0) + pmlArr_[0].c_bye_0_ -> point(ii,0) * (Ez_->point(ii+1,0)-Ez_->point(ii,0));
+                                    Hx_->point(ii,0) = pmlArr_[0].c_hxh_0_ -> point(ii,0) * Hx_->point(ii,0) + pmlArr_[0].c_hxb1_0_ -> point(ii,0) * pmlArr_[0].Bx_->point(ii,0) - pmlArr_[0].c_hxb0_0_ -> point(ii,0) * bxstore;
+                                    Hy_->point(ii,0) = pmlArr_[0].c_hyh_0_ -> point(ii,0) * Hy_->point(ii,0) + pmlArr_[0].c_hyb1_0_ -> point(ii,0) * pmlArr_[0].By_->point(ii,0) - pmlArr_[0].c_hyb0_0_ -> point(ii,0) * bystore;
+                                    //Bot Right
+                                    bxstore = pmlArr_[0].Bx_end_->point(ii,0);
+                                    bystore = pmlArr_[0].By_end_->point(ii,0);
+                                    pmlArr_[0].Bx_end_->point(ii,0) = pmlArr_[0].c_bxb_n_ -> point(ii,0) * pmlArr_[0].Bx_end_->point(ii,0) - pmlArr_[0].c_bxe_n_ -> point(ii,0) * (Ez_->point(nx_-1-ii,0+1)-Ez_->point(nx_-1-ii,0));
+                                    pmlArr_[0].By_end_->point(ii,0) = pmlArr_[0].c_byb_n_ -> point(ii,0) * pmlArr_[0].By_end_->point(ii,0) + pmlArr_[0].c_bye_n_ -> point(ii,0) * (Ez_->point(nx_-1-ii+1,0)-Ez_->point(nx_-1-ii,0));
+                                    Hx_->point(nx_-1-ii,0) = pmlArr_[0].c_hxh_n_ -> point(ii,0) * Hx_->point(nx_-1-ii,0) + pmlArr_[0].c_hxb1_n_ -> point(ii,0) * pmlArr_[0].Bx_end_->point(ii,0) - pmlArr_[0].c_hxb0_n_ -> point(ii,0) * bxstore;
+                                    Hy_->point(nx_-1-ii,0) = pmlArr_[0].c_hyh_n_ -> point(ii,0) * Hy_->point(nx_-1-ii,0) + pmlArr_[0].c_hyb1_n_ -> point(ii,0) * pmlArr_[0].By_end_->point(ii,0) - pmlArr_[0].c_hyb0_n_ -> point(ii,0) * bystore;
+                                    //Top Right
+                                    bystore = pmlArr_[0].By_end_->point(ii,ny_-1);
+                                    pmlArr_[0].By_end_->point(ii,ny_-1) = pmlArr_[0].c_byb_n_ -> point(ii,ny_-1) * pmlArr_[0].By_end_->point(ii,ny_-1) + pmlArr_[0].c_bye_n_ -> point(ii,ny_-1) * (Ez_->point(nx_-1-ii+1,ny_-1)-Ez_->point(nx_-1-ii,ny_-1));
+                                    Hy_->point(nx_-1-ii,ny_-1) = pmlArr_[0].c_hyh_n_ -> point(ii,ny_-1) * Hy_->point(nx_-1-ii,ny_-1) + pmlArr_[0].c_hyb1_n_ -> point(ii,ny_-1) * pmlArr_[0].By_end_->point(ii,ny_-1) - pmlArr_[0].c_hyb0_n_ -> point(ii,ny_-1) * bystore;
+                                    //Top Left
+                                    bystore = pmlArr_[0].By_->point(ii,ny_-1);
+                                    pmlArr_[0].By_->point(ii,ny_-1) = pmlArr_[0].c_byb_0_ -> point(ii,ny_-1) * pmlArr_[0].By_->point(ii,ny_-1) + pmlArr_[0].c_bye_0_ -> point(ii,ny_-1) * (Ez_->point(ii+1,ny_-1)-Ez_->point(ii,ny_-1));
+                                    Hy_->point(ii,ny_-1) = pmlArr_[0].c_hyh_0_ -> point(ii,ny_-1) * Hy_->point(ii,ny_-1) + pmlArr_[0].c_hyb1_0_ -> point(ii,ny_-1) * pmlArr_[0].By_->point(ii,ny_ - 1) - pmlArr_[0].c_hyb0_0_ -> point(ii,ny_-1) * bystore;
+                                }
+                                for(int jj = 1; jj < pmlArr_[0].thickness(); jj++)
+                                {
+                                    // Bot Left
+                                    bxstore = pmlArr_[0].Bx_->point(0,jj);
+                                    bystore = pmlArr_[0].By_->point(0,jj);
+                                    pmlArr_[0].Bx_->point(0,jj) = pmlArr_[0].c_bxb_0_ -> point(0,jj) * pmlArr_[0].Bx_->point(0,jj) - pmlArr_[0].c_bxe_0_ -> point(0,jj) * (Ez_->point(0,jj+1)-Ez_->point(0,jj));
+                                    pmlArr_[0].By_->point(0,jj) = pmlArr_[0].c_byb_0_ -> point(0,jj) * pmlArr_[0].By_->point(0,jj) + pmlArr_[0].c_bye_0_ -> point(0,jj) * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
+                                    Hx_->point(0,jj) = pmlArr_[0].c_hxh_0_ -> point(0,jj) * Hx_->point(0,jj) + pmlArr_[0].c_hxb1_0_ -> point(0,jj) * pmlArr_[0].Bx_->point(0,jj) - pmlArr_[0].c_hxb0_0_ -> point(0,jj) * bxstore;
+                                    Hy_->point(0,jj) = pmlArr_[0].c_hyh_0_ -> point(0,jj) * Hy_->point(0,jj) + pmlArr_[0].c_hyb1_0_ -> point(0,jj) * pmlArr_[0].By_->point(0,jj) - pmlArr_[0].c_hyb0_0_ -> point(0,jj) * bystore;
+                                    //Bot Right
+                                    bxstore = pmlArr_[0].Bx_end_->point(0,jj);
+                                    pmlArr_[0].Bx_end_->point(0,jj) = pmlArr_[0].c_bxb_n_ -> point(0,jj) * pmlArr_[0].Bx_end_->point(0,jj) - pmlArr_[0].c_bxe_n_ -> point(0,jj) * (Ez_->point(nx_-1,jj+1)-Ez_->point(nx_-1,jj));
+                                    Hx_->point(nx_-1,jj) = pmlArr_[0].c_hxh_n_ -> point(0,jj) * Hx_->point(nx_-1,jj) + pmlArr_[0].c_hxb1_n_ -> point(0,jj) * pmlArr_[0].Bx_end_->point(0,jj) - pmlArr_[0].c_hxb0_n_ -> point(0,jj) * bxstore;
+                                    //Top Rigt
+                                    bxstore = pmlArr_[0].Bx_end_->point(0,ny_-1-jj);
+                                    pmlArr_[0].Bx_end_->point(0,ny_-1-jj) = pmlArr_[0].c_bxb_n_ -> point(0,ny_-1-jj) * pmlArr_[0].Bx_end_->point(0,ny_-1-jj) - pmlArr_[0].c_bxe_n_ -> point(0,ny_-1-jj) * (Ez_->point(nx_-1,ny_-1-jj+1)-Ez_->point(nx_-1,ny_-1-jj));
+                                    Hx_->point(nx_-1,ny_-1-jj) = pmlArr_[0].c_hxh_n_ -> point(0,ny_-1-jj) * Hx_->point(nx_-1,ny_-1-jj) + pmlArr_[0].c_hxb1_n_ -> point(0,ny_-1-jj) * pmlArr_[0].Bx_end_->point(0,ny_-1-jj) - pmlArr_[0].c_hxb0_n_ -> point(0,ny_-1-jj) * bxstore;
+                                    //Top Left
+                                    bxstore = pmlArr_[0].Bx_->point(0,ny_-1-jj);
+                                    bystore = pmlArr_[0].By_->point(0,ny_-1-jj);
+                                    pmlArr_[0].Bx_->point(0,ny_-1-jj) = pmlArr_[0].c_bxb_0_ -> point(0,ny_-1-jj) * pmlArr_[0].Bx_->point(0,ny_-1-jj) - pmlArr_[0].c_bxe_0_ -> point(0,ny_-1-jj) * (Ez_->point(0,ny_-1-jj+1)-Ez_->point(0,ny_-1-jj));
+                                    pmlArr_[0].By_->point(0,ny_-1-jj) = pmlArr_[0].c_byb_0_ -> point(0,ny_-1-jj) * pmlArr_[0].By_->point(0,ny_-1-jj) + pmlArr_[0].c_bye_0_ -> point(0,ny_-1-jj) * (Ez_->point(0+1,ny_-1-jj)-Ez_->point(0,ny_-1-jj));
+                                    Hx_->point(0,ny_-1-jj) = pmlArr_[0].c_hxh_0_ -> point(0,ny_-1-jj) * Hx_->point(0,ny_-1-jj) + pmlArr_[0].c_hxb1_0_ -> point(0,ny_-1-jj) * pmlArr_[0].Bx_->point(0,ny_-1-jj) - pmlArr_[0].c_hxb0_0_ -> point(0,ny_-1-jj) * bxstore;
+                                    Hy_->point(0,ny_-1-jj) = pmlArr_[0].c_hyh_0_ -> point(0,ny_-1-jj) * Hy_->point(0,ny_-1-jj) + pmlArr_[0].c_hyb1_0_ -> point(0,ny_-1-jj) * pmlArr_[0].By_->point(0,ny_-1-jj) - pmlArr_[0].c_hyb0_0_ -> point(0,ny_-1-jj) * bystore;
+                                }
+                                for(int ii = 1; ii < pmlArr_[0].thickness(); ii++)
+                                {
+                                    for(int jj = 1; jj < pmlArr_[0].thickness(); jj++)
+                                    {
+                                        // Bot Left
+                                        bxstore = pmlArr_[0].Bx_->point(ii,jj);
+                                        bystore = pmlArr_[0].By_->point(ii,jj);
+                                        pmlArr_[0].Bx_->point(ii,jj) = pmlArr_[0].c_bxb_0_ -> point(ii,jj) * pmlArr_[0].Bx_->point(ii,jj) - pmlArr_[0].c_bxe_0_ -> point(ii,jj) * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
+                                        pmlArr_[0].By_->point(ii,jj) = pmlArr_[0].c_byb_0_ -> point(ii,jj) * pmlArr_[0].By_->point(ii,jj) + pmlArr_[0].c_bye_0_ -> point(ii,jj) * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
+                                        Hx_->point(ii,jj) = pmlArr_[0].c_hxh_0_ -> point(ii,jj) * Hx_->point(ii,jj) + pmlArr_[0].c_hxb1_0_ -> point(ii,jj) * pmlArr_[0].Bx_->point(ii,jj) - pmlArr_[0].c_hxb0_0_ -> point(ii,jj) * bxstore;
+                                        Hy_->point(ii,jj) = pmlArr_[0].c_hyh_0_ -> point(ii,jj) * Hy_->point(ii,jj) + pmlArr_[0].c_hyb1_0_ -> point(ii,jj) * pmlArr_[0].By_->point(ii,jj) - pmlArr_[0].c_hyb0_0_ -> point(ii,jj) * bystore;
+                                        //Bot Right
+                                        bxstore = pmlArr_[0].Bx_end_->point(ii,jj);
+                                        bystore = pmlArr_[0].By_end_->point(ii,jj);
+                                        pmlArr_[0].Bx_end_->point(ii,jj) = pmlArr_[0].c_bxb_n_ -> point(ii,jj) * pmlArr_[0].Bx_end_->point(ii,jj) - pmlArr_[0].c_bxe_n_ -> point(ii,jj) * (Ez_->point(nx_-1-ii,jj+1)-Ez_->point(nx_-1-ii,jj));
+                                        pmlArr_[0].By_end_->point(ii,jj) = pmlArr_[0].c_byb_n_ -> point(ii,jj) * pmlArr_[0].By_end_->point(ii,jj) + pmlArr_[0].c_bye_n_ -> point(ii,jj) * (Ez_->point(nx_-1-ii+1,jj)-Ez_->point(nx_-1-ii,jj));
+                                        Hx_->point(nx_-1-ii,jj) = pmlArr_[0].c_hxh_n_ -> point(ii,jj) * Hx_->point(nx_-1-ii,jj) + pmlArr_[0].c_hxb1_n_ -> point(ii,jj) * pmlArr_[0].Bx_end_->point(ii,jj) - pmlArr_[0].c_hxb0_n_ -> point(ii,jj) * bxstore;
+                                        Hy_->point(nx_-1-ii,jj) = pmlArr_[0].c_hyh_n_ -> point(ii,jj) * Hy_->point(nx_-1-ii,jj) + pmlArr_[0].c_hyb1_n_ -> point(ii,jj) * pmlArr_[0].By_end_->point(ii,jj) - pmlArr_[0].c_hyb0_n_ -> point(ii,jj) * bystore;
+                                        //Top Right
+                                        bxstore = pmlArr_[0].Bx_end_->point(ii,ny_-1-jj);
+                                        bystore = pmlArr_[0].By_end_->point(ii,ny_-1-jj);
+                                        pmlArr_[0].Bx_end_->point(ii,ny_-1-jj) = pmlArr_[0].c_bxb_n_ -> point(ii,ny_-1-jj) * pmlArr_[0].Bx_end_->point(ii,ny_-1-jj) - pmlArr_[0].c_bxe_n_ -> point(ii,ny_-1-jj) * (Ez_->point(nx_-1-ii,ny_-1-jj+1)-Ez_->point(nx_-1-ii,ny_-1-jj));
+                                        pmlArr_[0].By_end_->point(ii,ny_-1-jj) = pmlArr_[0].c_byb_n_ -> point(ii,ny_-1-jj) * pmlArr_[0].By_end_->point(ii,ny_-1-jj) + pmlArr_[0].c_bye_n_ -> point(ii,ny_-1-jj) * (Ez_->point(nx_-1-ii+1,ny_-1-jj)-Ez_->point(nx_-1-ii,ny_-1-jj));
+                                        Hx_->point(nx_-1-ii,ny_-1-jj) = pmlArr_[0].c_hxh_n_ -> point(ii,ny_-1-jj) * Hx_->point(nx_-1-ii,ny_-1-jj) + pmlArr_[0].c_hxb1_n_ -> point(ii,ny_-1-jj) * pmlArr_[0].Bx_end_->point(ii,ny_-1-jj) - pmlArr_[0].c_hxb0_n_ -> point(ii,ny_-1-jj) * bxstore;
+                                        Hy_->point(nx_-1-ii,ny_-1-jj) = pmlArr_[0].c_hyh_n_ -> point(ii,ny_-1-jj) * Hy_->point(nx_-1-ii,ny_-1-jj) + pmlArr_[0].c_hyb1_n_ -> point(ii,ny_-1-jj) * pmlArr_[0].By_end_->point(ii,ny_-1-jj) - pmlArr_[0].c_hyb0_n_ -> point(ii,ny_-1-jj) * bystore;
+                                        //Top Left
+                                        bxstore = pmlArr_[0].Bx_->point(ii,ny_-1-jj);
+                                        bystore = pmlArr_[0].By_->point(ii,ny_-1-jj);
+                                        pmlArr_[0].Bx_->point(ii,ny_-1-jj) = pmlArr_[0].c_bxb_0_ -> point(ii,ny_-1-jj) * pmlArr_[0].Bx_->point(ii,ny_-1-jj) - pmlArr_[0].c_bxe_0_ -> point(ii,ny_-1-jj) * (Ez_->point(ii,ny_-1-jj+1)-Ez_->point(ii,ny_-1-jj));
+                                        pmlArr_[0].By_->point(ii,ny_-1-jj) = pmlArr_[0].c_byb_0_ -> point(ii,ny_-1-jj) * pmlArr_[0].By_->point(ii,ny_-1-jj) + pmlArr_[0].c_bye_0_ -> point(ii,ny_-1-jj) * (Ez_->point(ii+1,ny_-1-jj)-Ez_->point(ii,ny_-1-jj));
+                                        Hx_->point(ii,ny_-1-jj) = pmlArr_[0].c_hxh_0_ -> point(ii,ny_-1-jj) * Hx_->point(ii,ny_-1-jj) + pmlArr_[0].c_hxb1_0_ -> point(ii,ny_-1-jj) * pmlArr_[0].Bx_->point(ii,ny_-1-jj) - pmlArr_[0].c_hxb0_0_ -> point(ii,ny_-1-jj) * bxstore;
+                                        Hy_->point(ii,ny_-1-jj) = pmlArr_[0].c_hyh_0_ -> point(ii,ny_-1-jj) * Hy_->point(ii,ny_-1-jj) + pmlArr_[0].c_hyb1_0_ -> point(ii,ny_-1-jj) * pmlArr_[0].By_->point(ii,ny_-1-jj) - pmlArr_[0].c_hyb0_0_ -> point(ii,ny_-1-jj) * bystore;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    case Y:
+                    {
+                        complex<double>bxstore(0.0,0.0); complex<double>bystore(0.0,0.0);
+                        if (xPML_== 0)
+                        {
+                            for (int jj = 0; jj < nx_-1; jj++)
+                            {
+                                //Update both on the bottom side and Hy on the top
+                                bxstore = pmlArr_[kk].Bx_->point(jj,0);
+                                bystore = pmlArr_[kk].By_->point(jj,0);
+                                pmlArr_[kk].Bx_->point(jj,0) = pmlArr_[kk].c_bxb_0_ -> point(jj,0) * pmlArr_[kk].Bx_->point(jj,0) - pmlArr_[kk].c_bxe_0_ -> point(jj,0) * (Ez_->point(jj,0+1)-Ez_->point(jj,0));
+                                pmlArr_[kk].By_->point(jj,0) = pmlArr_[kk].c_byb_0_ -> point(jj,0) * pmlArr_[kk].By_->point(jj,0) + pmlArr_[kk].c_bye_0_ -> point(jj,0) * (Ez_->point(jj+1,0)-Ez_->point(jj,0));
+                                //cout <<"H1"<<endl;
+                                Hx_->point(jj,0) = pmlArr_[kk].c_hxh_0_ -> point(jj,0) * Hx_->point(jj,0) + pmlArr_[kk].c_hxb1_0_ -> point(jj,0) * pmlArr_[kk].Bx_->point(jj,0) - pmlArr_[kk].c_hxb0_0_ -> point(jj,0) * bxstore;
+                                Hy_->point(jj,0) = pmlArr_[kk].c_hyh_0_ -> point(jj,0) * Hy_->point(jj,0) + pmlArr_[kk].c_hyb1_0_ -> point(jj,0) * pmlArr_[kk].By_->point(jj,0) - pmlArr_[kk].c_hyb0_0_ -> point(jj,0) * bystore;
+
+                                bystore = pmlArr_[kk].By_end_->point(jj,0);
+                                pmlArr_[kk].By_end_->point(jj,0) = pmlArr_[kk].c_byb_n_ -> point(jj,0) * pmlArr_[kk].By_end_->point(jj,0) + pmlArr_[kk].c_bye_n_ -> point(jj,0) * (Ez_->point(jj+1, ny_-1)-Ez_->point(jj,ny_-1));
+                                Hy_->point(jj,ny_-1) = pmlArr_[kk].c_hyh_n_ -> point(jj,0) * Hy_->point(jj,ny_-1) + pmlArr_[kk].c_hyb1_n_ -> point(jj,0) * pmlArr_[kk].By_end_->point(jj,0) - pmlArr_[kk].c_hyb0_n_ -> point(jj,0) * bystore;
+                            }
+                            //Top left corner
+                            bxstore = pmlArr_[kk].Bx_->point(nx_-1,0);
+                            pmlArr_[kk].Bx_->point(nx_-1,0) = pmlArr_[kk].c_bxb_0_ -> point(nx_-1,0) * pmlArr_[kk].Bx_->point(nx_-1,0) - pmlArr_[kk].c_bxe_0_ -> point(nx_-1,0) * (Ez_->point(nx_-1,0+1)-Ez_->point(nx_-1,0));
+                            Hx_->point(nx_-1,0) = pmlArr_[kk].c_hxh_0_ -> point(nx_-1,0) * Hx_->point(nx_-1,0) + pmlArr_[kk].c_hxb1_0_ -> point(nx_-1,0) * pmlArr_[kk].Bx_->point(nx_-1,0) - pmlArr_[kk].c_hxb0_0_ -> point(nx_-1,0) * bxstore;
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
+                            {
+                                //right col
+                                bxstore = pmlArr_[kk].Bx_->point(nx_-1,ii);
+                                pmlArr_[kk].Bx_->point(nx_-1,ii) = pmlArr_[kk].c_bxb_0_ -> point(nx_-1,ii) * pmlArr_[kk].Bx_->point(nx_-1,ii) - pmlArr_[kk].c_bxe_0_ -> point(nx_-1,ii) * (Ez_->point(nx_-1,ii+1)-Ez_->point(nx_-1,ii));
+                                Hx_->point(nx_-1,ii) = pmlArr_[kk].c_hxh_0_ -> point(nx_-1,ii) * Hx_->point(nx_-1,ii) + pmlArr_[kk].c_hxb1_0_ -> point(nx_-1,ii) * pmlArr_[kk].Bx_->point(nx_-1,ii) - pmlArr_[kk].c_hxb0_0_ -> point(nx_-1,ii) * bxstore;
+                                for(int jj = 0; jj < nx_-1; jj ++)
+                                {
+                                    //Update everything
+                                    bxstore = pmlArr_[kk].Bx_->point(jj,ii);
+                                    bystore = pmlArr_[kk].By_->point(jj,ii);
+                                    pmlArr_[kk].Bx_->point(jj,ii) = pmlArr_[kk].c_bxb_0_ -> point(jj,ii) * pmlArr_[kk].Bx_->point(jj,ii) - pmlArr_[kk].c_bxe_0_ -> point(jj,ii) * (Ez_->point(jj,ii+1)-Ez_->point(jj,ii));
+                                    pmlArr_[kk].By_->point(jj,ii) = pmlArr_[kk].c_byb_0_ -> point(jj,ii) * pmlArr_[kk].By_->point(jj,ii) + pmlArr_[kk].c_bye_0_ -> point(jj,ii) * (Ez_->point(jj+1,ii)-Ez_->point(jj,ii));
+                                    //cout <<"H1"<<endl;
+                                    Hx_->point(jj,ii) = pmlArr_[kk].c_hxh_0_ -> point(jj,ii) * Hx_->point(jj,ii) + pmlArr_[kk].c_hxb1_0_ -> point(jj,ii) * pmlArr_[kk].Bx_->point(jj,ii) - pmlArr_[kk].c_hxb0_0_ -> point(jj,ii) * bxstore;
+                                    Hy_->point(jj,ii) = pmlArr_[kk].c_hyh_0_ -> point(jj,ii) * Hy_->point(jj,ii) + pmlArr_[kk].c_hyb1_0_ -> point(jj,ii) * pmlArr_[kk].By_->point(jj,ii) - pmlArr_[kk].c_hyb0_0_ -> point(jj,ii) * bystore;
+
+                                    bxstore = pmlArr_[kk].Bx_end_->point(jj,ii);
+                                    bystore = pmlArr_[kk].By_end_->point(jj,ii);
+                                    pmlArr_[kk].Bx_end_->point(jj,ii) = pmlArr_[kk].c_bxb_n_ -> point(jj,ii) * pmlArr_[kk].Bx_end_->point(jj,ii) - pmlArr_[kk].c_bxe_n_ -> point(jj,ii) * (Ez_->point(jj,ny_-1-ii+1)-Ez_->point(jj,ny_-1-ii));
+                                    pmlArr_[kk].By_end_->point(jj,ii) = pmlArr_[kk].c_byb_n_ -> point(jj,ii) * pmlArr_[kk].By_end_->point(jj,ii) + pmlArr_[kk].c_bye_n_ -> point(jj,ii) * (Ez_->point(jj+1,ny_-1-ii)-Ez_->point(jj,ny_-1-ii));
+                                    //cout <<"H2"<<endl;
+                                    Hx_->point(jj,ny_-1-ii) = pmlArr_[kk].c_hxh_n_ -> point(jj,ii) * Hx_->point(jj,ny_-1-ii) + pmlArr_[kk].c_hxb1_n_ -> point(jj,ii) * pmlArr_[kk].Bx_end_->point(jj,ii) - pmlArr_[kk].c_hxb0_n_ -> point(jj,ii) * bxstore;
+                                    Hy_->point(jj,ny_-1-ii) = pmlArr_[kk].c_hyh_n_ -> point(jj,ii) * Hy_->point(jj,ny_-1-ii) + pmlArr_[kk].c_hyb1_n_ -> point(jj,ii) * pmlArr_[kk].By_end_->point(jj,ii) - pmlArr_[kk].c_hyb0_n_ -> point(jj,ii) * bystore;
+                                }
+                                // for the right only upadate Hx
+                                bxstore = pmlArr_[kk].Bx_end_->point(nx_-1,ii);
+                                pmlArr_[kk].Bx_end_->point(nx_-1,ii) = pmlArr_[kk].c_bxb_n_ -> point(nx_-1,ii) * pmlArr_[kk].Bx_end_->point(nx_-1,ii) - pmlArr_[kk].c_bxe_n_ -> point(nx_-1,ii) * (Ez_->point(nx_-1,ny_-1-ii+1)-Ez_->point(nx_-1,ny_-1-ii));
+                                Hx_->point(nx_-1,ny_-1-ii) = pmlArr_[kk].c_hxh_n_ -> point(nx_-1,ii) * Hx_->point(nx_-1,ny_-1-ii) + pmlArr_[kk].c_hxb1_n_ -> point(nx_-1,ii) * pmlArr_[kk].Bx_end_->point(nx_-1,ii) - pmlArr_[kk].c_hxb0_n_ -> point(nx_-1,ii) * bxstore;
+                            }
+                        }
+                        else
+                        {
+                            for (int jj = xPML_; jj < nx_-xPML_; jj++)
+                            {
+                                //Update both on the bottom side and Hy on the top
+                                bxstore = pmlArr_[kk].Bx_->point(jj,0);
+                                bystore = pmlArr_[kk].By_->point(jj,0);
+                                pmlArr_[kk].Bx_->point(jj,0) = pmlArr_[kk].c_bxb_0_ -> point(jj,0) * pmlArr_[kk].Bx_->point(jj,0) - pmlArr_[kk].c_bxe_0_ -> point(jj,0) * (Ez_->point(jj,0+1)-Ez_->point(jj,0));
+                                pmlArr_[kk].By_->point(jj,0) = pmlArr_[kk].c_byb_0_ -> point(jj,0) * pmlArr_[kk].By_->point(jj,0) + pmlArr_[kk].c_bye_0_ -> point(jj,0) * (Ez_->point(jj+1,0)-Ez_->point(jj,0));
+                                //cout <<"H1"<<endl;
+                                Hx_->point(jj,0) = pmlArr_[kk].c_hxh_0_ -> point(jj,0) * Hx_->point(jj,0) + pmlArr_[kk].c_hxb1_0_ -> point(jj,0) * pmlArr_[kk].Bx_->point(jj,0) - pmlArr_[kk].c_hxb0_0_ -> point(jj,0) * bxstore;
+                                Hy_->point(jj,0) = pmlArr_[kk].c_hyh_0_ -> point(jj,0) * Hy_->point(jj,0) + pmlArr_[kk].c_hyb1_0_ -> point(jj,0) * pmlArr_[kk].By_->point(jj,0) - pmlArr_[kk].c_hyb0_0_ -> point(jj,0) * bystore;
+
+                                bystore = pmlArr_[kk].By_end_->point(jj,0);
+                                pmlArr_[kk].By_end_->point(jj,0) = pmlArr_[kk].c_byb_n_ -> point(jj,0) * pmlArr_[kk].By_end_->point(jj,0) + pmlArr_[kk].c_bye_n_ -> point(jj,0) * (Ez_->point(jj+1,ny_-1)-Ez_->point(jj,ny_-1));
+                                Hy_->point(jj,ny_-1) = pmlArr_[kk].c_hyh_n_ -> point(jj,0) * Hy_->point(jj,ny_-1) + pmlArr_[kk].c_hyb1_n_ -> point(jj,0) * pmlArr_[kk].By_end_->point(jj,0) - pmlArr_[kk].c_hyb0_n_ -> point(jj,0) * bystore;
+                            }
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
+                            {
+                                for(int jj = xPML_; jj < nx_-xPML_; jj ++)
+                                {
+                                    //Update everything
+                                    bxstore = pmlArr_[kk].Bx_->point(jj,ii);
+                                    bystore = pmlArr_[kk].By_->point(jj,ii);
+                                    pmlArr_[kk].Bx_->point(jj,ii) = pmlArr_[kk].c_bxb_0_ -> point(jj,ii) * pmlArr_[kk].Bx_->point(jj,ii) - pmlArr_[kk].c_bxe_0_ -> point(jj,ii) * (Ez_->point(jj,ii+1)-Ez_->point(jj,ii));
+                                    pmlArr_[kk].By_->point(jj,ii) = pmlArr_[kk].c_byb_0_ -> point(jj,ii) * pmlArr_[kk].By_->point(jj,ii) + pmlArr_[kk].c_bye_0_ -> point(jj,ii) * (Ez_->point(jj+1,ii)-Ez_->point(jj,ii));
+                                    //cout <<"H1"<<endl;
+                                    Hx_->point(jj,ii) = pmlArr_[kk].c_hxh_0_ -> point(jj,ii) * Hx_->point(jj,ii) + pmlArr_[kk].c_hxb1_0_ -> point(jj,ii) * pmlArr_[kk].Bx_->point(jj,ii) - pmlArr_[kk].c_hxb0_0_ -> point(jj,ii) * bxstore;
+                                    Hy_->point(jj,ii) = pmlArr_[kk].c_hyh_0_ -> point(jj,ii) * Hy_->point(jj,ii) + pmlArr_[kk].c_hyb1_0_ -> point(jj,ii) * pmlArr_[kk].By_->point(jj,ii) - pmlArr_[kk].c_hyb0_0_ -> point(jj,ii) * bystore;
+
+                                    bxstore = pmlArr_[kk].Bx_end_->point(jj,ii);
+                                    bystore = pmlArr_[kk].By_end_->point(jj,ii);
+                                    pmlArr_[kk].Bx_end_->point(jj,ii) = pmlArr_[kk].c_bxb_n_ -> point(jj,ii) * pmlArr_[kk].Bx_end_->point(jj,ii) - pmlArr_[kk].c_bxe_n_ -> point(jj,ii) * (Ez_->point(jj,ny_-1-ii+1)-Ez_->point(jj,ny_-1-ii));
+                                    pmlArr_[kk].By_end_->point(jj,ii) = pmlArr_[kk].c_byb_n_ -> point(jj,ii) * pmlArr_[kk].By_end_->point(jj,ii) + pmlArr_[kk].c_bye_n_ -> point(jj,ii) * (Ez_->point(jj+1,ny_-1-ii)-Ez_->point(jj,ny_-1-ii));
+                                    //cout <<"H2"<<endl;
+                                    Hx_->point(jj,ny_-1-ii) = pmlArr_[kk].c_hxh_n_ -> point(jj,ii) * Hx_->point(jj,ny_-1-ii) + pmlArr_[kk].c_hxb1_n_ -> point(jj,ii) * pmlArr_[kk].Bx_end_->point(jj,ii) - pmlArr_[kk].c_hxb0_n_ -> point(jj,ii) * bxstore;
+                                    Hy_->point(jj,ny_-1-ii) = pmlArr_[kk].c_hyh_n_ -> point(jj,ii) * Hy_->point(jj,ny_-1-ii) + pmlArr_[kk].c_hyb1_n_ -> point(jj,ii) * pmlArr_[kk].By_end_->point(jj,ii) - pmlArr_[kk].c_hyb0_n_ -> point(jj,ii) * bystore;
+                                }
+                            }
+                            if(kk==0)
+                            {
+                                // Bot Left
+                                bxstore = pmlArr_[1].Bx_->point(0,0);
+                                bystore = pmlArr_[1].By_->point(0,0);
+                                pmlArr_[1].Bx_->point(0,0) = pmlArr_[1].c_bxb_0_ -> point(0,0) * pmlArr_[1].Bx_->point(0,0) - pmlArr_[1].c_bxe_0_ -> point(0,0) * (Ez_->point(0,0+1)-Ez_->point(0,0));
+                                pmlArr_[1].By_->point(0,0) = pmlArr_[1].c_byb_0_ -> point(0,0) * pmlArr_[1].By_->point(0,0) + pmlArr_[1].c_bye_0_ -> point(0,0) * (Ez_->point(0+1,0)-Ez_->point(0,0));
+                                Hx_->point(0,0) = pmlArr_[1].c_hxh_0_ -> point(0,0) * Hx_->point(0,0) + pmlArr_[1].c_hxb1_0_ -> point(0,0) * pmlArr_[1].Bx_->point(0,0) - pmlArr_[1].c_hxb0_0_ -> point(0,0) * bxstore;
+                                Hy_->point(0,0) = pmlArr_[1].c_hyh_0_ -> point(0,0) * Hy_->point(0,0) + pmlArr_[1].c_hyb1_0_ -> point(0,0) * pmlArr_[1].By_->point(0,0) - pmlArr_[1].c_hyb0_0_ -> point(0,0) * bystore;
+                                //Bot Right
+                                bxstore = pmlArr_[1].Bx_end_->point(0,0);
+                                pmlArr_[1].Bx_end_->point(0,0) = pmlArr_[1].c_bxb_n_ -> point(0,0) * pmlArr_[1].Bx_end_->point(0,0) - pmlArr_[1].c_bxe_n_ -> point(0,0) * (Ez_->point(nx_-1,0+1)-Ez_->point(nx_-1,0));
+                                Hx_->point(nx_-1,0) = pmlArr_[1].c_hxh_n_ -> point(0,0) * Hx_->point(nx_-1,0) + pmlArr_[1].c_hxb1_n_ -> point(0,0) * pmlArr_[1].Bx_end_->point(0,0) - pmlArr_[1].c_hxb0_n_ -> point(0,0) * bxstore;
+                                //Top Left
+                                bystore = pmlArr_[1].By_->point(0,ny_-1);
+                                pmlArr_[1].By_->point(0,ny_-1) = pmlArr_[1].c_byb_0_ -> point(0,ny_-1) * pmlArr_[1].By_->point(0,ny_-1) + pmlArr_[1].c_bye_0_ -> point(0,ny_-1) * (Ez_->point(0+1,ny_-1)-Ez_->point(0,ny_-1));
+                                Hy_->point(0,ny_-1) = pmlArr_[1].c_hyh_0_ -> point(0,ny_-1) * Hy_->point(0,ny_-1) + pmlArr_[1].c_hyb1_0_ -> point(0,ny_-1) * pmlArr_[1].By_->point(0,ny_-1) - pmlArr_[1].c_hyb0_0_ -> point(0,ny_-1) * bystore;
+
+                                for(int ii = 1; ii < pmlArr_[1].thickness(); ii++)
+                                {
+                                    // Bot Left
+                                    bxstore = pmlArr_[1].Bx_->point(ii,0);
+                                    bystore = pmlArr_[1].By_->point(ii,0);
+                                    pmlArr_[1].Bx_->point(ii,0) = pmlArr_[1].c_bxb_0_ -> point(ii,0) * pmlArr_[1].Bx_->point(ii,0) - pmlArr_[1].c_bxe_0_ -> point(ii,0) * (Ez_->point(ii,0+1)-Ez_->point(ii,0));
+                                    pmlArr_[1].By_->point(ii,0) = pmlArr_[1].c_byb_0_ -> point(ii,0) * pmlArr_[1].By_->point(ii,0) + pmlArr_[1].c_bye_0_ -> point(ii,0) * (Ez_->point(ii+1,0)-Ez_->point(ii,0));
+                                    Hx_->point(ii,0) = pmlArr_[1].c_hxh_0_ -> point(ii,0) * Hx_->point(ii,0) + pmlArr_[1].c_hxb1_0_ -> point(ii,0) * pmlArr_[1].Bx_->point(ii,0) - pmlArr_[1].c_hxb0_0_ -> point(ii,0) * bxstore;
+                                    Hy_->point(ii,0) = pmlArr_[1].c_hyh_0_ -> point(ii,0) * Hy_->point(ii,0) + pmlArr_[1].c_hyb1_0_ -> point(ii,0) * pmlArr_[1].By_->point(ii,0) - pmlArr_[1].c_hyb0_0_ -> point(ii,0) * bystore;
+                                    //Bot Right
+                                    bxstore = pmlArr_[1].Bx_end_->point(ii,0);
+                                    bystore = pmlArr_[1].By_end_->point(ii,0);
+                                    pmlArr_[1].Bx_end_->point(ii,0) = pmlArr_[1].c_bxb_n_ -> point(ii,0) * pmlArr_[1].Bx_end_->point(ii,0) - pmlArr_[1].c_bxe_n_ -> point(ii,0) * (Ez_->point(nx_-1-ii,0+1)-Ez_->point(nx_-1-ii,0));
+                                    pmlArr_[1].By_end_->point(ii,0) = pmlArr_[1].c_byb_n_ -> point(ii,0) * pmlArr_[1].By_end_->point(ii,0) + pmlArr_[1].c_bye_n_ -> point(ii,0) * (Ez_->point(nx_-1-ii+1,0)-Ez_->point(nx_-1-ii,0));
+                                    Hx_->point(nx_-1-ii,0) = pmlArr_[1].c_hxh_n_ -> point(ii,0) * Hx_->point(nx_-1-ii,0) + pmlArr_[1].c_hxb1_n_ -> point(ii,0) * pmlArr_[1].Bx_end_->point(ii,0) - pmlArr_[1].c_hxb0_n_ -> point(ii,0) * bxstore;
+                                    Hy_->point(nx_-1-ii,0) = pmlArr_[1].c_hyh_n_ -> point(ii,0) * Hy_->point(nx_-1-ii,0) + pmlArr_[1].c_hyb1_n_ -> point(ii,0) * pmlArr_[1].By_end_->point(ii,0) - pmlArr_[1].c_hyb0_n_ -> point(ii,0) * bystore;
+                                    //Top Right
+                                    bystore = pmlArr_[1].By_end_->point(ii,ny_-1);
+                                    pmlArr_[1].By_end_->point(ii,ny_-1) = pmlArr_[1].c_byb_n_ -> point(ii,ny_-1) * pmlArr_[1].By_end_->point(ii,ny_-1) + pmlArr_[1].c_bye_n_ -> point(ii,ny_-1) * (Ez_->point(nx_-1-ii+1,ny_-1)-Ez_->point(nx_-1-ii,ny_-1));
+                                    Hy_->point(nx_-1-ii,ny_-1) = pmlArr_[1].c_hyh_n_ -> point(ii,ny_-1) * Hy_->point(nx_-1-ii,ny_-1) + pmlArr_[1].c_hyb1_n_ -> point(ii,ny_-1) * pmlArr_[1].By_end_->point(ii,ny_-1) - pmlArr_[1].c_hyb0_n_ -> point(ii,ny_-1) * bystore;
+                                    //Top Left
+                                    bystore = pmlArr_[1].By_->point(ii,ny_-1);
+                                    pmlArr_[1].By_->point(ii,ny_-1) = pmlArr_[1].c_byb_0_ -> point(ii,ny_-1) * pmlArr_[1].By_->point(ii,ny_-1) + pmlArr_[1].c_bye_0_ -> point(ii,ny_-1) * (Ez_->point(ii+1,ny_-1)-Ez_->point(ii,ny_-1));
+                                    Hy_->point(ii,ny_-1) = pmlArr_[1].c_hyh_0_ -> point(ii,ny_-1) * Hy_->point(ii,ny_-1) + pmlArr_[1].c_hyb1_0_ -> point(ii,ny_-1) * pmlArr_[1].By_->point(ii,ny_ - 1) - pmlArr_[1].c_hyb0_0_ -> point(ii,ny_-1) * bystore;
+                                }
+                                for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
+                                {
+                                    // Bot Left
+                                    bxstore = pmlArr_[1].Bx_->point(0,jj);
+                                    bystore = pmlArr_[1].By_->point(0,jj);
+                                    pmlArr_[1].Bx_->point(0,jj) = pmlArr_[1].c_bxb_0_ -> point(0,jj) * pmlArr_[1].Bx_->point(0,jj) - pmlArr_[1].c_bxe_0_ -> point(0,jj) * (Ez_->point(0,jj+1)-Ez_->point(0,jj));
+                                    pmlArr_[1].By_->point(0,jj) = pmlArr_[1].c_byb_0_ -> point(0,jj) * pmlArr_[1].By_->point(0,jj) + pmlArr_[1].c_bye_0_ -> point(0,jj) * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
+                                    Hx_->point(0,jj) = pmlArr_[1].c_hxh_0_ -> point(0,jj) * Hx_->point(0,jj) + pmlArr_[1].c_hxb1_0_ -> point(0,jj) * pmlArr_[1].Bx_->point(0,jj) - pmlArr_[1].c_hxb0_0_ -> point(0,jj) * bxstore;
+                                    Hy_->point(0,jj) = pmlArr_[1].c_hyh_0_ -> point(0,jj) * Hy_->point(0,jj) + pmlArr_[1].c_hyb1_0_ -> point(0,jj) * pmlArr_[1].By_->point(0,jj) - pmlArr_[1].c_hyb0_0_ -> point(0,jj) * bystore;
+                                    //Bot Right
+                                    bxstore = pmlArr_[1].Bx_end_->point(0,jj);
+                                    pmlArr_[1].Bx_end_->point(0,jj) = pmlArr_[1].c_bxb_n_ -> point(0,jj) * pmlArr_[1].Bx_end_->point(0,jj) - pmlArr_[1].c_bxe_n_ -> point(0,jj) * (Ez_->point(nx_-1,jj+1)-Ez_->point(nx_-1,jj));
+                                    Hx_->point(nx_-1,jj) = pmlArr_[1].c_hxh_n_ -> point(0,jj) * Hx_->point(nx_-1,jj) + pmlArr_[1].c_hxb1_n_ -> point(0,jj) * pmlArr_[1].Bx_end_->point(0,jj) - pmlArr_[1].c_hxb0_n_ -> point(0,jj) * bxstore;
+                                    //Top Rigt
+                                    bxstore = pmlArr_[1].Bx_end_->point(0,ny_-1-jj);
+                                    pmlArr_[1].Bx_end_->point(0,ny_-1-jj) = pmlArr_[1].c_bxb_n_ -> point(0,ny_-1-jj) * pmlArr_[1].Bx_end_->point(0,ny_-1-jj) - pmlArr_[1].c_bxe_n_ -> point(0,ny_-1-jj) * (Ez_->point(nx_-1,ny_-1-jj+1)-Ez_->point(nx_-1,ny_-1-jj));
+                                    Hx_->point(nx_-1,ny_-1-jj) = pmlArr_[1].c_hxh_n_ -> point(0,ny_-1-jj) * Hx_->point(nx_-1,ny_-1-jj) + pmlArr_[1].c_hxb1_n_ -> point(0,ny_-1-jj) * pmlArr_[1].Bx_end_->point(0,ny_-1-jj) - pmlArr_[1].c_hxb0_n_ -> point(0,ny_-1-jj) * bxstore;
+                                    //Top Left
+                                    bxstore = pmlArr_[1].Bx_->point(0,ny_-1-jj);
+                                    bystore = pmlArr_[1].By_->point(0,ny_-1-jj);
+                                    pmlArr_[1].Bx_->point(0,ny_-1-jj) = pmlArr_[1].c_bxb_0_ -> point(0,ny_-1-jj) * pmlArr_[1].Bx_->point(0,ny_-1-jj) - pmlArr_[1].c_bxe_0_ -> point(0,ny_-1-jj) * (Ez_->point(0,ny_-1-jj+1)-Ez_->point(0,ny_-1-jj));
+                                    pmlArr_[1].By_->point(0,ny_-1-jj) = pmlArr_[1].c_byb_0_ -> point(0,ny_-1-jj) * pmlArr_[1].By_->point(0,ny_-1-jj) + pmlArr_[1].c_bye_0_ -> point(0,ny_-1-jj) * (Ez_->point(0+1,ny_-1-jj)-Ez_->point(0,ny_-1-jj));
+                                    Hx_->point(0,ny_-1-jj) = pmlArr_[1].c_hxh_0_ -> point(0,ny_-1-jj) * Hx_->point(0,ny_-1-jj) + pmlArr_[1].c_hxb1_0_ -> point(0,ny_-1-jj) * pmlArr_[1].Bx_->point(0,ny_-1-jj) - pmlArr_[1].c_hxb0_0_ -> point(0,ny_-1-jj) * bxstore;
+                                    Hy_->point(0,ny_-1-jj) = pmlArr_[1].c_hyh_0_ -> point(0,ny_-1-jj) * Hy_->point(0,ny_-1-jj) + pmlArr_[1].c_hyb1_0_ -> point(0,ny_-1-jj) * pmlArr_[1].By_->point(0,ny_-1-jj) - pmlArr_[1].c_hyb0_0_ -> point(0,ny_-1-jj) * bystore;
+                                }
+                                for(int ii = 1; ii < pmlArr_[1].thickness(); ii++)
+                                {
+                                    for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
+                                    {
+                                        // Bot Left
+                                        bxstore = pmlArr_[1].Bx_->point(ii,jj);
+                                        bystore = pmlArr_[1].By_->point(ii,jj);
+                                        pmlArr_[1].Bx_->point(ii,jj) = pmlArr_[1].c_bxb_0_ -> point(ii,jj) * pmlArr_[1].Bx_->point(ii,jj) - pmlArr_[1].c_bxe_0_ -> point(ii,jj) * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
+                                        pmlArr_[1].By_->point(ii,jj) = pmlArr_[1].c_byb_0_ -> point(ii,jj) * pmlArr_[1].By_->point(ii,jj) + pmlArr_[1].c_bye_0_ -> point(ii,jj) * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
+                                        Hx_->point(ii,jj) = pmlArr_[1].c_hxh_0_ -> point(ii,jj) * Hx_->point(ii,jj) + pmlArr_[1].c_hxb1_0_ -> point(ii,jj) * pmlArr_[1].Bx_->point(ii,jj) - pmlArr_[1].c_hxb0_0_ -> point(ii,jj) * bxstore;
+                                        Hy_->point(ii,jj) = pmlArr_[1].c_hyh_0_ -> point(ii,jj) * Hy_->point(ii,jj) + pmlArr_[1].c_hyb1_0_ -> point(ii,jj) * pmlArr_[1].By_->point(ii,jj) - pmlArr_[1].c_hyb0_0_ -> point(ii,jj) * bystore;
+                                        //Bot Right
+                                        bxstore = pmlArr_[1].Bx_end_->point(ii,jj);
+                                        bystore = pmlArr_[1].By_end_->point(ii,jj);
+                                        pmlArr_[1].Bx_end_->point(ii,jj) = pmlArr_[1].c_bxb_n_ -> point(ii,jj) * pmlArr_[1].Bx_end_->point(ii,jj) - pmlArr_[1].c_bxe_n_ -> point(ii,jj) * (Ez_->point(nx_-1-ii,jj+1)-Ez_->point(nx_-1-ii,jj));
+                                        pmlArr_[1].By_end_->point(ii,jj) = pmlArr_[1].c_byb_n_ -> point(ii,jj) * pmlArr_[1].By_end_->point(ii,jj) + pmlArr_[1].c_bye_n_ -> point(ii,jj) * (Ez_->point(nx_-1-ii+1,jj)-Ez_->point(nx_-1-ii,jj));
+                                        Hx_->point(nx_-1-ii,jj) = pmlArr_[1].c_hxh_n_ -> point(ii,jj) * Hx_->point(nx_-1-ii,jj) + pmlArr_[1].c_hxb1_n_ -> point(ii,jj) * pmlArr_[1].Bx_end_->point(ii,jj) - pmlArr_[1].c_hxb0_n_ -> point(ii,jj) * bxstore;
+                                        Hy_->point(nx_-1-ii,jj) = pmlArr_[1].c_hyh_n_ -> point(ii,jj) * Hy_->point(nx_-1-ii,jj) + pmlArr_[1].c_hyb1_n_ -> point(ii,jj) * pmlArr_[1].By_end_->point(ii,jj) - pmlArr_[1].c_hyb0_n_ -> point(ii,jj) * bystore;
+                                        //Top Right
+                                        bxstore = pmlArr_[1].Bx_end_->point(ii,ny_-1-jj);
+                                        bystore = pmlArr_[1].By_end_->point(ii,ny_-1-jj);
+                                        pmlArr_[1].Bx_end_->point(ii,ny_-1-jj) = pmlArr_[1].c_bxb_n_ -> point(ii,ny_-1-jj) * pmlArr_[1].Bx_end_->point(ii,ny_-1-jj) - pmlArr_[1].c_bxe_n_ -> point(ii,ny_-1-jj) * (Ez_->point(nx_-1-ii,ny_-1-jj+1)-Ez_->point(nx_-1-ii,ny_-1-jj));
+                                        pmlArr_[1].By_end_->point(ii,ny_-1-jj) = pmlArr_[1].c_byb_n_ -> point(ii,ny_-1-jj) * pmlArr_[1].By_end_->point(ii,ny_-1-jj) + pmlArr_[1].c_bye_n_ -> point(ii,ny_-1-jj) * (Ez_->point(nx_-1-ii+1,ny_-1-jj)-Ez_->point(nx_-1-ii,ny_-1-jj));
+                                        Hx_->point(nx_-1-ii,ny_-1-jj) = pmlArr_[1].c_hxh_n_ -> point(ii,ny_-1-jj) * Hx_->point(nx_-1-ii,ny_-1-jj) + pmlArr_[1].c_hxb1_n_ -> point(ii,ny_-1-jj) * pmlArr_[1].Bx_end_->point(ii,ny_-1-jj) - pmlArr_[1].c_hxb0_n_ -> point(ii,ny_-1-jj) * bxstore;
+                                        Hy_->point(nx_-1-ii,ny_-1-jj) = pmlArr_[1].c_hyh_n_ -> point(ii,ny_-1-jj) * Hy_->point(nx_-1-ii,ny_-1-jj) + pmlArr_[1].c_hyb1_n_ -> point(ii,ny_-1-jj) * pmlArr_[1].By_end_->point(ii,ny_-1-jj) - pmlArr_[1].c_hyb0_n_ -> point(ii,ny_-1-jj) * bystore;
+                                        //Top Left
+                                        bxstore = pmlArr_[1].Bx_->point(ii,ny_-1-jj);
+                                        bystore = pmlArr_[1].By_->point(ii,ny_-1-jj);
+                                        pmlArr_[1].Bx_->point(ii,ny_-1-jj) = pmlArr_[1].c_bxb_0_ -> point(ii,ny_-1-jj) * pmlArr_[1].Bx_->point(ii,ny_-1-jj) - pmlArr_[1].c_bxe_0_ -> point(ii,ny_-1-jj) * (Ez_->point(ii,ny_-1-jj+1)-Ez_->point(ii,ny_-1-jj));
+                                        pmlArr_[1].By_->point(ii,ny_-1-jj) = pmlArr_[1].c_byb_0_ -> point(ii,ny_-1-jj) * pmlArr_[1].By_->point(ii,ny_-1-jj) + pmlArr_[1].c_bye_0_ -> point(ii,ny_-1-jj) * (Ez_->point(ii+1,ny_-1-jj)-Ez_->point(ii,ny_-1-jj));
+                                        Hx_->point(ii,ny_-1-jj) = pmlArr_[1].c_hxh_0_ -> point(ii,ny_-1-jj) * Hx_->point(ii,ny_-1-jj) + pmlArr_[1].c_hxb1_0_ -> point(ii,ny_-1-jj) * pmlArr_[1].Bx_->point(ii,ny_-1-jj) - pmlArr_[1].c_hxb0_0_ -> point(ii,ny_-1-jj) * bxstore;
+                                        Hy_->point(ii,ny_-1-jj) = pmlArr_[1].c_hyh_0_ -> point(ii,ny_-1-jj) * Hy_->point(ii,ny_-1-jj) + pmlArr_[1].c_hyb1_0_ -> point(ii,ny_-1-jj) * pmlArr_[1].By_->point(ii,ny_-1-jj) - pmlArr_[1].c_hyb0_0_ -> point(ii,ny_-1-jj) * bystore;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    case Z:
+                    {
+                        throw logic_error("Z dir not implimented");
+                        break;
+                    }
+                    default:
+                        throw logic_error("how did you get here, it is a switch default try again");
+                        break;
+                }
+            }
+        }
     }
 }
 
@@ -3027,836 +3455,781 @@ void FDTDField::updateE()
             Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezh * ((-1.0*Hy_->point(nx_-1-1,ny_-1)) - (-1.0*Hx_->point(nx_-1,ny_-1-1)));
         }
     }
-
-    if(Ez_)
+    if(precalcPML_ == false)
     {
-        for(int kk = 0; kk < pmlArr_.size(); kk++)
+        if(Ez_)
         {
-            switch(pmlArr_[kk].d())
+            for(int kk = 0; kk < pmlArr_.size(); kk++)
             {
-                case X:
+                switch(pmlArr_[kk].d())
                 {
-                    double eps = 1.0;
-                    double kapx = 1.0;
-                    double kapy = 1.0;
-                    double kapz = 1.0;
-                    double sigx = 0.0;
-                    double sigy = 0.0;
-                    double sigz = 0.0;
-                    double c_dzd = 0.0; double c_dzh = 0.0; double c_eze = 0.0; double c_ezd1 = 0.0; double c_ezd0 = 0.0;
-                    complex<double> dzstore(0.0,0.0);
-                    if(yPML_ == 0)
+                    case X:
                     {
-                        for(int jj = 1; jj < ny_ - 1; jj++)
+                        double eps = 1.0;
+                        double kapx = 1.0;
+                        double kapy = 1.0;
+                        double kapz = 1.0;
+                        double sigx = 0.0;
+                        double sigy = 0.0;
+                        double sigz = 0.0;
+                        double c_dzd = 0.0; double c_dzh = 0.0; double c_eze = 0.0; double c_ezd1 = 0.0; double c_ezd0 = 0.0;
+                        complex<double> dzstore(0.0,0.0);
+                        if(yPML_ == 0)
                         {
-                            eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0);
-                            sigx = pmlArr_[kk].sigma(0.0,eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-                            dzstore = pmlArr_[kk].Dz_->point(0,jj);
-                            pmlArr_[kk].Dz_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj)) - (Hx_->point(0,jj)-Hx_->point(0,jj-1))); // 0 is boundary condtion
-                            Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezd1 * pmlArr_[kk].Dz_->point(0,jj) - c_ezd0 * dzstore;
-
-                            eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
-                            sigx = pmlArr_[kk].sigma(0.0,eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-                            dzstore = pmlArr_[kk].Dz_end_->point(0,jj);
-                            pmlArr_[kk].Dz_end_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_end_->point(0,jj) + c_dzh * ((-1.0 *Hy_->point((nx_-2),jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1))); // 0 is boundary condition
-                            Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,jj) - c_ezd0 * dzstore;
-                        }
-                        eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
-                        sigx = pmlArr_[kk].sigma(0.0,eps);
-                        c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                        c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                        c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                        c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                        c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-                        dzstore = pmlArr_[kk].Dz_->point(0,ny_-1);
-                        pmlArr_[kk].Dz_->point(0,ny_-1) = c_dzd * pmlArr_[kk].Dz_->point(0,ny_-1) + c_dzh * ((Hy_->point(0,ny_-1)) - (-1.0*Hx_->point(0,ny_-2))); // 0 is boundary condtion
-                        Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_->point(0,ny_-1) - c_ezd0 * dzstore;
-
-                        eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
-                        sigx = pmlArr_[kk].sigma(0.0,eps);
-                        c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                        c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                        c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                        c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                        c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                        dzstore = pmlArr_[kk].Dz_end_->point(0,ny_-1);
-                        pmlArr_[kk].Dz_end_->point(0,ny_-1) = c_dzd * pmlArr_[kk].Dz_end_->point(0,ny_-1) + c_dzh * ((-1.0 *Hy_->point(nx_-2,ny_-1)) - (-1.0*Hx_->point(nx_-1,ny_-2))); // 0 is boundary condition
-                        Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,ny_-1) - c_ezd0 * dzstore;
-
-                        eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0);
-                        sigx = pmlArr_[kk].sigma(0.0,eps);
-                        c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                        c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                        c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                        c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                        c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                        dzstore = pmlArr_[kk].Dz_->point(0,0);
-                        pmlArr_[kk].Dz_->point(0,0) = c_dzd * pmlArr_[kk].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0)) - (Hx_->point(0,0))); // 0 is boundary condtion
-                        Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezd1 * pmlArr_[kk].Dz_->point(0,0) - c_ezd0 * dzstore;
-
-                        eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
-                        sigx = pmlArr_[kk].sigma(0.0,eps);
-                        c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                        c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                        c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                        c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                        c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                        dzstore = pmlArr_[kk].Dz_end_->point(0,0);
-                        pmlArr_[kk].Dz_end_->point(0,0) = c_dzd * pmlArr_[kk].Dz_end_->point(0,0) + c_dzh * ((-1.0 *Hy_->point(nx_-2,0)) - (Hx_->point(nx_-1,0))); // 0 is boundary condition
-                        Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,0) - c_ezd0 * dzstore;
-
-                        for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
-                        {
-                            kapx = 1.0; kapy = 1.0; kapz = 1.0;
-                            sigy = 0.0; sigz = 0.0;
-                            //double kapx = pmlArr_[kk].kappa(ii);
-                            //Kappas change throughout
-                            for(int jj =  1; jj < ny_ - 1; jj ++)
+                            for(int jj = 1; jj < ny_ - 1; jj++)
                             {
-                                eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
-                                sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0);
+                                sigx = pmlArr_[kk].sigma(0.0,eps);
                                 c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                                 c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                                 c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[kk].Dz_->point(ii,jj);
-                                pmlArr_[kk].Dz_->point(ii,jj) = c_dzd * pmlArr_[kk].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
-                                Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,jj) - c_ezd0 * dzstore;
 
-                                eps = objArr_[phys_Ez_->point(nx_-1-ii,jj)].dielectric(1.0);
-                                sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                dzstore = pmlArr_[kk].Dz_->point(0,jj);
+                                pmlArr_[kk].Dz_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj)) - (Hx_->point(0,jj)-Hx_->point(0,jj-1))); // 0 is boundary condtion
+                                Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezd1 * pmlArr_[kk].Dz_->point(0,jj) - c_ezd0 * dzstore;
+
+                                eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
+                                sigx = pmlArr_[kk].sigma(0.0,eps);
                                 c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                                 c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                                 c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[kk].Dz_end_->point(ii,jj);
-                                pmlArr_[kk].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[kk].Dz_end_->point(ii,jj) + c_dzh * ((Hy_->point(nx_-1-ii,jj)-Hy_->point(nx_-1-ii-1,jj)) - (Hx_->point(nx_-1-ii,jj)-Hx_->point(nx_-1-ii,jj-1)));
-                                Ez_->point(nx_-1-ii,jj) = c_eze * Ez_->point(nx_-1-ii,jj) + c_ezd1 * pmlArr_[kk].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
+
+                                dzstore = pmlArr_[kk].Dz_end_->point(0,jj);
+                                pmlArr_[kk].Dz_end_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_end_->point(0,jj) + c_dzh * ((-1.0 *Hy_->point((nx_-2),jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1))); // 0 is boundary condition
+                                Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,jj) - c_ezd0 * dzstore;
                             }
-                            eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0);
-                            sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            dzstore = pmlArr_[kk].Dz_->point(ii,ny_-1);
-                            pmlArr_[kk].Dz_->point(ii,ny_-1) = c_dzd * pmlArr_[kk].Dz_->point(ii,ny_-1) + c_dzh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (-1.0*Hx_->point(ii,ny_-1-1)));
-                            Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,ny_-1) - c_ezd0 * dzstore;
-
-                            eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1)].dielectric(1.0);
-                            sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            dzstore = pmlArr_[kk].Dz_end_->point(ii,ny_-1);
-                            pmlArr_[kk].Dz_end_->point(ii,ny_-1) = c_dzd * pmlArr_[kk].Dz_end_->point(ii,ny_-1) + c_dzh * ((Hy_->point(nx_-1-ii,ny_-1)-Hy_->point(nx_-1-ii-1,ny_-1)) - (-1.0*Hx_->point(nx_-1-ii,ny_-1-1)));
-                            Ez_->point(nx_-1-ii,ny_-1) = c_eze * Ez_->point(nx_-1-ii,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(ii,ny_-1) - c_ezd0 * dzstore;
-
-                            eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0);
-                            sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            dzstore = pmlArr_[kk].Dz_->point(ii,0);
-                            pmlArr_[kk].Dz_->point(ii,0) = c_dzd * pmlArr_[kk].Dz_->point(ii,0) + c_dzh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)));
-                            Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,0) - c_ezd0 * dzstore;
-
-                            eps = objArr_[phys_Ez_->point(nx_-1-ii,0)].dielectric(1.0);
-                            sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            dzstore = pmlArr_[kk].Dz_end_->point(ii,0);
-                            pmlArr_[kk].Dz_end_->point(ii,0) = c_dzd * pmlArr_[kk].Dz_end_->point(ii,0) + c_dzh * ((Hy_->point(nx_-1-ii,0)-Hy_->point(nx_-1-ii-1,0)) - (Hx_->point(nx_-1-ii,0)));
-                            Ez_->point(nx_-1-ii,0) = c_eze * Ez_->point(nx_-1-ii,0) + c_ezd1 * pmlArr_[kk].Dz_end_->point(ii,0) - c_ezd0 * dzstore;
-                        }
-                    }
-                    else
-                    {
-                        for(int jj = yPML_; jj < ny_ - yPML_; jj++)
-                        {
-                            eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0);
+                            eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
                             sigx = pmlArr_[kk].sigma(0.0,eps);
                             c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                             c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                             c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            dzstore = pmlArr_[kk].Dz_->point(0,jj);
-                            pmlArr_[kk].Dz_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj)) - (Hx_->point(0,jj)-Hx_->point(0,jj-1))); // 0 is boundary condtion
-                            Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezd1 * pmlArr_[kk].Dz_->point(0,jj) - c_ezd0 * dzstore;
 
-                            eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
+                            dzstore = pmlArr_[kk].Dz_->point(0,ny_-1);
+                            pmlArr_[kk].Dz_->point(0,ny_-1) = c_dzd * pmlArr_[kk].Dz_->point(0,ny_-1) + c_dzh * ((Hy_->point(0,ny_-1)) - (-1.0*Hx_->point(0,ny_-2))); // 0 is boundary condtion
+                            Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_->point(0,ny_-1) - c_ezd0 * dzstore;
+
+                            eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
                             sigx = pmlArr_[kk].sigma(0.0,eps);
                             c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                             c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                             c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            dzstore = pmlArr_[kk].Dz_end_->point(0,jj);
-                            pmlArr_[kk].Dz_end_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_end_->point(0,jj) + c_dzh * ((-1.0 *Hy_->point((nx_-2),jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1))); // 0 is boundary condition
-                            Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,jj) - c_ezd0 * dzstore;
-                        }
-                        for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
-                        {
-                            kapx = 1.0; kapy = 1.0; kapz = 1.0;
-                            sigy = 0.0; sigz = 0.0;
-                            for(int jj =  yPML_; jj < ny_ - yPML_; jj ++)
-                            {
-                                eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
-                                sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[kk].Dz_->point(ii,jj);
-                                pmlArr_[kk].Dz_->point(ii,jj) = c_dzd * pmlArr_[kk].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
-                                Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,jj) - c_ezd0 * dzstore;
-
-                                eps = objArr_[phys_Ez_->point(nx_-1-ii,jj)].dielectric(1.0);
-                                sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[kk].Dz_end_->point(ii,jj);
-                                pmlArr_[kk].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[kk].Dz_end_->point(ii,jj) + c_dzh * ((Hy_->point(nx_-1-ii,jj)-Hy_->point(nx_-1-ii-1,jj)) - (Hx_->point(nx_-1-ii,jj)-Hx_->point(nx_-1-ii,jj-1)));
-                                Ez_->point(nx_-1-ii,jj) = c_eze * Ez_->point(nx_-1-ii,jj) + c_ezd1 * pmlArr_[kk].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
-                            }
-                        }
-                        if(kk == 0)
-                        {
-                            kapx = 1.0; kapy = 1.0; kapz = 1.0;
-                            sigz = 0.0;
+                            dzstore = pmlArr_[kk].Dz_end_->point(0,ny_-1);
+                            pmlArr_[kk].Dz_end_->point(0,ny_-1) = c_dzd * pmlArr_[kk].Dz_end_->point(0,ny_-1) + c_dzh * ((-1.0 *Hy_->point(nx_-2,ny_-1)) - (-1.0*Hx_->point(nx_-1,ny_-2))); // 0 is boundary condition
+                            Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,ny_-1) - c_ezd0 * dzstore;
 
                             eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0);
-                            sigx = pmlArr_[0].sigma(0,eps);
-                            sigy = pmlArr_[1].sigma(0,eps);
+                            sigx = pmlArr_[kk].sigma(0.0,eps);
                             c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                             c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                             c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                             c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                             c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            //Bot Left
-                            dzstore = pmlArr_[0].Dz_->point(0,0);
-                            pmlArr_[0].Dz_->point(0,0) = c_dzd * pmlArr_[0].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0)) - (Hx_->point(0,0)));
-                            Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezd1 * pmlArr_[0].Dz_->point(0,0) - c_ezd0 * dzstore;
-                            //Bot Right
-                            eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
-                            sigx = pmlArr_[0].sigma(0,eps);
-                            sigy = pmlArr_[1].sigma(0,eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            dzstore = pmlArr_[0].Dz_end_->point(0,0);
-                            pmlArr_[0].Dz_end_->point(0,0) = c_dzd * pmlArr_[0].Dz_end_->point(0,0) + c_dzh * (-1.0*Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0));
-                            Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezd1 * pmlArr_[0].Dz_end_->point(0,0) - c_ezd0 * dzstore;
-                            //Top Right
-                            eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
-                            sigx = pmlArr_[0].sigma(0,eps);
-                            sigy = pmlArr_[1].sigma(0,eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            dzstore = pmlArr_[0].Dz_end_->point(0,ny_-1);
-                            pmlArr_[0].Dz_end_->point(0,ny_-1) = c_dzd * pmlArr_[0].Dz_end_->point(0,ny_-1) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,ny_-1)) - (-1.0*Hx_->point(nx_-1,ny_-1-1)));
-                            Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezd1 * pmlArr_[0].Dz_end_->point(0,ny_-1) - c_ezd0 * dzstore;
-                            //Top Left
-                            eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
-                            sigx = pmlArr_[0].sigma(0,eps);
-                            sigy = pmlArr_[1].sigma(0,eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            dzstore = pmlArr_[0].Dz_->point(0,ny_-1);
-                            pmlArr_[0].Dz_->point(0,ny_-1) = c_dzd * pmlArr_[0].Dz_->point(0,ny_-1) + c_dzh * ((Hy_->point(0,ny_-1)) - (-1.0*Hx_->point(0,ny_-1-1)));
-                            Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezd1 * pmlArr_[0].Dz_->point(0,ny_-1) - c_ezd0 * dzstore;
+                            dzstore = pmlArr_[kk].Dz_->point(0,0);
+                            pmlArr_[kk].Dz_->point(0,0) = c_dzd * pmlArr_[kk].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0)) - (Hx_->point(0,0))); // 0 is boundary condtion
+                            Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezd1 * pmlArr_[kk].Dz_->point(0,0) - c_ezd0 * dzstore;
 
-                            for(int ii = 1; ii < pmlArr_[0].thickness(); ii++)
+                            eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
+                            sigx = pmlArr_[kk].sigma(0.0,eps);
+                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            dzstore = pmlArr_[kk].Dz_end_->point(0,0);
+                            pmlArr_[kk].Dz_end_->point(0,0) = c_dzd * pmlArr_[kk].Dz_end_->point(0,0) + c_dzh * ((-1.0 *Hy_->point(nx_-2,0)) - (Hx_->point(nx_-1,0))); // 0 is boundary condition
+                            Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,0) - c_ezd0 * dzstore;
+
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
                             {
                                 kapx = 1.0; kapy = 1.0; kapz = 1.0;
-                                sigz = 0.0;
+                                sigy = 0.0; sigz = 0.0;
+                                //double kapx = pmlArr_[kk].kappa(ii);
+                                //Kappas change throughout
+                                for(int jj =  1; jj < ny_ - 1; jj ++)
+                                {
+                                    eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
+                                    sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    dzstore = pmlArr_[kk].Dz_->point(ii,jj);
+                                    pmlArr_[kk].Dz_->point(ii,jj) = c_dzd * pmlArr_[kk].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
+                                    Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,jj) - c_ezd0 * dzstore;
+
+                                    eps = objArr_[phys_Ez_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                    sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    dzstore = pmlArr_[kk].Dz_end_->point(ii,jj);
+                                    pmlArr_[kk].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[kk].Dz_end_->point(ii,jj) + c_dzh * ((Hy_->point(nx_-1-ii,jj)-Hy_->point(nx_-1-ii-1,jj)) - (Hx_->point(nx_-1-ii,jj)-Hx_->point(nx_-1-ii,jj-1)));
+                                    Ez_->point(nx_-1-ii,jj) = c_eze * Ez_->point(nx_-1-ii,jj) + c_ezd1 * pmlArr_[kk].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
+                                }
+                                eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0);
+                                sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                dzstore = pmlArr_[kk].Dz_->point(ii,ny_-1);
+                                pmlArr_[kk].Dz_->point(ii,ny_-1) = c_dzd * pmlArr_[kk].Dz_->point(ii,ny_-1) + c_dzh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (-1.0*Hx_->point(ii,ny_-1-1)));
+                                Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,ny_-1) - c_ezd0 * dzstore;
+
+                                eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1)].dielectric(1.0);
+                                sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                dzstore = pmlArr_[kk].Dz_end_->point(ii,ny_-1);
+                                pmlArr_[kk].Dz_end_->point(ii,ny_-1) = c_dzd * pmlArr_[kk].Dz_end_->point(ii,ny_-1) + c_dzh * ((Hy_->point(nx_-1-ii,ny_-1)-Hy_->point(nx_-1-ii-1,ny_-1)) - (-1.0*Hx_->point(nx_-1-ii,ny_-1-1)));
+                                Ez_->point(nx_-1-ii,ny_-1) = c_eze * Ez_->point(nx_-1-ii,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(ii,ny_-1) - c_ezd0 * dzstore;
 
                                 eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0);
-                                sigx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
-                                sigy = pmlArr_[1].sigma(0.0,eps);
+                                sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                                 c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                                 c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                                 c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                //Bot Left
-                                dzstore = pmlArr_[0].Dz_->point(ii,0);
-                                pmlArr_[0].Dz_->point(ii,0) = c_dzd * pmlArr_[0].Dz_->point(ii,0) + c_dzh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)));
-                                Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezd1 * pmlArr_[0].Dz_->point(ii,0) - c_ezd0 * dzstore;
-                                //Bot Right
+                                dzstore = pmlArr_[kk].Dz_->point(ii,0);
+                                pmlArr_[kk].Dz_->point(ii,0) = c_dzd * pmlArr_[kk].Dz_->point(ii,0) + c_dzh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)));
+                                Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,0) - c_ezd0 * dzstore;
+
                                 eps = objArr_[phys_Ez_->point(nx_-1-ii,0)].dielectric(1.0);
-                                sigx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
-                                sigy = pmlArr_[1].sigma(0.0,eps);
+                                sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
                                 c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                                 c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                                 c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[0].Dz_end_->point(ii,0);
-                                pmlArr_[0].Dz_end_->point(ii,0) = c_dzd * pmlArr_[0].Dz_end_->point(ii,0) + c_dzh * ((Hy_->point(nx_-1-ii,0)-Hy_->point(nx_-1-ii-1,0)) - (Hx_->point(nx_-1-ii,0)));
-                                Ez_->point(nx_-1-ii,0) = c_eze * Ez_->point(nx_-1-ii,0) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,0) - c_ezd0 * dzstore;
-                                //Top Right
-                                eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1)].dielectric(1.0);
-                                sigx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
-                                sigy = pmlArr_[1].sigma(0.0,eps);
-                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[0].Dz_end_->point(ii,ny_-1);
-                                pmlArr_[0].Dz_end_->point(ii,ny_-1) = c_dzd * pmlArr_[0].Dz_end_->point(ii,ny_-1) + c_dzh * ((Hy_->point(nx_-1-ii,ny_-1)-Hy_->point(nx_-1-ii-1,ny_-1)) - (-1.0*Hx_->point(nx_-1-ii,ny_-1-1)));
-                                Ez_->point(nx_-1-ii,ny_-1) = c_eze * Ez_->point(nx_-1-ii,ny_-1) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,ny_-1) - c_ezd0 * dzstore;
-                                //Top Left
-                                eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0);
-                                sigx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
-                                sigy = pmlArr_[1].sigma(0.0,eps);
-                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[0].Dz_->point(ii,ny_-1);
-                                pmlArr_[0].Dz_->point(ii,ny_-1) = c_dzd * pmlArr_[0].Dz_->point(ii,ny_-1) + c_dzh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (-1.0*Hx_->point(ii,ny_-1-1)));
-                                Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezd1 * pmlArr_[0].Dz_->point(ii,ny_-1) - c_ezd0 * dzstore;
+                                dzstore = pmlArr_[kk].Dz_end_->point(ii,0);
+                                pmlArr_[kk].Dz_end_->point(ii,0) = c_dzd * pmlArr_[kk].Dz_end_->point(ii,0) + c_dzh * ((Hy_->point(nx_-1-ii,0)-Hy_->point(nx_-1-ii-1,0)) - (Hx_->point(nx_-1-ii,0)));
+                                Ez_->point(nx_-1-ii,0) = c_eze * Ez_->point(nx_-1-ii,0) + c_ezd1 * pmlArr_[kk].Dz_end_->point(ii,0) - c_ezd0 * dzstore;
                             }
-                            for(int jj = 1; jj < pmlArr_[0].thickness(); jj++)
+                        }
+                        else
+                        {
+                            for(int jj = yPML_; jj < ny_ - yPML_; jj++)
+                            {
+                                eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0);
+                                sigx = pmlArr_[kk].sigma(0.0,eps);
+                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                dzstore = pmlArr_[kk].Dz_->point(0,jj);
+                                pmlArr_[kk].Dz_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj)) - (Hx_->point(0,jj)-Hx_->point(0,jj-1))); // 0 is boundary condtion
+                                Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezd1 * pmlArr_[kk].Dz_->point(0,jj) - c_ezd0 * dzstore;
+
+                                eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
+                                sigx = pmlArr_[kk].sigma(0.0,eps);
+                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                dzstore = pmlArr_[kk].Dz_end_->point(0,jj);
+                                pmlArr_[kk].Dz_end_->point(0,jj) = c_dzd * pmlArr_[kk].Dz_end_->point(0,jj) + c_dzh * ((-1.0 *Hy_->point((nx_-2),jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1))); // 0 is boundary condition
+                                Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,jj) - c_ezd0 * dzstore;
+                            }
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
+                            {
+                                kapx = 1.0; kapy = 1.0; kapz = 1.0;
+                                sigy = 0.0; sigz = 0.0;
+                                for(int jj =  yPML_; jj < ny_ - yPML_; jj ++)
+                                {
+                                    eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
+                                    sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    dzstore = pmlArr_[kk].Dz_->point(ii,jj);
+                                    pmlArr_[kk].Dz_->point(ii,jj) = c_dzd * pmlArr_[kk].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
+                                    Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[kk].Dz_->point(ii,jj) - c_ezd0 * dzstore;
+
+                                    eps = objArr_[phys_Ez_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                    sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    dzstore = pmlArr_[kk].Dz_end_->point(ii,jj);
+                                    pmlArr_[kk].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[kk].Dz_end_->point(ii,jj) + c_dzh * ((Hy_->point(nx_-1-ii,jj)-Hy_->point(nx_-1-ii-1,jj)) - (Hx_->point(nx_-1-ii,jj)-Hx_->point(nx_-1-ii,jj-1)));
+                                    Ez_->point(nx_-1-ii,jj) = c_eze * Ez_->point(nx_-1-ii,jj) + c_ezd1 * pmlArr_[kk].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
+                                }
+                            }
+                            if(kk == 0)
                             {
                                 kapx = 1.0; kapy = 1.0; kapz = 1.0;
                                 sigz = 0.0;
 
-                                eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0);
-                                sigx = pmlArr_[0].sigma(0.0,eps);
-                                sigy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0);
+                                sigx = pmlArr_[0].sigma(0,eps);
+                                sigy = pmlArr_[1].sigma(0,eps);
                                 c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                                 c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                                 c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 //Bot Left
-                                dzstore = pmlArr_[0].Dz_->point(0,jj);
-                                pmlArr_[0].Dz_->point(0,jj) = c_dzd * pmlArr_[0].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj)) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
-                                Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezd1 * pmlArr_[0].Dz_->point(0,jj) - c_ezd0 * dzstore;
+                                dzstore = pmlArr_[0].Dz_->point(0,0);
+                                pmlArr_[0].Dz_->point(0,0) = c_dzd * pmlArr_[0].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0)) - (Hx_->point(0,0)));
+                                Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezd1 * pmlArr_[0].Dz_->point(0,0) - c_ezd0 * dzstore;
                                 //Bot Right
-                                eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
-                                sigx = pmlArr_[0].sigma(0.0,eps);
-                                sigy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
+                                sigx = pmlArr_[0].sigma(0,eps);
+                                sigy = pmlArr_[1].sigma(0,eps);
                                 c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                                 c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                                 c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[0].Dz_end_->point(0,jj);
-                                pmlArr_[0].Dz_end_->point(0,jj) = c_dzd * pmlArr_[0].Dz_end_->point(0,jj) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
-                                Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(0,jj) - c_ezd0 * dzstore;
+                                dzstore = pmlArr_[0].Dz_end_->point(0,0);
+                                pmlArr_[0].Dz_end_->point(0,0) = c_dzd * pmlArr_[0].Dz_end_->point(0,0) + c_dzh * (-1.0*Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0));
+                                Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezd1 * pmlArr_[0].Dz_end_->point(0,0) - c_ezd0 * dzstore;
                                 //Top Right
-                                eps = objArr_[phys_Ez_->point(nx_-1,ny_-1-jj)].dielectric(1.0);
-                                sigx = pmlArr_[0].sigma(0.0,eps);
-                                sigy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
+                                sigx = pmlArr_[0].sigma(0,eps);
+                                sigy = pmlArr_[1].sigma(0,eps);
                                 c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                                 c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                                 c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[0].Dz_end_->point(0,ny_-1-jj);
-                                pmlArr_[0].Dz_end_->point(0,ny_-1-jj) = c_dzd * pmlArr_[0].Dz_end_->point(0,ny_-1-jj) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,ny_-1-jj)) - (Hx_->point(nx_-1,ny_-1-jj)-Hx_->point(nx_-1,ny_-1-jj-1)));
-                                Ez_->point(nx_-1,ny_-1-jj) = c_eze * Ez_->point(nx_-1,ny_-1-jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(0,ny_-1-jj) - c_ezd0 * dzstore;
+                                dzstore = pmlArr_[0].Dz_end_->point(0,ny_-1);
+                                pmlArr_[0].Dz_end_->point(0,ny_-1) = c_dzd * pmlArr_[0].Dz_end_->point(0,ny_-1) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,ny_-1)) - (-1.0*Hx_->point(nx_-1,ny_-1-1)));
+                                Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezd1 * pmlArr_[0].Dz_end_->point(0,ny_-1) - c_ezd0 * dzstore;
                                 //Top Left
-                                eps = objArr_[phys_Ez_->point(0,ny_-1-jj)].dielectric(1.0);
-                                sigx = pmlArr_[0].sigma(0.0,eps);
-                                sigy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
+                                sigx = pmlArr_[0].sigma(0,eps);
+                                sigy = pmlArr_[1].sigma(0,eps);
                                 c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                                 c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                                 c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                                 c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                 c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[0].Dz_->point(0,ny_-1-jj);
-                                pmlArr_[0].Dz_->point(0,ny_-1-jj) = c_dzd * pmlArr_[0].Dz_->point(0,ny_-1-jj) + c_dzh * ((Hy_->point(0,ny_-1-jj)) - (Hx_->point(0,ny_-1-jj)-Hx_->point(0,ny_-1-jj-1)));
-                                Ez_->point(0,ny_-1-jj) = c_eze * Ez_->point(0,ny_-1-jj) + c_ezd1 * pmlArr_[0].Dz_->point(0,ny_-1-jj) - c_ezd0 * dzstore;
-                            }
-                            for(int ii = 1; ii < pmlArr_[0].thickness(); ii++)
-                            {
-                                for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
+                                dzstore = pmlArr_[0].Dz_->point(0,ny_-1);
+                                pmlArr_[0].Dz_->point(0,ny_-1) = c_dzd * pmlArr_[0].Dz_->point(0,ny_-1) + c_dzh * ((Hy_->point(0,ny_-1)) - (-1.0*Hx_->point(0,ny_-1-1)));
+                                Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezd1 * pmlArr_[0].Dz_->point(0,ny_-1) - c_ezd0 * dzstore;
+
+                                for(int ii = 1; ii < pmlArr_[0].thickness(); ii++)
                                 {
                                     kapx = 1.0; kapy = 1.0; kapz = 1.0;
                                     sigz = 0.0;
 
-                                    eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
+                                    eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0);
                                     sigx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
-                                    sigy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                    sigy = pmlArr_[1].sigma(0.0,eps);
                                     c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                                     c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                                     c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                                     c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                     c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                     //Bot Left
-                                    dzstore = pmlArr_[0].Dz_->point(ii,jj);
-                                    pmlArr_[0].Dz_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
-                                    Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,jj) - c_ezd0 * dzstore;
+                                    dzstore = pmlArr_[0].Dz_->point(ii,0);
+                                    pmlArr_[0].Dz_->point(ii,0) = c_dzd * pmlArr_[0].Dz_->point(ii,0) + c_dzh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)));
+                                    Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezd1 * pmlArr_[0].Dz_->point(ii,0) - c_ezd0 * dzstore;
                                     //Bot Right
-                                    eps = objArr_[phys_Ez_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                    eps = objArr_[phys_Ez_->point(nx_-1-ii,0)].dielectric(1.0);
                                     sigx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
-                                    sigy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                    sigy = pmlArr_[1].sigma(0.0,eps);
                                     c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                                     c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                                     c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                                     c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                     c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                    dzstore = pmlArr_[0].Dz_end_->point(ii,jj);
-                                    pmlArr_[0].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,jj) + c_dzh * ((Hy_->point(nx_-1-ii,jj)-Hy_->point(nx_-1-ii-1,jj)) - (Hx_->point(nx_-1-ii,jj)-Hx_->point(nx_-1-ii,jj-1)));
-                                    Ez_->point(nx_-1-ii,jj) = c_eze * Ez_->point(nx_-1-ii,jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
+                                    dzstore = pmlArr_[0].Dz_end_->point(ii,0);
+                                    pmlArr_[0].Dz_end_->point(ii,0) = c_dzd * pmlArr_[0].Dz_end_->point(ii,0) + c_dzh * ((Hy_->point(nx_-1-ii,0)-Hy_->point(nx_-1-ii-1,0)) - (Hx_->point(nx_-1-ii,0)));
+                                    Ez_->point(nx_-1-ii,0) = c_eze * Ez_->point(nx_-1-ii,0) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,0) - c_ezd0 * dzstore;
                                     //Top Right
-                                    eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1-jj)].dielectric(1.0);
+                                    eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1)].dielectric(1.0);
                                     sigx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
-                                    sigy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                    sigy = pmlArr_[1].sigma(0.0,eps);
                                     c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                                     c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                                     c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                                     c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                     c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                    dzstore = pmlArr_[0].Dz_end_->point(ii,ny_-1-jj);
-                                    pmlArr_[0].Dz_end_->point(ii,ny_-1-jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,ny_-1-jj) + c_dzh * ((Hy_->point(nx_-1-ii,ny_-1-jj)-Hy_->point(nx_-1-ii-1,ny_-1-jj)) - (Hx_->point(nx_-1-ii,ny_-1-jj)-Hx_->point(nx_-1-ii,ny_-1-jj-1)));
-                                    Ez_->point(nx_-1-ii,ny_-1-jj) = c_eze * Ez_->point(nx_-1-ii,ny_-1-jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,ny_-1-jj) - c_ezd0 * dzstore;
+                                    dzstore = pmlArr_[0].Dz_end_->point(ii,ny_-1);
+                                    pmlArr_[0].Dz_end_->point(ii,ny_-1) = c_dzd * pmlArr_[0].Dz_end_->point(ii,ny_-1) + c_dzh * ((Hy_->point(nx_-1-ii,ny_-1)-Hy_->point(nx_-1-ii-1,ny_-1)) - (-1.0*Hx_->point(nx_-1-ii,ny_-1-1)));
+                                    Ez_->point(nx_-1-ii,ny_-1) = c_eze * Ez_->point(nx_-1-ii,ny_-1) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,ny_-1) - c_ezd0 * dzstore;
                                     //Top Left
-                                    eps = objArr_[phys_Ez_->point(ii,ny_-1-jj)].dielectric(1.0);
+                                    eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0);
                                     sigx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
-                                    sigy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                    sigy = pmlArr_[1].sigma(0.0,eps);
                                     c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                                     c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                                     c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                                     c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                     c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                    dzstore = pmlArr_[0].Dz_->point(ii,ny_-1-jj);
-                                    pmlArr_[0].Dz_->point(ii,ny_-1-jj) = c_dzd * pmlArr_[0].Dz_->point(ii,ny_-1-jj) + c_dzh * ((Hy_->point(ii,ny_-1-jj)-Hy_->point(ii-1,ny_-1-jj)) - (Hx_->point(ii,ny_-1-jj)-Hx_->point(ii,ny_-1-jj-1)));
-                                    Ez_->point(ii,ny_-1-jj) = c_eze * Ez_->point(ii,ny_-1-jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,ny_-1-jj) - c_ezd0 * dzstore;
+                                    dzstore = pmlArr_[0].Dz_->point(ii,ny_-1);
+                                    pmlArr_[0].Dz_->point(ii,ny_-1) = c_dzd * pmlArr_[0].Dz_->point(ii,ny_-1) + c_dzh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (-1.0*Hx_->point(ii,ny_-1-1)));
+                                    Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezd1 * pmlArr_[0].Dz_->point(ii,ny_-1) - c_ezd0 * dzstore;
                                 }
-                            }
-                        }
-                    }
-                    break;
-                }
-                case Y:
-                {
-                    double eps = 1.0;
-                    double kapx = 1.0; double kapy = 1.0; double kapz = 1.0;
-                    double sigx = 0.0;
-                    double sigy = 0.0; double sigz = 0.0;
-
-                    double c_dzd = 0.0; double c_dzh = 0.0; double c_eze = 0.0; double c_ezd1 = 0.0; double c_ezd0 = 0.0;
-                    complex<double> dzstore(0.0,0.0);
-                    if(xPML_ == 0)
-                    {
-                        for(int jj = 1; jj < nx_ - 1; jj++)
-                        {
-                            eps = objArr_[phys_Ez_->point(jj,0)].dielectric(1.0);
-                            sigy = pmlArr_[kk].sigma(0.0,eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-                            dzstore = pmlArr_[kk].Dz_->point(jj,0);
-                            pmlArr_[kk].Dz_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_->point(jj,0) + c_dzh * ((Hy_->point(jj,0)-Hy_->point(jj-1,0)) - (Hx_->point(jj,0))); // 0 is boundary condition
-                            Ez_->point(jj,0) = c_eze * Ez_->point(jj,0) + c_ezd1 * pmlArr_[kk].Dz_->point(jj,0) - c_ezd0 * dzstore;
-
-                            eps = objArr_[phys_Ez_->point(jj,ny_-1)].dielectric(1.0);
-                            sigy = pmlArr_[kk].sigma(0.0,eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            dzstore = pmlArr_[kk].Dz_end_->point(jj,0);
-                            pmlArr_[kk].Dz_end_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_end_->point(jj,0) + c_dzh * ((Hy_->point(jj,ny_-1) - Hy_->point(jj - 1,ny_-1)) - (-1.0 * Hx_->point(jj,ny_-1-1))); // 0 is boundary condtion
-                            Ez_->point(jj,ny_-1) = c_eze * Ez_->point(jj,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(jj,0) - c_ezd0 * dzstore;
-                        }
-                        eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
-                        sigy = pmlArr_[kk].sigma(0.0,eps);
-                        c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                        c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                        c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                        c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                        c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                        dzstore = pmlArr_[kk].Dz_->point(nx_-1,0);
-                        pmlArr_[kk].Dz_->point(nx_-1,0) = c_dzd * pmlArr_[kk].Dz_->point(nx_-1,0) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0))); // 0 is boundary condition
-                        Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezd1 * pmlArr_[kk].Dz_->point(nx_-1,0) - c_ezd0 * dzstore;
-
-                        eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
-                        sigy = pmlArr_[kk].sigma(0.0,eps);
-                        c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                        c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                        c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                        c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                        c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                        dzstore = pmlArr_[kk].Dz_end_->point(nx_-1,0);
-                        pmlArr_[kk].Dz_end_->point(nx_-1,0) = c_dzd * pmlArr_[kk].Dz_end_->point(nx_-1,0) + c_dzh * ((-1.0 * Hy_->point(nx_-1 - 1,ny_-1)) - (-1.0 * Hx_->point(nx_-1,ny_-1-1))); // 0 is boundary condtion
-                        Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(nx_-1,0) - c_ezd0 * dzstore;
-
-                        eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0);
-                        sigy = pmlArr_[kk].sigma(0.0,eps);
-                        c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                        c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                        c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                        c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                        c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                        dzstore = pmlArr_[kk].Dz_->point(0,0);
-                        pmlArr_[kk].Dz_->point(0,0) = c_dzd * pmlArr_[kk].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0)) - (Hx_->point(0,0))); // 0 is boundary condition
-                        Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezd1 * pmlArr_[kk].Dz_->point(0,0) - c_ezd0 * dzstore;
-
-                        eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
-                        sigy = pmlArr_[kk].sigma(0.0,eps);
-                        c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                        c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                        c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                        c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                        c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                        dzstore = pmlArr_[kk].Dz_end_->point(0,0);
-                        pmlArr_[kk].Dz_end_->point(0,0) = c_dzd * pmlArr_[kk].Dz_end_->point(0,0) + c_dzh * ((Hy_->point(0,ny_-1)) - (-1.0 * Hx_->point(0,ny_-1-1))); // 0 is boundary condtion
-                        Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,0) - c_ezd0 * dzstore;
-
-                        for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
-                        {
-                            eps = 1.0;
-                            kapx = 1.0; kapy = 1.0;
-                            kapz = 1.0;
-                            sigx = 0.0;
-                            sigz = 0.0;
-
-                            for(int jj =  1; jj < nx_ - 1; jj ++)
-                            {
-                                eps = objArr_[phys_Ez_->point(jj,ii)].dielectric(1.0);
-                                sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[kk].Dz_->point(jj,ii);
-                                pmlArr_[kk].Dz_->point(jj,ii) = c_dzd * pmlArr_[kk].Dz_->point(jj,ii) + c_dzh * ((Hy_->point(jj,ii)-Hy_->point(jj-1,ii)) - (Hx_->point(jj,ii)-Hx_->point(jj,ii-1)));
-                                Ez_->point(jj,ii) = c_eze * Ez_->point(jj,ii) + c_ezd1 * pmlArr_[kk].Dz_->point(jj,ii) - c_ezd0 * dzstore;
-
-                                eps = objArr_[phys_Ez_->point(jj,ny_-1-ii)].dielectric(1.0);
-                                sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[kk].Dz_end_->point(jj,ii);
-                                pmlArr_[kk].Dz_end_->point(jj,ii) = c_dzd * pmlArr_[kk].Dz_end_->point(jj,ii) + c_dzh * ((Hy_->point(jj,ny_-1-ii) - Hy_->point(jj - 1,ny_-1-ii)) - (Hx_->point(jj,ny_-1-ii) - Hx_->point(jj,ny_-1-ii-1)));
-                                Ez_->point(jj,ny_-1-ii) = c_eze * Ez_->point(jj,ny_-1-ii) + c_ezd1 * pmlArr_[kk].Dz_end_->point(jj,ii) - c_ezd0 * dzstore;
-                            }
-                            eps = objArr_[phys_Ez_->point(nx_-1,ii)].dielectric(1.0);
-                            sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            dzstore = pmlArr_[kk].Dz_->point(nx_-1,ii);
-                            pmlArr_[kk].Dz_->point(nx_-1,ii) = c_dzd * pmlArr_[kk].Dz_->point(nx_-1,ii) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,ii)) - (Hx_->point(nx_-1,ii)-Hx_->point(nx_-1,ii-1)));
-                            Ez_->point(nx_-1,ii) = c_eze * Ez_->point(nx_-1,ii) + c_ezd1 * pmlArr_[kk].Dz_->point(nx_-1,ii) - c_ezd0 * dzstore;
-
-                            eps = objArr_[phys_Ez_->point(nx_-1, ny_-1-ii)].dielectric(1.0);
-                            sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            dzstore = pmlArr_[kk].Dz_end_->point(nx_-1,ii);
-                            pmlArr_[kk].Dz_end_->point(nx_-1,ii) = c_dzd * pmlArr_[kk].Dz_end_->point(nx_-1,ii) + c_dzh * ((-1.0 * Hy_->point(nx_-1-1,ny_-1-ii)) - (Hx_->point(nx_-1,ny_-1-ii) - Hx_->point(nx_-1,ny_-1-ii-1)));
-                            Ez_->point(nx_-1,ny_-1-ii) = c_eze * Ez_->point(nx_-1,ny_-1-ii) + c_ezd1 * pmlArr_[kk].Dz_end_->point(nx_-1,ii) - c_ezd0 * dzstore;
-
-                            eps = objArr_[phys_Ez_->point(0, ii)].dielectric(1.0);
-                            sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            dzstore = pmlArr_[kk].Dz_->point(0,ii);
-                            pmlArr_[kk].Dz_->point(0,ii) = c_dzd * pmlArr_[kk].Dz_->point(0,ii) + c_dzh * ((Hy_->point(0,ii)) - (Hx_->point(0,ii)-Hx_->point(0,ii-1)));
-                            Ez_->point(0,ii) = c_eze * Ez_->point(0,ii) + c_ezd1 * pmlArr_[kk].Dz_->point(0,ii) - c_ezd0 * dzstore;
-
-                            eps = objArr_[phys_Ez_->point(0, ny_-1-ii)].dielectric(1.0);
-                            sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            dzstore = pmlArr_[kk].Dz_end_->point(0,ii);
-                            pmlArr_[kk].Dz_end_->point(0,ii) = c_dzd * pmlArr_[kk].Dz_end_->point(0,ii) + c_dzh * ((Hy_->point(0,ny_-1-ii)) - (Hx_->point(0,ny_-1-ii) - Hx_->point(0,ny_-1-ii-1)));
-                            Ez_->point(0,ny_-1-ii) = c_eze * Ez_->point(0,ny_-1-ii) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,ii) - c_ezd0 * dzstore;
-                        }
-                    }
-                    else
-                    {
-                        for(int jj = xPML_; jj < nx_ - xPML_; jj++)
-                        {
-                            eps = objArr_[phys_Ez_->point(jj,0)].dielectric(1.0);
-                            sigy = pmlArr_[kk].sigma(0.0,eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            dzstore = pmlArr_[kk].Dz_->point(jj,0);
-                            pmlArr_[kk].Dz_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_->point(jj,0) + c_dzh * ((Hy_->point(jj,0)-Hy_->point(jj-1,0)) - (Hx_->point(jj,0))); // 0 is boundary condition
-                            Ez_->point(jj,0) = c_eze * Ez_->point(jj,0) + c_ezd1 * pmlArr_[kk].Dz_->point(jj,0) - c_ezd0 * dzstore;
-
-                            eps = objArr_[phys_Ez_->point(jj, ny_-1)].dielectric(1.0);
-                            sigy = pmlArr_[kk].sigma(0.0,eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            dzstore = pmlArr_[kk].Dz_end_->point(jj,0);
-                            pmlArr_[kk].Dz_end_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_end_->point(jj,0) + c_dzh * ((Hy_->point(jj,ny_-1) - Hy_->point(jj - 1,ny_-1)) - (-1.0 * Hx_->point(jj,ny_-1-1))); // 0 is boundary condtion
-                            Ez_->point(jj,ny_-1) = c_eze * Ez_->point(jj,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(jj,0) - c_ezd0 * dzstore;
-                        }
-                        for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
-                        {
-                            kapx = 1.0; kapy = 1.0;
-                            kapz = 1.0;
-                            sigx = 0.0;
-                            sigz = 0.0;
-
-                            for(int jj =  xPML_; jj < nx_ - xPML_; jj ++)
-                            {
-                                eps = objArr_[phys_Ez_->point(jj, ii)].dielectric(1.0);
-                                sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[kk].Dz_->point(jj,ii);
-                                pmlArr_[kk].Dz_->point(jj,ii) = c_dzd * pmlArr_[kk].Dz_->point(jj,ii) + c_dzh * ((Hy_->point(jj,ii)-Hy_->point(jj-1,ii)) - (Hx_->point(jj,ii)-Hx_->point(jj,ii-1)));
-                                Ez_->point(jj,ii) = c_eze * Ez_->point(jj,ii) + c_ezd1 * pmlArr_[kk].Dz_->point(jj,ii) - c_ezd0 * dzstore;
-
-                                eps = objArr_[phys_Ez_->point(jj, ny_-1-ii)].dielectric(1.0);
-                                sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[kk].Dz_end_->point(jj,ii);
-                                pmlArr_[kk].Dz_end_->point(jj,ii) = c_dzd * pmlArr_[kk].Dz_end_->point(jj,ii) + c_dzh * ((Hy_->point(jj,ny_-1-ii) - Hy_->point(jj - 1,ny_-1-ii)) - (Hx_->point(jj,ny_-1-ii) - Hx_->point(jj,ny_-1-ii-1)));
-                                Ez_->point(jj,ny_-1-ii) = c_eze * Ez_->point(jj,ny_-1-ii) + c_ezd1 * pmlArr_[kk].Dz_end_->point(jj,ii) - c_ezd0 * dzstore;
-                            }
-                        }
-                        if(kk == 0)
-                        {
-                            kapx = 1.0; kapy = 1.0; kapz = 1.0;
-                            sigz = 0.0;
-
-                            eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0);
-                            sigx = pmlArr_[1].sigma(0,eps);
-                            sigy = pmlArr_[0].sigma(0,eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            //Bot Left
-                            dzstore = pmlArr_[1].Dz_->point(0,0);
-                            pmlArr_[1].Dz_->point(0,0) = c_dzd * pmlArr_[1].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0)) - (Hx_->point(0,0)));
-                            Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezd1 * pmlArr_[1].Dz_->point(0,0) - c_ezd0 * dzstore;
-                            //Bot Right
-                            eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
-                            sigx = pmlArr_[1].sigma(0,eps);
-                            sigy = pmlArr_[0].sigma(0,eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            dzstore = pmlArr_[1].Dz_end_->point(0,0);
-                            pmlArr_[1].Dz_end_->point(0,0) = c_dzd * pmlArr_[1].Dz_end_->point(0,0) + c_dzh * (-1.0*Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0));
-                            Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezd1 * pmlArr_[1].Dz_end_->point(0,0) - c_ezd0 * dzstore;
-                            //Top Right
-                            eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
-                            sigx = pmlArr_[1].sigma(0,eps);
-                            sigy = pmlArr_[0].sigma(0,eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            dzstore = pmlArr_[1].Dz_end_->point(0,ny_-1);
-                            pmlArr_[1].Dz_end_->point(0,ny_-1) = c_dzd * pmlArr_[1].Dz_end_->point(0,ny_-1) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,ny_-1)) - (-1.0*Hx_->point(nx_-1,ny_-1-1)));
-                            Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezd1 * pmlArr_[1].Dz_end_->point(0,ny_-1) - c_ezd0 * dzstore;
-                            //Top Left
-                            eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
-                            sigx = pmlArr_[1].sigma(0,eps);
-                            sigy = pmlArr_[0].sigma(0,eps);
-                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                            dzstore = pmlArr_[1].Dz_->point(0,ny_-1);
-                            pmlArr_[1].Dz_->point(0,ny_-1) = c_dzd * pmlArr_[1].Dz_->point(0,ny_-1) + c_dzh * ((Hy_->point(0,ny_-1)) - (-1.0*Hx_->point(0,ny_-1-1)));
-                            Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezd1 * pmlArr_[1].Dz_->point(0,ny_-1) - c_ezd0 * dzstore;
-
-                            for(int ii = 1; ii < pmlArr_[1].thickness(); ii++)
-                            {
-                                kapx = 1.0; kapy = 1.0; kapz = 1.0;
-                                sigz = 0.0;
-
-                                eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0);
-                                sigx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
-                                sigy = pmlArr_[0].sigma(0.0,eps);
-                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                //Bot Left
-                                dzstore = pmlArr_[1].Dz_->point(ii,0);
-                                pmlArr_[1].Dz_->point(ii,0) = c_dzd * pmlArr_[1].Dz_->point(ii,0) + c_dzh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)));
-                                Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezd1 * pmlArr_[1].Dz_->point(ii,0) - c_ezd0 * dzstore;
-                                //Bot Right
-                                eps = objArr_[phys_Ez_->point(nx_-1-ii,0)].dielectric(1.0);
-                                sigx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
-                                sigy = pmlArr_[0].sigma(0.0,eps);
-                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[1].Dz_end_->point(ii,0);
-                                pmlArr_[1].Dz_end_->point(ii,0) = c_dzd * pmlArr_[1].Dz_end_->point(ii,0) + c_dzh * ((Hy_->point(nx_-1-ii,0)-Hy_->point(nx_-1-ii-1,0)) - (Hx_->point(nx_-1-ii,0)));
-                                Ez_->point(nx_-1-ii,0) = c_eze * Ez_->point(nx_-1-ii,0) + c_ezd1 * pmlArr_[1].Dz_end_->point(ii,0) - c_ezd0 * dzstore;
-                                //Top Right
-                                eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1)].dielectric(1.0);
-                                sigx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
-                                sigy = pmlArr_[0].sigma(0.0,eps);
-                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[1].Dz_end_->point(ii,ny_-1);
-                                pmlArr_[1].Dz_end_->point(ii,ny_-1) = c_dzd * pmlArr_[1].Dz_end_->point(ii,ny_-1) + c_dzh * ((Hy_->point(nx_-1-ii,ny_-1)-Hy_->point(nx_-1-ii-1,ny_-1)) - (-1.0*Hx_->point(nx_-1-ii,ny_-1-1)));
-                                Ez_->point(nx_-1-ii,ny_-1) = c_eze * Ez_->point(nx_-1-ii,ny_-1) + c_ezd1 * pmlArr_[1].Dz_end_->point(ii,ny_-1) - c_ezd0 * dzstore;
-                                //Top Left
-                                eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0);
-                                sigx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
-                                sigy = pmlArr_[0].sigma(0.0,eps);
-                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[1].Dz_->point(ii,ny_-1);
-                                pmlArr_[1].Dz_->point(ii,ny_-1) = c_dzd * pmlArr_[1].Dz_->point(ii,ny_-1) + c_dzh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (-1.0*Hx_->point(ii,ny_-1-1)));
-                                Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezd1 * pmlArr_[1].Dz_->point(ii,ny_-1) - c_ezd0 * dzstore;
-                            }
-                            for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
-                            {
-                                kapx = 1.0; kapy = 1.0; kapz = 1.0;
-                                sigz = 0.0;
-
-                                eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0);
-                                sigx = pmlArr_[1].sigma(0.0,eps);
-                                sigy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
-                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                //Bot Left
-                                dzstore = pmlArr_[1].Dz_->point(0,jj);
-                                pmlArr_[1].Dz_->point(0,jj) = c_dzd * pmlArr_[1].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj)) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
-                                Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezd1 * pmlArr_[1].Dz_->point(0,jj) - c_ezd0 * dzstore;
-                                //Bot Right
-                                eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
-                                sigx = pmlArr_[1].sigma(0.0,eps);
-                                sigy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
-                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[1].Dz_end_->point(0,jj);
-                                pmlArr_[1].Dz_end_->point(0,jj) = c_dzd * pmlArr_[1].Dz_end_->point(0,jj) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
-                                Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezd1 * pmlArr_[1].Dz_end_->point(0,jj) - c_ezd0 * dzstore;
-                                //Top Right
-                                eps = objArr_[phys_Ez_->point(nx_-1,ny_-1-jj)].dielectric(1.0);
-                                sigx = pmlArr_[1].sigma(0.0,eps);
-                                sigy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
-                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[1].Dz_end_->point(0,ny_-1-jj);
-                                pmlArr_[1].Dz_end_->point(0,ny_-1-jj) = c_dzd * pmlArr_[1].Dz_end_->point(0,ny_-1-jj) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,ny_-1-jj)) - (Hx_->point(nx_-1,ny_-1-jj)-Hx_->point(nx_-1,ny_-1-jj-1)));
-                                Ez_->point(nx_-1,ny_-1-jj) = c_eze * Ez_->point(nx_-1,ny_-1-jj) + c_ezd1 * pmlArr_[1].Dz_end_->point(0,ny_-1-jj) - c_ezd0 * dzstore;
-                                //Top Left
-                                eps = objArr_[phys_Ez_->point(0,ny_-1-jj)].dielectric(1.0);
-                                sigx = pmlArr_[1].sigma(0.0,eps);
-                                sigy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
-                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                dzstore = pmlArr_[1].Dz_->point(0,ny_-1-jj);
-                                pmlArr_[1].Dz_->point(0,ny_-1-jj) = c_dzd * pmlArr_[1].Dz_->point(0,ny_-1-jj) + c_dzh * ((Hy_->point(0,ny_-1-jj)) - (Hx_->point(0,ny_-1-jj)-Hx_->point(0,ny_-1-jj-1)));
-                                Ez_->point(0,ny_-1-jj) = c_eze * Ez_->point(0,ny_-1-jj) + c_ezd1 * pmlArr_[1].Dz_->point(0,ny_-1-jj) - c_ezd0 * dzstore;
-                            }
-                            for(int ii = 1; ii < pmlArr_[1].thickness(); ii++)
-                            {
                                 for(int jj = 1; jj < pmlArr_[0].thickness(); jj++)
                                 {
                                     kapx = 1.0; kapy = 1.0; kapz = 1.0;
                                     sigz = 0.0;
 
-                                    eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
+                                    eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0);
+                                    sigx = pmlArr_[0].sigma(0.0,eps);
+                                    sigy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                    c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    //Bot Left
+                                    dzstore = pmlArr_[0].Dz_->point(0,jj);
+                                    pmlArr_[0].Dz_->point(0,jj) = c_dzd * pmlArr_[0].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj)) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
+                                    Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezd1 * pmlArr_[0].Dz_->point(0,jj) - c_ezd0 * dzstore;
+                                    //Bot Right
+                                    eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
+                                    sigx = pmlArr_[0].sigma(0.0,eps);
+                                    sigy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                    c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    dzstore = pmlArr_[0].Dz_end_->point(0,jj);
+                                    pmlArr_[0].Dz_end_->point(0,jj) = c_dzd * pmlArr_[0].Dz_end_->point(0,jj) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
+                                    Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(0,jj) - c_ezd0 * dzstore;
+                                    //Top Right
+                                    eps = objArr_[phys_Ez_->point(nx_-1,ny_-1-jj)].dielectric(1.0);
+                                    sigx = pmlArr_[0].sigma(0.0,eps);
+                                    sigy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                    c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    dzstore = pmlArr_[0].Dz_end_->point(0,ny_-1-jj);
+                                    pmlArr_[0].Dz_end_->point(0,ny_-1-jj) = c_dzd * pmlArr_[0].Dz_end_->point(0,ny_-1-jj) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,ny_-1-jj)) - (Hx_->point(nx_-1,ny_-1-jj)-Hx_->point(nx_-1,ny_-1-jj-1)));
+                                    Ez_->point(nx_-1,ny_-1-jj) = c_eze * Ez_->point(nx_-1,ny_-1-jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(0,ny_-1-jj) - c_ezd0 * dzstore;
+                                    //Top Left
+                                    eps = objArr_[phys_Ez_->point(0,ny_-1-jj)].dielectric(1.0);
+                                    sigx = pmlArr_[0].sigma(0.0,eps);
+                                    sigy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                    c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    dzstore = pmlArr_[0].Dz_->point(0,ny_-1-jj);
+                                    pmlArr_[0].Dz_->point(0,ny_-1-jj) = c_dzd * pmlArr_[0].Dz_->point(0,ny_-1-jj) + c_dzh * ((Hy_->point(0,ny_-1-jj)) - (Hx_->point(0,ny_-1-jj)-Hx_->point(0,ny_-1-jj-1)));
+                                    Ez_->point(0,ny_-1-jj) = c_eze * Ez_->point(0,ny_-1-jj) + c_ezd1 * pmlArr_[0].Dz_->point(0,ny_-1-jj) - c_ezd0 * dzstore;
+                                }
+                                for(int ii = 1; ii < pmlArr_[0].thickness(); ii++)
+                                {
+                                    for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
+                                    {
+                                        kapx = 1.0; kapy = 1.0; kapz = 1.0;
+                                        sigz = 0.0;
+
+                                        eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
+                                        sigx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
+                                        sigy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                        c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                        c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                        c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                        c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                        c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                        //Bot Left
+                                        dzstore = pmlArr_[0].Dz_->point(ii,jj);
+                                        pmlArr_[0].Dz_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
+                                        Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,jj) - c_ezd0 * dzstore;
+                                        //Bot Right
+                                        eps = objArr_[phys_Ez_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                        sigx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
+                                        sigy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                        c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                        c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                        c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                        c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                        c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                        dzstore = pmlArr_[0].Dz_end_->point(ii,jj);
+                                        pmlArr_[0].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,jj) + c_dzh * ((Hy_->point(nx_-1-ii,jj)-Hy_->point(nx_-1-ii-1,jj)) - (Hx_->point(nx_-1-ii,jj)-Hx_->point(nx_-1-ii,jj-1)));
+                                        Ez_->point(nx_-1-ii,jj) = c_eze * Ez_->point(nx_-1-ii,jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
+                                        //Top Right
+                                        eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1-jj)].dielectric(1.0);
+                                        sigx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
+                                        sigy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                        c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                        c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                        c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                        c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                        c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                        dzstore = pmlArr_[0].Dz_end_->point(ii,ny_-1-jj);
+                                        pmlArr_[0].Dz_end_->point(ii,ny_-1-jj) = c_dzd * pmlArr_[0].Dz_end_->point(ii,ny_-1-jj) + c_dzh * ((Hy_->point(nx_-1-ii,ny_-1-jj)-Hy_->point(nx_-1-ii-1,ny_-1-jj)) - (Hx_->point(nx_-1-ii,ny_-1-jj)-Hx_->point(nx_-1-ii,ny_-1-jj-1)));
+                                        Ez_->point(nx_-1-ii,ny_-1-jj) = c_eze * Ez_->point(nx_-1-ii,ny_-1-jj) + c_ezd1 * pmlArr_[0].Dz_end_->point(ii,ny_-1-jj) - c_ezd0 * dzstore;
+                                        //Top Left
+                                        eps = objArr_[phys_Ez_->point(ii,ny_-1-jj)].dielectric(1.0);
+                                        sigx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
+                                        sigy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
+                                        c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                        c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                        c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                        c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                        c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                        dzstore = pmlArr_[0].Dz_->point(ii,ny_-1-jj);
+                                        pmlArr_[0].Dz_->point(ii,ny_-1-jj) = c_dzd * pmlArr_[0].Dz_->point(ii,ny_-1-jj) + c_dzh * ((Hy_->point(ii,ny_-1-jj)-Hy_->point(ii-1,ny_-1-jj)) - (Hx_->point(ii,ny_-1-jj)-Hx_->point(ii,ny_-1-jj-1)));
+                                        Ez_->point(ii,ny_-1-jj) = c_eze * Ez_->point(ii,ny_-1-jj) + c_ezd1 * pmlArr_[0].Dz_->point(ii,ny_-1-jj) - c_ezd0 * dzstore;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    case Y:
+                    {
+                        double eps = 1.0;
+                        double kapx = 1.0; double kapy = 1.0; double kapz = 1.0;
+                        double sigx = 0.0;
+                        double sigy = 0.0; double sigz = 0.0;
+
+                        double c_dzd = 0.0; double c_dzh = 0.0; double c_eze = 0.0; double c_ezd1 = 0.0; double c_ezd0 = 0.0;
+                        complex<double> dzstore(0.0,0.0);
+                        if(xPML_ == 0)
+                        {
+                            for(int jj = 1; jj < nx_ - 1; jj++)
+                            {
+                                eps = objArr_[phys_Ez_->point(jj,0)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(0.0,eps);
+                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                dzstore = pmlArr_[kk].Dz_->point(jj,0);
+                                pmlArr_[kk].Dz_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_->point(jj,0) + c_dzh * ((Hy_->point(jj,0)-Hy_->point(jj-1,0)) - (Hx_->point(jj,0))); // 0 is boundary condition
+                                Ez_->point(jj,0) = c_eze * Ez_->point(jj,0) + c_ezd1 * pmlArr_[kk].Dz_->point(jj,0) - c_ezd0 * dzstore;
+
+                                eps = objArr_[phys_Ez_->point(jj,ny_-1)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(0.0,eps);
+                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                dzstore = pmlArr_[kk].Dz_end_->point(jj,0);
+                                pmlArr_[kk].Dz_end_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_end_->point(jj,0) + c_dzh * ((Hy_->point(jj,ny_-1) - Hy_->point(jj - 1,ny_-1)) - (-1.0 * Hx_->point(jj,ny_-1-1))); // 0 is boundary condtion
+                                Ez_->point(jj,ny_-1) = c_eze * Ez_->point(jj,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(jj,0) - c_ezd0 * dzstore;
+                            }
+                            eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
+                            sigy = pmlArr_[kk].sigma(0.0,eps);
+                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            dzstore = pmlArr_[kk].Dz_->point(nx_-1,0);
+                            pmlArr_[kk].Dz_->point(nx_-1,0) = c_dzd * pmlArr_[kk].Dz_->point(nx_-1,0) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0))); // 0 is boundary condition
+                            Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezd1 * pmlArr_[kk].Dz_->point(nx_-1,0) - c_ezd0 * dzstore;
+
+                            eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
+                            sigy = pmlArr_[kk].sigma(0.0,eps);
+                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            dzstore = pmlArr_[kk].Dz_end_->point(nx_-1,0);
+                            pmlArr_[kk].Dz_end_->point(nx_-1,0) = c_dzd * pmlArr_[kk].Dz_end_->point(nx_-1,0) + c_dzh * ((-1.0 * Hy_->point(nx_-1 - 1,ny_-1)) - (-1.0 * Hx_->point(nx_-1,ny_-1-1))); // 0 is boundary condtion
+                            Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(nx_-1,0) - c_ezd0 * dzstore;
+
+                            eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0);
+                            sigy = pmlArr_[kk].sigma(0.0,eps);
+                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            dzstore = pmlArr_[kk].Dz_->point(0,0);
+                            pmlArr_[kk].Dz_->point(0,0) = c_dzd * pmlArr_[kk].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0)) - (Hx_->point(0,0))); // 0 is boundary condition
+                            Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezd1 * pmlArr_[kk].Dz_->point(0,0) - c_ezd0 * dzstore;
+
+                            eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
+                            sigy = pmlArr_[kk].sigma(0.0,eps);
+                            c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                            c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                            c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                            c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            dzstore = pmlArr_[kk].Dz_end_->point(0,0);
+                            pmlArr_[kk].Dz_end_->point(0,0) = c_dzd * pmlArr_[kk].Dz_end_->point(0,0) + c_dzh * ((Hy_->point(0,ny_-1)) - (-1.0 * Hx_->point(0,ny_-1-1))); // 0 is boundary condtion
+                            Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,0) - c_ezd0 * dzstore;
+
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
+                            {
+                                eps = 1.0;
+                                kapx = 1.0; kapy = 1.0;
+                                kapz = 1.0;
+                                sigx = 0.0;
+                                sigz = 0.0;
+
+                                for(int jj =  1; jj < nx_ - 1; jj ++)
+                                {
+                                    eps = objArr_[phys_Ez_->point(jj,ii)].dielectric(1.0);
+                                    sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    dzstore = pmlArr_[kk].Dz_->point(jj,ii);
+                                    pmlArr_[kk].Dz_->point(jj,ii) = c_dzd * pmlArr_[kk].Dz_->point(jj,ii) + c_dzh * ((Hy_->point(jj,ii)-Hy_->point(jj-1,ii)) - (Hx_->point(jj,ii)-Hx_->point(jj,ii-1)));
+                                    Ez_->point(jj,ii) = c_eze * Ez_->point(jj,ii) + c_ezd1 * pmlArr_[kk].Dz_->point(jj,ii) - c_ezd0 * dzstore;
+
+                                    eps = objArr_[phys_Ez_->point(jj,ny_-1-ii)].dielectric(1.0);
+                                    sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    dzstore = pmlArr_[kk].Dz_end_->point(jj,ii);
+                                    pmlArr_[kk].Dz_end_->point(jj,ii) = c_dzd * pmlArr_[kk].Dz_end_->point(jj,ii) + c_dzh * ((Hy_->point(jj,ny_-1-ii) - Hy_->point(jj - 1,ny_-1-ii)) - (Hx_->point(jj,ny_-1-ii) - Hx_->point(jj,ny_-1-ii-1)));
+                                    Ez_->point(jj,ny_-1-ii) = c_eze * Ez_->point(jj,ny_-1-ii) + c_ezd1 * pmlArr_[kk].Dz_end_->point(jj,ii) - c_ezd0 * dzstore;
+                                }
+                                eps = objArr_[phys_Ez_->point(nx_-1,ii)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                dzstore = pmlArr_[kk].Dz_->point(nx_-1,ii);
+                                pmlArr_[kk].Dz_->point(nx_-1,ii) = c_dzd * pmlArr_[kk].Dz_->point(nx_-1,ii) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,ii)) - (Hx_->point(nx_-1,ii)-Hx_->point(nx_-1,ii-1)));
+                                Ez_->point(nx_-1,ii) = c_eze * Ez_->point(nx_-1,ii) + c_ezd1 * pmlArr_[kk].Dz_->point(nx_-1,ii) - c_ezd0 * dzstore;
+
+                                eps = objArr_[phys_Ez_->point(nx_-1, ny_-1-ii)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                dzstore = pmlArr_[kk].Dz_end_->point(nx_-1,ii);
+                                pmlArr_[kk].Dz_end_->point(nx_-1,ii) = c_dzd * pmlArr_[kk].Dz_end_->point(nx_-1,ii) + c_dzh * ((-1.0 * Hy_->point(nx_-1-1,ny_-1-ii)) - (Hx_->point(nx_-1,ny_-1-ii) - Hx_->point(nx_-1,ny_-1-ii-1)));
+                                Ez_->point(nx_-1,ny_-1-ii) = c_eze * Ez_->point(nx_-1,ny_-1-ii) + c_ezd1 * pmlArr_[kk].Dz_end_->point(nx_-1,ii) - c_ezd0 * dzstore;
+
+                                eps = objArr_[phys_Ez_->point(0, ii)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                dzstore = pmlArr_[kk].Dz_->point(0,ii);
+                                pmlArr_[kk].Dz_->point(0,ii) = c_dzd * pmlArr_[kk].Dz_->point(0,ii) + c_dzh * ((Hy_->point(0,ii)) - (Hx_->point(0,ii)-Hx_->point(0,ii-1)));
+                                Ez_->point(0,ii) = c_eze * Ez_->point(0,ii) + c_ezd1 * pmlArr_[kk].Dz_->point(0,ii) - c_ezd0 * dzstore;
+
+                                eps = objArr_[phys_Ez_->point(0, ny_-1-ii)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                dzstore = pmlArr_[kk].Dz_end_->point(0,ii);
+                                pmlArr_[kk].Dz_end_->point(0,ii) = c_dzd * pmlArr_[kk].Dz_end_->point(0,ii) + c_dzh * ((Hy_->point(0,ny_-1-ii)) - (Hx_->point(0,ny_-1-ii) - Hx_->point(0,ny_-1-ii-1)));
+                                Ez_->point(0,ny_-1-ii) = c_eze * Ez_->point(0,ny_-1-ii) + c_ezd1 * pmlArr_[kk].Dz_end_->point(0,ii) - c_ezd0 * dzstore;
+                            }
+                        }
+                        else
+                        {
+                            for(int jj = xPML_; jj < nx_ - xPML_; jj++)
+                            {
+                                eps = objArr_[phys_Ez_->point(jj,0)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(0.0,eps);
+                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                dzstore = pmlArr_[kk].Dz_->point(jj,0);
+                                pmlArr_[kk].Dz_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_->point(jj,0) + c_dzh * ((Hy_->point(jj,0)-Hy_->point(jj-1,0)) - (Hx_->point(jj,0))); // 0 is boundary condition
+                                Ez_->point(jj,0) = c_eze * Ez_->point(jj,0) + c_ezd1 * pmlArr_[kk].Dz_->point(jj,0) - c_ezd0 * dzstore;
+
+                                eps = objArr_[phys_Ez_->point(jj, ny_-1)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(0.0,eps);
+                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                dzstore = pmlArr_[kk].Dz_end_->point(jj,0);
+                                pmlArr_[kk].Dz_end_->point(jj,0) = c_dzd * pmlArr_[kk].Dz_end_->point(jj,0) + c_dzh * ((Hy_->point(jj,ny_-1) - Hy_->point(jj - 1,ny_-1)) - (-1.0 * Hx_->point(jj,ny_-1-1))); // 0 is boundary condtion
+                                Ez_->point(jj,ny_-1) = c_eze * Ez_->point(jj,ny_-1) + c_ezd1 * pmlArr_[kk].Dz_end_->point(jj,0) - c_ezd0 * dzstore;
+                            }
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
+                            {
+                                kapx = 1.0; kapy = 1.0;
+                                kapz = 1.0;
+                                sigx = 0.0;
+                                sigz = 0.0;
+
+                                for(int jj =  xPML_; jj < nx_ - xPML_; jj ++)
+                                {
+                                    eps = objArr_[phys_Ez_->point(jj, ii)].dielectric(1.0);
+                                    sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    dzstore = pmlArr_[kk].Dz_->point(jj,ii);
+                                    pmlArr_[kk].Dz_->point(jj,ii) = c_dzd * pmlArr_[kk].Dz_->point(jj,ii) + c_dzh * ((Hy_->point(jj,ii)-Hy_->point(jj-1,ii)) - (Hx_->point(jj,ii)-Hx_->point(jj,ii-1)));
+                                    Ez_->point(jj,ii) = c_eze * Ez_->point(jj,ii) + c_ezd1 * pmlArr_[kk].Dz_->point(jj,ii) - c_ezd0 * dzstore;
+
+                                    eps = objArr_[phys_Ez_->point(jj, ny_-1-ii)].dielectric(1.0);
+                                    sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    dzstore = pmlArr_[kk].Dz_end_->point(jj,ii);
+                                    pmlArr_[kk].Dz_end_->point(jj,ii) = c_dzd * pmlArr_[kk].Dz_end_->point(jj,ii) + c_dzh * ((Hy_->point(jj,ny_-1-ii) - Hy_->point(jj - 1,ny_-1-ii)) - (Hx_->point(jj,ny_-1-ii) - Hx_->point(jj,ny_-1-ii-1)));
+                                    Ez_->point(jj,ny_-1-ii) = c_eze * Ez_->point(jj,ny_-1-ii) + c_ezd1 * pmlArr_[kk].Dz_end_->point(jj,ii) - c_ezd0 * dzstore;
+                                }
+                            }
+                            if(kk == 0)
+                            {
+                                kapx = 1.0; kapy = 1.0; kapz = 1.0;
+                                sigz = 0.0;
+
+                                eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0);
+                                sigx = pmlArr_[1].sigma(0,eps);
+                                sigy = pmlArr_[0].sigma(0,eps);
+                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                //Bot Left
+                                dzstore = pmlArr_[1].Dz_->point(0,0);
+                                pmlArr_[1].Dz_->point(0,0) = c_dzd * pmlArr_[1].Dz_->point(0,0) + c_dzh * ((Hy_->point(0,0)) - (Hx_->point(0,0)));
+                                Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezd1 * pmlArr_[1].Dz_->point(0,0) - c_ezd0 * dzstore;
+                                //Bot Right
+                                eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
+                                sigx = pmlArr_[1].sigma(0,eps);
+                                sigy = pmlArr_[0].sigma(0,eps);
+                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                dzstore = pmlArr_[1].Dz_end_->point(0,0);
+                                pmlArr_[1].Dz_end_->point(0,0) = c_dzd * pmlArr_[1].Dz_end_->point(0,0) + c_dzh * (-1.0*Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0));
+                                Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezd1 * pmlArr_[1].Dz_end_->point(0,0) - c_ezd0 * dzstore;
+                                //Top Right
+                                eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
+                                sigx = pmlArr_[1].sigma(0,eps);
+                                sigy = pmlArr_[0].sigma(0,eps);
+                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                dzstore = pmlArr_[1].Dz_end_->point(0,ny_-1);
+                                pmlArr_[1].Dz_end_->point(0,ny_-1) = c_dzd * pmlArr_[1].Dz_end_->point(0,ny_-1) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,ny_-1)) - (-1.0*Hx_->point(nx_-1,ny_-1-1)));
+                                Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezd1 * pmlArr_[1].Dz_end_->point(0,ny_-1) - c_ezd0 * dzstore;
+                                //Top Left
+                                eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
+                                sigx = pmlArr_[1].sigma(0,eps);
+                                sigy = pmlArr_[0].sigma(0,eps);
+                                c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                dzstore = pmlArr_[1].Dz_->point(0,ny_-1);
+                                pmlArr_[1].Dz_->point(0,ny_-1) = c_dzd * pmlArr_[1].Dz_->point(0,ny_-1) + c_dzh * ((Hy_->point(0,ny_-1)) - (-1.0*Hx_->point(0,ny_-1-1)));
+                                Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezd1 * pmlArr_[1].Dz_->point(0,ny_-1) - c_ezd0 * dzstore;
+
+                                for(int ii = 1; ii < pmlArr_[1].thickness(); ii++)
+                                {
+                                    kapx = 1.0; kapy = 1.0; kapz = 1.0;
+                                    sigz = 0.0;
+
+                                    eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0);
                                     sigx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                    sigy = pmlArr_[0].sigma(0.0,eps);
+                                    c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    //Bot Left
+                                    dzstore = pmlArr_[1].Dz_->point(ii,0);
+                                    pmlArr_[1].Dz_->point(ii,0) = c_dzd * pmlArr_[1].Dz_->point(ii,0) + c_dzh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)));
+                                    Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezd1 * pmlArr_[1].Dz_->point(ii,0) - c_ezd0 * dzstore;
+                                    //Bot Right
+                                    eps = objArr_[phys_Ez_->point(nx_-1-ii,0)].dielectric(1.0);
+                                    sigx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                    sigy = pmlArr_[0].sigma(0.0,eps);
+                                    c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    dzstore = pmlArr_[1].Dz_end_->point(ii,0);
+                                    pmlArr_[1].Dz_end_->point(ii,0) = c_dzd * pmlArr_[1].Dz_end_->point(ii,0) + c_dzh * ((Hy_->point(nx_-1-ii,0)-Hy_->point(nx_-1-ii-1,0)) - (Hx_->point(nx_-1-ii,0)));
+                                    Ez_->point(nx_-1-ii,0) = c_eze * Ez_->point(nx_-1-ii,0) + c_ezd1 * pmlArr_[1].Dz_end_->point(ii,0) - c_ezd0 * dzstore;
+                                    //Top Right
+                                    eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1)].dielectric(1.0);
+                                    sigx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                    sigy = pmlArr_[0].sigma(0.0,eps);
+                                    c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    dzstore = pmlArr_[1].Dz_end_->point(ii,ny_-1);
+                                    pmlArr_[1].Dz_end_->point(ii,ny_-1) = c_dzd * pmlArr_[1].Dz_end_->point(ii,ny_-1) + c_dzh * ((Hy_->point(nx_-1-ii,ny_-1)-Hy_->point(nx_-1-ii-1,ny_-1)) - (-1.0*Hx_->point(nx_-1-ii,ny_-1-1)));
+                                    Ez_->point(nx_-1-ii,ny_-1) = c_eze * Ez_->point(nx_-1-ii,ny_-1) + c_ezd1 * pmlArr_[1].Dz_end_->point(ii,ny_-1) - c_ezd0 * dzstore;
+                                    //Top Left
+                                    eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0);
+                                    sigx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                    sigy = pmlArr_[0].sigma(0.0,eps);
+                                    c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    dzstore = pmlArr_[1].Dz_->point(ii,ny_-1);
+                                    pmlArr_[1].Dz_->point(ii,ny_-1) = c_dzd * pmlArr_[1].Dz_->point(ii,ny_-1) + c_dzh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (-1.0*Hx_->point(ii,ny_-1-1)));
+                                    Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezd1 * pmlArr_[1].Dz_->point(ii,ny_-1) - c_ezd0 * dzstore;
+                                }
+                                for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
+                                {
+                                    kapx = 1.0; kapy = 1.0; kapz = 1.0;
+                                    sigz = 0.0;
+
+                                    eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0);
+                                    sigx = pmlArr_[1].sigma(0.0,eps);
                                     sigy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
                                     c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                                     c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
@@ -3864,57 +4237,472 @@ void FDTDField::updateE()
                                     c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                     c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                     //Bot Left
-                                    dzstore = pmlArr_[1].Dz_->point(ii,jj);
-                                    pmlArr_[1].Dz_->point(ii,jj) = c_dzd * pmlArr_[1].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
-                                    Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[1].Dz_->point(ii,jj) - c_ezd0 * dzstore;
+                                    dzstore = pmlArr_[1].Dz_->point(0,jj);
+                                    pmlArr_[1].Dz_->point(0,jj) = c_dzd * pmlArr_[1].Dz_->point(0,jj) + c_dzh * ((Hy_->point(0,jj)) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
+                                    Ez_->point(0,jj) = c_eze * Ez_->point(0,jj) + c_ezd1 * pmlArr_[1].Dz_->point(0,jj) - c_ezd0 * dzstore;
                                     //Bot Right
-                                    eps = objArr_[phys_Ez_->point(nx_-1-ii,jj)].dielectric(1.0);
-                                    sigx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                    eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
+                                    sigx = pmlArr_[1].sigma(0.0,eps);
                                     sigy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
                                     c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                                     c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                                     c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                                     c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                     c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                    dzstore = pmlArr_[1].Dz_end_->point(ii,jj);
-                                    pmlArr_[1].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[1].Dz_end_->point(ii,jj) + c_dzh * ((Hy_->point(nx_-1-ii,jj)-Hy_->point(nx_-1-ii-1,jj)) - (Hx_->point(nx_-1-ii,jj)-Hx_->point(nx_-1-ii,jj-1)));
-                                    Ez_->point(nx_-1-ii,jj) = c_eze * Ez_->point(nx_-1-ii,jj) + c_ezd1 * pmlArr_[1].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
+                                    dzstore = pmlArr_[1].Dz_end_->point(0,jj);
+                                    pmlArr_[1].Dz_end_->point(0,jj) = c_dzd * pmlArr_[1].Dz_end_->point(0,jj) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
+                                    Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezd1 * pmlArr_[1].Dz_end_->point(0,jj) - c_ezd0 * dzstore;
                                     //Top Right
-                                    eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1-jj)].dielectric(1.0);
-                                    sigx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                    eps = objArr_[phys_Ez_->point(nx_-1,ny_-1-jj)].dielectric(1.0);
+                                    sigx = pmlArr_[1].sigma(0.0,eps);
                                     sigy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
                                     c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                                     c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                                     c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                                     c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                     c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                    dzstore = pmlArr_[1].Dz_end_->point(ii,ny_-1-jj);
-                                    pmlArr_[1].Dz_end_->point(ii,ny_-1-jj) = c_dzd * pmlArr_[1].Dz_end_->point(ii,ny_-1-jj) + c_dzh * ((Hy_->point(nx_-1-ii,ny_-1-jj)-Hy_->point(nx_-1-ii-1,ny_-1-jj)) - (Hx_->point(nx_-1-ii,ny_-1-jj)-Hx_->point(nx_-1-ii,ny_-1-jj-1)));
-                                    Ez_->point(nx_-1-ii,ny_-1-jj) = c_eze * Ez_->point(nx_-1-ii,ny_-1-jj) + c_ezd1 * pmlArr_[1].Dz_end_->point(ii,ny_-1-jj) - c_ezd0 * dzstore;
+                                    dzstore = pmlArr_[1].Dz_end_->point(0,ny_-1-jj);
+                                    pmlArr_[1].Dz_end_->point(0,ny_-1-jj) = c_dzd * pmlArr_[1].Dz_end_->point(0,ny_-1-jj) + c_dzh * ((-1.0*Hy_->point(nx_-1-1,ny_-1-jj)) - (Hx_->point(nx_-1,ny_-1-jj)-Hx_->point(nx_-1,ny_-1-jj-1)));
+                                    Ez_->point(nx_-1,ny_-1-jj) = c_eze * Ez_->point(nx_-1,ny_-1-jj) + c_ezd1 * pmlArr_[1].Dz_end_->point(0,ny_-1-jj) - c_ezd0 * dzstore;
                                     //Top Left
-                                    eps = objArr_[phys_Ez_->point(ii,ny_-1-jj)].dielectric(1.0);
-                                    sigx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                    eps = objArr_[phys_Ez_->point(0,ny_-1-jj)].dielectric(1.0);
+                                    sigx = pmlArr_[1].sigma(0.0,eps);
                                     sigy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
                                     c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
                                     c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
                                     c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
                                     c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
                                     c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-                                    dzstore = pmlArr_[1].Dz_->point(ii,ny_-1-jj);
-                                    pmlArr_[1].Dz_->point(ii,ny_-1-jj) = c_dzd * pmlArr_[1].Dz_->point(ii,ny_-1-jj) + c_dzh * ((Hy_->point(ii,ny_-1-jj)-Hy_->point(ii-1,ny_-1-jj)) - (Hx_->point(ii,ny_-1-jj)-Hx_->point(ii,ny_-1-jj-1)));
-                                    Ez_->point(ii,ny_-1-jj) = c_eze * Ez_->point(ii,ny_-1-jj) + c_ezd1 * pmlArr_[1].Dz_->point(ii,ny_-1-jj) - c_ezd0 * dzstore;
+                                    dzstore = pmlArr_[1].Dz_->point(0,ny_-1-jj);
+                                    pmlArr_[1].Dz_->point(0,ny_-1-jj) = c_dzd * pmlArr_[1].Dz_->point(0,ny_-1-jj) + c_dzh * ((Hy_->point(0,ny_-1-jj)) - (Hx_->point(0,ny_-1-jj)-Hx_->point(0,ny_-1-jj-1)));
+                                    Ez_->point(0,ny_-1-jj) = c_eze * Ez_->point(0,ny_-1-jj) + c_ezd1 * pmlArr_[1].Dz_->point(0,ny_-1-jj) - c_ezd0 * dzstore;
+                                }
+                                for(int ii = 1; ii < pmlArr_[1].thickness(); ii++)
+                                {
+                                    for(int jj = 1; jj < pmlArr_[0].thickness(); jj++)
+                                    {
+                                        kapx = 1.0; kapy = 1.0; kapz = 1.0;
+                                        sigz = 0.0;
+
+                                        eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
+                                        sigx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                        sigy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
+                                        c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                        c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                        c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                        c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                        c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                        //Bot Left
+                                        dzstore = pmlArr_[1].Dz_->point(ii,jj);
+                                        pmlArr_[1].Dz_->point(ii,jj) = c_dzd * pmlArr_[1].Dz_->point(ii,jj) + c_dzh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
+                                        Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezd1 * pmlArr_[1].Dz_->point(ii,jj) - c_ezd0 * dzstore;
+                                        //Bot Right
+                                        eps = objArr_[phys_Ez_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                        sigx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                        sigy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
+                                        c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                        c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                        c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                        c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                        c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                        dzstore = pmlArr_[1].Dz_end_->point(ii,jj);
+                                        pmlArr_[1].Dz_end_->point(ii,jj) = c_dzd * pmlArr_[1].Dz_end_->point(ii,jj) + c_dzh * ((Hy_->point(nx_-1-ii,jj)-Hy_->point(nx_-1-ii-1,jj)) - (Hx_->point(nx_-1-ii,jj)-Hx_->point(nx_-1-ii,jj-1)));
+                                        Ez_->point(nx_-1-ii,jj) = c_eze * Ez_->point(nx_-1-ii,jj) + c_ezd1 * pmlArr_[1].Dz_end_->point(ii,jj) - c_ezd0 * dzstore;
+                                        //Top Right
+                                        eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1-jj)].dielectric(1.0);
+                                        sigx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                        sigy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
+                                        c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                        c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                        c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                        c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                        c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                        dzstore = pmlArr_[1].Dz_end_->point(ii,ny_-1-jj);
+                                        pmlArr_[1].Dz_end_->point(ii,ny_-1-jj) = c_dzd * pmlArr_[1].Dz_end_->point(ii,ny_-1-jj) + c_dzh * ((Hy_->point(nx_-1-ii,ny_-1-jj)-Hy_->point(nx_-1-ii-1,ny_-1-jj)) - (Hx_->point(nx_-1-ii,ny_-1-jj)-Hx_->point(nx_-1-ii,ny_-1-jj-1)));
+                                        Ez_->point(nx_-1-ii,ny_-1-jj) = c_eze * Ez_->point(nx_-1-ii,ny_-1-jj) + c_ezd1 * pmlArr_[1].Dz_end_->point(ii,ny_-1-jj) - c_ezd0 * dzstore;
+                                        //Top Left
+                                        eps = objArr_[phys_Ez_->point(ii,ny_-1-jj)].dielectric(1.0);
+                                        sigx = pmlArr_[1].sigma(static_cast<double>(ii),eps);
+                                        sigy = pmlArr_[0].sigma(static_cast<double>(jj),eps);
+                                        c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                        c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
+                                        c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                        c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                        c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                        dzstore = pmlArr_[1].Dz_->point(ii,ny_-1-jj);
+                                        pmlArr_[1].Dz_->point(ii,ny_-1-jj) = c_dzd * pmlArr_[1].Dz_->point(ii,ny_-1-jj) + c_dzh * ((Hy_->point(ii,ny_-1-jj)-Hy_->point(ii-1,ny_-1-jj)) - (Hx_->point(ii,ny_-1-jj)-Hx_->point(ii,ny_-1-jj-1)));
+                                        Ez_->point(ii,ny_-1-jj) = c_eze * Ez_->point(ii,ny_-1-jj) + c_ezd1 * pmlArr_[1].Dz_->point(ii,ny_-1-jj) - c_ezd0 * dzstore;
+                                    }
                                 }
                             }
                         }
+                        break;
                     }
-                    break;
+                    case Z:
+                        throw logic_error("z not implimented");
+                        break;
+                    default:
+                        throw logic_error("hit default");
+                        break;
                 }
-                case Z:
-                    throw logic_error("z not implimented");
-                    break;
-                default:
-                    throw logic_error("hit default");
-                    break;
+            }
+        }
+    }
+    else
+    {
+        if(Ez_)
+        {
+            for(int kk = 0; kk < pmlArr_.size(); kk++)
+            {
+                switch(pmlArr_[kk].d())
+                {
+                    case X:
+                    {
+                        complex<double> dzstore(0.0,0.0);
+                        if(yPML_ == 0)
+                        {
+                            for(int jj = 1; jj < ny_ - 1; jj++)
+                            {
+                                dzstore = pmlArr_[kk].Dz_->point(0,jj);
+                                pmlArr_[kk].Dz_->point(0,jj) = pmlArr_[kk].c_dzd_0_ -> point(0,jj) * pmlArr_[kk].Dz_->point(0,jj) + pmlArr_[kk].c_dzh_0_ -> point(0,jj) * ((Hy_->point(0,jj)) - (Hx_->point(0,jj)-Hx_->point(0,jj-1))); // 0 is boundary condtion
+                                Ez_->point(0,jj) = pmlArr_[kk].c_eze_0_ -> point(0,jj) * Ez_->point(0,jj) + pmlArr_[kk].c_ezd1_0_ -> point(0,jj) * pmlArr_[kk].Dz_->point(0,jj) - pmlArr_[kk].c_ezd0_0_ -> point(0,jj) * dzstore;
+
+                                dzstore = pmlArr_[kk].Dz_end_->point(0,jj);
+                                pmlArr_[kk].Dz_end_->point(0,jj) = pmlArr_[kk].c_dzd_n_ -> point(0,jj) * pmlArr_[kk].Dz_end_->point(0,jj) + pmlArr_[kk].c_dzh_n_ -> point(0,jj) * ((-1.0 *Hy_->point((nx_-2),jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1))); // 0 is boundary condition
+                                Ez_->point(nx_-1,jj) = pmlArr_[kk].c_eze_n_ -> point(0,jj) * Ez_->point(nx_-1,jj) + pmlArr_[kk].c_ezd1_n_ -> point(0,jj) * pmlArr_[kk].Dz_end_->point(0,jj) - pmlArr_[kk].c_ezd0_n_ -> point(0,jj) * dzstore;
+                            }
+
+                            dzstore = pmlArr_[kk].Dz_->point(0,ny_-1);
+                            pmlArr_[kk].Dz_->point(0,ny_-1) = pmlArr_[kk].c_dzd_0_ -> point(0,ny_-1) * pmlArr_[kk].Dz_->point(0,ny_-1) + pmlArr_[kk].c_dzh_0_ -> point(0,ny_-1) * ((Hy_->point(0,ny_-1)) - (-1.0*Hx_->point(0,ny_-2))); // 0 is boundary condtion
+                            Ez_->point(0,ny_-1) = pmlArr_[kk].c_eze_0_ -> point(0,ny_-1) * Ez_->point(0,ny_-1) + pmlArr_[kk].c_ezd1_0_ -> point(0,ny_-1) * pmlArr_[kk].Dz_->point(0,ny_-1) - pmlArr_[kk].c_ezd0_0_ -> point(0,ny_-1) * dzstore;
+
+                            dzstore = pmlArr_[kk].Dz_end_->point(0,ny_-1);
+                            pmlArr_[kk].Dz_end_->point(0,ny_-1) = pmlArr_[kk].c_dzd_n_ -> point(0,ny_-1) * pmlArr_[kk].Dz_end_->point(0,ny_-1) + pmlArr_[kk].c_dzh_n_ -> point(0,ny_-1) * ((-1.0 *Hy_->point(nx_-2,ny_-1)) - (-1.0*Hx_->point(nx_-1,ny_-2))); // 0 is boundary condition
+                            Ez_->point(nx_-1,ny_-1) = pmlArr_[kk].c_eze_n_ -> point(0,ny_-1) * Ez_->point(nx_-1,ny_-1) + pmlArr_[kk].c_ezd1_n_ -> point(0,ny_-1) * pmlArr_[kk].Dz_end_->point(0,ny_-1) - pmlArr_[kk].c_ezd0_n_ -> point(0,ny_-1) * dzstore;
+
+                            dzstore = pmlArr_[kk].Dz_->point(0,0);
+                            pmlArr_[kk].Dz_->point(0,0) = pmlArr_[kk].c_dzd_0_ -> point(0,0) * pmlArr_[kk].Dz_->point(0,0) + pmlArr_[kk].c_dzh_0_ -> point(0,0) * ((Hy_->point(0,0)) - (Hx_->point(0,0))); // 0 is boundary condtion
+                            Ez_->point(0,0) = pmlArr_[kk].c_eze_0_ -> point(0,0) * Ez_->point(0,0) + pmlArr_[kk].c_ezd1_0_ -> point(0,0) * pmlArr_[kk].Dz_->point(0,0) - pmlArr_[kk].c_ezd0_0_ -> point(0,0) * dzstore;
+
+                            dzstore = pmlArr_[kk].Dz_end_->point(0,0);
+                            pmlArr_[kk].Dz_end_->point(0,0) = pmlArr_[kk].c_dzd_n_ -> point(0,0) * pmlArr_[kk].Dz_end_->point(0,0) + pmlArr_[kk].c_dzh_n_ -> point(0,0) * ((-1.0 *Hy_->point(nx_-2,0)) - (Hx_->point(nx_-1,0))); // 0 is boundary condition
+                            Ez_->point(nx_-1,0) = pmlArr_[kk].c_eze_n_ -> point(0,0) * Ez_->point(nx_-1,0) + pmlArr_[kk].c_ezd1_n_ -> point(0,0) * pmlArr_[kk].Dz_end_->point(0,0) - pmlArr_[kk].c_ezd0_n_ -> point(0,0) * dzstore;
+
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
+                            {
+                                //double kapx = pmlArr_[kk].kappa(ii);
+                                //Kappas change throughout
+                                for(int jj =  1; jj < ny_ - 1; jj ++)
+                                {
+                                    dzstore = pmlArr_[kk].Dz_->point(ii,jj);
+                                    pmlArr_[kk].Dz_->point(ii,jj) = pmlArr_[kk].c_dzd_0_ -> point(ii,jj) * pmlArr_[kk].Dz_->point(ii,jj) + pmlArr_[kk].c_dzh_0_ -> point(ii,jj) * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
+                                    Ez_->point(ii,jj) = pmlArr_[kk].c_eze_0_ -> point(ii,jj) * Ez_->point(ii,jj) + pmlArr_[kk].c_ezd1_0_ -> point(ii,jj) * pmlArr_[kk].Dz_->point(ii,jj) - pmlArr_[kk].c_ezd0_0_ -> point(ii,jj) * dzstore;
+
+                                    dzstore = pmlArr_[kk].Dz_end_->point(ii,jj);
+                                    pmlArr_[kk].Dz_end_->point(ii,jj) = pmlArr_[kk].c_dzd_n_ -> point(ii,jj) * pmlArr_[kk].Dz_end_->point(ii,jj) + pmlArr_[kk].c_dzh_n_ -> point(ii,jj) * ((Hy_->point(nx_-1-ii,jj)-Hy_->point(nx_-1-ii-1,jj)) - (Hx_->point(nx_-1-ii,jj)-Hx_->point(nx_-1-ii,jj-1)));
+                                    Ez_->point(nx_-1-ii,jj) = pmlArr_[kk].c_eze_n_ -> point(ii,jj) * Ez_->point(nx_-1-ii,jj) + pmlArr_[kk].c_ezd1_n_ -> point(ii,jj) * pmlArr_[kk].Dz_end_->point(ii,jj) - pmlArr_[kk].c_ezd0_n_ -> point(ii,jj) * dzstore;
+                                }
+                                dzstore = pmlArr_[kk].Dz_->point(ii,ny_-1);
+                                pmlArr_[kk].Dz_->point(ii,ny_-1) = pmlArr_[kk].c_dzd_0_ -> point(ii,ny_-1) * pmlArr_[kk].Dz_->point(ii,ny_-1) + pmlArr_[kk].c_dzh_0_ -> point(ii,ny_-1) * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (-1.0*Hx_->point(ii,ny_-1-1)));
+                                Ez_->point(ii,ny_-1) = pmlArr_[kk].c_eze_0_ -> point(ii,ny_-1) * Ez_->point(ii,ny_-1) + pmlArr_[kk].c_ezd1_0_ -> point(ii,ny_-1) * pmlArr_[kk].Dz_->point(ii,ny_-1) - pmlArr_[kk].c_ezd0_0_ -> point(ii,ny_-1) * dzstore;
+
+                                dzstore = pmlArr_[kk].Dz_end_->point(ii,ny_-1);
+                                pmlArr_[kk].Dz_end_->point(ii,ny_-1) = pmlArr_[kk].c_dzd_n_ -> point(ii,ny_-1) * pmlArr_[kk].Dz_end_->point(ii,ny_-1) + pmlArr_[kk].c_dzh_n_ -> point(ii,ny_-1) * ((Hy_->point(nx_-1-ii,ny_-1)-Hy_->point(nx_-1-ii-1,ny_-1)) - (-1.0*Hx_->point(nx_-1-ii,ny_-1-1)));
+                                Ez_->point(nx_-1-ii,ny_-1) = pmlArr_[kk].c_eze_n_ -> point(ii,ny_-1) * Ez_->point(nx_-1-ii,ny_-1) + pmlArr_[kk].c_ezd1_n_ -> point(ii,ny_-1) * pmlArr_[kk].Dz_end_->point(ii,ny_-1) - pmlArr_[kk].c_ezd0_n_ -> point(ii,ny_-1) * dzstore;
+
+                                dzstore = pmlArr_[kk].Dz_->point(ii,0);
+                                pmlArr_[kk].Dz_->point(ii,0) = pmlArr_[kk].c_dzd_0_ -> point(ii,0) * pmlArr_[kk].Dz_->point(ii,0) + pmlArr_[kk].c_dzh_0_ -> point(ii,0) * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)));
+                                Ez_->point(ii,0) = pmlArr_[kk].c_eze_0_ -> point(ii,0) * Ez_->point(ii,0) + pmlArr_[kk].c_ezd1_0_ -> point(ii,0) * pmlArr_[kk].Dz_->point(ii,0) - pmlArr_[kk].c_ezd0_0_ -> point(ii,0) * dzstore;
+
+                                dzstore = pmlArr_[kk].Dz_end_->point(ii,0);
+                                pmlArr_[kk].Dz_end_->point(ii,0) = pmlArr_[kk].c_dzd_n_ -> point(ii,0) * pmlArr_[kk].Dz_end_->point(ii,0) + pmlArr_[kk].c_dzh_n_ -> point(ii,0) * ((Hy_->point(nx_-1-ii,0)-Hy_->point(nx_-1-ii-1,0)) - (Hx_->point(nx_-1-ii,0)));
+                                Ez_->point(nx_-1-ii,0) = pmlArr_[kk].c_eze_n_ -> point(ii,0) * Ez_->point(nx_-1-ii,0) + pmlArr_[kk].c_ezd1_n_ -> point(ii,0) * pmlArr_[kk].Dz_end_->point(ii,0) - pmlArr_[kk].c_ezd0_n_ -> point(ii,0) * dzstore;
+                            }
+                        }
+                        else
+                        {
+                            for(int jj = yPML_; jj < ny_ - yPML_; jj++)
+                            {
+                                dzstore = pmlArr_[kk].Dz_->point(0,jj);
+                                pmlArr_[kk].Dz_->point(0,jj) = pmlArr_[kk].c_dzd_0_ -> point(0,jj) * pmlArr_[kk].Dz_->point(0,jj) + pmlArr_[kk].c_dzh_0_ -> point(0,jj) * ((Hy_->point(0,jj)) - (Hx_->point(0,jj)-Hx_->point(0,jj-1))); // 0 is boundary condtion
+                                Ez_->point(0,jj) = pmlArr_[kk].c_eze_0_ -> point(0,jj) * Ez_->point(0,jj) + pmlArr_[kk].c_ezd1_0_ -> point(0,jj) * pmlArr_[kk].Dz_->point(0,jj) - pmlArr_[kk].c_ezd0_0_ -> point(0,jj) * dzstore;
+
+                                dzstore = pmlArr_[kk].Dz_end_->point(0,jj);
+                                pmlArr_[kk].Dz_end_->point(0,jj) = pmlArr_[kk].c_dzd_n_ -> point(0,jj) * pmlArr_[kk].Dz_end_->point(0,jj) + pmlArr_[kk].c_dzh_n_ -> point(0,jj) * ((-1.0 *Hy_->point((nx_-2),jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1))); // 0 is boundary condition
+                                Ez_->point(nx_-1,jj) = pmlArr_[kk].c_eze_n_ -> point(0,jj) * Ez_->point(nx_-1,jj) + pmlArr_[kk].c_ezd1_n_ -> point(0,jj) * pmlArr_[kk].Dz_end_->point(0,jj) - pmlArr_[kk].c_ezd0_n_ -> point(0,jj) * dzstore;
+                            }
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
+                            {
+                                for(int jj =  yPML_; jj < ny_ - yPML_; jj ++)
+                                {
+                                    dzstore = pmlArr_[kk].Dz_->point(ii,jj);
+                                    pmlArr_[kk].Dz_->point(ii,jj) = pmlArr_[kk].c_dzd_0_ -> point(ii,jj) * pmlArr_[kk].Dz_->point(ii,jj) + pmlArr_[kk].c_dzh_0_ -> point(ii,jj) * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
+                                    Ez_->point(ii,jj) = pmlArr_[kk].c_eze_0_ -> point(ii,jj) * Ez_->point(ii,jj) + pmlArr_[kk].c_ezd1_0_ -> point(ii,jj) * pmlArr_[kk].Dz_->point(ii,jj) - pmlArr_[kk].c_ezd0_0_ -> point(ii,jj) * dzstore;
+
+                                    dzstore = pmlArr_[kk].Dz_end_->point(ii,jj);
+                                    pmlArr_[kk].Dz_end_->point(ii,jj) = pmlArr_[kk].c_dzd_n_ -> point(ii,jj) * pmlArr_[kk].Dz_end_->point(ii,jj) + pmlArr_[kk].c_dzh_n_ -> point(ii,jj) * ((Hy_->point(nx_-1-ii,jj)-Hy_->point(nx_-1-ii-1,jj)) - (Hx_->point(nx_-1-ii,jj)-Hx_->point(nx_-1-ii,jj-1)));
+                                    Ez_->point(nx_-1-ii,jj) = pmlArr_[kk].c_eze_n_ -> point(ii,jj) * Ez_->point(nx_-1-ii,jj) + pmlArr_[kk].c_ezd1_n_ -> point(ii,jj) * pmlArr_[kk].Dz_end_->point(ii,jj) - pmlArr_[kk].c_ezd0_n_ -> point(ii,jj) * dzstore;
+                                }
+                            }
+                            if(kk == 0)
+                            {
+                                //Bot Left
+                                dzstore = pmlArr_[0].Dz_->point(0,0);
+                                pmlArr_[0].Dz_->point(0,0) = pmlArr_[0].c_dzd_0_ -> point(0,0) * pmlArr_[0].Dz_->point(0,0) + pmlArr_[0].c_dzh_0_ -> point(0,0) * ((Hy_->point(0,0)) - (Hx_->point(0,0)));
+                                Ez_->point(0,0) = pmlArr_[0].c_eze_0_ -> point(0,0) * Ez_->point(0,0) + pmlArr_[0].c_ezd1_0_ -> point(0,0) * pmlArr_[0].Dz_->point(0,0) - pmlArr_[0].c_ezd0_0_ -> point(0,0) * dzstore;
+                                //Bot Right
+                                dzstore = pmlArr_[0].Dz_end_->point(0,0);
+                                pmlArr_[0].Dz_end_->point(0,0) = pmlArr_[0].c_dzd_n_ -> point(0,0) * pmlArr_[0].Dz_end_->point(0,0) + pmlArr_[0].c_dzh_n_ -> point(0,0) * (-1.0*Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0));
+                                Ez_->point(nx_-1,0) = pmlArr_[0].c_eze_n_ -> point(0,0) * Ez_->point(nx_-1,0) + pmlArr_[0].c_ezd1_n_ -> point(0,0) * pmlArr_[0].Dz_end_->point(0,0) - pmlArr_[0].c_ezd0_n_ -> point(0,0) * dzstore;
+                                //Top Right
+                                dzstore = pmlArr_[0].Dz_end_->point(0,ny_-1);
+                                pmlArr_[0].Dz_end_->point(0,ny_-1) = pmlArr_[0].c_dzd_n_ -> point(0,ny_-1) * pmlArr_[0].Dz_end_->point(0,ny_-1) + pmlArr_[0].c_dzh_n_ -> point(0,ny_-1) * ((-1.0*Hy_->point(nx_-1-1,ny_-1)) - (-1.0*Hx_->point(nx_-1,ny_-1-1)));
+                                Ez_->point(nx_-1,ny_-1) = pmlArr_[0].c_eze_n_ -> point(0,ny_-1) * Ez_->point(nx_-1,ny_-1) + pmlArr_[0].c_ezd1_n_ -> point(0,ny_-1) * pmlArr_[0].Dz_end_->point(0,ny_-1) - pmlArr_[0].c_ezd0_n_ -> point(0,ny_-1) * dzstore;
+                                //Top Left
+                                dzstore = pmlArr_[0].Dz_->point(0,ny_-1);
+                                pmlArr_[0].Dz_->point(0,ny_-1) = pmlArr_[0].c_dzd_0_ -> point(0,ny_-1) * pmlArr_[0].Dz_->point(0,ny_-1) + pmlArr_[0].c_dzh_0_ -> point(0,ny_-1) * ((Hy_->point(0,ny_-1)) - (-1.0*Hx_->point(0,ny_-1-1)));
+                                Ez_->point(0,ny_-1) = pmlArr_[0].c_eze_0_ -> point(0,ny_-1) * Ez_->point(0,ny_-1) + pmlArr_[0].c_ezd1_0_ -> point(0,ny_-1) * pmlArr_[0].Dz_->point(0,ny_-1) - pmlArr_[0].c_ezd0_0_ -> point(0,ny_-1) * dzstore;
+
+                                for(int ii = 1; ii < pmlArr_[0].thickness(); ii++)
+                                {
+                                    //Bot Left
+                                    dzstore = pmlArr_[0].Dz_->point(ii,0);
+                                    pmlArr_[0].Dz_->point(ii,0) = pmlArr_[0].c_dzd_0_ -> point(ii,0) * pmlArr_[0].Dz_->point(ii,0) + pmlArr_[0].c_dzh_0_ -> point(ii,0) * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)));
+                                    Ez_->point(ii,0) = pmlArr_[0].c_eze_0_ -> point(ii,0) * Ez_->point(ii,0) + pmlArr_[0].c_ezd1_0_ -> point(ii,0) * pmlArr_[0].Dz_->point(ii,0) - pmlArr_[0].c_ezd0_0_ -> point(ii,0) * dzstore;
+                                    //Bot Right
+                                    dzstore = pmlArr_[0].Dz_end_->point(ii,0);
+                                    pmlArr_[0].Dz_end_->point(ii,0) = pmlArr_[0].c_dzd_n_ -> point(ii,0) * pmlArr_[0].Dz_end_->point(ii,0) + pmlArr_[0].c_dzh_n_ -> point(ii,0) * ((Hy_->point(nx_-1-ii,0)-Hy_->point(nx_-1-ii-1,0)) - (Hx_->point(nx_-1-ii,0)));
+                                    Ez_->point(nx_-1-ii,0) = pmlArr_[0].c_eze_n_ -> point(ii,0) * Ez_->point(nx_-1-ii,0) + pmlArr_[0].c_ezd1_n_ -> point(ii,0) * pmlArr_[0].Dz_end_->point(ii,0) - pmlArr_[0].c_ezd0_n_ -> point(ii,0) * dzstore;
+                                    //Top Right
+                                    dzstore = pmlArr_[0].Dz_end_->point(ii,ny_-1);
+                                    pmlArr_[0].Dz_end_->point(ii,ny_-1) = pmlArr_[0].c_dzd_n_ -> point(ii,ny_-1) * pmlArr_[0].Dz_end_->point(ii,ny_-1) + pmlArr_[0].c_dzh_n_ -> point(ii,ny_-1) * ((Hy_->point(nx_-1-ii,ny_-1)-Hy_->point(nx_-1-ii-1,ny_-1)) - (-1.0*Hx_->point(nx_-1-ii,ny_-1-1)));
+                                    Ez_->point(nx_-1-ii,ny_-1) = pmlArr_[0].c_eze_n_ -> point(ii,ny_-1) * Ez_->point(nx_-1-ii,ny_-1) + pmlArr_[0].c_ezd1_n_ -> point(ii,ny_-1) * pmlArr_[0].Dz_end_->point(ii,ny_-1) - pmlArr_[0].c_ezd0_n_ -> point(ii,ny_-1) * dzstore;
+                                    //Top Left
+                                    dzstore = pmlArr_[0].Dz_->point(ii,ny_-1);
+                                    pmlArr_[0].Dz_->point(ii,ny_-1) = pmlArr_[0].c_dzd_0_ -> point(ii,ny_-1) * pmlArr_[0].Dz_->point(ii,ny_-1) + pmlArr_[0].c_dzh_0_ -> point(ii,ny_-1) * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (-1.0*Hx_->point(ii,ny_-1-1)));
+                                    Ez_->point(ii,ny_-1) = pmlArr_[0].c_eze_0_ -> point(ii,ny_-1) * Ez_->point(ii,ny_-1) + pmlArr_[0].c_ezd1_0_ -> point(ii,ny_-1) * pmlArr_[0].Dz_->point(ii,ny_-1) - pmlArr_[0].c_ezd0_0_ -> point(ii,ny_-1) * dzstore;
+                                }
+                                for(int jj = 1; jj < pmlArr_[0].thickness(); jj++)
+                                {
+                                    //Bot Left
+                                    dzstore = pmlArr_[0].Dz_->point(0,jj);
+                                    pmlArr_[0].Dz_->point(0,jj) = pmlArr_[0].c_dzd_0_ -> point(0,jj) * pmlArr_[0].Dz_->point(0,jj) + pmlArr_[0].c_dzh_0_ -> point(0,jj) * ((Hy_->point(0,jj)) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
+                                    Ez_->point(0,jj) = pmlArr_[0].c_eze_0_ -> point(0,jj) * Ez_->point(0,jj) + pmlArr_[0].c_ezd1_0_ -> point(0,jj) * pmlArr_[0].Dz_->point(0,jj) - pmlArr_[0].c_ezd0_0_ -> point(0,jj) * dzstore;
+                                    //Bot Right
+                                    dzstore = pmlArr_[0].Dz_end_->point(0,jj);
+                                    pmlArr_[0].Dz_end_->point(0,jj) = pmlArr_[0].c_dzd_n_ -> point(0,jj) * pmlArr_[0].Dz_end_->point(0,jj) + pmlArr_[0].c_dzh_n_ -> point(0,jj) * ((-1.0*Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
+                                    Ez_->point(nx_-1,jj) = pmlArr_[0].c_eze_n_ -> point(0,jj) * Ez_->point(nx_-1,jj) + pmlArr_[0].c_ezd1_n_ -> point(0,jj) * pmlArr_[0].Dz_end_->point(0,jj) - pmlArr_[0].c_ezd0_n_ -> point(0,jj) * dzstore;
+                                    //Top Right
+                                    dzstore = pmlArr_[0].Dz_end_->point(0,ny_-1-jj);
+                                    pmlArr_[0].Dz_end_->point(0,ny_-1-jj) = pmlArr_[0].c_dzd_n_ -> point(0,ny_-1-jj) * pmlArr_[0].Dz_end_->point(0,ny_-1-jj) + pmlArr_[0].c_dzh_n_ -> point(0,ny_-1-jj) * ((-1.0*Hy_->point(nx_-1-1,ny_-1-jj)) - (Hx_->point(nx_-1,ny_-1-jj)-Hx_->point(nx_-1,ny_-1-jj-1)));
+                                    Ez_->point(nx_-1,ny_-1-jj) = pmlArr_[0].c_eze_n_ -> point(0,ny_-1-jj) * Ez_->point(nx_-1,ny_-1-jj) + pmlArr_[0].c_ezd1_n_ -> point(0,ny_-1-jj) * pmlArr_[0].Dz_end_->point(0,ny_-1-jj) - pmlArr_[0].c_ezd0_n_ -> point(0,ny_-1-jj) * dzstore;
+                                    //Top Left
+                                    dzstore = pmlArr_[0].Dz_->point(0,ny_-1-jj);
+                                    pmlArr_[0].Dz_->point(0,ny_-1-jj) = pmlArr_[0].c_dzd_0_ -> point(0,ny_-1-jj) * pmlArr_[0].Dz_->point(0,ny_-1-jj) + pmlArr_[0].c_dzh_0_ -> point(0,ny_-1-jj) * ((Hy_->point(0,ny_-1-jj)) - (Hx_->point(0,ny_-1-jj)-Hx_->point(0,ny_-1-jj-1)));
+                                    Ez_->point(0,ny_-1-jj) = pmlArr_[0].c_eze_0_ -> point(0,ny_-1-jj) * Ez_->point(0,ny_-1-jj) + pmlArr_[0].c_ezd1_0_ -> point(0,ny_-1-jj) * pmlArr_[0].Dz_->point(0,ny_-1-jj) - pmlArr_[0].c_ezd0_0_ -> point(0,ny_-1-jj) * dzstore;
+                                }
+                                for(int ii = 1; ii < pmlArr_[0].thickness(); ii++)
+                                {
+                                    for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
+                                    {
+                                        //Bot Left
+                                        dzstore = pmlArr_[0].Dz_->point(ii,jj);
+                                        pmlArr_[0].Dz_->point(ii,jj) = pmlArr_[0].c_dzd_0_ -> point(ii,jj) * pmlArr_[0].Dz_->point(ii,jj) + pmlArr_[0].c_dzh_0_ -> point(ii,jj) * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
+                                        Ez_->point(ii,jj) = pmlArr_[0].c_eze_0_ -> point(ii,jj) * Ez_->point(ii,jj) + pmlArr_[0].c_ezd1_0_ -> point(ii,jj) * pmlArr_[0].Dz_->point(ii,jj) - pmlArr_[0].c_ezd0_0_ -> point(ii,jj) * dzstore;
+                                        //Bot Right
+                                        dzstore = pmlArr_[0].Dz_end_->point(ii,jj);
+                                        pmlArr_[0].Dz_end_->point(ii,jj) = pmlArr_[0].c_dzd_n_ -> point(ii,jj) * pmlArr_[0].Dz_end_->point(ii,jj) + pmlArr_[0].c_dzh_n_ -> point(ii,jj) * ((Hy_->point(nx_-1-ii,jj)-Hy_->point(nx_-1-ii-1,jj)) - (Hx_->point(nx_-1-ii,jj)-Hx_->point(nx_-1-ii,jj-1)));
+                                        Ez_->point(nx_-1-ii,jj) = pmlArr_[0].c_eze_n_ -> point(ii,jj) * Ez_->point(nx_-1-ii,jj) + pmlArr_[0].c_ezd1_n_ -> point(ii,jj) * pmlArr_[0].Dz_end_->point(ii,jj) - pmlArr_[0].c_ezd0_n_ -> point(ii,jj) * dzstore;
+                                        //Top Right
+                                        dzstore = pmlArr_[0].Dz_end_->point(ii,ny_-1-jj);
+                                        pmlArr_[0].Dz_end_->point(ii,ny_-1-jj) = pmlArr_[0].c_dzd_n_ -> point(ii,ny_-1-jj) * pmlArr_[0].Dz_end_->point(ii,ny_-1-jj) + pmlArr_[0].c_dzh_n_ -> point(ii,ny_-1-jj) * ((Hy_->point(nx_-1-ii,ny_-1-jj)-Hy_->point(nx_-1-ii-1,ny_-1-jj)) - (Hx_->point(nx_-1-ii,ny_-1-jj)-Hx_->point(nx_-1-ii,ny_-1-jj-1)));
+                                        Ez_->point(nx_-1-ii,ny_-1-jj) = pmlArr_[0].c_eze_n_ -> point(ii,ny_-1-jj) * Ez_->point(nx_-1-ii,ny_-1-jj) + pmlArr_[0].c_ezd1_n_ -> point(ii,ny_-1-jj) * pmlArr_[0].Dz_end_->point(ii,ny_-1-jj) - pmlArr_[0].c_ezd0_n_ -> point(ii,ny_-1-jj) * dzstore;
+                                        //Top Left
+                                        dzstore = pmlArr_[0].Dz_->point(ii,ny_-1-jj);
+                                        pmlArr_[0].Dz_->point(ii,ny_-1-jj) = pmlArr_[0].c_dzd_0_ -> point(ii,ny_-1-jj) * pmlArr_[0].Dz_->point(ii,ny_-1-jj) + pmlArr_[0].c_dzh_0_ -> point(ii,ny_-1-jj) * ((Hy_->point(ii,ny_-1-jj)-Hy_->point(ii-1,ny_-1-jj)) - (Hx_->point(ii,ny_-1-jj)-Hx_->point(ii,ny_-1-jj-1)));
+                                        Ez_->point(ii,ny_-1-jj) = pmlArr_[0].c_eze_0_ -> point(ii,ny_-1-jj) * Ez_->point(ii,ny_-1-jj) + pmlArr_[0].c_ezd1_0_ -> point(ii,ny_-1-jj) * pmlArr_[0].Dz_->point(ii,ny_-1-jj) - pmlArr_[0].c_ezd0_0_ -> point(ii,ny_-1-jj) * dzstore;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    case Y:
+                    {
+                        complex<double> dzstore(0.0,0.0);
+                        if(xPML_ == 0)
+                        {
+                            for(int jj = 1; jj < nx_ - 1; jj++)
+                            {
+
+                                dzstore = pmlArr_[kk].Dz_->point(jj,0);
+                                pmlArr_[kk].Dz_->point(jj,0) = pmlArr_[kk].c_dzd_0_ -> point(jj,0) * pmlArr_[kk].Dz_->point(jj,0) + pmlArr_[kk].c_dzh_0_ -> point(jj,0) * ((Hy_->point(jj,0)-Hy_->point(jj-1,0)) - (Hx_->point(jj,0))); // 0 is boundary condition
+                                Ez_->point(jj,0) = pmlArr_[kk].c_eze_0_ -> point(jj,0) * Ez_->point(jj,0) + pmlArr_[kk].c_ezd1_0_ -> point(jj,0) * pmlArr_[kk].Dz_->point(jj,0) - pmlArr_[kk].c_ezd0_0_ -> point(jj,0) * dzstore;
+
+                                dzstore = pmlArr_[kk].Dz_end_->point(jj,0);
+                                pmlArr_[kk].Dz_end_->point(jj,0) = pmlArr_[kk].c_dzd_n_ -> point(jj,0) * pmlArr_[kk].Dz_end_->point(jj,0) + pmlArr_[kk].c_dzh_n_ -> point(jj,0) * ((Hy_->point(jj,ny_-1) - Hy_->point(jj - 1,ny_-1)) - (-1.0 * Hx_->point(jj,ny_-1-1))); // 0 is boundary condtion
+                                Ez_->point(jj,ny_-1) = pmlArr_[kk].c_eze_n_ -> point(jj,0) * Ez_->point(jj,ny_-1) + pmlArr_[kk].c_ezd1_n_ -> point(jj,0) * pmlArr_[kk].Dz_end_->point(jj,0) - pmlArr_[kk].c_ezd0_n_ -> point(jj,0) * dzstore;
+                            }
+                            dzstore = pmlArr_[kk].Dz_->point(nx_-1,0);
+                            pmlArr_[kk].Dz_->point(nx_-1,0) = pmlArr_[kk].c_dzd_0_ -> point(nx_-1,0) * pmlArr_[kk].Dz_->point(nx_-1,0) + pmlArr_[kk].c_dzh_0_ -> point(nx_-1,0) * ((-1.0*Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0))); // 0 is boundary condition
+                            Ez_->point(nx_-1,0) = pmlArr_[kk].c_eze_0_ -> point(nx_-1,0) * Ez_->point(nx_-1,0) + pmlArr_[kk].c_ezd1_0_ -> point(nx_-1,0) * pmlArr_[kk].Dz_->point(nx_-1,0) - pmlArr_[kk].c_ezd0_0_ -> point(nx_-1,0) * dzstore;
+
+                            dzstore = pmlArr_[kk].Dz_end_->point(nx_-1,0);
+                            pmlArr_[kk].Dz_end_->point(nx_-1,0) = pmlArr_[kk].c_dzd_n_ -> point(nx_-1,0) * pmlArr_[kk].Dz_end_->point(nx_-1,0) + pmlArr_[kk].c_dzh_n_ -> point(nx_-1,0) * ((-1.0 * Hy_->point(nx_-1 - 1,ny_-1)) - (-1.0 * Hx_->point(nx_-1,ny_-1-1))); // 0 is boundary condtion
+                            Ez_->point(nx_-1,ny_-1) = pmlArr_[kk].c_eze_n_ -> point(nx_-1,0) * Ez_->point(nx_-1,ny_-1) + pmlArr_[kk].c_ezd1_n_ -> point(nx_-1,0) * pmlArr_[kk].Dz_end_->point(nx_-1,0) - pmlArr_[kk].c_ezd0_n_ -> point(nx_-1,0) * dzstore;
+
+                            dzstore = pmlArr_[kk].Dz_->point(0,0);
+                            pmlArr_[kk].Dz_->point(0,0) = pmlArr_[kk].c_dzd_0_ -> point(0,0) * pmlArr_[kk].Dz_->point(0,0) + pmlArr_[kk].c_dzh_0_ -> point(0,0) * ((Hy_->point(0,0)) - (Hx_->point(0,0))); // 0 is boundary condition
+                            Ez_->point(0,0) = pmlArr_[kk].c_eze_0_ -> point(0,0) * Ez_->point(0,0) + pmlArr_[kk].c_ezd1_0_ -> point(0,0) * pmlArr_[kk].Dz_->point(0,0) - pmlArr_[kk].c_ezd0_0_ -> point(0,0) * dzstore;
+
+                            dzstore = pmlArr_[kk].Dz_end_->point(0,0);
+                            pmlArr_[kk].Dz_end_->point(0,0) = pmlArr_[kk].c_dzd_n_ -> point(0,0) * pmlArr_[kk].Dz_end_->point(0,0) + pmlArr_[kk].c_dzh_n_ -> point(0,0) * ((Hy_->point(0,ny_-1)) - (-1.0 * Hx_->point(0,ny_-1-1))); // 0 is boundary condtion
+                            Ez_->point(0,ny_-1) = pmlArr_[kk].c_eze_n_ -> point(0,0) * Ez_->point(0,ny_-1) + pmlArr_[kk].c_ezd1_n_ -> point(0,0) * pmlArr_[kk].Dz_end_->point(0,0) - pmlArr_[kk].c_ezd0_n_ -> point(0,0) * dzstore;
+
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
+                            {
+                                for(int jj =  1; jj < nx_ - 1; jj ++)
+                                {
+                                    dzstore = pmlArr_[kk].Dz_->point(jj,ii);
+                                    pmlArr_[kk].Dz_->point(jj,ii) = pmlArr_[kk].c_dzd_0_ -> point(jj,ii) * pmlArr_[kk].Dz_->point(jj,ii) + pmlArr_[kk].c_dzh_0_ -> point(jj,ii) * ((Hy_->point(jj,ii)-Hy_->point(jj-1,ii)) - (Hx_->point(jj,ii)-Hx_->point(jj,ii-1)));
+                                    Ez_->point(jj,ii) = pmlArr_[kk].c_eze_0_ -> point(jj,ii) * Ez_->point(jj,ii) + pmlArr_[kk].c_ezd1_0_ -> point(jj,ii) * pmlArr_[kk].Dz_->point(jj,ii) - pmlArr_[kk].c_ezd0_0_ -> point(jj,ii) * dzstore;
+
+                                    dzstore = pmlArr_[kk].Dz_end_->point(jj,ii);
+                                    pmlArr_[kk].Dz_end_->point(jj,ii) = pmlArr_[kk].c_dzd_n_ -> point(jj,ii) * pmlArr_[kk].Dz_end_->point(jj,ii) + pmlArr_[kk].c_dzh_n_ -> point(jj,ii) * ((Hy_->point(jj,ny_-1-ii) - Hy_->point(jj - 1,ny_-1-ii)) - (Hx_->point(jj,ny_-1-ii) - Hx_->point(jj,ny_-1-ii-1)));
+                                    Ez_->point(jj,ny_-1-ii) = pmlArr_[kk].c_eze_n_ -> point(jj,ii) * Ez_->point(jj,ny_-1-ii) + pmlArr_[kk].c_ezd1_n_ -> point(jj,ii) * pmlArr_[kk].Dz_end_->point(jj,ii) - pmlArr_[kk].c_ezd0_n_ -> point(jj,ii) * dzstore;
+                                }
+                                dzstore = pmlArr_[kk].Dz_->point(nx_-1,ii);
+                                pmlArr_[kk].Dz_->point(nx_-1,ii) = pmlArr_[kk].c_dzd_0_ -> point(nx_-1,ii) * pmlArr_[kk].Dz_->point(nx_-1,ii) + pmlArr_[kk].c_dzh_0_ -> point(nx_-1,ii) * ((-1.0*Hy_->point(nx_-1-1,ii)) - (Hx_->point(nx_-1,ii)-Hx_->point(nx_-1,ii-1)));
+                                Ez_->point(nx_-1,ii) = pmlArr_[kk].c_eze_0_ -> point(nx_-1,ii) * Ez_->point(nx_-1,ii) + pmlArr_[kk].c_ezd1_0_ -> point(nx_-1,ii) * pmlArr_[kk].Dz_->point(nx_-1,ii) - pmlArr_[kk].c_ezd0_0_ -> point(nx_-1,ii) * dzstore;
+
+                                dzstore = pmlArr_[kk].Dz_end_->point(nx_-1,ii);
+                                pmlArr_[kk].Dz_end_->point(nx_-1,ii) = pmlArr_[kk].c_dzd_n_ -> point(nx_-1,ii) * pmlArr_[kk].Dz_end_->point(nx_-1,ii) + pmlArr_[kk].c_dzh_n_ -> point(nx_-1,ii) * ((-1.0 * Hy_->point(nx_-1-1,ny_-1-ii)) - (Hx_->point(nx_-1,ny_-1-ii) - Hx_->point(nx_-1,ny_-1-ii-1)));
+                                Ez_->point(nx_-1,ny_-1-ii) = pmlArr_[kk].c_eze_n_ -> point(nx_-1,ii) * Ez_->point(nx_-1,ny_-1-ii) + pmlArr_[kk].c_ezd1_n_ -> point(nx_-1,ii) * pmlArr_[kk].Dz_end_->point(nx_-1,ii) - pmlArr_[kk].c_ezd0_n_ -> point(nx_-1,ii) * dzstore;
+
+                                dzstore = pmlArr_[kk].Dz_->point(0,ii);
+                                pmlArr_[kk].Dz_->point(0,ii) = pmlArr_[kk].c_dzd_0_ -> point(0,ii) * pmlArr_[kk].Dz_->point(0,ii) + pmlArr_[kk].c_dzh_0_ -> point(0,ii) * ((Hy_->point(0,ii)) - (Hx_->point(0,ii)-Hx_->point(0,ii-1)));
+                                Ez_->point(0,ii) = pmlArr_[kk].c_eze_0_ -> point(0,ii) * Ez_->point(0,ii) + pmlArr_[kk].c_ezd1_0_ -> point(0,ii) * pmlArr_[kk].Dz_->point(0,ii) - pmlArr_[kk].c_ezd0_0_ -> point(0,ii) * dzstore;
+
+                                dzstore = pmlArr_[kk].Dz_end_->point(0,ii);
+                                pmlArr_[kk].Dz_end_->point(0,ii) = pmlArr_[kk].c_dzd_n_ -> point(0,ii) * pmlArr_[kk].Dz_end_->point(0,ii) + pmlArr_[kk].c_dzh_n_ -> point(0,ii) * ((Hy_->point(0,ny_-1-ii)) - (Hx_->point(0,ny_-1-ii) - Hx_->point(0,ny_-1-ii-1)));
+                                Ez_->point(0,ny_-1-ii) = pmlArr_[kk].c_eze_n_ -> point(0,ii) * Ez_->point(0,ny_-1-ii) + pmlArr_[kk].c_ezd1_n_ -> point(0,ii) * pmlArr_[kk].Dz_end_->point(0,ii) - pmlArr_[kk].c_ezd0_n_ -> point(0,ii) * dzstore;
+                            }
+                        }
+                        else
+                        {
+                            for(int jj = xPML_; jj < nx_ - xPML_; jj++)
+                            {
+                                dzstore = pmlArr_[kk].Dz_->point(jj,0);
+                                pmlArr_[kk].Dz_->point(jj,0) = pmlArr_[kk].c_dzd_0_ -> point(jj,0) * pmlArr_[kk].Dz_->point(jj,0) + pmlArr_[kk].c_dzh_0_ -> point(jj,0) * ((Hy_->point(jj,0)-Hy_->point(jj-1,0)) - (Hx_->point(jj,0))); // 0 is boundary condition
+                                Ez_->point(jj,0) = pmlArr_[kk].c_eze_0_ -> point(jj,0) * Ez_->point(jj,0) + pmlArr_[kk].c_ezd1_0_ -> point(jj,0) * pmlArr_[kk].Dz_->point(jj,0) - pmlArr_[kk].c_ezd0_0_ -> point(jj,0) * dzstore;
+
+                                dzstore = pmlArr_[kk].Dz_end_->point(jj,0);
+                                pmlArr_[kk].Dz_end_->point(jj,0) = pmlArr_[kk].c_dzd_n_ -> point(jj,0) * pmlArr_[kk].Dz_end_->point(jj,0) + pmlArr_[kk].c_dzh_n_ -> point(jj,0) * ((Hy_->point(jj,ny_-1) - Hy_->point(jj - 1,ny_-1)) - (-1.0 * Hx_->point(jj,ny_-1-1))); // 0 is boundary condtion
+                                Ez_->point(jj,ny_-1) = pmlArr_[kk].c_eze_n_ -> point(jj,0) * Ez_->point(jj,ny_-1) + pmlArr_[kk].c_ezd1_n_ -> point(jj,0) * pmlArr_[kk].Dz_end_->point(jj,0) - pmlArr_[kk].c_ezd0_n_ -> point(jj,0) * dzstore;
+                            }
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
+                            {
+                                for(int jj =  xPML_; jj < nx_ - xPML_; jj ++)
+                                {
+                                    dzstore = pmlArr_[kk].Dz_->point(jj,ii);
+                                    pmlArr_[kk].Dz_->point(jj,ii) = pmlArr_[kk].c_dzd_0_ -> point(jj,ii) * pmlArr_[kk].Dz_->point(jj,ii) + pmlArr_[kk].c_dzh_0_ -> point(jj,ii) * ((Hy_->point(jj,ii)-Hy_->point(jj-1,ii)) - (Hx_->point(jj,ii)-Hx_->point(jj,ii-1)));
+                                    Ez_->point(jj,ii) = pmlArr_[kk].c_eze_0_ -> point(jj,ii) * Ez_->point(jj,ii) + pmlArr_[kk].c_ezd1_0_ -> point(jj,ii) * pmlArr_[kk].Dz_->point(jj,ii) - pmlArr_[kk].c_ezd0_0_ -> point(jj,ii) * dzstore;
+
+                                    dzstore = pmlArr_[kk].Dz_end_->point(jj,ii);
+                                    pmlArr_[kk].Dz_end_->point(jj,ii) = pmlArr_[kk].c_dzd_n_ -> point(jj,ii) * pmlArr_[kk].Dz_end_->point(jj,ii) + pmlArr_[kk].c_dzh_n_ -> point(jj,ii) * ((Hy_->point(jj,ny_-1-ii) - Hy_->point(jj - 1,ny_-1-ii)) - (Hx_->point(jj,ny_-1-ii) - Hx_->point(jj,ny_-1-ii-1)));
+                                    Ez_->point(jj,ny_-1-ii) = pmlArr_[kk].c_eze_n_ -> point(jj,ii) * Ez_->point(jj,ny_-1-ii) + pmlArr_[kk].c_ezd1_n_ -> point(jj,ii) * pmlArr_[kk].Dz_end_->point(jj,ii) - pmlArr_[kk].c_ezd0_n_ -> point(jj,ii) * dzstore;
+                                }
+                            }
+                            if(kk == 0)
+                            {
+                                //Bot Left
+                                dzstore = pmlArr_[1].Dz_->point(0,0);
+                                pmlArr_[1].Dz_->point(0,0) = pmlArr_[1].c_dzd_0_ -> point(0,0) * pmlArr_[1].Dz_->point(0,0) + pmlArr_[1].c_dzh_0_ -> point(0,0) * ((Hy_->point(0,0)) - (Hx_->point(0,0)));
+                                Ez_->point(0,0) = pmlArr_[1].c_eze_0_ -> point(0,0) * Ez_->point(0,0) + pmlArr_[1].c_ezd1_0_ -> point(0,0) * pmlArr_[1].Dz_->point(0,0) - pmlArr_[1].c_ezd0_0_ -> point(0,0) * dzstore;
+                                //Bot Right
+                                dzstore = pmlArr_[1].Dz_end_->point(0,0);
+                                pmlArr_[1].Dz_end_->point(0,0) = pmlArr_[1].c_dzd_n_ -> point(0,0) * pmlArr_[1].Dz_end_->point(0,0) + pmlArr_[1].c_dzh_n_ -> point(0,0) * (-1.0*Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0));
+                                Ez_->point(nx_-1,0) = pmlArr_[1].c_eze_n_ -> point(0,0) * Ez_->point(nx_-1,0) + pmlArr_[1].c_ezd1_n_ -> point(0,0) * pmlArr_[1].Dz_end_->point(0,0) - pmlArr_[1].c_ezd0_n_ -> point(0,0) * dzstore;
+                                //Top Right
+                                dzstore = pmlArr_[1].Dz_end_->point(0,ny_-1);
+                                pmlArr_[1].Dz_end_->point(0,ny_-1) = pmlArr_[1].c_dzd_n_ -> point(0,ny_-1) * pmlArr_[1].Dz_end_->point(0,ny_-1) + pmlArr_[1].c_dzh_n_ -> point(0,ny_-1) * ((-1.0*Hy_->point(nx_-1-1,ny_-1)) - (-1.0*Hx_->point(nx_-1,ny_-1-1)));
+                                Ez_->point(nx_-1,ny_-1) = pmlArr_[1].c_eze_n_ -> point(0,ny_-1) * Ez_->point(nx_-1,ny_-1) + pmlArr_[1].c_ezd1_n_ -> point(0,ny_-1) * pmlArr_[1].Dz_end_->point(0,ny_-1) - pmlArr_[1].c_ezd0_n_ -> point(0,ny_-1) * dzstore;
+                                //Top Left
+                                dzstore = pmlArr_[1].Dz_->point(0,ny_-1);
+                                pmlArr_[1].Dz_->point(0,ny_-1) = pmlArr_[1].c_dzd_0_ -> point(0,ny_-1) * pmlArr_[1].Dz_->point(0,ny_-1) + pmlArr_[1].c_dzh_0_ -> point(0,ny_-1) * ((Hy_->point(0,ny_-1)) - (-1.0*Hx_->point(0,ny_-1-1)));
+                                Ez_->point(0,ny_-1) = pmlArr_[1].c_eze_0_ -> point(0,ny_-1) * Ez_->point(0,ny_-1) + pmlArr_[1].c_ezd1_0_ -> point(0,ny_-1) * pmlArr_[1].Dz_->point(0,ny_-1) - pmlArr_[1].c_ezd0_0_ -> point(0,ny_-1) * dzstore;
+
+                                for(int ii = 1; ii < pmlArr_[1].thickness(); ii++)
+                                {
+                                    //Bot Left
+                                    dzstore = pmlArr_[1].Dz_->point(ii,0);
+                                    pmlArr_[1].Dz_->point(ii,0) = pmlArr_[1].c_dzd_0_ -> point(ii,0) * pmlArr_[1].Dz_->point(ii,0) + pmlArr_[1].c_dzh_0_ -> point(ii,0) * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)));
+                                    Ez_->point(ii,0) = pmlArr_[1].c_eze_0_ -> point(ii,0) * Ez_->point(ii,0) + pmlArr_[1].c_ezd1_0_ -> point(ii,0) * pmlArr_[1].Dz_->point(ii,0) - pmlArr_[1].c_ezd0_0_ -> point(ii,0) * dzstore;
+                                    //Bot Right
+                                    dzstore = pmlArr_[1].Dz_end_->point(ii,0);
+                                    pmlArr_[1].Dz_end_->point(ii,0) = pmlArr_[1].c_dzd_n_ -> point(ii,0) * pmlArr_[1].Dz_end_->point(ii,0) + pmlArr_[1].c_dzh_n_ -> point(ii,0) * ((Hy_->point(nx_-1-ii,0)-Hy_->point(nx_-1-ii-1,0)) - (Hx_->point(nx_-1-ii,0)));
+                                    Ez_->point(nx_-1-ii,0) = pmlArr_[1].c_eze_n_ -> point(ii,0) * Ez_->point(nx_-1-ii,0) + pmlArr_[1].c_ezd1_n_ -> point(ii,0) * pmlArr_[1].Dz_end_->point(ii,0) - pmlArr_[1].c_ezd0_n_ -> point(ii,0) * dzstore;
+                                    //Top Right
+                                    dzstore = pmlArr_[1].Dz_end_->point(ii,ny_-1);
+                                    pmlArr_[1].Dz_end_->point(ii,ny_-1) = pmlArr_[1].c_dzd_n_ -> point(ii,ny_-1) * pmlArr_[1].Dz_end_->point(ii,ny_-1) + pmlArr_[1].c_dzh_n_ -> point(ii,ny_-1) * ((Hy_->point(nx_-1-ii,ny_-1)-Hy_->point(nx_-1-ii-1,ny_-1)) - (-1.0*Hx_->point(nx_-1-ii,ny_-1-1)));
+                                    Ez_->point(nx_-1-ii,ny_-1) = pmlArr_[1].c_eze_n_ -> point(ii,ny_-1) * Ez_->point(nx_-1-ii,ny_-1) + pmlArr_[1].c_ezd1_n_ -> point(ii,ny_-1) * pmlArr_[1].Dz_end_->point(ii,ny_-1) - pmlArr_[1].c_ezd0_n_ -> point(ii,ny_-1) * dzstore;
+                                    //Top Left
+                                    dzstore = pmlArr_[1].Dz_->point(ii,ny_-1);
+                                    pmlArr_[1].Dz_->point(ii,ny_-1) = pmlArr_[1].c_dzd_0_ -> point(ii,ny_-1) * pmlArr_[1].Dz_->point(ii,ny_-1) + pmlArr_[1].c_dzh_0_ -> point(ii,ny_-1) * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (-1.0*Hx_->point(ii,ny_-1-1)));
+                                    Ez_->point(ii,ny_-1) = pmlArr_[1].c_eze_0_ -> point(ii,ny_-1) * Ez_->point(ii,ny_-1) + pmlArr_[1].c_ezd1_0_ -> point(ii,ny_-1) * pmlArr_[1].Dz_->point(ii,ny_-1) - pmlArr_[1].c_ezd0_0_ -> point(ii,ny_-1) * dzstore;
+                                }
+                                for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
+                                {
+                                    //Bot Left
+                                    dzstore = pmlArr_[1].Dz_->point(0,jj);
+                                    pmlArr_[1].Dz_->point(0,jj) = pmlArr_[1].c_dzd_0_ -> point(0,jj) * pmlArr_[1].Dz_->point(0,jj) + pmlArr_[1].c_dzh_0_ -> point(0,jj) * ((Hy_->point(0,jj)) - (Hx_->point(0,jj)-Hx_->point(0,jj-1)));
+                                    Ez_->point(0,jj) = pmlArr_[1].c_eze_0_ -> point(0,jj) * Ez_->point(0,jj) + pmlArr_[1].c_ezd1_0_ -> point(0,jj) * pmlArr_[1].Dz_->point(0,jj) - pmlArr_[1].c_ezd0_0_ -> point(0,jj) * dzstore;
+                                    //Bot Right
+                                    dzstore = pmlArr_[1].Dz_end_->point(0,jj);
+                                    pmlArr_[1].Dz_end_->point(0,jj) = pmlArr_[1].c_dzd_n_ -> point(0,jj) * pmlArr_[1].Dz_end_->point(0,jj) + pmlArr_[1].c_dzh_n_ -> point(0,jj) * ((-1.0*Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
+                                    Ez_->point(nx_-1,jj) = pmlArr_[1].c_eze_n_ -> point(0,jj) * Ez_->point(nx_-1,jj) + pmlArr_[1].c_ezd1_n_ -> point(0,jj) * pmlArr_[1].Dz_end_->point(0,jj) - pmlArr_[1].c_ezd0_n_ -> point(0,jj) * dzstore;
+                                    //Top Right
+                                    dzstore = pmlArr_[1].Dz_end_->point(0,ny_-1-jj);
+                                    pmlArr_[1].Dz_end_->point(0,ny_-1-jj) = pmlArr_[1].c_dzd_n_ -> point(0,ny_-1-jj) * pmlArr_[1].Dz_end_->point(0,ny_-1-jj) + pmlArr_[1].c_dzh_n_ -> point(0,ny_-1-jj) * ((-1.0*Hy_->point(nx_-1-1,ny_-1-jj)) - (Hx_->point(nx_-1,ny_-1-jj)-Hx_->point(nx_-1,ny_-1-jj-1)));
+                                    Ez_->point(nx_-1,ny_-1-jj) = pmlArr_[1].c_eze_n_ -> point(0,ny_-1-jj) * Ez_->point(nx_-1,ny_-1-jj) + pmlArr_[1].c_ezd1_n_ -> point(0,ny_-1-jj) * pmlArr_[1].Dz_end_->point(0,ny_-1-jj) - pmlArr_[1].c_ezd0_n_ -> point(0,ny_-1-jj) * dzstore;
+                                    //Top Left
+                                    dzstore = pmlArr_[1].Dz_->point(0,ny_-1-jj);
+                                    pmlArr_[1].Dz_->point(0,ny_-1-jj) = pmlArr_[1].c_dzd_0_ -> point(0,ny_-1-jj) * pmlArr_[1].Dz_->point(0,ny_-1-jj) + pmlArr_[1].c_dzh_0_ -> point(0,ny_-1-jj) * ((Hy_->point(0,ny_-1-jj)) - (Hx_->point(0,ny_-1-jj)-Hx_->point(0,ny_-1-jj-1)));
+                                    Ez_->point(0,ny_-1-jj) = pmlArr_[1].c_eze_0_ -> point(0,ny_-1-jj) * Ez_->point(0,ny_-1-jj) + pmlArr_[1].c_ezd1_0_ -> point(0,ny_-1-jj) * pmlArr_[1].Dz_->point(0,ny_-1-jj) - pmlArr_[1].c_ezd0_0_ -> point(0,ny_-1-jj) * dzstore;
+                                }
+                                for(int ii = 1; ii < pmlArr_[1].thickness(); ii++)
+                                {
+                                    for(int jj = 1; jj < pmlArr_[1].thickness(); jj++)
+                                    {
+                                        //Bot Left
+                                        dzstore = pmlArr_[1].Dz_->point(ii,jj);
+                                        pmlArr_[1].Dz_->point(ii,jj) = pmlArr_[1].c_dzd_0_ -> point(ii,jj) * pmlArr_[1].Dz_->point(ii,jj) + pmlArr_[1].c_dzh_0_ -> point(ii,jj) * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
+                                        Ez_->point(ii,jj) = pmlArr_[1].c_eze_0_ -> point(ii,jj) * Ez_->point(ii,jj) + pmlArr_[1].c_ezd1_0_ -> point(ii,jj) * pmlArr_[1].Dz_->point(ii,jj) - pmlArr_[1].c_ezd0_0_ -> point(ii,jj) * dzstore;
+                                        //Bot Right
+                                        dzstore = pmlArr_[1].Dz_end_->point(ii,jj);
+                                        pmlArr_[1].Dz_end_->point(ii,jj) = pmlArr_[1].c_dzd_n_ -> point(ii,jj) * pmlArr_[1].Dz_end_->point(ii,jj) + pmlArr_[1].c_dzh_n_ -> point(ii,jj) * ((Hy_->point(nx_-1-ii,jj)-Hy_->point(nx_-1-ii-1,jj)) - (Hx_->point(nx_-1-ii,jj)-Hx_->point(nx_-1-ii,jj-1)));
+                                        Ez_->point(nx_-1-ii,jj) = pmlArr_[1].c_eze_n_ -> point(ii,jj) * Ez_->point(nx_-1-ii,jj) + pmlArr_[1].c_ezd1_n_ -> point(ii,jj) * pmlArr_[1].Dz_end_->point(ii,jj) - pmlArr_[1].c_ezd0_n_ -> point(ii,jj) * dzstore;
+                                        //Top Right
+                                        dzstore = pmlArr_[1].Dz_end_->point(ii,ny_-1-jj);
+                                        pmlArr_[1].Dz_end_->point(ii,ny_-1-jj) = pmlArr_[1].c_dzd_n_ -> point(ii,ny_-1-jj) * pmlArr_[1].Dz_end_->point(ii,ny_-1-jj) + pmlArr_[1].c_dzh_n_ -> point(ii,ny_-1-jj) * ((Hy_->point(nx_-1-ii,ny_-1-jj)-Hy_->point(nx_-1-ii-1,ny_-1-jj)) - (Hx_->point(nx_-1-ii,ny_-1-jj)-Hx_->point(nx_-1-ii,ny_-1-jj-1)));
+                                        Ez_->point(nx_-1-ii,ny_-1-jj) = pmlArr_[1].c_eze_n_ -> point(ii,ny_-1-jj) * Ez_->point(nx_-1-ii,ny_-1-jj) + pmlArr_[1].c_ezd1_n_ -> point(ii,ny_-1-jj) * pmlArr_[1].Dz_end_->point(ii,ny_-1-jj) - pmlArr_[1].c_ezd0_n_ -> point(ii,ny_-1-jj) * dzstore;
+                                        //Top Left
+                                        dzstore = pmlArr_[1].Dz_->point(ii,ny_-1-jj);
+                                        pmlArr_[1].Dz_->point(ii,ny_-1-jj) = pmlArr_[1].c_dzd_0_ -> point(ii,ny_-1-jj) * pmlArr_[1].Dz_->point(ii,ny_-1-jj) + pmlArr_[1].c_dzh_0_ -> point(ii,ny_-1-jj) * ((Hy_->point(ii,ny_-1-jj)-Hy_->point(ii-1,ny_-1-jj)) - (Hx_->point(ii,ny_-1-jj)-Hx_->point(ii,ny_-1-jj-1)));
+                                        Ez_->point(ii,ny_-1-jj) = pmlArr_[1].c_eze_0_ -> point(ii,ny_-1-jj) * Ez_->point(ii,ny_-1-jj) + pmlArr_[1].c_ezd1_0_ -> point(ii,ny_-1-jj) * pmlArr_[1].Dz_->point(ii,ny_-1-jj) - pmlArr_[1].c_ezd0_0_ -> point(ii,ny_-1-jj) * dzstore;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    case Z:
+                        throw logic_error("z not implimented");
+                        break;
+                    default:
+                        throw logic_error("hit default");
+                        break;
+                }
             }
         }
     }
