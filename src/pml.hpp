@@ -31,6 +31,8 @@ protected:
 
 public:
     std::shared_ptr<Grid2D<T>> Dx_,Dy_,Dz_,Bx_,By_,Bz_,Dx_end_,Dy_end_,Dz_end_,Bx_end_,By_end_,Bz_end_;
+    std::shared_ptr<Grid2D<int>> phys_Hx_,phys_Hy_,phys_Hz_, phys_Hx_end_,phys_Hy_end_,phys_Hz_end_;
+
     std::shared_ptr<Grid2D<double>> c_bxb_0_, c_bxe_0_, c_hxh_0_, c_hxb0_0_, c_hxb1_0_,c_bxb_n_, c_bxe_n_, c_hxh_n_, c_hxb0_n_, c_hxb1_n_;
     std::shared_ptr<Grid2D<double>> c_byb_0_, c_bye_0_, c_hyh_0_, c_hyb0_0_, c_hyb1_0_,c_byb_n_, c_bye_n_, c_hyh_n_, c_hyb0_n_, c_hyb1_n_;
     std::shared_ptr<Grid2D<double>> c_bzb_0_, c_bze_0_, c_hzh_0_, c_hzb0_0_, c_hzb1_0_,c_bzb_n_, c_bze_n_, c_hzh_n_, c_hzb0_n_, c_hzb1_n_;
@@ -66,12 +68,21 @@ public:
                 Dx_end_ = std::make_shared<Grid2D<T>>(thickness,nx,dx,dy);
                 Dy_end_ = std::make_shared<Grid2D<T>>(thickness,nx-1,dx,dy);
                 Bz_end_ = std::make_shared<Grid2D<T>>(thickness,nx-1,dx,dy);
+
                 Bx_ = nullptr;
                 By_ = nullptr;
                 Dz_ = nullptr;
                 Bx_end_ = nullptr;
                 By_end_ = nullptr;
                 Dz_end_ = nullptr;
+
+                phys_Hz_ = std::make_shared<Grid2D<int>>(thickness,nx-1,dx,dy);
+                phys_Hz_end_ = std::make_shared<Grid2D<int>>(thickness,nx-1,dx,dy);
+                phys_Hy_ = nullptr;
+                phys_Hy_end_ = nullptr;
+                phys_Hx_ = nullptr;
+                phys_Hx_end_ = nullptr;
+
                 if(precalc == false)
                 {
                     c_bxb_0_ = nullptr; c_bxe_0_ = nullptr; c_hxh_0_ = nullptr; c_hxb0_0_ = nullptr; c_hxb1_0_ = nullptr;
@@ -141,12 +152,20 @@ public:
                 Dx_ = nullptr;
                 Dy_ = nullptr;
                 Bz_ = nullptr;
+
                 Bx_end_ = std::make_shared<Grid2D<T>>(thickness,nx-1,dx,dy);
                 By_end_ = std::make_shared<Grid2D<T>>(thickness,nx,dx,dy);
                 Dz_end_ = std::make_shared<Grid2D<T>>(thickness,nx,dx,dy);
                 Dx_end_ = nullptr;
                 Dy_end_ = nullptr;
                 Bz_end_ = nullptr;
+
+                phys_Hz_ = nullptr;
+                phys_Hz_end_ = nullptr;
+                phys_Hy_ = std::make_shared<Grid2D<int>>(thickness,nx,dx,dy);
+                phys_Hy_end_ = std::make_shared<Grid2D<int>>(thickness,nx,dx,dy);
+                phys_Hx_ = std::make_shared<Grid2D<int>>(thickness,nx-1,dx,dy);
+                phys_Hx_end_ = std::make_shared<Grid2D<int>>(thickness,nx-1,dx,dy);
                 if(precalc == false)
                 {
                     c_bxb_0_ = nullptr; c_bxe_0_ = nullptr; c_hxh_0_ = nullptr; c_hxb0_0_ = nullptr; c_hxb1_0_ = nullptr;
@@ -225,6 +244,12 @@ public:
                 Bx_end_ = nullptr;
                 By_end_ = nullptr;
                 Dz_end_ = nullptr;
+                phys_Hz_ = std::make_shared<Grid2D<int>>(nx-1,thickness,dx,dy);
+                phys_Hz_end_ = std::make_shared<Grid2D<int>>(nx-1,thickness,dx,dy);
+                phys_Hy_ = nullptr;
+                phys_Hy_end_ = nullptr;
+                phys_Hx_ = nullptr;
+                phys_Hx_end_ = nullptr;
                 if(precalc == true)
                 {
                     c_bxb_0_ = nullptr; c_bxe_0_ = nullptr; c_hxh_0_ = nullptr; c_hxb0_0_ = nullptr; c_hxb1_0_ = nullptr;
@@ -301,6 +326,12 @@ public:
                 Dx_end_ = nullptr;
                 Dy_end_ = nullptr;
                 Bz_end_ = nullptr;
+                phys_Hz_ = nullptr;
+                phys_Hz_end_ = nullptr;
+                phys_Hy_ = std::make_shared<Grid2D<int>>(nx-1,thickness,dx,dy);
+                phys_Hy_end_ = std::make_shared<Grid2D<int>>(nx-1,thickness,dx,dy);
+                phys_Hx_ = std::make_shared<Grid2D<int>>(nx,thickness,dx,dy);
+                phys_Hx_end_ = std::make_shared<Grid2D<int>>(nx,thickness,dx,dy);
                 if(precalc == false)
                 {
                     c_bxb_0_ = nullptr; c_bxe_0_ = nullptr; c_hxh_0_ = nullptr; c_hxb0_0_ = nullptr; c_hxb1_0_ = nullptr;

@@ -25,7 +25,7 @@ protected:
     size_t nx_,ny_;
     double dx_,dy_,dt_, tcur_;
     int res_, xPML_, yPML_, t_step_;
-    std::shared_ptr<Grid2D<int>> phys_Ex_,phys_Ey_,phys_Ez_,phys_Hx_,phys_Hy_,phys_Hz_;
+    std::shared_ptr<Grid2D<int>> phys_Ex_,phys_Ey_,phys_Ez_;//phys_Hx_,phys_Hy_,phys_Hz_;
     std::vector<Source<complex<double>>> srcArr_;
     std::vector<Obj> objArr_;
     std::vector<Detector<complex<double>>> dtcArr_;
@@ -52,9 +52,9 @@ public:
     std::shared_ptr<Grid2D<int>> getPhysEz(){return phys_Ez_;}
     std::shared_ptr<Grid2D<int>> getPhysEx(){return phys_Ex_;}
     std::shared_ptr<Grid2D<int>> getPhysEy(){return phys_Ey_;}
-    std::shared_ptr<Grid2D<int>> getPhysHy(){return phys_Hy_;}
-    std::shared_ptr<Grid2D<int>> getPhysHx(){return phys_Hx_;}
-    std::shared_ptr<Grid2D<int>> getPhysHz(){return phys_Hz_;}
+    //std::shared_ptr<Grid2D<int>> getPhysHy(){return phys_Hy_;}
+    //std::shared_ptr<Grid2D<int>> getPhysHx(){return phys_Hx_;}
+    //std::shared_ptr<Grid2D<int>> getPhysHz(){return phys_Hz_;}
 
 
 

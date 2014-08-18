@@ -7,7 +7,7 @@
         "res"           : 20,
         "courant"       : 0.5,
         "tLim"          : 50.0,
-        "precalcPML"    : true
+        "precalcPML"    : false
     },
     "PML" :  [
         {
