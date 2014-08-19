@@ -32,6 +32,8 @@ protected:
     std::vector<UPML<complex<double>>> pmlArr_;
     bool periodic_;
     bool precalcPML_;
+    std::vector<std::array<int,4>> zaxEzList_;
+    int y0EdgeInd_, ynEdgeInd_;
 
 
 public:

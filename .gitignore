@@ -26,3 +26,5 @@ configure
 src/.deps
 configure.ac
 src/.deps/Inputs.Po
+Inputs.Po
+

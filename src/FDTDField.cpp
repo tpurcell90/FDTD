@@ -41,6 +41,9 @@ FDTDField::FDTDField(programInputs &IP)
     yPML_       = IP.yPml_;
     precalcPML_ = IP.pmlCalc_;
     periodic_   = IP.periodic_;
+    zaxEzList_  = {};
+    y0EdgeInd_   = 0;
+    ynEdgeInd_   = 0;
 
     if(IP.pol_.compare("Hz") == 0 || IP.pol_.compare("Ey") == 0 || IP.pol_.compare("Ex") == 0)
     {
@@ -388,6 +391,116 @@ void FDTDField::initializeGrid()
                         phys_Ez_->point(nx_-1,ny_-1) = kk;
                 }
             }
+        }
+    }
+    if(xPML_ != 0 && yPML_ != 0)
+    {
+        for(int jj = yPML_; jj < ny_ - yPML_; jj++)
+        {
+            int ii = xPML_;
+            while(ii < nx_-xPML_)
+            {
+                int iistore = ii;
+                while(ii < nx_-xPML_-1 && phys_Ez_ -> point(ii,jj) == phys_Ez_ -> point(ii+1,jj) )
+                    ii ++;
+                array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ez_->point(iistore,jj)};
+                zaxEzList_.push_back(tempArr);
+                ii++;
+            }
+        }
+    }
+    else if(xPML_ != 0)
+    {
+        for(int jj = 1; jj < ny_ - 1; jj++)
+        {
+            int ii = xPML_;
+            while(ii < nx_-xPML_)
+            {
+                int iistore = ii;
+                while(ii < nx_-xPML_-1 && phys_Ez_ -> point(ii,jj) == phys_Ez_ -> point(ii+1,jj) )
+                    ii ++;
+                array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ez_->point(iistore,jj)};
+                zaxEzList_.push_back(tempArr);
+                ii++;
+            }
+        }
+        y0EdgeInd_= zaxEzList_.size();
+        int ii = xPML_;
+        while(ii < nx_-xPML_)
+        {
+            int iistore = ii;
+            while(ii < nx_-xPML_-1 && phys_Ez_ -> point(ii,0) == phys_Ez_ -> point(ii+1,0) )
+                ii ++;
+            array<int,4> tempArr = { iistore,0,ii-iistore+1,phys_Ez_->point(iistore,0)};
+            zaxEzList_.push_back(tempArr);
+            ii++;
+        }
+        ynEdgeInd_= zaxEzList_.size();
+        ii = xPML_;
+        while(ii < nx_-xPML_)
+        {
+            int iistore = ii;
+            while(ii < nx_-xPML_-1 && phys_Ez_ -> point(ii,ny_-1) == phys_Ez_ -> point(ii+1,ny_-1) )
+                ii ++;
+            int n = ny_-1;
+            array<int,4> tempArr = { iistore,n,ii-iistore+1,phys_Ez_->point(iistore,ny_-1)};
+            zaxEzList_.push_back(tempArr);
+            ii++;
+        }
+    }
+    else if(yPML_ != 0)
+    {
+        for(int jj = yPML_; jj < ny_ - yPML_; jj++)
+        {
+            int ii = 1;
+            while(ii < nx_-1)
+            {
+                int iistore = ii;
+                while(ii < nx_-1-1 && phys_Ez_ -> point(ii,jj) == phys_Ez_ -> point(ii+1,jj) )
+                    ii ++;
+                array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ez_->point(iistore,jj)};
+                zaxEzList_.push_back(tempArr);
+                ii++;
+            }
+        }
+    }
+    else
+    {
+        for(int jj = 1; jj < ny_ - 1; jj++)
+        {
+            int ii = 1;
+            while(ii < nx_-1)
+            {
+                int iistore = ii;
+                while(ii < nx_-1-1 && phys_Ez_ -> point(ii,jj) == phys_Ez_ -> point(ii+1,jj) )
+                    ii ++;
+                array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ez_->point(iistore,jj)};
+                zaxEzList_.push_back(tempArr);
+                ii++;
+            }
+        }
+        y0EdgeInd_= zaxEzList_.size();
+        int ii = 1;
+        while(ii < nx_-1)
+        {
+            int iistore = ii;
+            while(ii < nx_-1-1 && phys_Ez_ -> point(ii,0) == phys_Ez_ -> point(ii+1,0) )
+                ii ++;
+            array<int,4> tempArr = { iistore,0,ii-iistore+1,phys_Ez_->point(iistore,0)};
+            zaxEzList_.push_back(tempArr);
+            ii++;
+        }
+        ynEdgeInd_= zaxEzList_.size();
+        ii = 1;
+        while(ii < nx_-1)
+        {
+            int iistore = ii;
+            while(ii < nx_-1-1 && phys_Ez_ -> point(ii,ny_-1) == phys_Ez_ -> point(ii+1,ny_-1) )
+                ii ++;
+            int n = ny_-1;
+            array<int,4> tempArr = { iistore,n,ii-iistore+1,phys_Ez_->point(iistore,ny_-1)};
+            zaxEzList_.push_back(tempArr);
+            ii++;
         }
     }
     if(precalcPML_ == true)
@@ -1753,6 +1866,7 @@ void FDTDField::initializeGrid()
                     break;
             }
         }
+
     }
 }
 /**
@@ -1837,8 +1951,6 @@ void FDTDField::updateH()
             //vector<complex<double>> hxstore(nx_-(2*xPML_),0.0);
             for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
             {
-                //copy_n(&Hx_->point(xPML_,jj), nx_-2*xPML_, hxstore.data());
-                //transform(hxstore.data(), hxstore.data()+hxstore.size(), hxstore.data(),[&](complex<double> &a){return a*c_hxh;});
                 zscal_(nx_-2*xPML_, c_hxh, &Hx_ ->point(xPML_,jj),1);
                 zaxpy_(nx_-2*xPML_, -1.0*c_hxe, &Ez_->point(xPML_,jj+1), 1, &Hx_ ->point(xPML_,jj),1);
                 zaxpy_(nx_-2*xPML_, c_hxe, &Ez_->point(xPML_,jj), 1, &Hx_ ->point(xPML_,jj),1);
@@ -1847,28 +1959,13 @@ void FDTDField::updateH()
                 zaxpy_(nx_-2*xPML_, c_hye, &Ez_->point(xPML_+1,jj), 1, &Hy_ ->point(xPML_,jj),1);
                 zaxpy_(nx_-2*xPML_, -1.0*c_hye, &Ez_->point(xPML_,jj), 1, &Hy_ ->point(xPML_,jj),1);
 
-                //copy_n(hxstore.data(), nx_-2*xPML_,&Hx_->point(xPML_,jj));
             }
-            //vector<complex<double>> hystore(ny_-(2*yPML_),0.0);
-            /*for(int ii = xPML_; ii < nx_-xPML_; ii++)
-            {
-                //zcopy_(ny_-2*yPML_, &Hy_->point(ii,yPML_), nx_-1, hystore.data(),1);
-                //transform(hystore.data(), hystore.data()+hystore.size(), hystore.data(),[&](complex<double> a){return a*c_hyh;});
-                zscal_(ny_-2*yPML_, c_hyh, &Hy_ ->point(ii,yPML_),nx_-1);
-                zaxpy_(ny_-2*yPML_, c_hye, &Ez_->point(ii+1,yPML_), nx_, &Hy_ ->point(ii,yPML_),nx_-1);
-                zaxpy_(ny_-2*yPML_, -1.0*c_hye, &Ez_->point(ii,yPML_), nx_, &Hy_ ->point(ii,yPML_),nx_-1);
-                //zcopy_(ny_-2*yPML_, hystore.data(), 1, &Hy_->point(ii,yPML_), nx_-1);
-            }*/
         }
 
         else if(xPML_ != 0)
         {
-            //vector<complex<double>> hxstore(nx_-(2*xPML_),0.0);
-            //vector<complex<double>> hystore(ny_,0.0);
             for(int jj = 0; jj < ny_-1; jj++)
             {
-                //copy_n(&Hx_->point(xPML_,jj), nx_-2*xPML_, hxstore.data());
-                //transform(hxstore.data(), hxstore.data()+hxstore.size(), hxstore.data(),[&](complex<double> &a){return a*c_hxh;});
                 zscal_(nx_-2*xPML_, c_hxh, &Hx_ ->point(xPML_,jj),1);
                 zaxpy_(nx_-2*xPML_, -1.0*c_hxe, &Ez_->point(xPML_,jj+1), 1, &Hx_ ->point(xPML_,jj),1);
                 zaxpy_(nx_-2*xPML_, c_hxe, &Ez_->point(xPML_,jj), 1, &Hx_ ->point(xPML_,jj),1);
@@ -1876,20 +1973,11 @@ void FDTDField::updateH()
                 zscal_(nx_-2*xPML_, c_hyh, &Hy_ ->point(xPML_,jj),1);
                 zaxpy_(nx_-2*xPML_, c_hye, &Ez_->point(xPML_+1,jj), 1, &Hy_ ->point(xPML_,jj),1);
                 zaxpy_(nx_-2*xPML_, -1.0*c_hye, &Ez_->point(xPML_,jj), 1, &Hy_ ->point(xPML_,jj),1);
-                //copy_n(hxstore.data(), nx_-2*xPML_,&Hx_->point(xPML_,jj));
             }
             zscal_(nx_-2*xPML_, c_hyh, &Hy_ ->point(xPML_,ny_-1),1);
             zaxpy_(nx_-2*xPML_, c_hye, &Ez_->point(xPML_+1,ny_-1), 1, &Hy_ ->point(xPML_,ny_-1),1);
             zaxpy_(nx_-2*xPML_, -1.0*c_hye, &Ez_->point(xPML_,ny_-1), 1, &Hy_ ->point(xPML_,ny_-1),1);
-            /*for(int ii = xPML_; ii < nx_-xPML_; ii++)
-            {
-                //zcopy_(ny_, &Hy_->point(ii,0), nx_-1, hystore.data(),1);
-                //transform(hystore.data(), hystore.data()+hystore.size(), hystore.data(),[&](complex<double> a){return a*c_hyh;});
-                zscal_(ny_, c_hyh, &Hy_ ->point(ii,0),nx_-1);
-                zaxpy_(ny_, c_hye, &Ez_->point(ii+1,0), nx_, &Hy_ ->point(ii,0),nx_-1);
-                zaxpy_(ny_, -1.0*c_hye, &Ez_->point(ii,0), nx_, &Hy_ ->point(ii,0),nx_-1);
-                //zcopy_(ny_, hystore.data(), 1, &Hy_->point(ii,0), nx_-1);
-            }*/
+
             /*for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
             {
                 for(int jj = 0; jj < ny_ - 1; jj ++)
@@ -1908,8 +1996,6 @@ void FDTDField::updateH()
             //vector<complex<double>> hxstore(nx_,0.0);
             for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
             {
-                //copy_n(&Hx_->point(0,jj), nx_, hxstore.data());
-                //transform(hxstore.data(), hxstore.data()+hxstore.size(), hxstore.data(),[&](complex<double> &a){return a*c_hxh;});
                 zscal_(nx_, c_hxh, &Hx_ ->point(0,jj),1);
                 zaxpy_(nx_, -1.0*c_hxe, &Ez_->point(0,jj+1), 1, &Hx_ ->point(0,jj),1);
                 zaxpy_(nx_, c_hxe, &Ez_->point(0,jj), 1, &Hx_ ->point(0,jj),1);
@@ -1917,18 +2003,7 @@ void FDTDField::updateH()
                 zscal_(nx_-1, c_hyh, &Hy_ ->point(0,jj),1);
                 zaxpy_(nx_-1, c_hye, &Ez_->point(1,jj), 1, &Hy_ ->point(0,jj),1);
                 zaxpy_(nx_-1, -1.0*c_hye, &Ez_->point(0,jj), 1, &Hy_ ->point(0,jj),1);
-                //copy_n(hxstore.data(), nx_,&Hx_->point(0,jj));
             }
-            //vector<complex<double>> hystore(ny_-(2*yPML_),0.0);
-            /*for(int ii = 0; ii < nx_-1; ii++)
-            {
-                //zcopy_(ny_-2*yPML_, &Hy_->point(ii,yPML_), nx_-1, hystore.data(),1);
-                //transform(hystore.data(), hystore.data()+hystore.size(), hystore.data(),[&](complex<double> a){return a*c_hyh;});
-                zscal_(ny_-2*yPML_, c_hyh, &Hy_ ->point(ii,yPML_),nx_-1);
-                zaxpy_(ny_-2*yPML_, c_hye, &Ez_->point(ii+1,yPML_), nx_, &Hy_ ->point(ii,yPML_),nx_-1);
-                zaxpy_(ny_-2*yPML_, -1.0*c_hye, &Ez_->point(ii,yPML_), nx_, &Hy_ ->point(ii,yPML_),nx_-1);
-                //zcopy_(ny_-2*yPML_, hystore.data(), 1, &Hy_->point(ii,yPML_), nx_-1);
-            }*/
             /*for(int ii = 0; ii < nx_ - 1; ii ++)
             {
                 for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
@@ -3586,11 +3661,21 @@ void FDTDField::updateE()
     if(Ez_)
     {
         double eps =1.0;
-        double c_eze = 1.0;
+        complex<double> c_eze(1.0,0.0);
         double c_ezh = dt_/(eps*dx_);
         if(xPML_ != 0 && yPML_ !=0)
         {
-            for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
+            for(int kk = 0; kk < zaxEzList_.size(); kk++)
+            {
+                eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
+                c_ezh = dt_/(eps*dx_);
+                zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]-1), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hy_->point(zaxEzList_[kk][0]-1,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hy_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+            }
+            /*for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
             {
                 for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
                 {
@@ -3598,11 +3683,11 @@ void FDTDField::updateE()
                     c_ezh = dt_/(eps*dx_);
                     Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                 }
-            }
+            }*/
         }
         else if(xPML_ != 0)
         {
-            for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
+            /*for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
             {
                 for(int jj = 1; jj < ny_ - 1; jj ++)
                 {
@@ -3610,8 +3695,32 @@ void FDTDField::updateE()
                     c_ezh = dt_/(eps*dx_);
                     Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                 }
+            }*/
+            for(int kk = 0; kk < y0EdgeInd_; kk++)
+            {
+                eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
+                c_ezh = dt_/(eps*dx_);
+                zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]-1), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hy_->point(zaxEzList_[kk][0]-1,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hy_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
             }
-            for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
+            for(int kk = y0EdgeInd_; kk < ynEdgeInd_; kk++)
+            {
+                zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hy_->point(zaxEzList_[kk][0]-1,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hy_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+            }
+            for(int kk = ynEdgeInd_; kk < zaxEzList_.size(); kk++)
+            {
+                zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]-1), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hy_->point(zaxEzList_[kk][0]-1,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hy_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+            }
+            /*for(int ii = xPML_; ii < nx_ - xPML_; ii ++)
             {
                 eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
@@ -3619,11 +3728,11 @@ void FDTDField::updateE()
                 eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
                 Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (-1.0*Hx_->point(ii,ny_-1-1)));
-            }
+            }*/
         }
         else if(yPML_ != 0)
         {
-            for(int ii = 1; ii < nx_ - 1; ii ++)
+            /*for(int ii = 1; ii < nx_ - 1; ii ++)
             {
                 for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
                 {
@@ -3631,6 +3740,16 @@ void FDTDField::updateE()
                     c_ezh = dt_/(eps*dx_);
                     Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                 }
+            }*/
+            for(int kk = 0; kk < zaxEzList_.size(); kk++)
+            {
+                eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
+                c_ezh = dt_/(eps*dx_);
+                zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]-1), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hy_->point(zaxEzList_[kk][0]-1,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hy_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
             }
             for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
             {
@@ -3644,7 +3763,7 @@ void FDTDField::updateE()
         }
         else
         {
-            for(int ii = 1; ii < nx_ - 1; ii ++)
+            /*for(int ii = 1; ii < nx_ - 1; ii ++)
             {
                 for(int jj = 1; jj < ny_ - 1; jj ++)
                 {
@@ -3652,8 +3771,18 @@ void FDTDField::updateE()
                     c_ezh = dt_/(eps*dx_);
                     Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                 }
+            }*/
+            for(int kk = 0; kk < zaxEzList_.size(); kk++)
+            {
+                eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
+                c_ezh = dt_/(eps*dx_);
+                zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]-1), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hy_->point(zaxEzList_[kk][0]-1,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hy_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
             }
-            for(int jj = 1; jj < nx_ - 1; jj ++)
+            for(int jj = 1; jj < ny_ - 1; jj ++)
             {
                 eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
@@ -3662,14 +3791,19 @@ void FDTDField::updateE()
                 c_ezh = dt_/(eps*dx_);
                 Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezh * ((-1.0*Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
             }
-            for(int ii = 1; ii < nx_ - 1; ii ++)
+            for(int kk = y0EdgeInd_; kk < ynEdgeInd_; kk++)
             {
-                eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0);
-                c_ezh = dt_/(eps*dx_);
-                Ez_->point(ii,0) = c_eze * Ez_->point(ii,0) + c_ezh * ((Hy_->point(ii,0)-Hy_->point(ii-1,0)) - (Hx_->point(ii,0)));
-                eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0);
-                c_ezh = dt_/(eps*dx_);
-                Ez_->point(ii,ny_-1) = c_eze * Ez_->point(ii,ny_-1) + c_ezh * ((Hy_->point(ii,ny_-1)-Hy_->point(ii-1,ny_-1)) - (-1.0*Hx_->point(ii,ny_-1-1)));
+                zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hy_->point(zaxEzList_[kk][0]-1,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hy_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+            }
+            for(int kk = ynEdgeInd_; kk < zaxEzList_.size(); kk++)
+            {
+                zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hy_->point(zaxEzList_[kk][0]-1,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hy_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
             }
             eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0);
             c_ezh = dt_/(eps*dx_);
