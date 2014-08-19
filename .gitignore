@@ -25,3 +25,4 @@ configure
 .dirstamp
 src/.deps
 configure.ac
+src/.deps/Inputs.Po
