@@ -4090,7 +4090,7 @@ void FDTDField::updateH()
                         }
                         else
                         {
-                            for (int jj = yPML_; jj < ny_- yPML_; jj++)
+                            /*for (int jj = yPML_; jj < ny_- yPML_; jj++)
                             {
                                 //Update both on the left side and Hx on the right
                                 bxstore = pmlArr_[kk].Bx_->point(0,jj);
@@ -4129,6 +4129,63 @@ void FDTDField::updateH()
                                     Hx_->point(nx_-1-ii,jj) = pmlArr_[kk].c_hxh_n_ -> point(ii,jj) * Hx_->point(nx_-1-ii,jj) + pmlArr_[kk].c_hxb1_n_ -> point(ii,jj) * pmlArr_[kk].Bx_end_->point(ii,jj) - pmlArr_[kk].c_hxb0_n_ -> point(ii,jj) * bxstore;
                                     Hy_->point(nx_-1-ii,jj) = pmlArr_[kk].c_hyh_n_ -> point(ii,jj) * Hy_->point(nx_-1-ii,jj) + pmlArr_[kk].c_hyb1_n_ -> point(ii,jj) * pmlArr_[kk].By_end_->point(ii,jj) - pmlArr_[kk].c_hyb0_n_ -> point(ii,jj) * bystore;
                                 }
+                            }*/
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHxList_.size(); zz++)
+                            {
+                                vector<complex<double>> bxstore(pmlArr_[kk].zaxHxList_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHxList_[zz][2], &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), pmlArr_[kk].thickness(), bxstore.data(),1);
+
+                                zscal_(pmlArr_[kk].zaxHxList_[zz][2], pmlArr_[kk].c_bxb_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),pmlArr_[kk].thickness());
+
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2], -1.0*pmlArr_[kk].c_bxe_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]) , &Ez_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]+1), nx_, &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),pmlArr_[kk].thickness());
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2],      pmlArr_[kk].c_bxe_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]) , &Ez_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]  ), nx_, &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),pmlArr_[kk].thickness());
+
+                                zscal_(pmlArr_[kk].zaxHxList_[zz][2], pmlArr_[kk].c_hxh_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),             &Hx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),nx_);
+
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2], pmlArr_[kk].c_hxb1_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1])     , &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), pmlArr_[kk].thickness(), &Hx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),nx_);
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2], -1.0*pmlArr_[kk].c_hxb0_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), bxstore.data()                                                                      , 1                      , &Hx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),nx_);
+                            }
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHxList_end_.size(); zz++)
+                            {
+                                vector<complex<double>> bxstore(pmlArr_[kk].zaxHxList_end_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHxList_end_[zz][2], &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]), pmlArr_[kk].thickness(), bxstore.data(),1);
+
+                                zscal_(pmlArr_[kk].zaxHxList_end_[zz][2], pmlArr_[kk].c_bxb_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),pmlArr_[kk].thickness());
+                                zscal_(pmlArr_[kk].zaxHxList_end_[zz][2], pmlArr_[kk].c_hxh_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),                 &Hx_->point(nx_-1-pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),nx_);
+
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2],      pmlArr_[kk].c_bxe_n_ ->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), &Ez_->point(nx_-1-pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]  ), nx_, &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),pmlArr_[kk].thickness());
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2], -1.0*pmlArr_[kk].c_bxe_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]) , &Ez_->point(nx_-1-pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]+1), nx_, &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),pmlArr_[kk].thickness());
+
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2], pmlArr_[kk].c_hxb1_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1])     , &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]), pmlArr_[kk].thickness(), &Hx_->point(nx_-1-pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),nx_);
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2], -1.0*pmlArr_[kk].c_hxb0_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), bxstore.data()                                                                                  , 1                      , &Hx_->point(nx_-1-pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),nx_);
+                            }
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHyList_.size(); zz++)
+                            {
+                                vector<complex<double>> bystore(pmlArr_[kk].zaxHyList_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHyList_[zz][2], &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]), pmlArr_[kk].thickness(), bystore.data(),1);
+
+                                zscal_(pmlArr_[kk].zaxHyList_[zz][2], pmlArr_[kk].c_byb_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),pmlArr_[kk].thickness());
+                                zscal_(pmlArr_[kk].zaxHyList_[zz][2], pmlArr_[kk].c_hyh_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), &Hy_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),nx_-1);
+
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2],      pmlArr_[kk].c_bye_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]) , &Ez_->point(pmlArr_[kk].zaxHyList_[zz][0]+1,pmlArr_[kk].zaxHyList_[zz][1]), nx_, &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),pmlArr_[kk].thickness());
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2], -1.0*pmlArr_[kk].c_bye_0_ ->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), &Ez_->point(pmlArr_[kk].zaxHyList_[zz][0]  ,pmlArr_[kk].zaxHyList_[zz][1]), nx_, &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),pmlArr_[kk].thickness());
+
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2], pmlArr_[kk].c_hyb1_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1])     , &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]), pmlArr_[kk].thickness(), &Hy_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),nx_-1);
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2], -1.0*pmlArr_[kk].c_hyb0_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), bystore.data()                                                                      , 1                      , &Hy_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),nx_-1);
+                            }
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHyList_end_.size(); zz++)
+                            {
+                                vector<complex<double>> bystore(pmlArr_[kk].zaxHyList_end_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHyList_end_[zz][2], &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]), pmlArr_[kk].thickness(), bystore.data(),1);
+
+                                zscal_(pmlArr_[kk].zaxHyList_end_[zz][2], pmlArr_[kk].c_byb_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),pmlArr_[kk].thickness());
+                                zscal_(pmlArr_[kk].zaxHyList_end_[zz][2], pmlArr_[kk].c_hyh_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), &Hy_->point(nx_-1-pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),nx_-1);
+
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2], -1.0*pmlArr_[kk].c_bye_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]) , &Ez_->point(nx_-1-pmlArr_[kk].zaxHyList_end_[zz][0]  ,pmlArr_[kk].zaxHyList_end_[zz][1]), nx_, &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),pmlArr_[kk].thickness());
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2],      pmlArr_[kk].c_bye_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]) , &Ez_->point(nx_-1-pmlArr_[kk].zaxHyList_end_[zz][0]+1,pmlArr_[kk].zaxHyList_end_[zz][1]), nx_, &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),pmlArr_[kk].thickness());
+
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2],      pmlArr_[kk].c_hyb1_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]), pmlArr_[kk].thickness(), &Hy_->point(nx_-1-pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),nx_-1);
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2], -1.0*pmlArr_[kk].c_hyb0_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), bystore.data()                                                                                  , 1                      , &Hy_->point(nx_-1-pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),nx_-1);
                             }
                             if(kk==0)
                             {
@@ -4290,7 +4347,7 @@ void FDTDField::updateH()
                         }
                         else
                         {
-                            for (int jj = xPML_; jj < nx_-xPML_; jj++)
+                            /*for (int jj = xPML_; jj < nx_-xPML_; jj++)
                             {
                                 //Update both on the bottom side and Hy on the top
                                 bxstore = pmlArr_[kk].Bx_->point(jj,0);
@@ -4323,6 +4380,63 @@ void FDTDField::updateH()
                                     Hx_->point(jj,ny_-1-ii) = pmlArr_[kk].c_hxh_n_ -> point(jj,ii) * Hx_->point(jj,ny_-1-ii) + pmlArr_[kk].c_hxb1_n_ -> point(jj,ii) * pmlArr_[kk].Bx_end_->point(jj,ii) - pmlArr_[kk].c_hxb0_n_ -> point(jj,ii) * bxstore;
                                     Hy_->point(jj,ny_-1-ii) = pmlArr_[kk].c_hyh_n_ -> point(jj,ii) * Hy_->point(jj,ny_-1-ii) + pmlArr_[kk].c_hyb1_n_ -> point(jj,ii) * pmlArr_[kk].By_end_->point(jj,ii) - pmlArr_[kk].c_hyb0_n_ -> point(jj,ii) * bystore;
                                 }
+                            }*/
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHxList_.size(); zz++)
+                            {
+                                vector<complex<double>> bxstore(pmlArr_[kk].zaxHxList_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHxList_[zz][2], &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),1, bxstore.data(),1);
+
+                                zscal_(pmlArr_[kk].zaxHxList_[zz][2], pmlArr_[kk].c_bxb_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),1);
+                                zscal_(pmlArr_[kk].zaxHxList_[zz][2], pmlArr_[kk].c_hxh_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),             &Hx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),1);
+
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2], -1.0*pmlArr_[kk].c_bxe_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]) , &Ez_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]+1), 1, &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),1);
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2],      pmlArr_[kk].c_bxe_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]) , &Ez_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]  ), 1, &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),1);
+
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2],      pmlArr_[kk].c_hxb1_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), 1, &Hx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), 1);
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2], -1.0*pmlArr_[kk].c_hxb0_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), bxstore.data()                                                                      , 1, &Hx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), 1);
+
+                            }
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHxList_end_.size(); zz++)
+                            {
+                                vector<complex<double>> bxstore(pmlArr_[kk].zaxHxList_end_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHxList_end_[zz][2], &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]), 1, bxstore.data(),1);
+
+                                zscal_(pmlArr_[kk].zaxHxList_end_[zz][2], pmlArr_[kk].c_bxb_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),1);
+                                zscal_(pmlArr_[kk].zaxHxList_end_[zz][2], pmlArr_[kk].c_hxh_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), &Hx_->point(pmlArr_[kk].zaxHxList_end_[zz][0],ny_-1-pmlArr_[kk].zaxHxList_end_[zz][1]),1);
+
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2], -1.0*pmlArr_[kk].c_bxe_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]) , &Ez_->point(pmlArr_[kk].zaxHxList_end_[zz][0],ny_-1-pmlArr_[kk].zaxHxList_end_[zz][1]+1), 1, &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),1);
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2],      pmlArr_[kk].c_bxe_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]) , &Ez_->point(pmlArr_[kk].zaxHxList_end_[zz][0],ny_-1-pmlArr_[kk].zaxHxList_end_[zz][1]  ), 1, &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),1);
+
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2], pmlArr_[kk].c_hxb1_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1])     , &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]), 1, &Hx_->point(pmlArr_[kk].zaxHxList_end_[zz][0],ny_-1-pmlArr_[kk].zaxHxList_end_[zz][1]),1);
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2], -1.0*pmlArr_[kk].c_hxb0_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),  bxstore.data()                                                                                 , 1, &Hx_->point(pmlArr_[kk].zaxHxList_end_[zz][0],ny_-1-pmlArr_[kk].zaxHxList_end_[zz][1]),1);
+                            }
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHyList_.size(); zz++)
+                            {
+                                vector<complex<double>> bystore(pmlArr_[kk].zaxHxList_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHyList_[zz][2], &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]), 1, bystore.data(),1);
+
+                                zscal_(pmlArr_[kk].zaxHyList_[zz][2], pmlArr_[kk].c_byb_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),1);
+                                zscal_(pmlArr_[kk].zaxHyList_[zz][2], pmlArr_[kk].c_hyh_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), &Hy_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),1);
+
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2],      pmlArr_[kk].c_bye_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]) , &Ez_->point(pmlArr_[kk].zaxHyList_[zz][0]+1,pmlArr_[kk].zaxHyList_[zz][1]), 1, &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),1);
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2], -1.0*pmlArr_[kk].c_bye_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]) , &Ez_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]  ), 1, &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),1);
+
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2], pmlArr_[kk].c_hyb1_0_ ->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1])    , &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]), 1, &Hy_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),1);
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2], -1.0*pmlArr_[kk].c_hyb0_0_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), bystore.data()                                                                      , 1, &Hy_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),1);
+                            }
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHyList_end_.size(); zz++)
+                            {
+                                vector<complex<double>> bystore(pmlArr_[kk].zaxHxList_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHyList_end_[zz][2], &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]), 1, bystore.data(),1);
+
+                                zscal_(pmlArr_[kk].zaxHyList_end_[zz][2], pmlArr_[kk].c_byb_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),1);
+                                zscal_(pmlArr_[kk].zaxHyList_end_[zz][2], pmlArr_[kk].c_hyh_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), &Hy_->point(pmlArr_[kk].zaxHyList_end_[zz][0],ny_-1-pmlArr_[kk].zaxHyList_end_[zz][1]),1);
+
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2],      pmlArr_[kk].c_bye_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]) , &Ez_->point(pmlArr_[kk].zaxHyList_end_[zz][0]+1,ny_-1-pmlArr_[kk].zaxHyList_end_[zz][1]), 1, &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),1);
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2], -1.0*pmlArr_[kk].c_bye_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]) , &Ez_->point(pmlArr_[kk].zaxHyList_end_[zz][0]  ,ny_-1-pmlArr_[kk].zaxHyList_end_[zz][1]), 1, &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),1);
+
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2], pmlArr_[kk].c_hyb1_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1])     , &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]), 1, &Hy_->point(pmlArr_[kk].zaxHyList_end_[zz][0],ny_-1-pmlArr_[kk].zaxHyList_end_[zz][1]),1);
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2], -1.0*pmlArr_[kk].c_hyb0_n_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), bystore.data()                                                                                  , 1, &Hy_->point(pmlArr_[kk].zaxHyList_end_[zz][0],ny_-1-pmlArr_[kk].zaxHyList_end_[zz][1]),1);
                             }
                             if(kk==0)
                             {
