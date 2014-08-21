@@ -192,8 +192,8 @@ void FDTDField::initializeGrid()
                             {
                                 for(int jj = 0; jj < ny_-1; jj++)
                                 {
-                                    pt[0] = (ii+0.5-(nx_-1)/2.0)*dx_;
-                                    pt[1] = (jj-(ny_-1)/2.0)*dy_;
+                                    pt[0] = (ii+0.5-(nx_)/2.0)*dx_;
+                                    pt[1] = (jj-(ny_)/2.0)*dy_;
                                     if(objArr_[kk].isObj(pt)==true)
                                         pmlArr_[pp].phys_Hy_->point(ii,jj) = kk;
                                     pt[0] -= 0.5*dx_;
@@ -202,7 +202,7 @@ void FDTDField::initializeGrid()
                                     pt[1] += 0.5*dy_;
                                     if(objArr_[kk].isObj(pt)==true && kk ==1)
                                         pmlArr_[pp].phys_Hx_->point(ii,jj) = kk;
-                                    pt[0] = ((nx_-1-ii)+0.5-(nx_-1)/2.0)*dx_;
+                                    pt[0] = ((nx_-ii)+0.5-(nx_-1)/2.0)*dx_;
                                     pt[1] = (jj-(ny_-1)/2.0)*dy_;
                                     if(objArr_[kk].isObj(pt)==true)
                                         pmlArr_[pp].phys_Hy_end_->point(ii,jj) = kk;
@@ -213,16 +213,16 @@ void FDTDField::initializeGrid()
                                     if(objArr_[kk].isObj(pt)==true && kk ==1)
                                         pmlArr_[pp].phys_Hx_end_->point(ii,jj) = kk;
                                 }
-                                pt[0]=(ii+0.5-(nx_-1)/2.0)*dx_;
-                                pt[1]=((ny_-1)/2.0)*dy_;
+                                pt[0]=(ii+0.5-(nx_)/2.0)*dx_;
+                                pt[1]=((ny_)/2.0)*dy_;
                                 if(objArr_[kk].isObj(pt)==true)
                                     pmlArr_[pp].phys_Hy_->point(ii,ny_-1) = kk;
                                 pt[0] -= 0.5*dx_;
                                 if(objArr_[kk].isObj(pt)==true)
                                     phys_Ez_->point(ii,ny_-1) = kk;
 
-                                pt[0]=((nx_-1-ii)+0.5-(nx_-1)/2.0)*dx_;
-                                pt[1]=((ny_-1)/2.0)*dy_;
+                                pt[0]=((nx_-ii)+0.5-(nx_-1)/2.0)*dx_;
+                                pt[1]=((ny_)/2.0)*dy_;
                                 if(objArr_[kk].isObj(pt)==true)
                                     pmlArr_[pp].phys_Hy_end_->point(ii,ny_-1) = kk;
                                 pt[0] -= 0.5*dx_;
@@ -237,8 +237,8 @@ void FDTDField::initializeGrid()
                             {
                                 for(int jj = 0; jj < nx_-1;jj++)
                                 {
-                                    pt[0] = (jj+0.5-(nx_-1)/2.0)*dx_;
-                                    pt[1] = (ii-(ny_-1)/2.0)*dy_;
+                                    pt[0] = (jj+0.5-(nx_)/2.0)*dx_;
+                                    pt[1] = (ii-(ny_)/2.0)*dy_;
                                     if(objArr_[kk].isObj(pt)==true)
                                         pmlArr_[pp].phys_Hy_->point(jj,ii) = kk;
                                     pt[0] -= 0.5*dx_;
@@ -247,8 +247,8 @@ void FDTDField::initializeGrid()
                                     pt[1] += 0.5*dy_;
                                     if(objArr_[kk].isObj(pt)==true && kk ==1)
                                         pmlArr_[pp].phys_Hx_->point(jj,ii) = kk;
-                                    pt[0] = (jj+0.5-(nx_-1)/2.0)*dx_;
-                                    pt[1] = (ny_-1-ii-(ny_-1)/2.0)*dy_;
+                                    pt[0] = (jj+0.5-(nx_)/2.0)*dx_;
+                                    pt[1] = (ny_-ii-(ny_)/2.0)*dy_;
                                     if(objArr_[kk].isObj(pt)==true)
                                         pmlArr_[pp].phys_Hy_end_->point(jj,ii) = kk;
                                     pt[0] -= 0.5*dx_;
@@ -258,15 +258,15 @@ void FDTDField::initializeGrid()
                                     if(objArr_[kk].isObj(pt)==true && kk ==1)
                                         pmlArr_[pp].phys_Hx_end_->point(jj,ii) = kk;
                                 }
-                                pt[0]=((nx_-1)/2.0)*dx_;
-                                pt[1]=(ii-(ny_-1)/2.0)*dy_;
+                                pt[0]=((nx_)/2.0)*dx_;
+                                pt[1]=(ii-(ny_)/2.0)*dy_;
                                 if(objArr_[kk].isObj(pt)==true)
                                     phys_Ez_->point(nx_-1,ii) = kk;
                                 pt[1] += 0.5*dy_;
                                 if(objArr_[kk].isObj(pt)==true)
                                     pmlArr_[pp].phys_Hx_->point(nx_-1,ii) = kk;
-                                pt[0]=((nx_-1)/2.0)*dx_;
-                                pt[1]=(ii-(ny_-1)/2.0)*dy_;
+                                pt[0]=((nx_)/2.0)*dx_;
+                                pt[1]=(ii-(ny_)/2.0)*dy_;
                                 if(objArr_[kk].isObj(pt)==true)
                                     phys_Ez_->point(nx_-1,ny_-1-ii) = kk;
                                 pt[1] += 0.5*dy_;
@@ -470,7 +470,7 @@ void FDTDField::initializeGrid()
         while(ii < ny_-yPML_)
         {
             int iistore = ii;
-            while(ii < nx_-xPML_-1 && phys_Ez_ -> point(0,ii) == phys_Ez_ -> point(0,ii+1) )
+            while(ii < ny_-yPML_-1 && phys_Ez_ -> point(0,ii) == phys_Ez_ -> point(0,ii+1) )
                 ii ++;
             array<int,4> tempArr = {0,iistore,ii-iistore+1,phys_Ez_->point(iistore,0)};
             zaxEzList_.push_back(tempArr);
@@ -481,7 +481,7 @@ void FDTDField::initializeGrid()
         while(ii < nx_-xPML_)
         {
             int iistore = ii;
-            while(ii < nx_-xPML_-1 && phys_Ez_ -> point(0,ii) == phys_Ez_ -> point(0,ii+1) )
+            while(ii < ny_-yPML_-1 && phys_Ez_ -> point(0,ii) == phys_Ez_ -> point(0,ii+1) )
                 ii ++;
             int n = nx_-1;
             array<int,4> tempArr = {n,iistore,ii-iistore+1,phys_Ez_->point(iistore,0)};
@@ -551,16 +551,266 @@ void FDTDField::initializeGrid()
             ii++;
         }
     }
-    if(precalcPML_ == true)
+    for(int kk = 0; kk < pmlArr_.size(); kk++)
     {
-        for(int kk = 0; kk < pmlArr_.size(); kk++)
+        double eps=0.0;
+        double kapx = 1.0; double kapy = 1.0; double kapz = 1.0;
+        switch(pmlArr_[kk].d())
         {
-            double eps=0.0;
-            double kapx = 1.0; double kapy = 1.0; double kapz = 1.0;
-
-            switch(pmlArr_[kk].d())
+            case X:
             {
-                case X:
+                if(yPML_!= 0)
+                {
+                    for(int ii = 1; ii < pmlArr_[kk].thickness();ii++)
+                    {
+                        int jj = yPML_;
+                        while(jj < ny_-yPML_)
+                        {
+                            int jjstore = jj;
+                            while(jj < ny_-yPML_-1 && pmlArr_[kk].phys_Hx_ -> point(ii,jj) == pmlArr_[kk].phys_Hx_ -> point(ii,jj+1) )
+                                jj ++;
+                            array<int,4> tempArr = {ii, jjstore , jj-jjstore+1 , pmlArr_[kk].phys_Hx_->point(ii,jjstore)};
+                            pmlArr_[kk].zaxHxList_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = yPML_;
+                        while(jj < ny_-yPML_)
+                        {
+                            int jjstore = jj;
+                            while(jj < ny_-yPML_-1 && pmlArr_[kk].phys_Hx_end_ -> point(ii,jj) == pmlArr_[kk].phys_Hx_end_ -> point(ii,jj+1) )
+                                jj ++;
+                            array<int,4> tempArr = {ii,jjstore,jj-jjstore+1,pmlArr_[kk].phys_Hx_end_->point(ii,jjstore)};
+                            pmlArr_[kk].zaxHxList_end_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = yPML_;
+                        while(jj < ny_-yPML_)
+                        {
+                            int jjstore = jj;
+                            while(jj < ny_-yPML_-1 && pmlArr_[kk].phys_Hy_ -> point(ii,jj) == pmlArr_[kk].phys_Hy_ -> point(ii,jj+1) )
+                                jj ++;
+                            array<int,4> tempArr = {ii,jjstore,jj-jjstore+1,pmlArr_[kk].phys_Hy_->point(ii,jjstore)};
+                            pmlArr_[kk].zaxHyList_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = yPML_;
+                        while(jj < ny_-yPML_)
+                        {
+                            int jjstore = jj;
+                            while(jj < ny_-yPML_-1 && pmlArr_[kk].phys_Hy_end_ -> point(ii,jj) == pmlArr_[kk].phys_Hy_end_ -> point(ii,jj+1) )
+                                jj ++;
+                            array<int,4> tempArr = {ii,jjstore,jj-jjstore+1,pmlArr_[kk].phys_Hy_end_->point(ii,jjstore)};
+                            pmlArr_[kk].zaxHyList_end_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = yPML_;
+                        while(jj < ny_-yPML_)
+                        {
+                            int jjstore = jj;
+                            while(jj < ny_-yPML_-1 && phys_Ez_ -> point(ii,jj) == phys_Ez_ -> point(ii,jj+1) )
+                                jj ++;
+                            array<int,4> tempArr = {ii,jjstore,jj-jjstore+1,phys_Ez_ -> point(ii,jjstore)};
+                            pmlArr_[kk].zaxEzList_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = yPML_;
+                        while(jj < ny_-yPML_)
+                        {
+                            int jjstore = jj;
+                            while(jj < ny_-yPML_-1 && phys_Ez_ -> point(nx_-1-ii,jj) == phys_Ez_ -> point(nx_-1-ii,jj+1) )
+                                jj ++;
+                            int n = nx_-1-ii;
+                            array<int,4> tempArr = {n,jjstore,jj-jjstore+1,phys_Ez_->point(nx_-1-ii,jjstore)};
+                            pmlArr_[kk].zaxEzList_end_.push_back(tempArr);
+                            jj++;
+                        }
+                    }
+                    pmlArr_[kk].Hy0EdgeInd_ = pmlArr_[kk].zaxHyList_.size();
+                    pmlArr_[kk].Hx0EdgeInd_ = pmlArr_[kk].zaxHxList_.size();
+                    pmlArr_[kk].Ez0EdgeInd_ = pmlArr_[kk].zaxEzList_.size();
+                    pmlArr_[kk].HynEdgeInd_ = pmlArr_[kk].zaxHyList_end_.size();
+                    pmlArr_[kk].HxnEdgeInd_ = pmlArr_[kk].zaxHyList_end_.size();
+                    pmlArr_[kk].EznEdgeInd_ = pmlArr_[kk].zaxHyList_end_.size();
+                    int jj = yPML_;
+                    while(jj < ny_-yPML_)
+                    {
+                        int jjstore = jj;
+                        while(jj < ny_-yPML_-1 && pmlArr_[kk].phys_Hx_ -> point(0,jj) == pmlArr_[kk].phys_Hx_ -> point(0,jj+1) )
+                            jj ++;
+                        array<int,4> tempArr = {0,jjstore,jj-jjstore+1,pmlArr_[kk].phys_Hx_->point(0,jjstore)};
+                        pmlArr_[kk].zaxHxList_.push_back(tempArr);
+                        jj++;
+                    }
+                    jj = yPML_;
+                    while(jj < ny_-yPML_)
+                    {
+                        int jjstore = jj;
+                        while(jj < ny_-yPML_-1 && pmlArr_[kk].phys_Hx_end_ -> point(0,jj) == pmlArr_[kk].phys_Hx_end_ -> point(0,jj+1) )
+                            jj ++;
+                        array<int,4> tempArr = {0,jjstore,jj-jjstore+1,pmlArr_[kk].phys_Hx_end_->point(0,jjstore)};
+                        pmlArr_[kk].zaxHxList_end_.push_back(tempArr);
+                        jj++;
+                    }
+                    jj = yPML_;
+                    while(jj < ny_-yPML_)
+                    {
+                        int jjstore = jj;
+                        while(jj < ny_-yPML_-1 && pmlArr_[kk].phys_Hy_ -> point(0,jj) == pmlArr_[kk].phys_Hy_ -> point(0,jj+1) )
+                            jj ++;
+                        array<int,4> tempArr = {0,jjstore,jj-jjstore+1,pmlArr_[kk].phys_Hy_->point(0,jjstore)};
+                        pmlArr_[kk].zaxHyList_.push_back(tempArr);
+                        jj++;
+                    }
+                    jj = yPML_;
+                    while(jj < ny_-yPML_)
+                    {
+                        int jjstore = jj;
+                        while(jj < ny_-yPML_-1 && phys_Ez_ -> point(0,jj) == phys_Ez_ -> point(0,jj+1) )
+                            jj ++;
+                        int n = nx_-1;
+                        array<int,4> tempArr = {n,jjstore,jj-jjstore+1,phys_Ez_->point(jjstore,0)};
+                        pmlArr_[kk].zaxEzList_.push_back(tempArr);
+                        jj++;
+                    }
+                    jj = yPML_;
+                    while(jj < ny_-yPML_)
+                    {
+                        int jjstore = jj;
+                        while(jj < ny_-yPML_-1 && phys_Ez_ -> point(nx_-1,jj) == phys_Ez_ -> point(nx_-1,jj+1) )
+                            jj ++;
+                        int n = nx_-1;
+                        array<int,4> tempArr = {n,jjstore,jj-jjstore+1,phys_Ez_->point(nx_-1,jjstore)};
+                        pmlArr_[kk].zaxEzList_end_.push_back(tempArr);
+                        jj++;
+                    }
+                }
+                else
+                {
+                    for(int ii = 1; ii < pmlArr_[kk].thickness();ii++)
+                    {
+                        int jj = 1;
+                        while(jj < ny_-1)
+                        {
+                            int jjstore = jj;
+                            while(jj < ny_-1-1 && pmlArr_[kk].phys_Hx_ -> point(ii,jj) == pmlArr_[kk].phys_Hx_ -> point(ii,jj+1) )
+                                jj ++;
+                            array<int,4> tempArr = {ii,jjstore,jj-jjstore+1,pmlArr_[kk].phys_Hx_->point(ii,jjstore)};
+                            pmlArr_[kk].zaxHxList_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = 1;
+                        while(jj < ny_-1)
+                        {
+                            int jjstore = jj;
+                            while(jj < ny_-1-1 && pmlArr_[kk].phys_Hx_end_ -> point(ii,jj) == pmlArr_[kk].phys_Hx_end_ -> point(ii,jj+1) )
+                                jj ++;
+                            array<int,4> tempArr = {ii,jjstore,jj-jjstore+1,pmlArr_[kk].phys_Hx_end_->point(ii,jjstore)};
+                            pmlArr_[kk].zaxHxList_end_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = 1;
+                        while(jj < ny_-1)
+                        {
+                            int jjstore = jj;
+                            while(jj < ny_-1-1 && pmlArr_[kk].phys_Hy_ -> point(ii,jj) == pmlArr_[kk].phys_Hy_ -> point(ii,jj+1) )
+                                jj ++;
+                            array<int,4> tempArr = {ii,jjstore,jj-jjstore+1,pmlArr_[kk].phys_Hy_->point(ii,jjstore)};
+                            pmlArr_[kk].zaxHyList_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = 1;
+                        while(jj < ny_-1)
+                        {
+                            int jjstore = jj;
+                            while(jj < ny_-1-1 && pmlArr_[kk].phys_Hy_end_ -> point(ii,jj) == pmlArr_[kk].phys_Hy_end_ -> point(ii,jj+1) )
+                                jj ++;
+                            array<int,4> tempArr = {ii,jjstore,jj-jjstore+1,pmlArr_[kk].phys_Hy_end_->point(ii,jjstore)};
+                            pmlArr_[kk].zaxHyList_end_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = 1;
+                        while(jj < ny_-1)
+                        {
+                            int jjstore = jj;
+                            while(jj < ny_-1-1 && phys_Ez_ -> point(ii,jj) == phys_Ez_ -> point(ii,jj+1) )
+                                jj ++;
+                            array<int,4> tempArr = {ii,jjstore,jj-jjstore+1,phys_Ez_->point(jjstore,0)};
+                            pmlArr_[kk].zaxEzList_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = 1;
+                        while(jj < ny_-1)
+                        {
+                            int jjstore = jj;
+                            while(jj < ny_-1-1 && phys_Ez_ -> point(nx_-1-ii,jj) == phys_Ez_ -> point(nx_-1-ii,jj+1) )
+                                jj ++;
+                            int n = nx_-1-ii;
+                            array<int,4> tempArr = {n,jjstore,jj-jjstore+1,phys_Ez_->point(nx_-1-ii,jjstore)};
+                            pmlArr_[kk].zaxEzList_end_.push_back(tempArr);
+                            jj++;
+                        }
+                    }
+                    pmlArr_[kk].Hy0EdgeInd_ = pmlArr_[kk].zaxHyList_.size();
+                    pmlArr_[kk].Hx0EdgeInd_ = pmlArr_[kk].zaxHxList_.size();
+                    pmlArr_[kk].Ez0EdgeInd_ = pmlArr_[kk].zaxEzList_.size();
+                    pmlArr_[kk].HynEdgeInd_ = pmlArr_[kk].zaxHyList_end_.size();
+                    pmlArr_[kk].HxnEdgeInd_ = pmlArr_[kk].zaxHyList_end_.size();
+                    pmlArr_[kk].EznEdgeInd_ = pmlArr_[kk].zaxHyList_end_.size();
+                    int jj = 1;
+                    while(jj < ny_-1)
+                    {
+                        int jjstore = jj;
+                        while(jj < ny_-1-1 && pmlArr_[kk].phys_Hx_ -> point(0,jj) == pmlArr_[kk].phys_Hx_ -> point(0,jj+1) )
+                            jj ++;
+                        array<int,4> tempArr = {0,jjstore,jj-jjstore+1,pmlArr_[kk].phys_Hx_->point(0,jjstore)};
+                        pmlArr_[kk].zaxHxList_.push_back(tempArr);
+                        jj++;
+                    }
+                    jj = 1;
+                    while(jj < ny_-1)
+                    {
+                        int jjstore = jj;
+                        while(jj < ny_-1-1 && pmlArr_[kk].phys_Hx_end_ -> point(0,jj) == pmlArr_[kk].phys_Hx_end_ -> point(0,jj+1) )
+                            jj ++;
+                        array<int,4> tempArr = {0,jjstore,jj-jjstore+1,pmlArr_[kk].phys_Hx_end_->point(0,jjstore)};
+                        pmlArr_[kk].zaxHxList_end_.push_back(tempArr);
+                        jj++;
+                    }
+                    jj = 1;
+                    while(jj < ny_-1)
+                    {
+                        int jjstore = jj;
+                        while(jj < ny_-1-1 && pmlArr_[kk].phys_Hy_ -> point(0,jj) == pmlArr_[kk].phys_Hy_ -> point(0,jj+1) )
+                            jj ++;
+                        array<int,4> tempArr = {0,jjstore,jj-jjstore+1,pmlArr_[kk].phys_Hy_->point(0,jjstore)};
+                        pmlArr_[kk].zaxHyList_.push_back(tempArr);
+                        jj++;
+                    }
+                    // Hy_end(0,jj) does not exist
+                    jj = 1;
+                    while(jj < ny_-1)
+                    {
+                        int jjstore = jj;
+                        while(jj < ny_-1-1 && phys_Ez_ -> point(0,jj) == phys_Ez_ -> point(0,jj+1) )
+                            jj ++;
+                        array<int,4> tempArr = {0,jjstore,jj-jjstore+1,phys_Ez_->point(jjstore,0)};
+                        pmlArr_[kk].zaxEzList_.push_back(tempArr);
+                        jj++;
+                    }
+                    jj = 1;
+                    while(jj < ny_-1)
+                    {
+                        int jjstore = jj;
+                        while(jj < ny_-1-1 && phys_Ez_ -> point(nx_-1,jj) == phys_Ez_ -> point(nx_-1,jj+1) )
+                            jj ++;
+                        int n = nx_-1;
+                        array<int,4> tempArr = {n,jjstore,jj-jjstore+1,phys_Ez_->point(nx_-1,jjstore)};
+                        pmlArr_[kk].zaxEzList_end_.push_back(tempArr);
+                        jj++;
+                    }
+
+                }
+                if(precalcPML_ == true)
                 {
                     double sigz = 0.0; double sigx = 0.0; double sigy = 0.0;
                     double sigxx = 0.0; double sigxy = 0.0; double sigyx = 0.0; double sigyy = 0.0;
@@ -1230,9 +1480,271 @@ void FDTDField::initializeGrid()
                             }
                         }
                     }
-                    break;
                 }
-                case Y:
+                break;
+            }
+            case Y:
+            {
+                if(xPML_!= 0)
+                {
+                    for(int ii = 1; ii < pmlArr_[kk].thickness();ii++)
+                    {
+                        int jj = xPML_;
+                        while(jj < nx_-xPML_)
+                        {
+                            int jjstore = jj;
+                            while(jj < nx_-xPML_-1 && pmlArr_[kk].phys_Hx_ -> point(jj,ii) == pmlArr_[kk].phys_Hx_ -> point(jj+1,ii))
+                                jj ++;
+                            array<int,4> tempArr = {jjstore,ii,jj-jjstore+1,pmlArr_[kk].phys_Hx_->point(jjstore,ii)};
+                            pmlArr_[kk].zaxHxList_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = xPML_;
+                        while(jj < nx_-xPML_)
+                        {
+                            int jjstore = jj;
+                            while(jj < nx_-xPML_-1 && pmlArr_[kk].phys_Hx_end_ -> point(jj,ii) == pmlArr_[kk].phys_Hx_end_ -> point(jj+1,ii) )
+                                jj ++;
+                            array<int,4> tempArr = {jjstore,ii,jj-jjstore+1,pmlArr_[kk].phys_Hx_end_->point(jjstore,ii)};
+                            pmlArr_[kk].zaxHxList_end_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = xPML_;
+                        while(jj < nx_-xPML_)
+                        {
+                            int jjstore = jj;
+                            while(jj < nx_-xPML_-1 && pmlArr_[kk].phys_Hy_ -> point(jj,ii) == pmlArr_[kk].phys_Hy_ -> point(jj+1,ii) )
+                                jj ++;
+                            array<int,4> tempArr = {jjstore,ii,jj-jjstore+1,pmlArr_[kk].phys_Hy_->point(jjstore,ii)};
+                            pmlArr_[kk].zaxHyList_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = xPML_;
+                        while(jj < nx_-xPML_)
+                        {
+                            int jjstore = jj;
+                            while(jj < nx_-xPML_-1 && pmlArr_[kk].phys_Hy_end_ -> point(jj,ii) == pmlArr_[kk].phys_Hy_end_ -> point(jj+1,ii) )
+                                jj ++;
+                            array<int,4> tempArr = {jjstore,ii,jj-jjstore+1,pmlArr_[kk].phys_Hy_end_->point(jjstore,ii)};
+                            pmlArr_[kk].zaxHyList_end_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = xPML_;
+                        while(jj < nx_-xPML_)
+                        {
+                            int jjstore = jj;
+                            while(jj < nx_-xPML_-1 && phys_Ez_ -> point(jj,ii) == phys_Ez_ -> point(jj+1,ii) )
+                                jj ++;
+                            array<int,4> tempArr = {jjstore,ii,jj-jjstore+1,phys_Ez_->point(jjstore,ii)};
+                            pmlArr_[kk].zaxEzList_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = xPML_;
+                        while(jj < nx_-xPML_)
+                        {
+                            int jjstore = jj;
+                            while(jj < nx_-xPML_-1 && phys_Ez_ -> point(jj,ny_-1-ii) == phys_Ez_ -> point(jj+1,ny_-1-ii) )
+                                jj ++;
+                            int n = ny_-1-ii;
+                            array<int,4> tempArr = {jjstore,n,jj-jjstore+1,phys_Ez_->point(jjstore,ny_-1-ii)};
+                            pmlArr_[kk].zaxEzList_end_.push_back(tempArr);
+                            jj++;
+                        }
+                    }
+                    pmlArr_[kk].Hy0EdgeInd_ = pmlArr_[kk].zaxHyList_.size();
+                    pmlArr_[kk].Hx0EdgeInd_ = pmlArr_[kk].zaxHxList_.size();
+                    pmlArr_[kk].Ez0EdgeInd_ = pmlArr_[kk].zaxEzList_.size();
+                    pmlArr_[kk].HynEdgeInd_ = pmlArr_[kk].zaxHyList_end_.size();
+                    pmlArr_[kk].HxnEdgeInd_ = pmlArr_[kk].zaxHyList_end_.size();
+                    pmlArr_[kk].EznEdgeInd_ = pmlArr_[kk].zaxHyList_end_.size();
+                    int jj = xPML_;
+                    while(jj < nx_-xPML_)
+                    {
+                        int jjstore = jj;
+                        while(jj < nx_-xPML_-1 && pmlArr_[kk].phys_Hx_ -> point(jj,0) == pmlArr_[kk].phys_Hx_ -> point(jj+1,0) )
+                            jj ++;
+                        array<int,4> tempArr = {jjstore,0,jj-jjstore+1,pmlArr_[kk].phys_Hx_->point(jjstore,0)};
+                        pmlArr_[kk].zaxHxList_.push_back(tempArr);
+                        jj++;
+                    }
+                    //Hx_end (jj,0) does not exist
+                    jj = xPML_;
+                    while(jj < nx_-xPML_)
+                    {
+                        int jjstore = jj;
+                        while(jj < nx_-xPML_-1 && pmlArr_[kk].phys_Hy_ -> point(jj,0) == pmlArr_[kk].phys_Hy_ -> point(jj+1,0) )
+                            jj ++;
+                        array<int,4> tempArr = {jjstore,0,jj-jjstore+1,pmlArr_[kk].phys_Hy_->point(jjstore,0)};
+                        pmlArr_[kk].zaxHyList_.push_back(tempArr);
+                        jj++;
+                    }
+                    jj = xPML_;
+                    while(jj < nx_-xPML_)
+                    {
+                        int jjstore = jj;
+                        while(jj < nx_-xPML_-1 && pmlArr_[kk].phys_Hy_end_ -> point(jj,0) == pmlArr_[kk].phys_Hy_end_ -> point(jj+1,0) )
+                            jj ++;
+                        array<int,4> tempArr = {jjstore,0,jj-jjstore+1,pmlArr_[kk].phys_Hy_end_->point(jjstore,0)};
+                        pmlArr_[kk].zaxHyList_end_.push_back(tempArr);
+                        jj++;
+                    }
+                    jj = xPML_;
+                    while(jj < nx_-xPML_)
+                    {
+                        int jjstore = jj;
+                        while(jj < nx_-xPML_-1 && phys_Ez_ -> point(jj,0) == phys_Ez_ -> point(jj+1,0) )
+                            jj ++;
+                        array<int,4> tempArr = {jjstore,0,jj-jjstore+1,phys_Ez_->point(jjstore,0)};
+                        pmlArr_[kk].zaxEzList_.push_back(tempArr);
+                        jj++;
+                    }
+                    jj = xPML_;
+                    while(jj < nx_-xPML_)
+                    {
+                        int jjstore = jj;
+                        while(jj < nx_-xPML_-1 && phys_Ez_ -> point(jj,ny_-1) == phys_Ez_ -> point(jj+1,ny_-1) )
+                            jj ++;
+                        int n = ny_-1;
+                        array<int,4> tempArr = {jjstore,n,jj-jjstore+1,phys_Ez_->point(jjstore,ny_-1)};
+                        pmlArr_[kk].zaxEzList_end_.push_back(tempArr);
+                        jj++;
+                    }
+                }
+                else
+                {
+                    for(int ii = 1; ii < pmlArr_[kk].thickness();ii++)
+                    {
+                        int jj = 1;
+                        while(jj < nx_-1)
+                        {
+                            int jjstore = jj;
+                            while(jj < nx_-1-1 && pmlArr_[kk].phys_Hx_ -> point(jj,ii) == pmlArr_[kk].phys_Hx_ -> point(jj+1,ii))
+                                jj ++;
+                            array<int,4> tempArr = {jjstore,ii,jj-jjstore+1,pmlArr_[kk].phys_Hx_->point(jjstore,ii)};
+                            pmlArr_[kk].zaxHxList_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = 1;
+                        while(jj < nx_-1)
+                        {
+                            int jjstore = jj;
+                            while(jj < nx_-1-1 && pmlArr_[kk].phys_Hx_end_ -> point(jj,ii) == pmlArr_[kk].phys_Hx_end_ -> point(jj+1,ii) )
+                                jj ++;
+                            array<int,4> tempArr = {jjstore,ii,jj-jjstore+1,pmlArr_[kk].phys_Hx_end_->point(jjstore,ii)};
+                            pmlArr_[kk].zaxHxList_end_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = 1;
+                        while(jj < nx_-1)
+                        {
+                            int jjstore = jj;
+                            while(jj < nx_-1-1 && pmlArr_[kk].phys_Hy_ -> point(jj,ii) == pmlArr_[kk].phys_Hy_ -> point(jj+1,ii) )
+                                jj ++;
+                            array<int,4> tempArr = {jjstore,ii,jj-jjstore+1,pmlArr_[kk].phys_Hy_->point(jjstore,ii)};
+                            pmlArr_[kk].zaxHyList_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = 1;
+                        while(jj < nx_-1)
+                        {
+                            int jjstore = jj;
+                            while(jj < nx_-1-1 && pmlArr_[kk].phys_Hy_end_ -> point(jj,ii) == pmlArr_[kk].phys_Hy_end_ -> point(jj+1,ii) )
+                                jj ++;
+                            array<int,4> tempArr = {jjstore,ii,jj-jjstore+1,pmlArr_[kk].phys_Hy_end_->point(jjstore,ii)};
+                            pmlArr_[kk].zaxHyList_end_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = 1;
+                        while(jj < nx_-1)
+                        {
+                            int jjstore = jj;
+                            while(jj < nx_-1-1 && phys_Ez_ -> point(jj,ii) == phys_Ez_ -> point(jj+1,ii) )
+                                jj ++;
+                            array<int,4> tempArr = {jjstore,ii,jj-jjstore+1,phys_Ez_->point(jjstore,ii)};
+                            pmlArr_[kk].zaxEzList_.push_back(tempArr);
+                            jj++;
+                        }
+                        jj = 1;
+                        while(jj < nx_-1)
+                        {
+                            int jjstore = jj;
+                            while(jj < nx_-1-1 && phys_Ez_ -> point(jj,ny_-1-ii) == phys_Ez_ -> point(jj+1,ny_-1-ii) )
+                                jj ++;
+                            int n =ny_-1-ii;
+                            array<int,4> tempArr = {jjstore,n,jj-jjstore+1,phys_Ez_->point(jjstore,ny_-1-ii)};
+                            pmlArr_[kk].zaxEzList_end_.push_back(tempArr);
+                            jj++;
+                        }
+                    }
+                    pmlArr_[kk].Hy0EdgeInd_ = pmlArr_[kk].zaxHyList_.size();
+                    pmlArr_[kk].Hx0EdgeInd_ = pmlArr_[kk].zaxHxList_.size();
+                    pmlArr_[kk].Ez0EdgeInd_ = pmlArr_[kk].zaxEzList_.size();
+                    pmlArr_[kk].HynEdgeInd_ = pmlArr_[kk].zaxHyList_end_.size();
+                    pmlArr_[kk].HxnEdgeInd_ = pmlArr_[kk].zaxHyList_end_.size();
+                    pmlArr_[kk].EznEdgeInd_ = pmlArr_[kk].zaxHyList_end_.size();
+                    int jj = 1;
+                    while(jj < nx_-1)
+                    {
+                        int jjstore = jj;
+                        while(jj < nx_-1-1 && pmlArr_[kk].phys_Hx_ -> point(jj,0) == pmlArr_[kk].phys_Hx_ -> point(jj+1,0) )
+                            jj ++;
+                        array<int,4> tempArr = {jjstore,0,jj-jjstore+1,pmlArr_[kk].phys_Hx_->point(jjstore,0)};
+                        pmlArr_[kk].zaxHxList_.push_back(tempArr);
+                        jj++;
+                    }
+                    jj = 1;
+                    while(jj < nx_-1)
+                    {
+                        int jjstore = jj;
+                        while(jj < nx_-1-1 && pmlArr_[kk].phys_Hx_end_ -> point(jj,0) == pmlArr_[kk].phys_Hx_end_ -> point(jj+1,0) )
+                            jj ++;
+                        array<int,4> tempArr = {jjstore,0,jj-jjstore+1,pmlArr_[kk].phys_Hx_end_->point(jjstore,0)};
+                        pmlArr_[kk].zaxHxList_end_.push_back(tempArr);
+                        jj++;
+                    }
+                    jj = 1;
+                    while(jj < nx_-1)
+                    {
+                        int jjstore = jj;
+                        while(jj < nx_-1-1 && pmlArr_[kk].phys_Hy_ -> point(jj,0) == pmlArr_[kk].phys_Hy_ -> point(jj+1,0) )
+                            jj ++;
+                        array<int,4> tempArr = {jjstore,0,jj-jjstore+1,pmlArr_[kk].phys_Hy_->point(jjstore,0)};
+                        pmlArr_[kk].zaxHyList_.push_back(tempArr);
+                        jj++;
+                    }
+                    jj = 1;
+                    while(jj < nx_-1)
+                    {
+                        int jjstore = jj;
+                        while(jj < nx_-1-1 && pmlArr_[kk].phys_Hy_end_ -> point(jj,0) == pmlArr_[kk].phys_Hy_end_ -> point(jj+1,0) )
+                            jj ++;
+                        array<int,4> tempArr = {jjstore,0,jj-jjstore+1,pmlArr_[kk].phys_Hy_end_->point(jjstore,0)};
+                        pmlArr_[kk].zaxHyList_end_.push_back(tempArr);
+                        jj++;
+                    }
+                    jj = 1;
+                    while(jj < nx_-1)
+                    {
+                        int jjstore = jj;
+                        while(jj < nx_-1-1 && phys_Ez_ -> point(jj,0) == phys_Ez_ -> point(jj+1,0) )
+                            jj ++;
+                        array<int,4> tempArr = {jjstore,0,jj-jjstore+1,phys_Ez_->point(jjstore,0)};
+                        pmlArr_[kk].zaxEzList_.push_back(tempArr);
+                        jj++;
+                    }
+                    jj = 1;
+                    while(jj < nx_-1)
+                    {
+                        int jjstore = jj;
+                        while(jj < nx_-1-1 && phys_Ez_ -> point(jj,ny_-1) == phys_Ez_ -> point(jj+1,ny_-1) )
+                            jj ++;
+                        int n = ny_-1;
+                        array<int,4> tempArr = {jjstore,n,jj-jjstore+1,phys_Ez_->point(jjstore,ny_-1)};
+                        pmlArr_[kk].zaxEzList_end_.push_back(tempArr);
+                        jj++;
+                    }
+                }
+                if(precalcPML_ == true)
                 {
                     double sigz = 0.0; double sigx = 0.0; double sigy = 0.0;
                     double sigxx = 0.0; double sigxy = 0.0; double sigyx = 0.0; double sigyy = 0.0;
@@ -1904,17 +2416,16 @@ void FDTDField::initializeGrid()
                             }
                         }
                     }
-                    break;
                 }
-                case Z:
-                    throw logic_error("We sadly have not implimented the Z direction yet. Please stay tuned as we develop it");
-                    break;
-                default:
-                    throw logic_error("Please refrain from inventing new dimensions within an FDTD simulation, we just can't handle that type of innovative thinking");
-                    break;
+                break;
             }
+            case Z:
+                throw logic_error("We sadly have not implimented the Z direction yet. Please stay tuned as we develop it");
+                break;
+            default:
+                throw logic_error("Please refrain from inventing new dimensions within an FDTD simulation, we just can't handle that type of innovative thinking");
+                break;
         }
-
     }
 }
 /**
@@ -2117,12 +2628,89 @@ void FDTDField::updateH()
                         double sigyx = 0.0;
                         double sigyy = 0.0;
 
-                        double c_bxb=0.0; double c_bxe=0.0; double c_hxh=0.0; double c_hxb0=0.0; double c_hxb1=0.0;
-                        double c_byb=0.0; double c_bye=0.0; double c_hyh=0.0;double c_hyb0=0.0; double c_hyb1=0.0;
+                        complex<double> c_bxb(0.0,0.0); double c_bxe=0.0; complex<double> c_hxh(0.0,0.0); double c_hxb0=0.0; double c_hxb1=0.0;
+                        complex<double> c_byb(0.0,0.0); double c_bye=0.0; complex<double> c_hyh(0.0,0.0);double c_hyb0=0.0; double c_hyb1=0.0;
 
-                        complex<double> bxstore(0.0,0.0); complex<double> bystore(0.0,0.0);
                         if (yPML_== 0)
                         {
+                            complex<double> bxstore(0.0,0.0); complex<double> bystore(0.0,0.0);
+
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHxList_.size(); zz++)
+                            {
+                                eps = objArr_[pmlArr_[kk].zaxHxList_[zz][3]].dielectric(1.0);
+                                sigxx = pmlArr_[kk].sigma(static_cast<double>(pmlArr_[kk].zaxHxList_[zz][0]),eps);
+                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                vector<complex<double>> bxstore(pmlArr_[kk].zaxHxList_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHxList_[zz][2], &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), pmlArr_[kk].thickness(), bxstore.data(),1);
+                                zscal_(pmlArr_[kk].zaxHxList_[zz][2], c_bxb, &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),pmlArr_[kk].thickness());
+                                zscal_(pmlArr_[kk].zaxHxList_[zz][2], c_hxh, &Hx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),nx_);
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2], -1.0*c_bxe , &Ez_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]+1), nx_, &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),pmlArr_[kk].thickness());
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2],      c_bxe , &Ez_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]  ), nx_, &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),pmlArr_[kk].thickness());
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2], c_hxb1     , &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), pmlArr_[kk].thickness(), &Hx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),nx_);
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2], -1.0*c_hxb1, bxstore.data(),1, &Hx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),nx_);
+                            }
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHxList_.size(); zz++)
+                            {
+                                eps = objArr_[pmlArr_[kk].zaxHxList_end_[zz][3]].dielectric(1.0);
+                                sigxx = pmlArr_[kk].sigma(static_cast<double>(pmlArr_[kk].zaxHxList_[zz][0]),eps);
+                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                vector<complex<double>> bxstore(pmlArr_[kk].zaxHxList_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHxList_end_[zz][2], &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]), pmlArr_[kk].thickness(), bxstore.data(),1);
+                                zscal_(pmlArr_[kk].zaxHxList_end_[zz][2], c_bxb, &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),pmlArr_[kk].thickness());
+                                zscal_(pmlArr_[kk].zaxHxList_end_[zz][2], c_hxh, &Hx_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),nx_);
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2], -1.0*c_bxe , &Ez_->point(nx_-1-pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]+1), nx_, &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),pmlArr_[kk].thickness());
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2],      c_bxe , &Ez_->point(nx_-1-pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]  ), nx_, &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),pmlArr_[kk].thickness());
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2], c_hxb1     , &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]), pmlArr_[kk].thickness(), &Hx_->point(nx_-1-pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),nx_);
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2], -1.0*c_hxb1, bxstore.data(),1, &Hx_->point(nx_-1-pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),nx_);
+                            }
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHyList_.size(); zz++)
+                            {
+                                eps = objArr_[pmlArr_[kk].zaxHyList_[zz][3]].dielectric(1.0);
+                                sigxy = pmlArr_[kk].sigma(static_cast<double>(pmlArr_[kk].zaxHyList_[zz][0]),eps);
+                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                vector<complex<double>> bystore(pmlArr_[kk].zaxHxList_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHyList_[zz][2], &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]), pmlArr_[kk].thickness(), bystore.data(),1);
+                                zscal_(pmlArr_[kk].zaxHyList_[zz][2], c_byb, &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),pmlArr_[kk].thickness());
+                                zscal_(pmlArr_[kk].zaxHyList_[zz][2], c_hyh, &Hx_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),nx_);
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2],      c_bye , &Ez_->point(pmlArr_[kk].zaxHyList_[zz][0]+1,pmlArr_[kk].zaxHyList_[zz][1]), nx_, &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),pmlArr_[kk].thickness());
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2], -1.0*c_bye , &Ez_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]  ), nx_, &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),pmlArr_[kk].thickness());
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2], c_hyb1     , &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]), pmlArr_[kk].thickness(), &Hx_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),nx_);
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2], -1.0*c_hyb0, bystore.data(),1, &Hx_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),nx_);
+                            }
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHyList_end_.size(); zz++)
+                            {
+                                eps = objArr_[pmlArr_[kk].zaxHyList_end_[zz][3]].dielectric(1.0);
+                                sigxy = pmlArr_[kk].sigma(static_cast<double>(pmlArr_[kk].zaxHyList_[zz][0]),eps);
+                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                vector<complex<double>> bystore(pmlArr_[kk].zaxHxList_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHyList_end_[zz][2], &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]), pmlArr_[kk].thickness(), bystore.data(),1);
+                                zscal_(pmlArr_[kk].zaxHyList_end_[zz][2], c_byb, &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),pmlArr_[kk].thickness());
+                                zscal_(pmlArr_[kk].zaxHyList_end_[zz][2], c_hyh, &Hx_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),nx_);
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2], -1.0*c_bye , &Ez_->point(nx_-1-pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]+1), nx_, &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),pmlArr_[kk].thickness());
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2],      c_bye , &Ez_->point(nx_-1-pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]  ), nx_, &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),pmlArr_[kk].thickness());
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2], c_hyb1     , &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]), pmlArr_[kk].thickness(), &Hx_->point(nx_-1-pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),nx_);
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2], -1.0*c_hyb0, bystore.data(),1, &Hx_->point(nx_-1-pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),nx_);
+                            }
                             for (int jj = 0; jj < ny_-1; jj++)
                             {
                                 eps    = objArr_[pmlArr_[kk].phys_Hx_->point(0,jj)].dielectric(1.0);
@@ -2256,7 +2844,94 @@ void FDTDField::updateH()
                         }
                         else
                         {
-                            for (int jj = yPML_; jj < ny_- yPML_; jj++)
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHxList_.size(); zz++)
+                            {
+                                eps = objArr_[pmlArr_[kk].zaxHxList_[zz][3]].dielectric(1.0);
+                                sigxx = pmlArr_[kk].sigma(static_cast<double>(pmlArr_[kk].zaxHxList_[zz][0]),eps);
+                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                vector<complex<double>> bxstore(pmlArr_[kk].zaxHxList_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHxList_[zz][2], &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), pmlArr_[kk].thickness(), bxstore.data(),1);
+
+                                zscal_(pmlArr_[kk].zaxHxList_[zz][2], c_bxb, &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),pmlArr_[kk].thickness());
+
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2], -1.0*c_bxe , &Ez_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]+1), nx_, &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),pmlArr_[kk].thickness());
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2],      c_bxe , &Ez_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]  ), nx_, &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),pmlArr_[kk].thickness());
+
+                                zscal_(pmlArr_[kk].zaxHxList_[zz][2], c_hxh,             &Hx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),nx_);
+
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2], c_hxb1     , &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), pmlArr_[kk].thickness(), &Hx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),nx_);
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2], -1.0*c_hxb0, bxstore.data()                                                                      , 1                      , &Hx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),nx_);
+                            }
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHxList_end_.size(); zz++)
+                            {
+                                eps = objArr_[pmlArr_[kk].zaxHxList_end_[zz][3]].dielectric(1.0);
+                                sigxx = pmlArr_[kk].sigma(static_cast<double>(pmlArr_[kk].zaxHxList_[zz][0]),eps);
+                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                vector<complex<double>> bxstore(pmlArr_[kk].zaxHxList_end_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHxList_end_[zz][2], &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]), pmlArr_[kk].thickness(), bxstore.data(),1);
+
+                                zscal_(pmlArr_[kk].zaxHxList_end_[zz][2], c_bxb, &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),pmlArr_[kk].thickness());
+                                zscal_(pmlArr_[kk].zaxHxList_end_[zz][2], c_hxh,                 &Hx_->point(nx_-1-pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),nx_);
+
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2],      c_bxe , &Ez_->point(nx_-1-pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]  ), nx_, &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),pmlArr_[kk].thickness());
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2], -1.0*c_bxe , &Ez_->point(nx_-1-pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]+1), nx_, &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),pmlArr_[kk].thickness());
+
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2], c_hxb1     , &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]), pmlArr_[kk].thickness(), &Hx_->point(nx_-1-pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),nx_);
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2], -1.0*c_hxb0, bxstore.data()                                                                                  , 1                      , &Hx_->point(nx_-1-pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),nx_);
+                            }
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHyList_.size(); zz++)
+                            {
+                                eps = objArr_[pmlArr_[kk].zaxHyList_[zz][3]].dielectric(1.0);
+                                sigxy = pmlArr_[kk].sigma(static_cast<double>(pmlArr_[kk].zaxHyList_[zz][0]),eps);
+                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                vector<complex<double>> bystore(pmlArr_[kk].zaxHyList_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHyList_[zz][2], &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]), pmlArr_[kk].thickness(), bystore.data(),1);
+
+                                zscal_(pmlArr_[kk].zaxHyList_[zz][2], c_byb, &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),pmlArr_[kk].thickness());
+                                zscal_(pmlArr_[kk].zaxHyList_[zz][2], c_hyh, &Hy_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),nx_-1);
+
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2],      c_bye , &Ez_->point(pmlArr_[kk].zaxHyList_[zz][0]+1,pmlArr_[kk].zaxHyList_[zz][1]), nx_, &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),pmlArr_[kk].thickness());
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2], -1.0*c_bye , &Ez_->point(pmlArr_[kk].zaxHyList_[zz][0]  ,pmlArr_[kk].zaxHyList_[zz][1]), nx_, &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),pmlArr_[kk].thickness());
+
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2], c_hyb1     , &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]), pmlArr_[kk].thickness(), &Hy_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),nx_-1);
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2], -1.0*c_hyb0, bystore.data()                                                                      , 1                      , &Hy_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),nx_-1);
+                            }
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHyList_end_.size(); zz++)
+                            {
+                                eps = objArr_[pmlArr_[kk].zaxHyList_end_[zz][3]].dielectric(1.0);
+                                sigxy = pmlArr_[kk].sigma(static_cast<double>(pmlArr_[kk].zaxHyList_end_[zz][0]),eps);
+                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                vector<complex<double>> bystore(pmlArr_[kk].zaxHyList_end_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHyList_end_[zz][2], &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]), pmlArr_[kk].thickness(), bystore.data(),1);
+
+                                zscal_(pmlArr_[kk].zaxHyList_end_[zz][2], c_byb, &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),pmlArr_[kk].thickness());
+                                zscal_(pmlArr_[kk].zaxHyList_end_[zz][2], c_hyh, &Hy_->point(nx_-1-pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),nx_-1);
+
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2], -1.0*c_bye , &Ez_->point(nx_-1-pmlArr_[kk].zaxHyList_end_[zz][0]  ,pmlArr_[kk].zaxHyList_end_[zz][1]), nx_, &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),pmlArr_[kk].thickness());
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2],      c_bye , &Ez_->point(nx_-1-pmlArr_[kk].zaxHyList_end_[zz][0]+1,pmlArr_[kk].zaxHyList_end_[zz][1]), nx_, &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),pmlArr_[kk].thickness());
+
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2],      c_hyb1, &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]), pmlArr_[kk].thickness(), &Hy_->point(nx_-1-pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),nx_-1);
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2], -1.0*c_hyb0, bystore.data()                                                                                  , 1                      , &Hy_->point(nx_-1-pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),nx_-1);
+                            }
+                            /*for (int jj = yPML_; jj < ny_- yPML_; jj++)
                             {
                                 eps    = objArr_[pmlArr_[kk].phys_Hx_->point(0,jj)].dielectric(1.0);
                                 sigxx  = pmlArr_[kk].sigma(0.0,eps);
@@ -2293,8 +2968,8 @@ void FDTDField::updateH()
                                 bxstore = pmlArr_[kk].Bx_end_->point(0,jj);
                                 pmlArr_[kk].Bx_end_->point(0,jj) = c_bxb * pmlArr_[kk].Bx_end_->point(0,jj) - c_bxe * (Ez_->point(nx_-1, jj+1)-Ez_->point(nx_-1,jj));
                                 Hx_->point(nx_-1,jj) = c_hxh * Hx_->point(nx_-1,jj) + c_hxb1 * pmlArr_[kk].Bx_end_->point(0,jj) - c_hxb0 * bxstore;
-                            }
-                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
+                            }*/
+                            /*for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
                             {
                                 for(int jj = yPML_; jj < ny_- yPML_; jj ++)
                                 {
@@ -2349,9 +3024,12 @@ void FDTDField::updateH()
                                     Hx_->point(nx_-1-ii,jj) = c_hxh * Hx_->point(nx_-1-ii,jj) + c_hxb1 * pmlArr_[kk].Bx_end_->point(ii,jj) - c_hxb0 * bxstore;
                                     Hy_->point(nx_-1-ii,jj) = c_hyh * Hy_->point(nx_-1-ii,jj) + c_hyb1 * pmlArr_[kk].By_end_->point(ii,jj) - c_hyb0 * bystore;
                                 }
-                            }
+                            }*/
+
                             if(kk==0)
                             {
+                                complex<double> bxstore(0.0,0.0); complex<double> bystore(0.0,0.0);
+
                                 kapz = 1.0; sigz = 0.0; eps = 1.0;
                                 kapx = 1.0; kapy = 1.0;
 
@@ -2407,6 +3085,7 @@ void FDTDField::updateH()
                                 bystore = pmlArr_[0].By_->point(0,ny_-1);
                                 pmlArr_[0].By_->point(0,ny_-1) = c_byb * pmlArr_[0].By_->point(0,ny_-1) + c_bye * (Ez_->point(0+1,ny_-1)-Ez_->point(0,ny_-1));
                                 Hy_->point(0,ny_-1) = c_hyh * Hy_->point(0,ny_-1) + c_hyb1 * pmlArr_[0].By_->point(0,ny_-1) - c_hyb0 * bystore;
+
                                 for(int ii = 1; ii < pmlArr_[0].thickness(); ii++)
                                 {
                                     kapz = 1.0; sigz = 0.0; eps = 1.0;
@@ -2575,7 +3254,6 @@ void FDTDField::updateH()
                                     {
                                         kapz = 1.0; sigz = 0.0; eps = 1.0;
                                         kapx = 1.0; kapy = 1.0;
-
                                         eps    = objArr_[pmlArr_[0].phys_Hx_->point(ii,jj)].dielectric(1.0);
                                         sigxx = pmlArr_[0].sigma(static_cast<double>(ii),eps);
                                         sigyx = pmlArr_[1].sigma(static_cast<double>(jj) + 0.5,eps);
@@ -2584,7 +3262,6 @@ void FDTDField::updateH()
                                         c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
                                         c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
                                         c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
                                         eps    = objArr_[pmlArr_[0].phys_Hy_->point(ii,jj)].dielectric(1.0);
                                         sigxy = pmlArr_[0].sigma(static_cast<double>(ii) + 0.5,eps);
                                         sigyy = pmlArr_[1].sigma(static_cast<double>(jj),eps);
@@ -2718,7 +3395,6 @@ void FDTDField::updateH()
                                 bystore = pmlArr_[kk].By_->point(jj,0);
                                 pmlArr_[kk].Bx_->point(jj,0) = c_bxb * pmlArr_[kk].Bx_->point(jj,0) - c_bxe * (Ez_->point(jj,0+1)-Ez_->point(jj,0));
                                 pmlArr_[kk].By_->point(jj,0) = c_byb * pmlArr_[kk].By_->point(jj,0) + c_bye * (Ez_->point(jj+1,0)-Ez_->point(jj,0));
-                                //cout <<"H1"<<endl;
                                 Hx_->point(jj,0) = c_hxh * Hx_->point(jj,0) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,0) - c_hxb0 * bxstore;
                                 Hy_->point(jj,0) = c_hyh * Hy_->point(jj,0) + c_hyb1 * pmlArr_[kk].By_->point(jj,0) - c_hyb0 * bystore;
 
@@ -2781,7 +3457,6 @@ void FDTDField::updateH()
                                     bystore = pmlArr_[kk].By_->point(jj,ii);
                                     pmlArr_[kk].Bx_->point(jj,ii) = c_bxb * pmlArr_[kk].Bx_->point(jj,ii) - c_bxe * (Ez_->point(jj,ii+1)-Ez_->point(jj,ii));
                                     pmlArr_[kk].By_->point(jj,ii) = c_byb * pmlArr_[kk].By_->point(jj,ii) + c_bye * (Ez_->point(jj+1,ii)-Ez_->point(jj,ii));
-                                    //cout <<"H1"<<endl;
                                     Hx_->point(jj,ii) = c_hxh * Hx_->point(jj,ii) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,ii) - c_hxb0 * bxstore;
                                     Hy_->point(jj,ii) = c_hyh * Hy_->point(jj,ii) + c_hyb1 * pmlArr_[kk].By_->point(jj,ii) - c_hyb0 * bystore;
 
@@ -2805,7 +3480,6 @@ void FDTDField::updateH()
                                     bystore = pmlArr_[kk].By_end_->point(jj,ii);
                                     pmlArr_[kk].Bx_end_->point(jj,ii) = c_bxb * pmlArr_[kk].Bx_end_->point(jj,ii) - c_bxe * (Ez_->point(jj,ny_-1-ii+1)-Ez_->point(jj,ny_-1-ii));
                                     pmlArr_[kk].By_end_->point(jj,ii) = c_byb * pmlArr_[kk].By_end_->point(jj,ii) + c_bye * (Ez_->point(jj+1,ny_-1-ii)-Ez_->point(jj,ny_-1-ii));
-                                    //cout <<"H2"<<endl;
                                     Hx_->point(jj,ny_-1-ii) = c_hxh * Hx_->point(jj,ny_-1-ii) + c_hxb1 * pmlArr_[kk].Bx_end_->point(jj,ii) - c_hxb0 * bxstore;
                                     Hy_->point(jj,ny_-1-ii) = c_hyh * Hy_->point(jj,ny_-1-ii) + c_hyb1 * pmlArr_[kk].By_end_->point(jj,ii) - c_hyb0 * bystore;
                                 }
@@ -2824,7 +3498,95 @@ void FDTDField::updateH()
                         }
                         else
                         {
-                            for (int jj = xPML_; jj < nx_-xPML_; jj++)
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHxList_.size(); zz++)
+                            {
+                                eps = objArr_[pmlArr_[kk].zaxHxList_[zz][3]].dielectric(1.0);
+                                sigyx = pmlArr_[kk].sigma(static_cast<double>(pmlArr_[kk].zaxHxList_[zz][1]),eps);
+                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                vector<complex<double>> bxstore(pmlArr_[kk].zaxHxList_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHxList_[zz][2], &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),1, bxstore.data(),1);
+
+                                zscal_(pmlArr_[kk].zaxHxList_[zz][2], c_bxb, &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),1);
+                                zscal_(pmlArr_[kk].zaxHxList_[zz][2], c_hxh,             &Hx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),1);
+
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2], -1.0*c_bxe , &Ez_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]+1), 1, &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),1);
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2],      c_bxe , &Ez_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]  ), 1, &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),1);
+
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2],      c_hxb1, &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), 1, &Hx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), 1);
+                                zaxpy_(pmlArr_[kk].zaxHxList_[zz][2], -1.0*c_hxb0, bxstore.data()                                                                      , 1, &Hx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]), 1);
+
+                            }
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHxList_end_.size(); zz++)
+                            {
+                                eps = objArr_[pmlArr_[kk].zaxHxList_end_[zz][3]].dielectric(1.0);
+                                sigyx = pmlArr_[kk].sigma(static_cast<double>(pmlArr_[kk].zaxHxList_end_[zz][1]),eps);
+                                c_bxb  = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                c_bxe  = 2 * eps * dt_ / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                c_hxh  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb0 = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_hxb1 = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                vector<complex<double>> bxstore(pmlArr_[kk].zaxHxList_end_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHxList_end_[zz][2], &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]), 1, bxstore.data(),1);
+
+                                zscal_(pmlArr_[kk].zaxHxList_end_[zz][2], c_bxb, &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),1);
+                                zscal_(pmlArr_[kk].zaxHxList_end_[zz][2], c_hxh, &Hx_->point(pmlArr_[kk].zaxHxList_end_[zz][0],ny_-1-pmlArr_[kk].zaxHxList_end_[zz][1]),1);
+
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2], -1.0*c_bxe , &Ez_->point(pmlArr_[kk].zaxHxList_end_[zz][0],ny_-1-pmlArr_[kk].zaxHxList_end_[zz][1]+1), 1, &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),1);
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2],      c_bxe , &Ez_->point(pmlArr_[kk].zaxHxList_end_[zz][0],ny_-1-pmlArr_[kk].zaxHxList_end_[zz][1]  ), 1, &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]),1);
+
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2], c_hxb1     , &pmlArr_[kk].Bx_end_->point(pmlArr_[kk].zaxHxList_end_[zz][0],pmlArr_[kk].zaxHxList_end_[zz][1]), 1, &Hx_->point(pmlArr_[kk].zaxHxList_end_[zz][0],ny_-1-pmlArr_[kk].zaxHxList_end_[zz][1]),1);
+                                zaxpy_(pmlArr_[kk].zaxHxList_end_[zz][2], -1.0*c_hxb0,  bxstore.data()                                                                                 , 1, &Hx_->point(pmlArr_[kk].zaxHxList_end_[zz][0],ny_-1-pmlArr_[kk].zaxHxList_end_[zz][1]),1);
+                            }
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHyList_.size(); zz++)
+                            {
+                                eps = objArr_[pmlArr_[kk].zaxHyList_[zz][3]].dielectric(1.0);
+                                sigyy = pmlArr_[kk].sigma(static_cast<double>(pmlArr_[kk].zaxHyList_[zz][1]),eps);
+                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                vector<complex<double>> bystore(pmlArr_[kk].zaxHxList_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHyList_[zz][2], &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]), 1, bystore.data(),1);
+
+                                zscal_(pmlArr_[kk].zaxHyList_[zz][2], c_byb, &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),1);
+                                zscal_(pmlArr_[kk].zaxHyList_[zz][2], c_hyh, &Hy_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),1);
+
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2],      c_bye , &Ez_->point(pmlArr_[kk].zaxHyList_[zz][0]+1,pmlArr_[kk].zaxHyList_[zz][1]), 1, &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),1);
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2], -1.0*c_bye , &Ez_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]  ), 1, &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),1);
+
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2], c_hyb1     , &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]), 1, &Hy_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),1);
+                                zaxpy_(pmlArr_[kk].zaxHyList_[zz][2], -1.0*c_hyb0, bystore.data()                                                                      , 1, &Hy_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]),1);
+                            }
+                            for(int zz = 0; zz < pmlArr_[kk].zaxHyList_end_.size(); zz++)
+                            {
+                                eps = objArr_[pmlArr_[kk].zaxHyList_end_[zz][3]].dielectric(1.0);
+                                sigyy = pmlArr_[kk].sigma(static_cast<double>(pmlArr_[kk].zaxHyList_end_[zz][1]),eps);
+                                c_byb  = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                c_bye  = 2 * eps * dt_ / (dy_ * (2*eps*kapz + sigz*dt_));
+                                c_hyh  = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                vector<complex<double>> bystore(pmlArr_[kk].zaxHxList_[zz][2],0.0);
+                                zcopy_(pmlArr_[kk].zaxHyList_end_[zz][2], &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]), 1, bystore.data(),1);
+
+                                zscal_(pmlArr_[kk].zaxHyList_end_[zz][2], c_byb, &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),1);
+                                zscal_(pmlArr_[kk].zaxHyList_end_[zz][2], c_hyh, &Hy_->point(pmlArr_[kk].zaxHyList_end_[zz][0],ny_-1-pmlArr_[kk].zaxHyList_end_[zz][1]),1);
+
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2],      c_bye , &Ez_->point(pmlArr_[kk].zaxHyList_end_[zz][0]+1,ny_-1-pmlArr_[kk].zaxHyList_end_[zz][1]), 1, &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),1);
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2], -1.0*c_bye , &Ez_->point(pmlArr_[kk].zaxHyList_end_[zz][0]  ,ny_-1-pmlArr_[kk].zaxHyList_end_[zz][1]), 1, &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]),1);
+
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2], c_hyb1     , &pmlArr_[kk].By_end_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]), 1, &Hy_->point(pmlArr_[kk].zaxHyList_end_[zz][0],ny_-1-pmlArr_[kk].zaxHyList_end_[zz][1]),1);
+                                zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2], -1.0*c_hyb0, bystore.data()                                                                                  , 1, &Hy_->point(pmlArr_[kk].zaxHyList_end_[zz][0],ny_-1-pmlArr_[kk].zaxHyList_end_[zz][1]),1);
+                            }
+                            /*for (int jj = xPML_; jj < nx_-xPML_; jj++)
                             {
                                 eps    = objArr_[pmlArr_[kk].phys_Hx_->point(jj,0)].dielectric(1.0);
                                 sigyx = pmlArr_[kk].sigma(0.5,eps);
@@ -2846,7 +3608,6 @@ void FDTDField::updateH()
                                 bystore = pmlArr_[kk].By_->point(jj,0);
                                 pmlArr_[kk].Bx_->point(jj,0) = c_bxb * pmlArr_[kk].Bx_->point(jj,0) - c_bxe * (Ez_->point(jj,0+1)-Ez_->point(jj,0));
                                 pmlArr_[kk].By_->point(jj,0) = c_byb * pmlArr_[kk].By_->point(jj,0) + c_bye * (Ez_->point(jj+1,0)-Ez_->point(jj,0));
-                                //cout <<"H1"<<endl;
                                 Hx_->point(jj,0) = c_hxh * Hx_->point(jj,0) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,0) - c_hxb0 * bxstore;
                                 Hy_->point(jj,0) = c_hyh * Hy_->point(jj,0) + c_hyb1 * pmlArr_[kk].By_->point(jj,0) - c_hyb0 * bystore;
 
@@ -2886,7 +3647,6 @@ void FDTDField::updateH()
                                     bystore = pmlArr_[kk].By_->point(jj,ii);
                                     pmlArr_[kk].Bx_->point(jj,ii) = c_bxb * pmlArr_[kk].Bx_->point(jj,ii) - c_bxe * (Ez_->point(jj,ii+1)-Ez_->point(jj,ii));
                                     pmlArr_[kk].By_->point(jj,ii) = c_byb * pmlArr_[kk].By_->point(jj,ii) + c_bye * (Ez_->point(jj+1,ii)-Ez_->point(jj,ii));
-                                    //cout <<"H1"<<endl;
                                     Hx_->point(jj,ii) = c_hxh * Hx_->point(jj,ii) + c_hxb1 * pmlArr_[kk].Bx_->point(jj,ii) - c_hxb0 * bxstore;
                                     Hy_->point(jj,ii) = c_hyh * Hy_->point(jj,ii) + c_hyb1 * pmlArr_[kk].By_->point(jj,ii) - c_hyb0 * bystore;
 
@@ -2910,11 +3670,10 @@ void FDTDField::updateH()
                                     bystore = pmlArr_[kk].By_end_->point(jj,ii);
                                     pmlArr_[kk].Bx_end_->point(jj,ii) = c_bxb * pmlArr_[kk].Bx_end_->point(jj,ii) - c_bxe * (Ez_->point(jj,ny_-1-ii+1)-Ez_->point(jj,ny_-1-ii));
                                     pmlArr_[kk].By_end_->point(jj,ii) = c_byb * pmlArr_[kk].By_end_->point(jj,ii) + c_bye * (Ez_->point(jj+1,ny_-1-ii)-Ez_->point(jj,ny_-1-ii));
-                                    //cout <<"H2"<<endl;
                                     Hx_->point(jj,ny_-1-ii) = c_hxh * Hx_->point(jj,ny_-1-ii) + c_hxb1 * pmlArr_[kk].Bx_end_->point(jj,ii) - c_hxb0 * bxstore;
                                     Hy_->point(jj,ny_-1-ii) = c_hyh * Hy_->point(jj,ny_-1-ii) + c_hyb1 * pmlArr_[kk].By_end_->point(jj,ii) - c_hyb0 * bystore;
                                 }
-                            }
+                            }*/
                             if(kk==0)
                             {
                                 kapz = 1.0; sigz = 0.0; eps = 1.0;
@@ -3242,6 +4001,7 @@ void FDTDField::updateH()
                                     }
                                 }
                             }
+
                         }
                         break;
                     }
@@ -3488,7 +4248,6 @@ void FDTDField::updateH()
                                 bystore = pmlArr_[kk].By_->point(jj,0);
                                 pmlArr_[kk].Bx_->point(jj,0) = pmlArr_[kk].c_bxb_0_ -> point(jj,0) * pmlArr_[kk].Bx_->point(jj,0) - pmlArr_[kk].c_bxe_0_ -> point(jj,0) * (Ez_->point(jj,0+1)-Ez_->point(jj,0));
                                 pmlArr_[kk].By_->point(jj,0) = pmlArr_[kk].c_byb_0_ -> point(jj,0) * pmlArr_[kk].By_->point(jj,0) + pmlArr_[kk].c_bye_0_ -> point(jj,0) * (Ez_->point(jj+1,0)-Ez_->point(jj,0));
-                                //cout <<"H1"<<endl;
                                 Hx_->point(jj,0) = pmlArr_[kk].c_hxh_0_ -> point(jj,0) * Hx_->point(jj,0) + pmlArr_[kk].c_hxb1_0_ -> point(jj,0) * pmlArr_[kk].Bx_->point(jj,0) - pmlArr_[kk].c_hxb0_0_ -> point(jj,0) * bxstore;
                                 Hy_->point(jj,0) = pmlArr_[kk].c_hyh_0_ -> point(jj,0) * Hy_->point(jj,0) + pmlArr_[kk].c_hyb1_0_ -> point(jj,0) * pmlArr_[kk].By_->point(jj,0) - pmlArr_[kk].c_hyb0_0_ -> point(jj,0) * bystore;
 
@@ -3513,7 +4272,6 @@ void FDTDField::updateH()
                                     bystore = pmlArr_[kk].By_->point(jj,ii);
                                     pmlArr_[kk].Bx_->point(jj,ii) = pmlArr_[kk].c_bxb_0_ -> point(jj,ii) * pmlArr_[kk].Bx_->point(jj,ii) - pmlArr_[kk].c_bxe_0_ -> point(jj,ii) * (Ez_->point(jj,ii+1)-Ez_->point(jj,ii));
                                     pmlArr_[kk].By_->point(jj,ii) = pmlArr_[kk].c_byb_0_ -> point(jj,ii) * pmlArr_[kk].By_->point(jj,ii) + pmlArr_[kk].c_bye_0_ -> point(jj,ii) * (Ez_->point(jj+1,ii)-Ez_->point(jj,ii));
-                                    //cout <<"H1"<<endl;
                                     Hx_->point(jj,ii) = pmlArr_[kk].c_hxh_0_ -> point(jj,ii) * Hx_->point(jj,ii) + pmlArr_[kk].c_hxb1_0_ -> point(jj,ii) * pmlArr_[kk].Bx_->point(jj,ii) - pmlArr_[kk].c_hxb0_0_ -> point(jj,ii) * bxstore;
                                     Hy_->point(jj,ii) = pmlArr_[kk].c_hyh_0_ -> point(jj,ii) * Hy_->point(jj,ii) + pmlArr_[kk].c_hyb1_0_ -> point(jj,ii) * pmlArr_[kk].By_->point(jj,ii) - pmlArr_[kk].c_hyb0_0_ -> point(jj,ii) * bystore;
 
@@ -3521,7 +4279,6 @@ void FDTDField::updateH()
                                     bystore = pmlArr_[kk].By_end_->point(jj,ii);
                                     pmlArr_[kk].Bx_end_->point(jj,ii) = pmlArr_[kk].c_bxb_n_ -> point(jj,ii) * pmlArr_[kk].Bx_end_->point(jj,ii) - pmlArr_[kk].c_bxe_n_ -> point(jj,ii) * (Ez_->point(jj,ny_-1-ii+1)-Ez_->point(jj,ny_-1-ii));
                                     pmlArr_[kk].By_end_->point(jj,ii) = pmlArr_[kk].c_byb_n_ -> point(jj,ii) * pmlArr_[kk].By_end_->point(jj,ii) + pmlArr_[kk].c_bye_n_ -> point(jj,ii) * (Ez_->point(jj+1,ny_-1-ii)-Ez_->point(jj,ny_-1-ii));
-                                    //cout <<"H2"<<endl;
                                     Hx_->point(jj,ny_-1-ii) = pmlArr_[kk].c_hxh_n_ -> point(jj,ii) * Hx_->point(jj,ny_-1-ii) + pmlArr_[kk].c_hxb1_n_ -> point(jj,ii) * pmlArr_[kk].Bx_end_->point(jj,ii) - pmlArr_[kk].c_hxb0_n_ -> point(jj,ii) * bxstore;
                                     Hy_->point(jj,ny_-1-ii) = pmlArr_[kk].c_hyh_n_ -> point(jj,ii) * Hy_->point(jj,ny_-1-ii) + pmlArr_[kk].c_hyb1_n_ -> point(jj,ii) * pmlArr_[kk].By_end_->point(jj,ii) - pmlArr_[kk].c_hyb0_n_ -> point(jj,ii) * bystore;
                                 }
@@ -3540,7 +4297,6 @@ void FDTDField::updateH()
                                 bystore = pmlArr_[kk].By_->point(jj,0);
                                 pmlArr_[kk].Bx_->point(jj,0) = pmlArr_[kk].c_bxb_0_ -> point(jj,0) * pmlArr_[kk].Bx_->point(jj,0) - pmlArr_[kk].c_bxe_0_ -> point(jj,0) * (Ez_->point(jj,0+1)-Ez_->point(jj,0));
                                 pmlArr_[kk].By_->point(jj,0) = pmlArr_[kk].c_byb_0_ -> point(jj,0) * pmlArr_[kk].By_->point(jj,0) + pmlArr_[kk].c_bye_0_ -> point(jj,0) * (Ez_->point(jj+1,0)-Ez_->point(jj,0));
-                                //cout <<"H1"<<endl;
                                 Hx_->point(jj,0) = pmlArr_[kk].c_hxh_0_ -> point(jj,0) * Hx_->point(jj,0) + pmlArr_[kk].c_hxb1_0_ -> point(jj,0) * pmlArr_[kk].Bx_->point(jj,0) - pmlArr_[kk].c_hxb0_0_ -> point(jj,0) * bxstore;
                                 Hy_->point(jj,0) = pmlArr_[kk].c_hyh_0_ -> point(jj,0) * Hy_->point(jj,0) + pmlArr_[kk].c_hyb1_0_ -> point(jj,0) * pmlArr_[kk].By_->point(jj,0) - pmlArr_[kk].c_hyb0_0_ -> point(jj,0) * bystore;
 
@@ -3557,7 +4313,6 @@ void FDTDField::updateH()
                                     bystore = pmlArr_[kk].By_->point(jj,ii);
                                     pmlArr_[kk].Bx_->point(jj,ii) = pmlArr_[kk].c_bxb_0_ -> point(jj,ii) * pmlArr_[kk].Bx_->point(jj,ii) - pmlArr_[kk].c_bxe_0_ -> point(jj,ii) * (Ez_->point(jj,ii+1)-Ez_->point(jj,ii));
                                     pmlArr_[kk].By_->point(jj,ii) = pmlArr_[kk].c_byb_0_ -> point(jj,ii) * pmlArr_[kk].By_->point(jj,ii) + pmlArr_[kk].c_bye_0_ -> point(jj,ii) * (Ez_->point(jj+1,ii)-Ez_->point(jj,ii));
-                                    //cout <<"H1"<<endl;
                                     Hx_->point(jj,ii) = pmlArr_[kk].c_hxh_0_ -> point(jj,ii) * Hx_->point(jj,ii) + pmlArr_[kk].c_hxb1_0_ -> point(jj,ii) * pmlArr_[kk].Bx_->point(jj,ii) - pmlArr_[kk].c_hxb0_0_ -> point(jj,ii) * bxstore;
                                     Hy_->point(jj,ii) = pmlArr_[kk].c_hyh_0_ -> point(jj,ii) * Hy_->point(jj,ii) + pmlArr_[kk].c_hyb1_0_ -> point(jj,ii) * pmlArr_[kk].By_->point(jj,ii) - pmlArr_[kk].c_hyb0_0_ -> point(jj,ii) * bystore;
 
@@ -3565,7 +4320,6 @@ void FDTDField::updateH()
                                     bystore = pmlArr_[kk].By_end_->point(jj,ii);
                                     pmlArr_[kk].Bx_end_->point(jj,ii) = pmlArr_[kk].c_bxb_n_ -> point(jj,ii) * pmlArr_[kk].Bx_end_->point(jj,ii) - pmlArr_[kk].c_bxe_n_ -> point(jj,ii) * (Ez_->point(jj,ny_-1-ii+1)-Ez_->point(jj,ny_-1-ii));
                                     pmlArr_[kk].By_end_->point(jj,ii) = pmlArr_[kk].c_byb_n_ -> point(jj,ii) * pmlArr_[kk].By_end_->point(jj,ii) + pmlArr_[kk].c_bye_n_ -> point(jj,ii) * (Ez_->point(jj+1,ny_-1-ii)-Ez_->point(jj,ny_-1-ii));
-                                    //cout <<"H2"<<endl;
                                     Hx_->point(jj,ny_-1-ii) = pmlArr_[kk].c_hxh_n_ -> point(jj,ii) * Hx_->point(jj,ny_-1-ii) + pmlArr_[kk].c_hxb1_n_ -> point(jj,ii) * pmlArr_[kk].Bx_end_->point(jj,ii) - pmlArr_[kk].c_hxb0_n_ -> point(jj,ii) * bxstore;
                                     Hy_->point(jj,ny_-1-ii) = pmlArr_[kk].c_hyh_n_ -> point(jj,ii) * Hy_->point(jj,ny_-1-ii) + pmlArr_[kk].c_hyb1_n_ -> point(jj,ii) * pmlArr_[kk].By_end_->point(jj,ii) - pmlArr_[kk].c_hyb0_n_ -> point(jj,ii) * bystore;
                                 }
@@ -3688,6 +4442,7 @@ void FDTDField::updateH()
             }
         }
     }
+
 }
 
 /**
@@ -5211,17 +5966,33 @@ void FDTDField::step()
     updateH();
 
     updateE();
+
     for(int ii = 0; ii < dtcArr_.size(); ii ++)
         ouputField(dtcArr_[ii]);
     //if(abs(tcur_-floor(tcur_+0.5)) < 1e-7)
+
+    //for(int zz = 0; zz < pmlArr_[0].zaxHxList_.size();zz++)
+      //  cout << pmlArr_[0].zaxHxList_[zz][0] << "\t" << pmlArr_[0].zaxHxList_[zz][1] << "\t" <<pmlArr_[0].zaxHxList_[zz][2] << "\t" << pmlArr_[0].zaxHxList_[zz][3]<< endl;
+
     if(false)
     {
-        string fname("fout/Hx/HxField_t" + to_string(static_cast<int>(t_step_))+".dat");
-        Hx_->gridOut(fname);
-        fname = "fout/Hy/HyField_t" + to_string(static_cast<int>(t_step_))+".dat";
-        Hy_->gridOut(fname);
-        fname = "fout/Ez/EzField_t" + to_string(static_cast<int>(t_step_))+".dat";
-        Ez_->gridOut(fname);
+        string fname("fout/Hx/Hx_end.dat");
+        pmlArr_[0].phys_Hx_end_->gridOut(fname);
+        fname = "fout/Hx/Hx.dat";
+        pmlArr_[0].phys_Hx_->gridOut(fname);
+        fname = "fout/Hy/HxEnd.dat";
+        pmlArr_[1].phys_Hx_end_ ->gridOut(fname);
+        fname = "fout/Hy/Hx.dat";
+        pmlArr_[1].phys_Hx_ ->gridOut(fname);
+        fname = "fout/Hx/Hy_end.dat";
+        pmlArr_[0].phys_Hy_end_->gridOut(fname);
+        fname = "fout/Hx/Hy.dat";
+        pmlArr_[0].phys_Hy_->gridOut(fname);
+        fname = "fout/Hy/HyEnd.dat";
+        pmlArr_[1].phys_Hy_end_ ->gridOut(fname);
+        fname = "fout/Hy/Hy.dat";
+        pmlArr_[1].phys_Hy_ ->gridOut(fname);
+
     }
 
     tcur_ += dt_;

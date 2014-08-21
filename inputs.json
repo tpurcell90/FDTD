@@ -7,16 +7,16 @@
         "res"           : 20,
         "courant"       : 0.5,
         "tLim"          : 50.0,
-        "precalcPML"    : true
+        "precalcPML"    : false
     },
     "PML" :  [
         {
             "thickness" : 5.0,
-            "direction" : "Y"
+            "direction" : "X"
         },
         {
             "thickness" : 5.0,
-            "direction" : "X"
+            "direction" : "Y"
         }
     ],
     "SourceList"  : [
