@@ -46,7 +46,7 @@ public:
     std::vector<std::array<int,4>> zaxHyList_end_;
     std::vector<std::array<int,4>> zaxEzList_end_;
 
-    int Hy0EdgeInd_, Hx0EdgeInd_, Ez0EdgeInd_, HynEdgeInd_, HxnEdgeInd_, EznEdgeInd_;
+    int Hy0EdgeInd_, Hx0EdgeInd_, Ez0EdgeInd_, HynEdgeInd_, HxnEdgeInd_, EznEdgeInd_,Hy0EdgeInd_end_, Hx0EdgeInd_end_, Ez0EdgeInd_end_, HynEdgeInd_end_, HxnEdgeInd_end_, EznEdgeInd_end_;
     /**
      * @brief Constrcuts a PML for both ends of the cell
      * @details Uses the input to construct the functions and auxiliary fields for the PML calculations
