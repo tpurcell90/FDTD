@@ -10,7 +10,10 @@
         "precalcPML"    : true
     },
     "PML" :  [
-        
+        {
+            "thickness" : 5.0,
+            "direction" : "Y"
+        },
         {
             "thickness" : 5.0,
             "direction" : "Y"
