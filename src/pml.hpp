@@ -68,6 +68,7 @@ public:
         zaxHxList_  = {};
         zaxHyList_  = {};
         Hy0EdgeInd_ = 0; Hx0EdgeInd_ = 0; Ez0EdgeInd_ = 0; HynEdgeInd_ = 0; HxnEdgeInd_ = 0; EznEdgeInd_ = 0;
+        Hy0EdgeInd_end_= 0; Hx0EdgeInd_end_= 0;Ez0EdgeInd_end_= 0; HynEdgeInd_end_=0; HxnEdgeInd_end_= 0; EznEdgeInd_end_= 0;
         if(d == X)
         {
             if(pol == EX || pol == EY || pol == HZ)
