@@ -463,7 +463,6 @@ void FDTDField::initializeGrid()
                 ii++;
             }
         }
-<<<<<<< HEAD
                 x0EdgeInd_= zaxEzList_.size();
         int ii = yPML_;
         while(ii < ny_-yPML_)
@@ -487,8 +486,6 @@ void FDTDField::initializeGrid()
             zaxEzList_.push_back(tempArr);
             ii++;
         }
-=======
->>>>>>> parent of 78bab3a... edge cases fully convereted to zaxpy
     }
     else
     {
@@ -3777,7 +3774,6 @@ void FDTDField::updateE()
                 zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hy_->point(zaxEzList_[kk][0]-1,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hy_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
             }
-<<<<<<< HEAD
             for(int kk = x0EdgeInd_; kk < xnEdgeInd_; kk++)
             {
                 eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
@@ -3797,9 +3793,7 @@ void FDTDField::updateE()
                 zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hy_->point(zaxEzList_[kk][0]-1,zaxEzList_[kk][1]  ), nx_-1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),nx_);
             }
             /*for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
-=======
             for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
->>>>>>> parent of 78bab3a... edge cases fully convereted to zaxpy
             {
                 eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
