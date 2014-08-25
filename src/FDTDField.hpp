@@ -33,7 +33,7 @@ protected:
     bool periodic_;
     bool precalcPML_;
     std::vector<std::array<int,4>> zaxEzList_;
-    int y0EdgeInd_, x0EdgeInd_, ynEdgeInd_, xnEdgeInd_;
+    int y0EdgeInd_, ynEdgeInd_;
 
 
 public:

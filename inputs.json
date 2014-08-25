@@ -1,8 +1,8 @@
 {
     "CompCell" : {
         "procs"         : 1,
-        "y_size"        : 20.0,
-        "x_size"        : 15.0,
+        "x_size"        : 20.0,
+        "y_size"        : 15.0,
         "z_size"        : 0.0,
         "res"           : 20,
         "courant"       : 0.5,
@@ -13,7 +13,11 @@
         
         {
             "thickness" : 5.0,
+<<<<<<< HEAD
             "direction" : "Y"
+=======
+            "direction" : "X"
+>>>>>>> parent of 78bab3a... edge cases fully convereted to zaxpy
         }
     ],
     "SourceList"  : [
@@ -24,20 +28,20 @@
             "fwidth"    : 1.0,
             "cutoff"    : 10.00,
             "t_start"   : 0.00,
-            "size_y"    : 0.00,
-            "size_x"    : 15.00,
+            "size_x"    : 0.00,
+            "size_y"    : 15.00,
             "pol"       : "Ez",
-            "loc_y"     : -4.00,
-            "loc_x"     : 0.00
+            "loc_x"     : -4.00,
+            "loc_y"     : 0.00
         }
     ],
     "ObjectList": [
         {
             "shape"     : "block",
-            "loc_y"     : 7.00,
-            "loc_x"     : 0.00,
-            "size_y"    : 6.0,
-            "size_x"    : 15.00,
+            "loc_x"     : 7.00,
+            "loc_y"     : 0.00,
+            "size_x"    : 6.0,
+            "size_y"    : 15.00,
             "eps"       : 1.00,
             "pols"      : [
 
@@ -46,16 +50,16 @@
     ],
     "DetectorList"  : [
         {
-            "loc_y"     : 4.50,
-            "loc_x"     : 0.00,
+            "loc_x"     : 4.50,
+            "loc_y"     : 0.00,
             "size_y"    : 0.00,
             "size_x"    : 0.00,
             "type"      : "field",
             "pol"       : "Ez"
         },
         {
-            "loc_y"     : -3.50,
-            "loc_x"     : 0.00,
+            "loc_x"     : -3.50,
+            "loc_y"     : 0.00,
             "size_y"    : 0.00,
             "size_x"    : 0.00,
             "type"      : "field",
