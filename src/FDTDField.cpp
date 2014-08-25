@@ -463,6 +463,29 @@ void FDTDField::initializeGrid()
                 ii++;
             }
         }
+                x0EdgeInd_= zaxEzList_.size();
+        int ii = yPML_;
+        while(ii < ny_-yPML_)
+        {
+            int iistore = ii;
+            while(ii < nx_-xPML_-1 && phys_Ez_ -> point(0,ii) == phys_Ez_ -> point(0,ii+1) )
+                ii ++;
+            array<int,4> tempArr = {0,iistore,ii-iistore+1,phys_Ez_->point(iistore,0)};
+            zaxEzList_.push_back(tempArr);
+            ii++;
+        }
+        xnEdgeInd_= zaxEzList_.size();
+        ii = yPML_;
+        while(ii < nx_-xPML_)
+        {
+            int iistore = ii;
+            while(ii < nx_-xPML_-1 && phys_Ez_ -> point(0,ii) == phys_Ez_ -> point(0,ii+1) )
+                ii ++;
+            int n = nx_-1;
+            array<int,4> tempArr = {n,iistore,ii-iistore+1,phys_Ez_->point(iistore,0)};
+            zaxEzList_.push_back(tempArr);
+            ii++;
+        }
     }
     else
     {
@@ -3741,7 +3764,7 @@ void FDTDField::updateE()
                     Ez_->point(ii,jj) = c_eze * Ez_->point(ii,jj) + c_ezh * ((Hy_->point(ii,jj)-Hy_->point(ii-1,jj)) - (Hx_->point(ii,jj)-Hx_->point(ii,jj-1)));
                 }
             }*/
-            for(int kk = 0; kk < zaxEzList_.size(); kk++)
+            for(int kk = 0; kk < x0EdgeInd_; kk++)
             {
                 eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
@@ -3751,7 +3774,25 @@ void FDTDField::updateE()
                 zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hy_->point(zaxEzList_[kk][0]-1,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hy_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
             }
-            for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
+            for(int kk = x0EdgeInd_; kk < xnEdgeInd_; kk++)
+            {
+                eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
+                c_ezh = dt_/(eps*dx_);
+                zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), nx_,   &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),nx_);
+                zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]-1), nx_,   &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),nx_);
+                zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hy_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), nx_-1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),nx_);
+            }
+            for(int kk = xnEdgeInd_; kk < zaxEzList_.size(); kk++)
+            {
+                eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
+                c_ezh = dt_/(eps*dx_);
+                zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]-1), nx_,   &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),nx_);
+                zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), nx_,   &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),nx_);
+                zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hy_->point(zaxEzList_[kk][0]-1,zaxEzList_[kk][1]  ), nx_-1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),nx_);
+            }
+            /*for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
             {
                 eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
@@ -3759,7 +3800,7 @@ void FDTDField::updateE()
                 eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
                 Ez_->point(nx_-1,jj) = c_eze * Ez_->point(nx_-1,jj) + c_ezh * ((-1.0*Hy_->point(nx_-1-1,jj)) - (Hx_->point(nx_-1,jj)-Hx_->point(nx_-1,jj-1)));
-            }
+            }*/
         }
         else
         {
