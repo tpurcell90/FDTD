@@ -192,8 +192,8 @@ void FDTDField::initializeGrid()
                             {
                                 for(int jj = 0; jj < ny_-1; jj++)
                                 {
-                                    pt[0] = (ii+0.5-(nx_)/2.0)*dx_;
-                                    pt[1] = (jj-(ny_)/2.0)*dy_;
+                                    pt[0] = (ii+0.5-(nx_-1)/2.0)*dx_;
+                                    pt[1] = (jj-(ny_-1)/2.0)*dy_;
                                     if(objArr_[kk].isObj(pt)==true)
                                         pmlArr_[pp].phys_Hy_->point(ii,jj) = kk;
                                     pt[0] -= 0.5*dx_;
@@ -213,16 +213,16 @@ void FDTDField::initializeGrid()
                                     if(objArr_[kk].isObj(pt)==true && kk ==1)
                                         pmlArr_[pp].phys_Hx_end_->point(ii,jj) = kk;
                                 }
-                                pt[0]=(ii+0.5-(nx_)/2.0)*dx_;
-                                pt[1]=((ny_)/2.0)*dy_;
+                                pt[0]=(ii+0.5-(nx_-1)/2.0)*dx_;
+                                pt[1]=((ny_-1)/2.0)*dy_;
                                 if(objArr_[kk].isObj(pt)==true)
                                     pmlArr_[pp].phys_Hy_->point(ii,ny_-1) = kk;
                                 pt[0] -= 0.5*dx_;
                                 if(objArr_[kk].isObj(pt)==true)
                                     phys_Ez_->point(ii,ny_-1) = kk;
 
-                                pt[0]=((nx_-ii)+0.5-(nx_-1)/2.0)*dx_;
-                                pt[1]=((ny_)/2.0)*dy_;
+                                pt[0]=((nx_-1-ii)+0.5-(nx_-1)/2.0)*dx_;
+                                pt[1]=((ny_-1)/2.0)*dy_;
                                 if(objArr_[kk].isObj(pt)==true)
                                     pmlArr_[pp].phys_Hy_end_->point(ii,ny_-1) = kk;
                                 pt[0] -= 0.5*dx_;
@@ -4439,6 +4439,7 @@ void FDTDField::updateH()
                             }
                             for(int zz = 0;  zz < pmlArr_[kk].zaxHyList_.size(); zz++)
                             {
+                                cout << pmlArr_[kk].zaxHyList_[zz][0] << "\t" << pmlArr_[kk].zaxHyList_[zz][1] << "\t" << pmlArr_[kk].zaxHyList_[zz][2] << "\t" << pmlArr_[kk].zaxHyList_[zz][3] << "\t" << endl;
                                 vector<complex<double>> bystore(pmlArr_[kk].zaxHyList_[zz][2],0.0);
                                 zcopy_(pmlArr_[kk].zaxHyList_[zz][2], &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]), 1, bystore.data(),1);
 
@@ -4466,7 +4467,7 @@ void FDTDField::updateH()
                                 zaxpy_(pmlArr_[kk].zaxHyList_end_[zz][2], -1.0*pmlArr_[kk].c_hyb0_n_->point(pmlArr_[kk].zaxHyList_end_[zz][0],pmlArr_[kk].zaxHyList_end_[zz][1]), bystore.data()                                                                                  , 1, &Hy_->point(pmlArr_[kk].zaxHyList_end_[zz][0],ny_-1-pmlArr_[kk].zaxHyList_end_[zz][1]),1);
                             }
                             for(int zz = pmlArr_[kk].HxnEdgeInd_; zz < pmlArr_[kk].zaxHxList_.size(); zz++)
-                            {
+                            {                                
                                 vector<complex<double>> bxstore(pmlArr_[kk].zaxHxList_[zz][2],0.0);
                                 zcopy_(pmlArr_[kk].zaxHxList_[zz][2], &pmlArr_[kk].Bx_->point(pmlArr_[kk].zaxHxList_[zz][0],pmlArr_[kk].zaxHxList_[zz][1]),nx_, bxstore.data(),1);
 

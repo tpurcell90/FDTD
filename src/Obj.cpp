@@ -35,7 +35,7 @@ bool Obj::isObj(std::vector<double> v)
     {
         for(int ii = 0; ii < v.size(); ii++)
         {
-            if((v[ii] > location_[ii] + geoParam_[ii]/2.0) || (v[ii] < location_[ii] - geoParam_[ii]/2.0))
+            if((v[ii] > location_[ii] + geoParam_[ii]/2.0 + 1e-5) || (v[ii] < location_[ii] - geoParam_[ii]/2.0 -1e-5))// add a 1/10 res term here
                 isIn = false;
         }
     }
