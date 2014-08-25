@@ -2486,10 +2486,7 @@ void FDTDField::initializeGrid()
                 break;
         }
     }
-    for(int ii = 0; ii < pmlArr_[0].zaxHyList_end_.size(); ii++)
-    {
-        cout <<pmlArr_[0].zaxHyList_end_[ii][0] << "\t" << pmlArr_[0].zaxHyList_end_[ii][1] << "\t" << pmlArr_[0].zaxHyList_end_[ii][2] << "\t" << pmlArr_[0].zaxHyList_end_[ii][3]<<endl;
-    }
+    
     cout << nx_ << "\t\t" <<ny_ <<endl;
 }
 /**
@@ -4439,7 +4436,6 @@ void FDTDField::updateH()
                             }
                             for(int zz = 0;  zz < pmlArr_[kk].zaxHyList_.size(); zz++)
                             {
-                                cout << pmlArr_[kk].zaxHyList_[zz][0] << "\t" << pmlArr_[kk].zaxHyList_[zz][1] << "\t" << pmlArr_[kk].zaxHyList_[zz][2] << "\t" << pmlArr_[kk].zaxHyList_[zz][3] << "\t" << endl;
                                 vector<complex<double>> bystore(pmlArr_[kk].zaxHyList_[zz][2],0.0);
                                 zcopy_(pmlArr_[kk].zaxHyList_[zz][2], &pmlArr_[kk].By_->point(pmlArr_[kk].zaxHyList_[zz][0],pmlArr_[kk].zaxHyList_[zz][1]), 1, bystore.data(),1);
 
