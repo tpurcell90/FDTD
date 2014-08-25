@@ -39,14 +39,8 @@ public:
     std::shared_ptr<Grid2D<double>> c_dxd_0_, c_dxh_0_, c_exe_0_, c_exd0_0_, c_exd1_0_,c_dxd_n_, c_dxh_n_, c_exe_n_, c_exd0_n_, c_exd1_n_;
     std::shared_ptr<Grid2D<double>> c_dyd_0_, c_dyh_0_, c_eye_0_, c_eyd0_0_, c_eyd1_0_,c_dyd_n_, c_dyh_n_, c_eye_n_, c_eyd0_n_, c_eyd1_n_;
     std::shared_ptr<Grid2D<double>> c_dzd_0_, c_dzh_0_, c_eze_0_, c_ezd0_0_, c_ezd1_0_,c_dzd_n_, c_dzh_n_, c_eze_n_, c_ezd0_n_, c_ezd1_n_;
-    std::vector<std::array<int,4>> zaxHxList_;
-    std::vector<std::array<int,4>> zaxHyList_;
-    std::vector<std::array<int,4>> zaxEzList_;
-    std::vector<std::array<int,4>> zaxHxList_end_;
-    std::vector<std::array<int,4>> zaxHyList_end_;
-    std::vector<std::array<int,4>> zaxEzList_end_;
 
-    int Hy0EdgeInd_, Hx0EdgeInd_, Ez0EdgeInd_, HynEdgeInd_, HxnEdgeInd_, EznEdgeInd_,Hy0EdgeInd_end_, Hx0EdgeInd_end_, Ez0EdgeInd_end_, HynEdgeInd_end_, HxnEdgeInd_end_, EznEdgeInd_end_;
+
     /**
      * @brief Constrcuts a PML for both ends of the cell
      * @details Uses the input to construct the functions and auxiliary fields for the PML calculations
@@ -64,11 +58,6 @@ public:
     {
         sigmaMax_ = -(m_+1)*log(R0_)/(2*thickness_*dx); // eta should be included;
         kappaMax_ = 1.0;
-        zaxEzList_  = {};
-        zaxHxList_  = {};
-        zaxHyList_  = {};
-        Hy0EdgeInd_ = 0; Hx0EdgeInd_ = 0; Ez0EdgeInd_ = 0; HynEdgeInd_ = 0; HxnEdgeInd_ = 0; EznEdgeInd_ = 0;
-        Hy0EdgeInd_end_= 0; Hx0EdgeInd_end_= 0;Ez0EdgeInd_end_= 0; HynEdgeInd_end_=0; HxnEdgeInd_end_= 0; EznEdgeInd_end_= 0;
         if(d == X)
         {
             if(pol == EX || pol == EY || pol == HZ)
