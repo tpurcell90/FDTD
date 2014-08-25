@@ -13,7 +13,11 @@
         
         {
             "thickness" : 5.0,
+<<<<<<< HEAD
             "direction" : "Y"
+=======
+            "direction" : "X"
+>>>>>>> parent of 78bab3a... edge cases fully convereted to zaxpy
         }
     ],
     "SourceList"  : [
