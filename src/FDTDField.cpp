@@ -16,6 +16,8 @@
 
 
 using namespace std;
+typedef  double (UPML<complex<double>>::*PMLMemFn)(double x, double y);
+
 /**
  * @brief Constructs a FDTD field from a programInputs object
  * @details Constructs the FDTD field manger using the information from the inputs parameter. Sets dx, and dy to 1/res, dt_ is set to S/res, The unused fields are set to null, nx and ny are calculated by rouding the product of the physical cell size with the
@@ -182,7 +184,7 @@ void FDTDField::initializeGrid()
             }
             else if(objArr_[kk].s() == block)
             {
-                for(int pp = 0; pp< pmlArr_.size(); pp++)
+                /*for(int pp = 0; pp< pmlArr_.size(); pp++)
                 {
                     switch(pmlArr_[pp].d())
                     {
@@ -283,7 +285,7 @@ void FDTDField::initializeGrid()
                             break;
 
                     }
-                }
+                }*/
                 if(yPML_ != 0 && xPML_ != 0)
                 {
                     for(int ii = xPML_; ii < nx_-xPML_;ii ++)
@@ -551,6 +553,26 @@ void FDTDField::initializeGrid()
             ii++;
         }
     }
+    if(pmlArr_.size() > 1)
+    {
+        for(int kk = 0; kk < pmlArr_.size(); kk++)
+        {
+            // UPML *opp= pmlArr_[abs(kk-1)];
+            // shared_ptr<UPML<complex<double>>> opp;
+            // opp = make_shared<UPML<complex<double>>>(pmlArr_[abs(kk-1)]);
+            PMLMemFn  sigmaj = pmlArr_[abs(kk-1)].sig_ptr();
+            pmlArr_[kk].initializeUPML(objArr_, nx_,ny_,dx_,dy_,dt_, yPML_, xPML_, sigmaj);
+        }
+    }
+    else
+    {
+        //double *sigmaj(double ,double);
+        //sigmaj = [](double x, double eps){return 0.0;};
+        pmlArr_[0].initializeUPML(objArr_, nx_,ny_,dx_,dy_,dt_, yPML_, xPML_, nullptr);
+
+    }
+
+
     /*if(precalcPML_ == true)
     {
         for(int kk = 0; kk < pmlArr_.size(); kk++)

@@ -21,6 +21,7 @@ enum Direction {X,Y,Z};
 
 template <typename T> class UPML
 {
+typedef  double (UPML<T>::*PMLMemFn)(double x, double y);
 protected:
     int thickness_;
     Direction d_;
@@ -588,8 +589,9 @@ public:
         */
     }
 
-    void initializeUPML(std::vector<Obj> objArr, int nx, int ny, double dx, double dy, double dt, int yPML, int xPML, UPML* oppDir)
+    void initializeUPML(std::vector<Obj> objArr, int nx, int ny, double dx, double dy, double dt, int yPML, int xPML, PMLMemFn sigmaj)
     {
+        //[](double x, double eps){return 0.0;}
         int jmax = 0;
         int pt_i = 0;
         int pt_j = 0;
@@ -617,7 +619,7 @@ public:
             nj   = nx;
             ni   = ny;
         }
-
+        std::cout <<1 <<std::endl;
         for(int kk = 0; kk < objArr.size(); kk++)
         {
             std::vector<double> pt(2,0.0);
@@ -654,7 +656,7 @@ public:
                                 phys_Hy_end_->point(ii,jj) = kk;
                             pt[pt_i] -= 0.5*di;
                             if(objArr[kk].isObj(pt)==true)
-                                phys_Ez_->point(ni-1-ii,jj) = kk;
+                                phys_Ez_end_->point(ii,jj) = kk;
                             pt[pt_j] += 0.5*dj;
                             if(objArr[kk].isObj(pt)==true && kk ==1)
                                 phys_Hx_end_->point(ii,jj) = kk;
@@ -673,7 +675,7 @@ public:
                             phys_Hy_end_->point(ii,nj-1) = kk;
                         pt[pt_i] -= 0.5*di;
                         if(objArr[kk].isObj(pt)==true)
-                            phys_Ez_->point(ii,nj-1) = kk;
+                            phys_Ez_end_->point(ii,nj-1) = kk;
                     }
                 }
             }
@@ -686,44 +688,45 @@ public:
             double sigz = 0.0; double sigx = 0.0; double sigy = 0.0;
             double sigxx = 0.0; double sigxy = 0.0; double sigyx = 0.0; double sigyy = 0.0;
             
-            double *sigmax(double ,double);
-            double *sigmay(double ,double);
 
+            PMLMemFn  sigmay;
+            PMLMemFn  sigmax;
             if(d_==X)
             {
-                sigmax = sigma;
-                if (oppDir)
-                    sigmay = oppDir->sigma;
+                sigmax = &UPML<T>::sigma;
+                if (sigmaj)
+                    sigmay = sigmaj;
                 else
-                    sigmay = [] (double x,double eps) { return 0.0; };
+                    sigmay = &UPML<T>::sigmaopp;
             }
             else
             {
-                sigmay = sigma;
-                if (oppDir)
-                    sigmax = oppDir->sigma;
+                sigmay = &UPML<T>::sigma;
+                if (sigmaj)
+                    sigmax = sigmaj;
                 else
-                    sigmax = [] (double x,double eps) { return 0.0; };
+                    sigmax = &UPML<T>::sigmaopp;
             }
             if(pol_ == EZ || pol_ == HX || pol_ == HY)
             {
+                std::cout <<2<<std::endl;
                 for(int ii = 0; ii < thickness_; ii++)
                 {
                     for(int jj = 0; jj < nj; jj++)
                     {
                         //Update Hx factors
                         eps    = objArr[phys_Hx_->point(ii,jj)].dielectric(1.0);
-                        sigxx  = sigmax(static_cast<double>(ii),eps);
-                        sigyx  = sigmay(static_cast<double>(ii) + 0.5,eps);
+                        sigxx  = (this->*sigmax)(static_cast<double>(ii),eps);
+                        sigyx  = (this->*sigmay)(static_cast<double>(ii) + 0.5,eps);
                         c_bxb_0_ -> point(ii,jj) = (2*eps*kapy - sigyx*dt) / (2*eps*kapy + sigyx*dt);
                         c_bxe_0_ -> point(ii,jj) = (2 * eps * dt) / (dy * (2*eps*kapy + sigyx*dt));
                         c_hxh_0_ -> point(ii,jj) = (2*eps*kapz - sigz*dt) / (2*eps*kapz + sigz*dt);
                         c_hxb0_0_-> point(ii,jj) = (2*eps*kapx - sigxx*dt) / (2*eps*kapz + sigz*dt);
                         c_hxb1_0_-> point(ii,jj) = (2*eps*kapx + sigxx*dt) / (2*eps*kapz + sigz*dt);
-
+                        
                         eps    = objArr[phys_Hx_end_->point(ii,jj)].dielectric(1.0);
-                        sigxx  = sigmax(static_cast<double>(ii),eps);
-                        sigyx  = sigmay(static_cast<double>(ii)-0.5,eps);
+                        sigxx  = (this->*sigmax)(static_cast<double>(ii),eps);
+                        sigyx  = (this->*sigmay)(static_cast<double>(ii)-0.5,eps);
                         c_bxb_n_ -> point(ii,jj) = (2*eps*kapy - sigyx*dt) / (2*eps*kapy + sigyx*dt);
                         c_bxe_n_ -> point(ii,jj) = (2 * eps * dt) / (dy * (2*eps*kapy + sigyx*dt));
                         c_hxh_n_ -> point(ii,jj) = (2*eps*kapz - sigz*dt) / (2*eps*kapz + sigz*dt);
@@ -732,8 +735,8 @@ public:
 
                         //Update Hy factors
                         eps    = objArr[phys_Hy_->point(ii,jj)].dielectric(1.0);
-                        sigxy = sigmax(static_cast<double>(ii) + 0.5,eps);
-                        sigyy = sigmay(static_cast<double>(ii),eps);
+                        sigxy = (this->*sigmax)(static_cast<double>(ii) + 0.5,eps);
+                        sigyy = (this->*sigmay)(static_cast<double>(ii),eps);
                         c_byb_0_ -> point(ii,jj) = (2*eps*kapz - sigz*dt) / (2*eps*kapz + sigz*dt);
                         c_bye_0_ -> point(ii,jj) = (2 * eps * dt) / (dy * (2*eps*kapz + sigz*dt));
                         c_hyh_0_ -> point(ii,jj) = (2*eps*kapx - sigxy*dt) / (2*eps*kapx + sigxy*dt);
@@ -741,8 +744,8 @@ public:
                         c_hyb1_0_-> point(ii,jj) = (2*eps*kapy + sigyy*dt) / (2*eps*kapx + sigxy*dt);
 
                         eps    = objArr[phys_Hy_end_->point(ii,jj)].dielectric(1.0);
-                        sigxy = sigmax(static_cast<double>(ii) - 0.5,eps);
-                        sigyy = sigmay(static_cast<double>(ii),eps);
+                        sigxy = (this->*sigmax)(static_cast<double>(ii) - 0.5,eps);
+                        sigyy = (this->*sigmay)(static_cast<double>(ii),eps);
                         c_byb_n_ -> point(ii,jj) = (2*eps*kapz - sigz*dt) / (2*eps*kapz + sigz*dt);
                         c_bye_n_ -> point(ii,jj) = (2 * eps * dt) / (dy * (2*eps*kapz + sigz*dt));
                         c_hyh_n_ -> point(ii,jj) = (2*eps*kapx - sigxy*dt) / (2*eps*kapx + sigxy*dt);
@@ -751,17 +754,17 @@ public:
 
                         //Update Ez factors
                         eps = objArr[phys_Ez_->point(ii,jj)].dielectric(1.0);
-                        sigx = sigmax(static_cast<double>(ii),eps);
-                        sigy = sigmay(static_cast<double>(ii),eps);
+                        sigx = (this->*sigmax)(static_cast<double>(ii),eps);
+                        sigy = (this->*sigmay)(static_cast<double>(ii),eps);
                         c_dzd_0_ -> point(ii,jj) = (2*eps*kapx - sigx*dt) / (2*eps*kapx + sigx*dt);
                         c_dzh_0_ -> point(ii,jj) = (2 * eps * dt) / (dy * (2*eps*kapx + sigx*dt));
                         c_eze_0_ -> point(ii,jj) = (2*eps*kapy - sigy*dt) / (2*eps*kapy + sigy*dt);
                         c_ezd1_0_-> point(ii,jj) = (2*eps*kapz + sigz*dt) / (2*eps*kapy + sigy*dt) / eps;
                         c_ezd0_0_-> point(ii,jj) = (2*eps*kapz - sigz*dt) / (2*eps*kapy + sigy*dt) / eps;
 
-                        eps = objArr[phys_Ez_->point(ni-1-ii,jj)].dielectric(1.0);
-                        sigx = sigmax(static_cast<double>(ii),eps);
-                        sigy = sigmay(static_cast<double>(ii),eps);
+                        eps = objArr[phys_Ez_end_->point(ii,jj)].dielectric(1.0);
+                        sigx = (this->*sigmax)(static_cast<double>(ii),eps);
+                        sigy = (this->*sigmay)(static_cast<double>(ii),eps);
                         c_dzd_n_ -> point(ii,jj) = (2*eps*kapx - sigx*dt) / (2*eps*kapx + sigx*dt);
                         c_dzh_n_ -> point(ii,jj) = (2 * eps * dt) / (dy * (2*eps*kapx + sigx*dt));
                         c_eze_n_ -> point(ii,jj) = (2*eps*kapy - sigy*dt) / (2*eps*kapy + sigy*dt);
@@ -771,6 +774,41 @@ public:
                 }
             }
         }
+        if(true)
+        {
+            std::string fname("fout/Hx/c_hxh_0_.dat");
+            c_hxh_0_->gridOut(fname);
+            fname = "fout/Hx/c_hxh_n_.dat";
+            c_hxh_n_->gridOut(fname);
+
+            fname = "fout/Hx/c_hxb0_0_.dat";
+            c_hxb0_0_->gridOut(fname);
+            fname = "fout/Hx/c_hxb0_n_.dat";
+            c_hxb0_n_->gridOut(fname);
+
+            fname = "fout/Hx/c_hxb1_0_.dat";
+            c_hxb1_0_->gridOut(fname);
+            fname = "fout/Hx/c_hxb1_n_.dat";
+            c_hxb1_n_->gridOut(fname);
+
+            fname = "fout/Hx/c_bxb_0_.dat";
+            c_bxb_0_->gridOut(fname);
+            fname = "fout/Hx/c_bxb_n_.dat";
+            c_bxb_n_->gridOut(fname);
+
+            fname = "fout/Hx/c_bxe_0_.dat";
+            c_bxe_0_->gridOut(fname);
+            fname = "fout/Hx/c_bxe_n_.dat";
+            c_bxe_n_->gridOut(fname);
+
+
+
+
+            // fname = "fout/Hy/HyField_t" + to_string(static_cast<int>(t_step_))+".dat";
+            // Hy_->gridOut(fname);
+            // fname = "fout/Ez/EzField_t" + to_string(static_cast<int>(t_step_))+".dat";
+            // Ez_->gridOut(fname);
+        }   
     }
 
     // Accessor Functions
@@ -805,6 +843,9 @@ public:
         else
             return 0.0;
     }
+
+    double sigmaopp(double x,double eps){return 0.0;} // can't make lamda function
+    PMLMemFn sig_ptr() {return &UPML<T>::sigma;}
 
 };
 
