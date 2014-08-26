@@ -551,7 +551,7 @@ void FDTDField::initializeGrid()
             ii++;
         }
     }
-    if(precalcPML_ == true)
+    /*if(precalcPML_ == true)
     {
         for(int kk = 0; kk < pmlArr_.size(); kk++)
         {
@@ -1914,8 +1914,8 @@ void FDTDField::initializeGrid()
                     break;
             }
         }
-
-    }
+    }*/
+    
 }
 /**
  * @brief Outputs the relevant field information to an output file specified by the detector
