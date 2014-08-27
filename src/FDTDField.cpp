@@ -558,10 +558,9 @@ void FDTDField::initializeGrid()
         for(int kk = 0; kk < pmlArr_.size(); kk++)
         {
             // UPML *opp= pmlArr_[abs(kk-1)];
-            // shared_ptr<UPML<complex<double>>> opp;
-            // opp = make_shared<UPML<complex<double>>>(pmlArr_[abs(kk-1)]);
-            PMLMemFn  sigmaj = pmlArr_[abs(kk-1)].sig_ptr();
-            pmlArr_[kk].initializeUPML(objArr_, nx_,ny_,dx_,dy_,dt_, yPML_, xPML_, sigmaj);
+            UPML<complex<double>>* opp = &pmlArr_[abs(kk-1)];
+            //PMLMemFn  sigmaj = pmlArr_[abs(kk-1)].sig_ptr();
+            pmlArr_[kk].initializeUPML(objArr_, nx_,ny_,dx_,dy_,dt_, yPML_, xPML_, opp);
         }
     }
     else
@@ -573,1372 +572,1371 @@ void FDTDField::initializeGrid()
     }
 
 
-    // if(precalcPML_ == true)
-    // {
-    //     for(int kk = 0; kk < pmlArr_.size(); kk++)
-    //     {
-    //         double eps=0.0;
-    //         double kapx = 1.0; double kapy = 1.0; double kapz = 1.0;
-
-    //         switch(pmlArr_[kk].d())
-    //         {
-    //             case X:
-    //             {
-    //                 double sigz = 0.0; double sigx = 0.0; double sigy = 0.0;
-    //                 double sigxx = 0.0; double sigxy = 0.0; double sigyx = 0.0; double sigyy = 0.0;
-    //                 if(Ez_)
-    //                 {
-    //                     if(yPML_ == 0)
-    //                     {
-    //                         //Update Hx factors -> Since this is the top Row nothing is updated
-
-    //                         //Update Hy factors
-    //                         eps    = objArr_[pmlArr_[kk].phys_Hy_->point(0,ny_-1)].dielectric(1.0);
-    //                         sigxy = pmlArr_[kk].sigma(0.5,eps);
-    //                         pmlArr_[kk].c_byb_0_ -> point(0,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                         pmlArr_[kk].c_bye_0_ -> point(0,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                         pmlArr_[kk].c_hyh_0_ -> point(0,ny_-1) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                         pmlArr_[kk].c_hyb0_0_-> point(0,ny_-1) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                         pmlArr_[kk].c_hyb1_0_-> point(0,ny_-1) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                         //Top right corner is not updated here
-
-    //                         //Update Ez factors
-    //                         eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
-    //                         sigx = pmlArr_[kk].sigma(0.0,eps);
-    //                         pmlArr_[kk].c_dzd_0_ -> point(0,ny_-1) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                         pmlArr_[kk].c_dzh_0_ -> point(0,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                         pmlArr_[kk].c_eze_0_ -> point(0,ny_-1) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                         pmlArr_[kk].c_ezd1_0_-> point(0,ny_-1) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         pmlArr_[kk].c_ezd0_0_-> point(0,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                         eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
-    //                         sigx = pmlArr_[kk].sigma(0.0,eps);
-    //                         pmlArr_[kk].c_dzd_n_ -> point(0,ny_-1) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                         pmlArr_[kk].c_dzh_n_ -> point(0,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                         pmlArr_[kk].c_eze_n_ -> point(0,ny_-1) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                         pmlArr_[kk].c_ezd1_n_-> point(0,ny_-1) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         pmlArr_[kk].c_ezd0_n_-> point(0,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
-    //                         {
-    //                             //Update Hx factors -> Since this is the top Row nothing is updated
-
-    //                             //Update Hy factors
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hy_->point(ii,ny_-1)].dielectric(1.0);
-    //                             sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
-    //                             pmlArr_[kk].c_byb_0_ -> point(ii,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_bye_0_ -> point(ii,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                             pmlArr_[kk].c_hyh_0_ -> point(ii,ny_-1) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb0_0_-> point(ii,ny_-1) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb1_0_-> point(ii,ny_-1) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(ii,ny_-1)].dielectric(1.0);
-    //                             sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
-    //                             pmlArr_[kk].c_byb_n_ -> point(ii,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_bye_n_ -> point(ii,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                             pmlArr_[kk].c_hyh_n_ -> point(ii,ny_-1) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb0_n_-> point(ii,ny_-1) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb1_n_-> point(ii,ny_-1) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                             //Update Ez factors
-    //                             eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0);
-    //                             sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                             pmlArr_[kk].c_dzd_0_ -> point(ii,ny_-1) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_0_ -> point(ii,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_0_ -> point(ii,ny_-1) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_0_-> point(ii,ny_-1) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_0_-> point(ii,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                             eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1)].dielectric(1.0);
-    //                             sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                             pmlArr_[kk].c_dzd_n_ -> point(ii,ny_-1) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_n_ -> point(ii,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_n_ -> point(ii,ny_-1) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_n_-> point(ii,ny_-1) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_n_-> point(ii,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         }
-    //                         for(int jj = 0; jj < ny_-1; jj++)
-    //                         {
-    //                             //Update Hx factors
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hx_->point(0,jj)].dielectric(1.0);
-    //                             sigxx  = pmlArr_[kk].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_bxb_0_ -> point(0,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                             pmlArr_[kk].c_bxe_0_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                             pmlArr_[kk].c_hxh_0_ -> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb0_0_-> point(0,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb1_0_-> point(0,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(0,jj)].dielectric(1.0);
-    //                             sigxx  = pmlArr_[kk].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_bxb_n_ -> point(0,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                             pmlArr_[kk].c_bxe_n_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                             pmlArr_[kk].c_hxh_n_ -> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb0_n_-> point(0,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb1_n_-> point(0,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                             //Update Hy factors
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hy_->point(0,jj)].dielectric(1.0);
-    //                             sigxy = pmlArr_[kk].sigma(0.5,eps);
-    //                             pmlArr_[kk].c_byb_0_ -> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_bye_0_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                             pmlArr_[kk].c_hyh_0_ -> point(0,jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb0_0_-> point(0,jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb1_0_-> point(0,jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                             //The Right side is not updated here
-
-    //                             //Update Ez factors
-    //                             eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0);
-    //                             sigx = pmlArr_[kk].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_dzd_0_ -> point(0,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_0_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_0_ -> point(0,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_0_-> point(0,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_0_-> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                             eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
-    //                             sigx = pmlArr_[kk].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_dzd_n_ -> point(0,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_n_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_n_ -> point(0,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_n_-> point(0,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_n_-> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         }
-    //                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
-    //                         {
-    //                             for(int jj = 0; jj < ny_-1; jj++)
-    //                             {
-    //                                 //Update Hx factors
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hx_->point(ii,jj)].dielectric(1.0);
-    //                                 sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_bxb_0_ -> point(ii,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                                 pmlArr_[kk].c_bxe_0_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                                 pmlArr_[kk].c_hxh_0_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb0_0_-> point(ii,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb1_0_-> point(ii,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(ii,jj)].dielectric(1.0);
-    //                                 sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_bxb_n_ -> point(ii,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                                 pmlArr_[kk].c_bxe_n_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                                 pmlArr_[kk].c_hxh_n_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb0_n_-> point(ii,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb1_n_-> point(ii,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                                 //Update Hy factors
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hy_->point(ii,jj)].dielectric(1.0);
-    //                                 sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
-    //                                 pmlArr_[kk].c_byb_0_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_bye_0_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                                 pmlArr_[kk].c_hyh_0_ -> point(ii,jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb0_0_-> point(ii,jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb1_0_-> point(ii,jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(ii,jj)].dielectric(1.0);
-    //                                 sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
-    //                                 pmlArr_[kk].c_byb_n_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_bye_n_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                                 pmlArr_[kk].c_hyh_n_ -> point(ii,jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb0_n_-> point(ii,jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb1_n_-> point(ii,jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                                 //Update Ez factors
-    //                                 eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
-    //                                 sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_dzd_0_ -> point(ii,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                                 pmlArr_[kk].c_dzh_0_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                                 pmlArr_[kk].c_eze_0_ -> point(ii,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                                 pmlArr_[kk].c_ezd1_0_-> point(ii,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                                 pmlArr_[kk].c_ezd0_0_-> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                                 eps = objArr_[phys_Ez_->point(nx_-1-ii,jj)].dielectric(1.0);
-    //                                 sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_dzd_n_ -> point(ii,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                                 pmlArr_[kk].c_dzh_n_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                                 pmlArr_[kk].c_eze_n_ -> point(ii,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                                 pmlArr_[kk].c_ezd1_n_-> point(ii,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                                 pmlArr_[kk].c_ezd0_n_-> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             }
-    //                         }
-    //                     }
-    //                     else
-    //                     {
-    //                         for(int jj = yPML_; jj < ny_ - yPML_; jj++)
-    //                         {
-    //                             //Update Hx factors
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hx_->point(0,jj)].dielectric(1.0);
-    //                                 sigxx  = pmlArr_[kk].sigma(0.0,eps);
-    //                                 pmlArr_[kk].c_bxb_0_ -> point(0,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                                 pmlArr_[kk].c_bxe_0_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                                 pmlArr_[kk].c_hxh_0_ -> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb0_0_-> point(0,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb1_0_-> point(0,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(0,jj)].dielectric(1.0);
-    //                                 sigxx  = pmlArr_[kk].sigma(0.0,eps);
-    //                                 pmlArr_[kk].c_bxb_n_ -> point(0,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                                 pmlArr_[kk].c_bxe_n_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                                 pmlArr_[kk].c_hxh_n_ -> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb0_n_-> point(0,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb1_n_-> point(0,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                                 //Update Hy factors
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hy_->point(0,jj)].dielectric(1.0);
-    //                                 sigxy = pmlArr_[kk].sigma(0.5,eps);
-    //                                 pmlArr_[kk].c_byb_0_ -> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_bye_0_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                                 pmlArr_[kk].c_hyh_0_ -> point(0,jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb0_0_-> point(0,jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb1_0_-> point(0,jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                                 //Right side never updated
-
-    //                                 //Update Ez factors
-    //                                 eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0);
-    //                                 sigx = pmlArr_[kk].sigma(0.0,eps);
-    //                                 pmlArr_[kk].c_dzd_0_ -> point(0,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                                 pmlArr_[kk].c_dzh_0_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                                 pmlArr_[kk].c_eze_0_ -> point(0,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                                 pmlArr_[kk].c_ezd1_0_-> point(0,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                                 pmlArr_[kk].c_ezd0_0_-> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                                 eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
-    //                                 sigx = pmlArr_[kk].sigma(0.0,eps);
-    //                                 pmlArr_[kk].c_dzd_n_ -> point(0,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                                 pmlArr_[kk].c_dzh_n_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                                 pmlArr_[kk].c_eze_n_ -> point(0,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                                 pmlArr_[kk].c_ezd1_n_-> point(0,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                                 pmlArr_[kk].c_ezd0_n_-> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         }
-    //                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
-    //                         {
-    //                             for(int jj = yPML_; jj < ny_ - yPML_; jj++)
-    //                             {
-    //                                 //Update Hx factors
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hx_->point(ii,jj)].dielectric(1.0);
-    //                                 sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_bxb_0_ -> point(ii,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                                 pmlArr_[kk].c_bxe_0_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                                 pmlArr_[kk].c_hxh_0_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb0_0_-> point(ii,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb1_0_-> point(ii,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(ii,jj)].dielectric(1.0);
-    //                                 sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_bxb_n_ -> point(ii,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                                 pmlArr_[kk].c_bxe_n_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                                 pmlArr_[kk].c_hxh_n_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb0_n_-> point(ii,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb1_n_-> point(ii,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                                 //Update Hy factors
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hy_->point(ii,jj)].dielectric(1.0);
-    //                                 sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
-    //                                 pmlArr_[kk].c_byb_0_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_bye_0_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                                 pmlArr_[kk].c_hyh_0_ -> point(ii,jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb0_0_-> point(ii,jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb1_0_-> point(ii,jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(ii,jj)].dielectric(1.0);
-    //                                 sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
-    //                                 pmlArr_[kk].c_byb_n_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_bye_n_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                                 pmlArr_[kk].c_hyh_n_ -> point(ii,jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb0_n_-> point(ii,jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb1_n_-> point(ii,jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                                 //Update Ez factors
-    //                                 eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
-    //                                 sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_dzd_0_ -> point(ii,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                                 pmlArr_[kk].c_dzh_0_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                                 pmlArr_[kk].c_eze_0_ -> point(ii,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                                 pmlArr_[kk].c_ezd1_0_-> point(ii,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                                 pmlArr_[kk].c_ezd0_0_-> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                                 eps = objArr_[phys_Ez_->point(nx_-1-ii,jj)].dielectric(1.0);
-    //                                 sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_dzd_n_ -> point(ii,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                                 pmlArr_[kk].c_dzh_n_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                                 pmlArr_[kk].c_eze_n_ -> point(ii,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                                 pmlArr_[kk].c_ezd1_n_-> point(ii,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                                 pmlArr_[kk].c_ezd0_n_-> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             }
-    //                         }
-    //                         // Corners
-    //                         //Top edge never updated
-    //                         eps    = objArr_[pmlArr_[kk].phys_Hx_->point(0,0)].dielectric(1.0);
-    //                         sigxx  = pmlArr_[kk].sigma(0.0,eps);
-    //                         sigyx = pmlArr_[abs(kk-1)].sigma(0.5,eps);
-    //                         pmlArr_[kk].c_bxb_0_ -> point(0,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                         pmlArr_[kk].c_bxe_0_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                         pmlArr_[kk].c_hxh_0_ -> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                         pmlArr_[kk].c_hxb0_0_-> point(0,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                         pmlArr_[kk].c_hxb1_0_-> point(0,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                         eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(0,0)].dielectric(1.0);
-    //                         sigxx  = pmlArr_[kk].sigma(0.0,eps);
-    //                         sigyx = pmlArr_[abs(kk-1)].sigma(0.5,eps);
-    //                         pmlArr_[kk].c_bxb_n_ -> point(0,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                         pmlArr_[kk].c_bxe_n_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                         pmlArr_[kk].c_hxh_n_ -> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                         pmlArr_[kk].c_hxb0_n_-> point(0,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                         pmlArr_[kk].c_hxb1_n_-> point(0,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                         //Update Hy factors
-    //                         eps    = objArr_[pmlArr_[kk].phys_Hy_->point(0,0)].dielectric(1.0);
-    //                         sigxy = pmlArr_[kk].sigma(0.5,eps);
-    //                         sigyy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                         pmlArr_[kk].c_byb_0_ -> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                         pmlArr_[kk].c_bye_0_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                         pmlArr_[kk].c_hyh_0_ -> point(0,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                         pmlArr_[kk].c_hyb0_0_-> point(0,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                         pmlArr_[kk].c_hyb1_0_-> point(0,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                         eps    = objArr_[pmlArr_[kk].phys_Hy_->point(0,0)].dielectric(1.0);
-    //                         sigxy = pmlArr_[kk].sigma(0.5,eps);
-    //                         sigyy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                         pmlArr_[kk].c_byb_0_ -> point(0,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                         pmlArr_[kk].c_bye_0_ -> point(0,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                         pmlArr_[kk].c_hyh_0_ -> point(0,ny_-1) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                         pmlArr_[kk].c_hyb0_0_-> point(0,ny_-1) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                         pmlArr_[kk].c_hyb1_0_-> point(0,ny_-1) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                         //Update Ez factors
-    //                         eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0);
-    //                         sigx = pmlArr_[kk].sigma(0.0,eps);
-    //                         sigy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                         pmlArr_[kk].c_dzd_0_ -> point(0,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                         pmlArr_[kk].c_dzh_0_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                         pmlArr_[kk].c_eze_0_ -> point(0,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                         pmlArr_[kk].c_ezd1_0_-> point(0,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         pmlArr_[kk].c_ezd0_0_-> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                         eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
-    //                         sigx = pmlArr_[kk].sigma(0.0,eps);
-    //                         sigy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                         pmlArr_[kk].c_dzd_n_ -> point(0,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                         pmlArr_[kk].c_dzh_n_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                         pmlArr_[kk].c_eze_n_ -> point(0,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                         pmlArr_[kk].c_ezd1_n_-> point(0,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         pmlArr_[kk].c_ezd0_n_-> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                         eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
-    //                         sigx = pmlArr_[kk].sigma(0.0,eps);
-    //                         sigy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                         pmlArr_[kk].c_dzd_0_ -> point(0,ny_-1) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                         pmlArr_[kk].c_dzh_0_ -> point(0,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                         pmlArr_[kk].c_eze_0_ -> point(0,ny_-1) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                         pmlArr_[kk].c_ezd1_0_-> point(0,ny_-1) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         pmlArr_[kk].c_ezd0_0_-> point(0,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                         eps = objArr_[phys_Ez_->point(nx_-1,ny_-1-0)].dielectric(1.0);
-    //                         sigx = pmlArr_[kk].sigma(0.0,eps);
-    //                         sigy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                         pmlArr_[kk].c_dzd_n_ -> point(0,ny_-1) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                         pmlArr_[kk].c_dzh_n_ -> point(0,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                         pmlArr_[kk].c_eze_n_ -> point(0,ny_-1) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                         pmlArr_[kk].c_ezd1_n_-> point(0,ny_-1) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         pmlArr_[kk].c_ezd0_n_-> point(0,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
-    //                         {
-    //                             //Update Hx factors
-    //                             //Top edge never updated
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hx_->point(ii,0)].dielectric(1.0);
-    //                             sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                             sigyx = pmlArr_[abs(kk-1)].sigma(0.5,eps);
-    //                             pmlArr_[kk].c_bxb_0_ -> point(ii,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                             pmlArr_[kk].c_bxe_0_ -> point(ii,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                             pmlArr_[kk].c_hxh_0_ -> point(ii,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb0_0_-> point(ii,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb1_0_-> point(ii,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hx_->point(ii,0)].dielectric(1.0);
-    //                             sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                             sigyx = pmlArr_[abs(kk-1)].sigma(0.5,eps);
-    //                             pmlArr_[kk].c_bxb_n_ -> point(ii,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                             pmlArr_[kk].c_bxe_n_ -> point(ii,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                             pmlArr_[kk].c_hxh_n_ -> point(ii,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb0_n_-> point(ii,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb1_n_-> point(ii,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                             //Update Hy factors
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hy_->point(ii,0)].dielectric(1.0);
-    //                             sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
-    //                             sigyy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_byb_0_ -> point(ii,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_bye_0_ -> point(ii,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                             pmlArr_[kk].c_hyh_0_ -> point(ii,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb0_0_-> point(ii,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb1_0_-> point(ii,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(ii,0)].dielectric(1.0);
-    //                             sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
-    //                             sigyy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_byb_n_ -> point(ii,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_bye_n_ -> point(ii,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                             pmlArr_[kk].c_hyh_n_ -> point(ii,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb0_n_-> point(ii,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb1_n_-> point(ii,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hy_->point(ii,0)].dielectric(1.0);
-    //                             sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
-    //                             sigyy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_byb_0_ -> point(ii,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_bye_0_ -> point(ii,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                             pmlArr_[kk].c_hyh_0_ -> point(ii,ny_-1) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb0_0_-> point(ii,ny_-1) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb1_0_-> point(ii,ny_-1) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(ii,ny_-1)].dielectric(1.0);
-    //                             sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
-    //                             sigyy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_byb_n_ -> point(ii,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_bye_n_ -> point(ii,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                             pmlArr_[kk].c_hyh_n_ -> point(ii,ny_-1) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb0_n_-> point(ii,ny_-1) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb1_n_-> point(ii,ny_-1) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                             //Update Ez factors
-    //                             eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0);
-    //                             sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                             sigy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_dzd_0_ -> point(ii,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_0_ -> point(ii,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_0_ -> point(ii,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_0_-> point(ii,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_0_-> point(ii,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                             eps = objArr_[phys_Ez_->point(nx_-1-ii,0)].dielectric(1.0);
-    //                             sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                             sigy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_dzd_n_ -> point(ii,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_n_ -> point(ii,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_n_ -> point(ii,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_n_-> point(ii,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_n_-> point(ii,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                             eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0);
-    //                             sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                             sigy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_dzd_0_ -> point(ii,ny_-1) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_0_ -> point(ii,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_0_ -> point(ii,ny_-1) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_0_-> point(ii,ny_-1) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_0_-> point(ii,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                             eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1-0)].dielectric(1.0);
-    //                             sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                             sigy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_dzd_n_ -> point(ii,ny_-1) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_n_ -> point(ii,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_n_ -> point(ii,ny_-1) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_n_-> point(ii,ny_-1) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_n_-> point(ii,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         }
-    //                         for(int jj = 1; jj < pmlArr_[abs(kk-1)].thickness(); jj++)
-    //                         {
-    //                             //Update Hx factors
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hx_->point(0,jj)].dielectric(1.0);
-    //                             sigxx  = pmlArr_[kk].sigma(0.0,eps);
-    //                             sigyx = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) + 0.5,eps);
-    //                             pmlArr_[kk].c_bxb_0_ -> point(0,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                             pmlArr_[kk].c_bxe_0_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                             pmlArr_[kk].c_hxh_0_ -> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb0_0_-> point(0,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb1_0_-> point(0,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(0,jj)].dielectric(1.0);
-    //                             sigxx  = pmlArr_[kk].sigma(0.0,eps);
-    //                             sigyx = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) + 0.5,eps);
-    //                             pmlArr_[kk].c_bxb_n_ -> point(0,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                             pmlArr_[kk].c_bxe_n_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                             pmlArr_[kk].c_hxh_n_ -> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb0_n_-> point(0,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb1_n_-> point(0,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hx_->point(0,ny_-1-jj)].dielectric(1.0);
-    //                             sigxx  = pmlArr_[kk].sigma(0.0,eps);
-    //                             sigyx = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) - 0.5,eps);
-    //                             pmlArr_[kk].c_bxb_0_ -> point(0,ny_-1-jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                             pmlArr_[kk].c_bxe_0_ -> point(0,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                             pmlArr_[kk].c_hxh_0_ -> point(0,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb0_0_-> point(0,ny_-1-jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb1_0_-> point(0,ny_-1-jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(0,ny_-1-jj)].dielectric(1.0);
-    //                             sigxx  = pmlArr_[kk].sigma(0.0,eps);
-    //                             sigyx = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) - 0.5,eps);
-    //                             pmlArr_[kk].c_bxb_n_ -> point(0,ny_-1-jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                             pmlArr_[kk].c_bxe_n_ -> point(0,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                             pmlArr_[kk].c_hxh_n_ -> point(0,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb0_n_-> point(0,ny_-1-jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb1_n_-> point(0,ny_-1-jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                             //Update Hy factors
-    //                             //Right edge does not get updated
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hy_->point(0,jj)].dielectric(1.0);
-    //                             sigxy = pmlArr_[kk].sigma(0.5,eps);
-    //                             sigyy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                             pmlArr_[kk].c_byb_0_ -> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_bye_0_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                             pmlArr_[kk].c_hyh_0_ -> point(0,jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb0_0_-> point(0,jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb1_0_-> point(0,jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hy_->point(0,jj)].dielectric(1.0);
-    //                             sigxy = pmlArr_[kk].sigma(0.5,eps);
-    //                             sigyy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                             pmlArr_[kk].c_byb_0_ -> point(0,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_bye_0_ -> point(0,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                             pmlArr_[kk].c_hyh_0_ -> point(0,ny_-1-jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb0_0_-> point(0,ny_-1-jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb1_0_-> point(0,ny_-1-jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                             //Update Ez factors
-    //                             eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0);
-    //                             sigx = pmlArr_[kk].sigma(0.0,eps);
-    //                             sigy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                             pmlArr_[kk].c_dzd_0_ -> point(0,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_0_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_0_ -> point(0,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_0_-> point(0,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_0_-> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                             eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
-    //                             sigx = pmlArr_[kk].sigma(0.0,eps);
-    //                             sigy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                             pmlArr_[kk].c_dzd_n_ -> point(0,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_n_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_n_ -> point(0,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_n_-> point(0,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_n_-> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                             eps = objArr_[phys_Ez_->point(0,ny_-1-jj)].dielectric(1.0);
-    //                             sigx = pmlArr_[kk].sigma(0.0,eps);
-    //                             sigy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                             pmlArr_[kk].c_dzd_0_ -> point(0,ny_-1-jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_0_ -> point(0,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_0_ -> point(0,ny_-1-jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_0_-> point(0,ny_-1-jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_0_-> point(0,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                             eps = objArr_[phys_Ez_->point(nx_-1,ny_-1-jj)].dielectric(1.0);
-    //                             sigx = pmlArr_[kk].sigma(0.0,eps);
-    //                             sigy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                             pmlArr_[kk].c_dzd_n_ -> point(0,ny_-1-jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_n_ -> point(0,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_n_ -> point(0,ny_-1-jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_n_-> point(0,ny_-1-jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_n_-> point(0,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         }
-    //                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
-    //                         {
-    //                             for(int jj = 1; jj < pmlArr_[abs(kk-1)].thickness(); jj++)
-    //                             {
-    //                                 //Update Hx factors
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hx_->point(ii,jj)].dielectric(1.0);
-    //                                 sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 sigyx = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) + 0.5,eps);
-    //                                 pmlArr_[kk].c_bxb_0_ -> point(ii,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                                 pmlArr_[kk].c_bxe_0_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                                 pmlArr_[kk].c_hxh_0_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb0_0_-> point(ii,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb1_0_-> point(ii,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(ii,jj)].dielectric(1.0);
-    //                                 sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 sigyx = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) + 0.5,eps);
-    //                                 pmlArr_[kk].c_bxb_n_ -> point(ii,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                                 pmlArr_[kk].c_bxe_n_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                                 pmlArr_[kk].c_hxh_n_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb0_n_-> point(ii,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb1_n_-> point(ii,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hx_->point(ii,ny_-1-jj)].dielectric(1.0);
-    //                                 sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 sigyx = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) - 0.5,eps);
-    //                                 pmlArr_[kk].c_bxb_0_ -> point(ii,ny_-1-jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                                 pmlArr_[kk].c_bxe_0_ -> point(ii,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                                 pmlArr_[kk].c_hxh_0_ -> point(ii,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb0_0_-> point(ii,ny_-1-jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb1_0_-> point(ii,ny_-1-jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(ii,ny_-1-jj)].dielectric(1.0);
-    //                                 sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 sigyx = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) - 0.5,eps);
-    //                                 pmlArr_[kk].c_bxb_n_ -> point(ii,ny_-1-jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                                 pmlArr_[kk].c_bxe_n_ -> point(ii,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                                 pmlArr_[kk].c_hxh_n_ -> point(ii,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb0_n_-> point(ii,ny_-1-jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb1_n_-> point(ii,ny_-1-jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                                 //Update Hy factors
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hy_->point(ii,jj)].dielectric(1.0);
-    //                                 sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
-    //                                 sigyy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                                 pmlArr_[kk].c_byb_0_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_bye_0_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                                 pmlArr_[kk].c_hyh_0_ -> point(ii,jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb0_0_-> point(ii,jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb1_0_-> point(ii,jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(ii,jj)].dielectric(1.0);
-    //                                 sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
-    //                                 sigyy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                                 pmlArr_[kk].c_byb_n_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_bye_n_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                                 pmlArr_[kk].c_hyh_n_ -> point(ii,jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb0_n_-> point(ii,jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb1_n_-> point(ii,jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hy_->point(ii,jj)].dielectric(1.0);
-    //                                 sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
-    //                                 sigyy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                                 pmlArr_[kk].c_byb_0_ -> point(ii,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_bye_0_ -> point(ii,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                                 pmlArr_[kk].c_hyh_0_ -> point(ii,ny_-1-jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb0_0_-> point(ii,ny_-1-jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb1_0_-> point(ii,ny_-1-jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(ii,ny_-1-jj)].dielectric(1.0);
-    //                                 sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
-    //                                 sigyy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                                 pmlArr_[kk].c_byb_n_ -> point(ii,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_bye_n_ -> point(ii,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                                 pmlArr_[kk].c_hyh_n_ -> point(ii,ny_-1-jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb0_n_-> point(ii,ny_-1-jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb1_n_-> point(ii,ny_-1-jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                                 //Update Ez factors
-    //                                 eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
-    //                                 sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 sigy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                                 pmlArr_[kk].c_dzd_0_ -> point(ii,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                                 pmlArr_[kk].c_dzh_0_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                                 pmlArr_[kk].c_eze_0_ -> point(ii,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                                 pmlArr_[kk].c_ezd1_0_-> point(ii,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                                 pmlArr_[kk].c_ezd0_0_-> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                                 eps = objArr_[phys_Ez_->point(nx_-1-ii,jj)].dielectric(1.0);
-    //                                 sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 sigy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                                 pmlArr_[kk].c_dzd_n_ -> point(ii,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                                 pmlArr_[kk].c_dzh_n_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                                 pmlArr_[kk].c_eze_n_ -> point(ii,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                                 pmlArr_[kk].c_ezd1_n_-> point(ii,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                                 pmlArr_[kk].c_ezd0_n_-> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                                 eps = objArr_[phys_Ez_->point(ii,ny_-1-jj)].dielectric(1.0);
-    //                                 sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 sigy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                                 pmlArr_[kk].c_dzd_0_ -> point(ii,ny_-1-jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                                 pmlArr_[kk].c_dzh_0_ -> point(ii,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                                 pmlArr_[kk].c_eze_0_ -> point(ii,ny_-1-jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                                 pmlArr_[kk].c_ezd1_0_-> point(ii,ny_-1-jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                                 pmlArr_[kk].c_ezd0_0_-> point(ii,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                                 eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1-jj)].dielectric(1.0);
-    //                                 sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 sigy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                                 pmlArr_[kk].c_dzd_n_ -> point(ii,ny_-1-jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                                 pmlArr_[kk].c_dzh_n_ -> point(ii,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                                 pmlArr_[kk].c_eze_n_ -> point(ii,ny_-1-jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                                 pmlArr_[kk].c_ezd1_n_-> point(ii,ny_-1-jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                                 pmlArr_[kk].c_ezd0_n_-> point(ii,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             }
-    //                         }
-    //                     }
-    //                 }
-    //                 break;
-    //             }
-    //             case Y:
-    //             {
-    //                 double sigz = 0.0; double sigx = 0.0; double sigy = 0.0;
-    //                 double sigxx = 0.0; double sigxy = 0.0; double sigyx = 0.0; double sigyy = 0.0;
-    //                 if(Ez_)
-    //                 {
-    //                     if(xPML_ == 0)
-    //                     {
-    //                         //Update Hx factors
-    //                         eps    = objArr_[pmlArr_[kk].phys_Hx_->point(nx_-1,0)].dielectric(1.0);
-    //                         sigyx  = pmlArr_[kk].sigma(0.5,eps);
-    //                         pmlArr_[kk].c_bxb_0_ -> point(nx_-1,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                         pmlArr_[kk].c_bxe_0_ -> point(nx_-1,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                         pmlArr_[kk].c_hxh_0_ -> point(nx_-1,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                         pmlArr_[kk].c_hxb0_0_-> point(nx_-1,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                         pmlArr_[kk].c_hxb1_0_-> point(nx_-1,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                         //Top row neve updated
-
-    //                         //Update Hy factors -> not updated in the top right corner
-
-    //                         //Update Ez factors
-    //                         eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
-    //                         sigy = pmlArr_[kk].sigma(0.0,eps);
-    //                         pmlArr_[kk].c_dzd_0_ -> point(nx_-1,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                         pmlArr_[kk].c_dzh_0_ -> point(nx_-1,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                         pmlArr_[kk].c_eze_0_ -> point(nx_-1,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                         pmlArr_[kk].c_ezd1_0_-> point(nx_-1,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         pmlArr_[kk].c_ezd0_0_-> point(nx_-1,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                         eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
-    //                         sigy = pmlArr_[kk].sigma(0.0,eps);
-    //                         pmlArr_[kk].c_dzd_n_ -> point(nx_-1,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                         pmlArr_[kk].c_dzh_n_ -> point(nx_-1,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                         pmlArr_[kk].c_eze_n_ -> point(nx_-1,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                         pmlArr_[kk].c_ezd1_n_-> point(nx_-1,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         pmlArr_[kk].c_ezd0_n_-> point(nx_-1,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         for(int jj = 0; jj < nx_-1; jj++)
-    //                         {
-    //                             //Update Hx factors
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hx_->point(jj,0)].dielectric(1.0);
-    //                             sigyx  = pmlArr_[kk].sigma(0.5,eps);
-    //                             pmlArr_[kk].c_bxb_0_ -> point(jj,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                             pmlArr_[kk].c_bxe_0_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                             pmlArr_[kk].c_hxh_0_ -> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb0_0_-> point(jj,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb1_0_-> point(jj,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                             //Top row neve updated
-
-    //                             //Update Hy factors
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hy_->point(jj,0)].dielectric(1.0);
-    //                             sigyy = pmlArr_[kk].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_byb_0_ -> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_bye_0_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                             pmlArr_[kk].c_hyh_0_ -> point(jj,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb0_0_-> point(jj,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb1_0_-> point(jj,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(jj,0)].dielectric(1.0);
-    //                             sigyy = pmlArr_[kk].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_byb_n_ -> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_bye_n_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                             pmlArr_[kk].c_hyh_n_ -> point(jj,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb0_n_-> point(jj,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb1_n_-> point(jj,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                             //Update Ez factors
-    //                             eps = objArr_[phys_Ez_->point(jj,0)].dielectric(1.0);
-    //                             sigy = pmlArr_[kk].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_dzd_0_ -> point(jj,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_0_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_0_ -> point(jj,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_0_-> point(jj,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_0_-> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                             eps = objArr_[phys_Ez_->point(jj,ny_-1)].dielectric(1.0);
-    //                             sigy = pmlArr_[kk].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_dzd_n_ -> point(jj,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_n_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_n_ -> point(jj,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_n_-> point(jj,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_n_-> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         }
-    //                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
-    //                         {
-    //                             //Update Hx factors
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hx_->point(nx_-1,ii)].dielectric(1.0);
-    //                             sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
-    //                             pmlArr_[kk].c_bxb_0_ -> point(nx_-1,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                             pmlArr_[kk].c_bxe_0_ -> point(nx_-1,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                             pmlArr_[kk].c_hxh_0_ -> point(nx_-1,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb0_0_-> point(nx_-1,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb1_0_-> point(nx_-1,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(nx_-1,ii)].dielectric(1.0);
-    //                             sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
-    //                             pmlArr_[kk].c_bxb_n_ -> point(nx_-1,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                             pmlArr_[kk].c_bxe_n_ -> point(nx_-1,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                             pmlArr_[kk].c_hxh_n_ -> point(nx_-1,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb0_n_-> point(nx_-1,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb1_n_-> point(nx_-1,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                             //Update Hy factors -> Nothing to update since its the right col
-
-    //                             //Update Ez factors
-    //                             eps = objArr_[phys_Ez_->point(nx_-1,ii)].dielectric(1.0);
-    //                             sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                             pmlArr_[kk].c_dzd_0_ -> point(nx_-1,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_0_ -> point(nx_-1,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_0_ -> point(nx_-1,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_0_-> point(nx_-1,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_0_-> point(nx_-1,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                             eps = objArr_[phys_Ez_->point(nx_-1,ny_-1-ii)].dielectric(1.0);
-    //                             sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                             pmlArr_[kk].c_dzd_n_ -> point(nx_-1,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_n_ -> point(nx_-1,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_n_ -> point(nx_-1,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_n_-> point(nx_-1,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_n_-> point(nx_-1,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         }
-    //                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
-    //                         {
-    //                             for(int jj = 0; jj < nx_-1; jj++)
-    //                             {
-    //                                 //Update Hx factors
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hx_->point(jj,ii)].dielectric(1.0);
-    //                                 sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
-    //                                 pmlArr_[kk].c_bxb_0_ -> point(jj,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                                 pmlArr_[kk].c_bxe_0_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                                 pmlArr_[kk].c_hxh_0_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb0_0_-> point(jj,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb1_0_-> point(jj,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(jj,ii)].dielectric(1.0);
-    //                                 sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
-    //                                 pmlArr_[kk].c_bxb_n_ -> point(jj,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                                 pmlArr_[kk].c_bxe_n_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                                 pmlArr_[kk].c_hxh_n_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb0_n_-> point(jj,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb1_n_-> point(jj,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                                 //Update Hy factors
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hy_->point(jj,ii)].dielectric(1.0);
-    //                                 sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_byb_0_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_bye_0_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                                 pmlArr_[kk].c_hyh_0_ -> point(jj,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb0_0_-> point(jj,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb1_0_-> point(jj,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(jj,ii)].dielectric(1.0);
-    //                                 sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_byb_n_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_bye_n_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                                 pmlArr_[kk].c_hyh_n_ -> point(jj,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb0_n_-> point(jj,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb1_n_-> point(jj,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                                 //Update Ez factors
-    //                                 eps = objArr_[phys_Ez_->point(jj,ii)].dielectric(1.0);
-    //                                 sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_dzd_0_ -> point(jj,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                                 pmlArr_[kk].c_dzh_0_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                                 pmlArr_[kk].c_eze_0_ -> point(jj,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                                 pmlArr_[kk].c_ezd1_0_-> point(jj,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                                 pmlArr_[kk].c_ezd0_0_-> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                                 eps = objArr_[phys_Ez_->point(jj,ny_-1-ii)].dielectric(1.0);
-    //                                 sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_dzd_n_ -> point(jj,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                                 pmlArr_[kk].c_dzh_n_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                                 pmlArr_[kk].c_eze_n_ -> point(jj,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                                 pmlArr_[kk].c_ezd1_n_-> point(jj,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                                 pmlArr_[kk].c_ezd0_n_-> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             }
-    //                         }
-    //                     }
-    //                     else
-    //                     {
-    //                         for(int jj = xPML_; jj < nx_ - xPML_; jj++)
-    //                         {
-    //                             //Update Hx factors
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hx_->point(jj,0)].dielectric(1.0);
-    //                             sigyx  = pmlArr_[kk].sigma(0.5,eps);
-    //                             pmlArr_[kk].c_bxb_0_ -> point(jj,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                             pmlArr_[kk].c_bxe_0_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                             pmlArr_[kk].c_hxh_0_ -> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb0_0_-> point(jj,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb1_0_-> point(jj,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                             //Top row never updated
-
-    //                             //Update Hy factors
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hy_->point(jj,0)].dielectric(1.0);
-    //                             sigyy = pmlArr_[kk].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_byb_0_ -> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_bye_0_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                             pmlArr_[kk].c_hyh_0_ -> point(jj,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb0_0_-> point(jj,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb1_0_-> point(jj,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(jj,0)].dielectric(1.0);
-    //                             sigyy = pmlArr_[kk].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_byb_n_ -> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_bye_n_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                             pmlArr_[kk].c_hyh_n_ -> point(jj,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb0_n_-> point(jj,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb1_n_-> point(jj,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             //Update Ez factors
-    //                             eps = objArr_[phys_Ez_->point(jj,0)].dielectric(1.0);
-    //                             sigy = pmlArr_[kk].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_dzd_0_ -> point(jj,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_0_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_0_ -> point(jj,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_0_-> point(jj,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_0_-> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                             eps = objArr_[phys_Ez_->point(jj,ny_-1)].dielectric(1.0);
-    //                             sigy = pmlArr_[kk].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_dzd_n_ -> point(jj,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_n_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_n_ -> point(jj,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_n_-> point(jj,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_n_-> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         }
-    //                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
-    //                         {
-    //                             for(int jj = xPML_; jj < nx_-xPML_; jj++)
-    //                             {
-    //                                 //Update Hx factors
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hx_->point(jj,ii)].dielectric(1.0);
-    //                                 sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
-    //                                 pmlArr_[kk].c_bxb_0_ -> point(jj,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                                 pmlArr_[kk].c_bxe_0_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                                 pmlArr_[kk].c_hxh_0_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb0_0_-> point(jj,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb1_0_-> point(jj,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(jj,ii)].dielectric(1.0);
-    //                                 sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
-    //                                 pmlArr_[kk].c_bxb_n_ -> point(jj,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                                 pmlArr_[kk].c_bxe_n_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                                 pmlArr_[kk].c_hxh_n_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb0_n_-> point(jj,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb1_n_-> point(jj,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                                 //Update Hy factors
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hy_->point(jj,ii)].dielectric(1.0);
-    //                                 sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_byb_0_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_bye_0_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                                 pmlArr_[kk].c_hyh_0_ -> point(jj,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb0_0_-> point(jj,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb1_0_-> point(jj,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(jj,ii)].dielectric(1.0);
-    //                                 sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_byb_n_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_bye_n_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                                 pmlArr_[kk].c_hyh_n_ -> point(jj,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb0_n_-> point(jj,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb1_n_-> point(jj,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                                 //Update Ez factors
-    //                                 eps = objArr_[phys_Ez_->point(jj,ii)].dielectric(1.0);
-    //                                 sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_dzd_0_ -> point(jj,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                                 pmlArr_[kk].c_dzh_0_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                                 pmlArr_[kk].c_eze_0_ -> point(jj,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                                 pmlArr_[kk].c_ezd1_0_-> point(jj,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                                 pmlArr_[kk].c_ezd0_0_-> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                                 eps = objArr_[phys_Ez_->point(jj,ny_-1-ii)].dielectric(1.0);
-    //                                 sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_dzd_n_ -> point(jj,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                                 pmlArr_[kk].c_dzh_n_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                                 pmlArr_[kk].c_eze_n_ -> point(jj,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                                 pmlArr_[kk].c_ezd1_n_-> point(jj,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                                 pmlArr_[kk].c_ezd0_n_-> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             }
-    //                         }
-    //                         // Corners
-    //                         //Update Hx factors
-    //                         //Top  is never updated
-    //                         sigyx =0.0;sigyy =00.0; sigxy =0.0,sigxx=0.0;sigy=0.0;sigx=0.0;
-    //                         eps    = objArr_[pmlArr_[kk].phys_Hx_->point(0,0)].dielectric(1.0);
-    //                         sigyx  = pmlArr_[kk].sigma(0.5,eps);
-    //                         sigxx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                         pmlArr_[kk].c_bxb_0_ -> point(0,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                         pmlArr_[kk].c_bxe_0_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                         pmlArr_[kk].c_hxh_0_ -> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                         pmlArr_[kk].c_hxb0_0_-> point(0,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                         pmlArr_[kk].c_hxb1_0_-> point(0,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                         eps    = objArr_[pmlArr_[kk].phys_Hx_->point(nx_-1,0)].dielectric(1.0);
-    //                         sigyx  = pmlArr_[kk].sigma(0.5,eps);
-    //                         sigxx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                         pmlArr_[kk].c_bxb_0_ -> point(nx_-1,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                         pmlArr_[kk].c_bxe_0_ -> point(nx_-1,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                         pmlArr_[kk].c_hxh_0_ -> point(nx_-1,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                         pmlArr_[kk].c_hxb0_0_-> point(nx_-1,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                         pmlArr_[kk].c_hxb1_0_-> point(nx_-1,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                         //Update Hy factors
-    //                         eps    = objArr_[pmlArr_[kk].phys_Hy_->point(0,0)].dielectric(1.0);
-    //                         sigyx  = pmlArr_[abs(kk-1)].sigma(0.5,eps);
-    //                         sigyy = pmlArr_[kk].sigma(0.0,eps);
-    //                         pmlArr_[kk].c_byb_0_ -> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                         pmlArr_[kk].c_bye_0_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                         pmlArr_[kk].c_hyh_0_ -> point(0,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                         pmlArr_[kk].c_hyb0_0_-> point(0,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                         pmlArr_[kk].c_hyb1_0_-> point(0,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                         eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(0,0)].dielectric(1.0);
-    //                         sigyx  = pmlArr_[abs(kk-1)].sigma(0.5,eps);
-    //                         sigyy = pmlArr_[kk].sigma(0.0,eps);
-    //                         pmlArr_[kk].c_byb_n_ -> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                         pmlArr_[kk].c_bye_n_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                         pmlArr_[kk].c_hyh_n_ -> point(0,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                         pmlArr_[kk].c_hyb0_n_-> point(0,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                         pmlArr_[kk].c_hyb1_n_-> point(0,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                         //Right side not updated
-
-    //                         //Update Ez factors
-    //                         eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0);
-    //                         sigy = pmlArr_[kk].sigma(0.0,eps);
-    //                         sigx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                         pmlArr_[kk].c_dzd_0_ -> point(0,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                         pmlArr_[kk].c_dzh_0_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                         pmlArr_[kk].c_eze_0_ -> point(0,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                         pmlArr_[kk].c_ezd1_0_-> point(0,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         pmlArr_[kk].c_ezd0_0_-> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                         eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
-    //                         sigy = pmlArr_[kk].sigma(0.0,eps);
-    //                         sigx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                         pmlArr_[kk].c_dzd_n_ -> point(0,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                         pmlArr_[kk].c_dzh_n_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                         pmlArr_[kk].c_eze_n_ -> point(0,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                         pmlArr_[kk].c_ezd1_n_-> point(0,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         pmlArr_[kk].c_ezd0_n_-> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                         eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
-    //                         sigy = pmlArr_[kk].sigma(0.0,eps);
-    //                         sigx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                         pmlArr_[kk].c_dzd_0_ -> point(nx_-1,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                         pmlArr_[kk].c_dzh_0_ -> point(nx_-1,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                         pmlArr_[kk].c_eze_0_ -> point(nx_-1,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                         pmlArr_[kk].c_ezd1_0_-> point(nx_-1,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         pmlArr_[kk].c_ezd0_0_-> point(nx_-1,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                         eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
-    //                         sigy = pmlArr_[kk].sigma(0.0,eps);
-    //                         sigx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                         pmlArr_[kk].c_dzd_n_ -> point(nx_-1,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                         pmlArr_[kk].c_dzh_n_ -> point(nx_-1,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                         pmlArr_[kk].c_eze_n_ -> point(nx_-1,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                         pmlArr_[kk].c_ezd1_n_-> point(nx_-1,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         pmlArr_[kk].c_ezd0_n_-> point(nx_-1,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
-    //                         {
-    //                             //Update Hx factors
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hx_->point(0,ii)].dielectric(1.0);
-    //                             sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
-    //                             sigxx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_bxb_0_ -> point(0,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                             pmlArr_[kk].c_bxe_0_ -> point(0,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                             pmlArr_[kk].c_hxh_0_ -> point(0,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb0_0_-> point(0,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb1_0_-> point(0,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(0,ii)].dielectric(1.0);
-    //                             sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
-    //                             sigxx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_bxb_n_ -> point(0,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                             pmlArr_[kk].c_bxe_n_ -> point(0,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                             pmlArr_[kk].c_hxh_n_ -> point(0,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb0_n_-> point(0,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb1_n_-> point(0,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hx_->point(nx_-1,ii)].dielectric(1.0);
-    //                             sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
-    //                             sigxx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_bxb_0_ -> point(nx_-1,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                             pmlArr_[kk].c_bxe_0_ -> point(nx_-1,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                             pmlArr_[kk].c_hxh_0_ -> point(nx_-1,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb0_0_-> point(nx_-1,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb1_0_-> point(nx_-1,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(nx_-1,ii)].dielectric(1.0);
-    //                             sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
-    //                             sigxx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_bxb_n_ -> point(nx_-1,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                             pmlArr_[kk].c_bxe_n_ -> point(nx_-1,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                             pmlArr_[kk].c_hxh_n_ -> point(nx_-1,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb0_n_-> point(nx_-1,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb1_n_-> point(nx_-1,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                             //Update Hy factors
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hy_->point(0,ii)].dielectric(1.0);
-    //                             sigyx  = pmlArr_[abs(kk-1)].sigma(0.5,eps);
-    //                             sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                             pmlArr_[kk].c_byb_0_ -> point(0,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_bye_0_ -> point(0,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                             pmlArr_[kk].c_hyh_0_ -> point(0,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb0_0_-> point(0,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb1_0_-> point(0,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(0,ii)].dielectric(1.0);
-    //                             sigyx  = pmlArr_[abs(kk-1)].sigma(0.5,eps);
-    //                             sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                             pmlArr_[kk].c_byb_n_ -> point(0,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_bye_n_ -> point(0,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                             pmlArr_[kk].c_hyh_n_ -> point(0,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb0_n_-> point(0,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb1_n_-> point(0,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                             //Right side not updated
-
-    //                             //Update Ez factors
-    //                             eps = objArr_[phys_Ez_->point(0,ii)].dielectric(1.0);
-    //                             sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                             sigx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_dzd_0_ -> point(0,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_0_ -> point(0,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_0_ -> point(0,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_0_-> point(0,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_0_-> point(0,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                             eps = objArr_[phys_Ez_->point(0,ny_-1-ii)].dielectric(1.0);
-    //                             sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                             sigx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_dzd_n_ -> point(0,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_n_ -> point(0,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_n_ -> point(0,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_n_-> point(0,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_n_-> point(0,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                             eps = objArr_[phys_Ez_->point(nx_-1,ii)].dielectric(1.0);
-    //                             sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                             sigx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_dzd_0_ -> point(nx_-1,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_0_ -> point(nx_-1,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_0_ -> point(nx_-1,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_0_-> point(nx_-1,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_0_-> point(nx_-1,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                             eps = objArr_[phys_Ez_->point(nx_-1,ny_-1-ii)].dielectric(1.0);
-    //                             sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                             sigx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_dzd_n_ -> point(nx_-1,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_n_ -> point(nx_-1,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_n_ -> point(nx_-1,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_n_-> point(nx_-1,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_n_-> point(nx_-1,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         }
-    //                         for(int jj = 1; jj < pmlArr_[abs(kk-1)].thickness(); jj++)
-    //                         {
-    //                             //Update Hx factors
-    //                             // Top row never updated
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(jj,0)].dielectric(1.0);
-    //                             sigyx  = pmlArr_[kk].sigma(0.5,eps);
-    //                             sigxx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                             pmlArr_[kk].c_bxb_0_ -> point(jj,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                             pmlArr_[kk].c_bxe_0_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                             pmlArr_[kk].c_hxh_0_ -> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb0_0_-> point(jj,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb1_0_-> point(jj,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hx_->point(nx_-1-jj,0)].dielectric(1.0);
-    //                             sigyx  = pmlArr_[kk].sigma(0.5,eps);
-    //                             sigxx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                             pmlArr_[kk].c_bxb_0_ -> point(nx_-1-jj,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                             pmlArr_[kk].c_bxe_0_ -> point(nx_-1-jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                             pmlArr_[kk].c_hxh_0_ -> point(nx_-1-jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb0_0_-> point(nx_-1-jj,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_hxb1_0_-> point(nx_-1-jj,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                             //Update Hy factors
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hy_->point(jj,0)].dielectric(1.0);
-    //                             sigyx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) + 0.5,eps);
-    //                             sigyy = pmlArr_[kk].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_byb_0_ -> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_bye_0_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                             pmlArr_[kk].c_hyh_0_ -> point(jj,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb0_0_-> point(jj,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb1_0_-> point(jj,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(jj,0)].dielectric(1.0);
-    //                             sigyx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) + 0.5,eps);
-    //                             sigyy = pmlArr_[kk].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_byb_n_ -> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_bye_n_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                             pmlArr_[kk].c_hyh_n_ -> point(jj,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb0_n_-> point(jj,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb1_n_-> point(jj,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hy_->point(nx_-1-jj,0)].dielectric(1.0);
-    //                             sigyx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(nx_-1-jj) - 0.5,eps);
-    //                             sigyy = pmlArr_[kk].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_byb_0_ -> point(nx_-1-jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_bye_0_ -> point(nx_-1-jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                             pmlArr_[kk].c_hyh_0_ -> point(nx_-1-jj,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb0_0_-> point(nx_-1-jj,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb1_0_-> point(nx_-1-jj,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                             eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(nx_-1-jj,0)].dielectric(1.0);
-    //                             sigyx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(nx_-1-jj) - 0.5,eps);
-    //                             sigyy = pmlArr_[kk].sigma(0.0,eps);
-    //                             pmlArr_[kk].c_byb_n_ -> point(nx_-1-jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                             pmlArr_[kk].c_bye_n_ -> point(nx_-1-jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                             pmlArr_[kk].c_hyh_n_ -> point(nx_-1-jj,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb0_n_-> point(nx_-1-jj,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                             pmlArr_[kk].c_hyb1_n_-> point(nx_-1-jj,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                             //Update Ez factors
-    //                             eps = objArr_[phys_Ez_->point(jj,0)].dielectric(1.0);
-    //                             sigy = pmlArr_[kk].sigma(0.0,eps);
-    //                             sigx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                             pmlArr_[kk].c_dzd_0_ -> point(jj,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_0_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_0_ -> point(jj,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_0_-> point(jj,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_0_-> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                             eps = objArr_[phys_Ez_->point(jj,ny_-1)].dielectric(1.0);
-    //                             sigy = pmlArr_[kk].sigma(0.0,eps);
-    //                             sigx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                             pmlArr_[kk].c_dzd_n_ -> point(jj,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_n_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_n_ -> point(jj,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_n_-> point(jj,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_n_-> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                             eps = objArr_[phys_Ez_->point(nx_-1-jj,0)].dielectric(1.0);
-    //                             sigy = pmlArr_[kk].sigma(0.0,eps);
-    //                             sigx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                             pmlArr_[kk].c_dzd_0_ -> point(nx_-1-jj,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_0_ -> point(nx_-1-jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_0_ -> point(nx_-1-jj,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_0_-> point(nx_-1-jj,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_0_-> point(nx_-1-jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                             eps = objArr_[phys_Ez_->point(nx_-1-jj,ny_-1)].dielectric(1.0);
-    //                             sigy = pmlArr_[kk].sigma(0.0,eps);
-    //                             sigx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                             pmlArr_[kk].c_dzd_n_ -> point(nx_-1-jj,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                             pmlArr_[kk].c_dzh_n_ -> point(nx_-1-jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                             pmlArr_[kk].c_eze_n_ -> point(nx_-1-jj,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                             pmlArr_[kk].c_ezd1_n_-> point(nx_-1-jj,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             pmlArr_[kk].c_ezd0_n_-> point(nx_-1-jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                         }
-    //                         for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
-    //                         {
-    //                             for(int jj = 1; jj < pmlArr_[abs(kk-1)].thickness(); jj++)
-    //                             {
-    //                                 //Update Hx factors
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hx_->point(jj,ii)].dielectric(1.0);
-    //                                 sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
-    //                                 sigxx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                                 pmlArr_[kk].c_bxb_0_ -> point(jj,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                                 pmlArr_[kk].c_bxe_0_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                                 pmlArr_[kk].c_hxh_0_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb0_0_-> point(jj,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb1_0_-> point(jj,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(jj,ii)].dielectric(1.0);
-    //                                 sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
-    //                                 sigxx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                                 pmlArr_[kk].c_bxb_n_ -> point(jj,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                                 pmlArr_[kk].c_bxe_n_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                                 pmlArr_[kk].c_hxh_n_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb0_n_-> point(jj,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb1_n_-> point(jj,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hx_->point(nx_-1-jj,ii)].dielectric(1.0);
-    //                                 sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
-    //                                 sigxx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                                 pmlArr_[kk].c_bxb_0_ -> point(nx_-1-jj,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                                 pmlArr_[kk].c_bxe_0_ -> point(nx_-1-jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                                 pmlArr_[kk].c_hxh_0_ -> point(nx_-1-jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb0_0_-> point(nx_-1-jj,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb1_0_-> point(nx_-1-jj,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(nx_-1-jj,ii)].dielectric(1.0);
-    //                                 sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
-    //                                 sigxx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                                 pmlArr_[kk].c_bxb_n_ -> point(nx_-1-jj,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
-    //                                 pmlArr_[kk].c_bxe_n_ -> point(nx_-1-jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
-    //                                 pmlArr_[kk].c_hxh_n_ -> point(nx_-1-jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb0_n_-> point(nx_-1-jj,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_hxb1_n_-> point(nx_-1-jj,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
-
-    //                                 //Update Hy factors
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hy_->point(jj,ii)].dielectric(1.0);
-    //                                 sigyx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) + 0.5,eps);
-    //                                 sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_byb_0_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_bye_0_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                                 pmlArr_[kk].c_hyh_0_ -> point(jj,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb0_0_-> point(jj,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb1_0_-> point(jj,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(jj,ii)].dielectric(1.0);
-    //                                 sigyx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) + 0.5,eps);
-    //                                 sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_byb_n_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_bye_n_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                                 pmlArr_[kk].c_hyh_n_ -> point(jj,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb0_n_-> point(jj,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb1_n_-> point(jj,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hy_->point(nx_-1-jj,ii)].dielectric(1.0);
-    //                                 sigyx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(nx_-1-jj) - 0.5,eps);
-    //                                 sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_byb_0_ -> point(nx_-1-jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_bye_0_ -> point(nx_-1-jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                                 pmlArr_[kk].c_hyh_0_ -> point(nx_-1-jj,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb0_0_-> point(nx_-1-jj,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb1_0_-> point(nx_-1-jj,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                                 eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(nx_-1-jj,ii)].dielectric(1.0);
-    //                                 sigyx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(nx_-1-jj) - 0.5,eps);
-    //                                 sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 pmlArr_[kk].c_byb_n_ -> point(nx_-1-jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
-    //                                 pmlArr_[kk].c_bye_n_ -> point(nx_-1-jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
-    //                                 pmlArr_[kk].c_hyh_n_ -> point(nx_-1-jj,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb0_n_-> point(nx_-1-jj,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-    //                                 pmlArr_[kk].c_hyb1_n_-> point(nx_-1-jj,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
-
-    //                                 //Update Ez factors
-    //                                 eps = objArr_[phys_Ez_->point(jj,ii)].dielectric(1.0);
-    //                                 sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 sigx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                                 pmlArr_[kk].c_dzd_0_ -> point(jj,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                                 pmlArr_[kk].c_dzh_0_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                                 pmlArr_[kk].c_eze_0_ -> point(jj,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                                 pmlArr_[kk].c_ezd1_0_-> point(jj,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                                 pmlArr_[kk].c_ezd0_0_-> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                                 eps = objArr_[phys_Ez_->point(jj,ny_-1-ii)].dielectric(1.0);
-    //                                 sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 sigx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                                 pmlArr_[kk].c_dzd_n_ -> point(jj,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                                 pmlArr_[kk].c_dzh_n_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                                 pmlArr_[kk].c_eze_n_ -> point(jj,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                                 pmlArr_[kk].c_ezd1_n_-> point(jj,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                                 pmlArr_[kk].c_ezd0_n_-> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                                 eps = objArr_[phys_Ez_->point(nx_-1-jj,ii)].dielectric(1.0);
-    //                                 sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 sigx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                                 pmlArr_[kk].c_dzd_0_ -> point(nx_-1-jj,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                                 pmlArr_[kk].c_dzh_0_ -> point(nx_-1-jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                                 pmlArr_[kk].c_eze_0_ -> point(nx_-1-jj,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                                 pmlArr_[kk].c_ezd1_0_-> point(nx_-1-jj,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                                 pmlArr_[kk].c_ezd0_0_-> point(nx_-1-jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-
-    //                                 eps = objArr_[phys_Ez_->point(nx_-1-jj,ny_-1-ii)].dielectric(1.0);
-    //                                 sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
-    //                                 sigx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
-    //                                 pmlArr_[kk].c_dzd_n_ -> point(nx_-1-jj,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-    //                                 pmlArr_[kk].c_dzh_n_ -> point(nx_-1-jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
-    //                                 pmlArr_[kk].c_eze_n_ -> point(nx_-1-jj,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-    //                                 pmlArr_[kk].c_ezd1_n_-> point(nx_-1-jj,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                                 pmlArr_[kk].c_ezd0_n_-> point(nx_-1-jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-    //                             }
-    //                         }
-    //                     }
-    //                 }
-    //                 break;
-    //             }
-    //             case Z:
-    //                 throw logic_error("We sadly have not implimented the Z direction yet. Please stay tuned as we develop it");
-    //                 break;
-    //             default:
-    //                 throw logic_error("Please refrain from inventing new dimensions within an FDTD simulation, we just can't handle that type of innovative thinking");
-    //                 break;
-    //         }
-    //     }
-    // }
-    // if(true)
-    // {
+/*    if(precalcPML_ == true)
+    {
+        for(int kk = 0; kk < pmlArr_.size(); kk++)
+        {
+            double eps=0.0;
+            double kapx = 1.0; double kapy = 1.0; double kapz = 1.0;
+
+            switch(pmlArr_[kk].d())
+            {
+                case X:
+                {
+                    double sigz = 0.0; double sigx = 0.0; double sigy = 0.0;
+                    double sigxx = 0.0; double sigxy = 0.0; double sigyx = 0.0; double sigyy = 0.0;
+                    if(Ez_)
+                    {
+                        if(yPML_ == 0)
+                        {
+                            //Update Hx factors -> Since this is the top Row nothing is updated
+
+                            //Update Hy factors
+                            eps    = objArr_[pmlArr_[kk].phys_Hy_->point(0,ny_-1)].dielectric(1.0);
+                            sigxy = pmlArr_[kk].sigma(0.5,eps);
+                            pmlArr_[kk].c_byb_0_ -> point(0,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                            pmlArr_[kk].c_bye_0_ -> point(0,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                            pmlArr_[kk].c_hyh_0_ -> point(0,ny_-1) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                            pmlArr_[kk].c_hyb0_0_-> point(0,ny_-1) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                            pmlArr_[kk].c_hyb1_0_-> point(0,ny_-1) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                            //Top right corner is not updated here
+
+                            //Update Ez factors
+                            eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
+                            sigx = pmlArr_[kk].sigma(0.0,eps);
+                            pmlArr_[kk].c_dzd_0_ -> point(0,ny_-1) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                            pmlArr_[kk].c_dzh_0_ -> point(0,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                            pmlArr_[kk].c_eze_0_ -> point(0,ny_-1) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                            pmlArr_[kk].c_ezd1_0_-> point(0,ny_-1) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            pmlArr_[kk].c_ezd0_0_-> point(0,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                            eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
+                            sigx = pmlArr_[kk].sigma(0.0,eps);
+                            pmlArr_[kk].c_dzd_n_ -> point(0,ny_-1) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                            pmlArr_[kk].c_dzh_n_ -> point(0,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                            pmlArr_[kk].c_eze_n_ -> point(0,ny_-1) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                            pmlArr_[kk].c_ezd1_n_-> point(0,ny_-1) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            pmlArr_[kk].c_ezd0_n_-> point(0,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
+                            {
+                                //Update Hx factors -> Since this is the top Row nothing is updated
+
+                                //Update Hy factors
+                                eps    = objArr_[pmlArr_[kk].phys_Hy_->point(ii,ny_-1)].dielectric(1.0);
+                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
+                                pmlArr_[kk].c_byb_0_ -> point(ii,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_bye_0_ -> point(ii,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                pmlArr_[kk].c_hyh_0_ -> point(ii,ny_-1) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb0_0_-> point(ii,ny_-1) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb1_0_-> point(ii,ny_-1) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(ii,ny_-1)].dielectric(1.0);
+                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
+                                pmlArr_[kk].c_byb_n_ -> point(ii,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_bye_n_ -> point(ii,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                pmlArr_[kk].c_hyh_n_ -> point(ii,ny_-1) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb0_n_-> point(ii,ny_-1) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb1_n_-> point(ii,ny_-1) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                //Update Ez factors
+                                eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0);
+                                sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                pmlArr_[kk].c_dzd_0_ -> point(ii,ny_-1) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_0_ -> point(ii,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_0_ -> point(ii,ny_-1) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_0_-> point(ii,ny_-1) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_0_-> point(ii,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1)].dielectric(1.0);
+                                sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                pmlArr_[kk].c_dzd_n_ -> point(ii,ny_-1) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_n_ -> point(ii,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_n_ -> point(ii,ny_-1) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_n_-> point(ii,ny_-1) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_n_-> point(ii,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            }
+                            for(int jj = 0; jj < ny_-1; jj++)
+                            {
+                                //Update Hx factors
+                                eps    = objArr_[pmlArr_[kk].phys_Hx_->point(0,jj)].dielectric(1.0);
+                                sigxx  = pmlArr_[kk].sigma(0.0,eps);
+                                pmlArr_[kk].c_bxb_0_ -> point(0,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                pmlArr_[kk].c_bxe_0_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                pmlArr_[kk].c_hxh_0_ -> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb0_0_-> point(0,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb1_0_-> point(0,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(0,jj)].dielectric(1.0);
+                                sigxx  = pmlArr_[kk].sigma(0.0,eps);
+                                pmlArr_[kk].c_bxb_n_ -> point(0,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                pmlArr_[kk].c_bxe_n_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                pmlArr_[kk].c_hxh_n_ -> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb0_n_-> point(0,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb1_n_-> point(0,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                //Update Hy factors
+                                eps    = objArr_[pmlArr_[kk].phys_Hy_->point(0,jj)].dielectric(1.0);
+                                sigxy = pmlArr_[kk].sigma(0.5,eps);
+                                pmlArr_[kk].c_byb_0_ -> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_bye_0_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                pmlArr_[kk].c_hyh_0_ -> point(0,jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb0_0_-> point(0,jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb1_0_-> point(0,jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                //The Right side is not updated here
+
+                                //Update Ez factors
+                                eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0);
+                                sigx = pmlArr_[kk].sigma(0.0,eps);
+                                pmlArr_[kk].c_dzd_0_ -> point(0,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_0_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_0_ -> point(0,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_0_-> point(0,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_0_-> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
+                                sigx = pmlArr_[kk].sigma(0.0,eps);
+                                pmlArr_[kk].c_dzd_n_ -> point(0,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_n_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_n_ -> point(0,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_n_-> point(0,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_n_-> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            }
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
+                            {
+                                for(int jj = 0; jj < ny_-1; jj++)
+                                {
+                                    //Update Hx factors
+                                    eps    = objArr_[pmlArr_[kk].phys_Hx_->point(ii,jj)].dielectric(1.0);
+                                    sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_bxb_0_ -> point(ii,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    pmlArr_[kk].c_bxe_0_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    pmlArr_[kk].c_hxh_0_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb0_0_-> point(ii,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb1_0_-> point(ii,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(ii,jj)].dielectric(1.0);
+                                    sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_bxb_n_ -> point(ii,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    pmlArr_[kk].c_bxe_n_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    pmlArr_[kk].c_hxh_n_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb0_n_-> point(ii,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb1_n_-> point(ii,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    //Update Hy factors
+                                    eps    = objArr_[pmlArr_[kk].phys_Hy_->point(ii,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    pmlArr_[kk].c_byb_0_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_bye_0_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    pmlArr_[kk].c_hyh_0_ -> point(ii,jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb0_0_-> point(ii,jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb1_0_-> point(ii,jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(ii,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
+                                    pmlArr_[kk].c_byb_n_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_bye_n_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    pmlArr_[kk].c_hyh_n_ -> point(ii,jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb0_n_-> point(ii,jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb1_n_-> point(ii,jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    //Update Ez factors
+                                    eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
+                                    sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_dzd_0_ -> point(ii,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    pmlArr_[kk].c_dzh_0_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    pmlArr_[kk].c_eze_0_ -> point(ii,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    pmlArr_[kk].c_ezd1_0_-> point(ii,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    pmlArr_[kk].c_ezd0_0_-> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                    eps = objArr_[phys_Ez_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                    sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_dzd_n_ -> point(ii,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    pmlArr_[kk].c_dzh_n_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    pmlArr_[kk].c_eze_n_ -> point(ii,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    pmlArr_[kk].c_ezd1_n_-> point(ii,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    pmlArr_[kk].c_ezd0_n_-> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            for(int jj = yPML_; jj < ny_ - yPML_; jj++)
+                            {
+                                //Update Hx factors
+                                    eps    = objArr_[pmlArr_[kk].phys_Hx_->point(0,jj)].dielectric(1.0);
+                                    sigxx  = pmlArr_[kk].sigma(0.0,eps);
+                                    pmlArr_[kk].c_bxb_0_ -> point(0,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    pmlArr_[kk].c_bxe_0_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    pmlArr_[kk].c_hxh_0_ -> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb0_0_-> point(0,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb1_0_-> point(0,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(0,jj)].dielectric(1.0);
+                                    sigxx  = pmlArr_[kk].sigma(0.0,eps);
+                                    pmlArr_[kk].c_bxb_n_ -> point(0,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    pmlArr_[kk].c_bxe_n_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    pmlArr_[kk].c_hxh_n_ -> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb0_n_-> point(0,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb1_n_-> point(0,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    //Update Hy factors
+                                    eps    = objArr_[pmlArr_[kk].phys_Hy_->point(0,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[kk].sigma(0.5,eps);
+                                    pmlArr_[kk].c_byb_0_ -> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_bye_0_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    pmlArr_[kk].c_hyh_0_ -> point(0,jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb0_0_-> point(0,jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb1_0_-> point(0,jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    //Right side never updated
+
+                                    //Update Ez factors
+                                    eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0);
+                                    sigx = pmlArr_[kk].sigma(0.0,eps);
+                                    pmlArr_[kk].c_dzd_0_ -> point(0,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    pmlArr_[kk].c_dzh_0_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    pmlArr_[kk].c_eze_0_ -> point(0,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    pmlArr_[kk].c_ezd1_0_-> point(0,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    pmlArr_[kk].c_ezd0_0_-> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                    eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
+                                    sigx = pmlArr_[kk].sigma(0.0,eps);
+                                    pmlArr_[kk].c_dzd_n_ -> point(0,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    pmlArr_[kk].c_dzh_n_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    pmlArr_[kk].c_eze_n_ -> point(0,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    pmlArr_[kk].c_ezd1_n_-> point(0,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    pmlArr_[kk].c_ezd0_n_-> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            }
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
+                            {
+                                for(int jj = yPML_; jj < ny_ - yPML_; jj++)
+                                {
+                                    //Update Hx factors
+                                    eps    = objArr_[pmlArr_[kk].phys_Hx_->point(ii,jj)].dielectric(1.0);
+                                    sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_bxb_0_ -> point(ii,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    pmlArr_[kk].c_bxe_0_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    pmlArr_[kk].c_hxh_0_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb0_0_-> point(ii,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb1_0_-> point(ii,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(ii,jj)].dielectric(1.0);
+                                    sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_bxb_n_ -> point(ii,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    pmlArr_[kk].c_bxe_n_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    pmlArr_[kk].c_hxh_n_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb0_n_-> point(ii,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb1_n_-> point(ii,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    //Update Hy factors
+                                    eps    = objArr_[pmlArr_[kk].phys_Hy_->point(ii,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    pmlArr_[kk].c_byb_0_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_bye_0_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    pmlArr_[kk].c_hyh_0_ -> point(ii,jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb0_0_-> point(ii,jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb1_0_-> point(ii,jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(ii,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
+                                    pmlArr_[kk].c_byb_n_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_bye_n_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    pmlArr_[kk].c_hyh_n_ -> point(ii,jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb0_n_-> point(ii,jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb1_n_-> point(ii,jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    //Update Ez factors
+                                    eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
+                                    sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_dzd_0_ -> point(ii,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    pmlArr_[kk].c_dzh_0_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    pmlArr_[kk].c_eze_0_ -> point(ii,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    pmlArr_[kk].c_ezd1_0_-> point(ii,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    pmlArr_[kk].c_ezd0_0_-> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                    eps = objArr_[phys_Ez_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                    sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_dzd_n_ -> point(ii,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    pmlArr_[kk].c_dzh_n_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    pmlArr_[kk].c_eze_n_ -> point(ii,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    pmlArr_[kk].c_ezd1_n_-> point(ii,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    pmlArr_[kk].c_ezd0_n_-> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                }
+                            }
+                            // Corners
+                            //Top edge never updated
+                            eps    = objArr_[pmlArr_[kk].phys_Hx_->point(0,0)].dielectric(1.0);
+                            sigxx  = pmlArr_[kk].sigma(0.0,eps);
+                            sigyx = pmlArr_[abs(kk-1)].sigma(0.5,eps);
+                            pmlArr_[kk].c_bxb_0_ -> point(0,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                            pmlArr_[kk].c_bxe_0_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                            pmlArr_[kk].c_hxh_0_ -> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                            pmlArr_[kk].c_hxb0_0_-> point(0,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                            pmlArr_[kk].c_hxb1_0_-> point(0,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                            eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(0,0)].dielectric(1.0);
+                            sigxx  = pmlArr_[kk].sigma(0.0,eps);
+                            sigyx = pmlArr_[abs(kk-1)].sigma(0.5,eps);
+                            pmlArr_[kk].c_bxb_n_ -> point(0,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                            pmlArr_[kk].c_bxe_n_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                            pmlArr_[kk].c_hxh_n_ -> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                            pmlArr_[kk].c_hxb0_n_-> point(0,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                            pmlArr_[kk].c_hxb1_n_-> point(0,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                            //Update Hy factors
+                            eps    = objArr_[pmlArr_[kk].phys_Hy_->point(0,0)].dielectric(1.0);
+                            sigxy = pmlArr_[kk].sigma(0.5,eps);
+                            sigyy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                            pmlArr_[kk].c_byb_0_ -> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                            pmlArr_[kk].c_bye_0_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                            pmlArr_[kk].c_hyh_0_ -> point(0,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                            pmlArr_[kk].c_hyb0_0_-> point(0,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                            pmlArr_[kk].c_hyb1_0_-> point(0,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                            eps    = objArr_[pmlArr_[kk].phys_Hy_->point(0,0)].dielectric(1.0);
+                            sigxy = pmlArr_[kk].sigma(0.5,eps);
+                            sigyy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                            pmlArr_[kk].c_byb_0_ -> point(0,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                            pmlArr_[kk].c_bye_0_ -> point(0,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                            pmlArr_[kk].c_hyh_0_ -> point(0,ny_-1) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                            pmlArr_[kk].c_hyb0_0_-> point(0,ny_-1) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                            pmlArr_[kk].c_hyb1_0_-> point(0,ny_-1) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                            //Update Ez factors
+                            eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0);
+                            sigx = pmlArr_[kk].sigma(0.0,eps);
+                            sigy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                            pmlArr_[kk].c_dzd_0_ -> point(0,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                            pmlArr_[kk].c_dzh_0_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                            pmlArr_[kk].c_eze_0_ -> point(0,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                            pmlArr_[kk].c_ezd1_0_-> point(0,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            pmlArr_[kk].c_ezd0_0_-> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                            eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
+                            sigx = pmlArr_[kk].sigma(0.0,eps);
+                            sigy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                            pmlArr_[kk].c_dzd_n_ -> point(0,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                            pmlArr_[kk].c_dzh_n_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                            pmlArr_[kk].c_eze_n_ -> point(0,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                            pmlArr_[kk].c_ezd1_n_-> point(0,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            pmlArr_[kk].c_ezd0_n_-> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                            eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
+                            sigx = pmlArr_[kk].sigma(0.0,eps);
+                            sigy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                            pmlArr_[kk].c_dzd_0_ -> point(0,ny_-1) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                            pmlArr_[kk].c_dzh_0_ -> point(0,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                            pmlArr_[kk].c_eze_0_ -> point(0,ny_-1) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                            pmlArr_[kk].c_ezd1_0_-> point(0,ny_-1) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            pmlArr_[kk].c_ezd0_0_-> point(0,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                            eps = objArr_[phys_Ez_->point(nx_-1,ny_-1-0)].dielectric(1.0);
+                            sigx = pmlArr_[kk].sigma(0.0,eps);
+                            sigy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                            pmlArr_[kk].c_dzd_n_ -> point(0,ny_-1) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                            pmlArr_[kk].c_dzh_n_ -> point(0,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                            pmlArr_[kk].c_eze_n_ -> point(0,ny_-1) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                            pmlArr_[kk].c_ezd1_n_-> point(0,ny_-1) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            pmlArr_[kk].c_ezd0_n_-> point(0,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
+                            {
+                                //Update Hx factors
+                                //Top edge never updated
+                                eps    = objArr_[pmlArr_[kk].phys_Hx_->point(ii,0)].dielectric(1.0);
+                                sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                sigyx = pmlArr_[abs(kk-1)].sigma(0.5,eps);
+                                pmlArr_[kk].c_bxb_0_ -> point(ii,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                pmlArr_[kk].c_bxe_0_ -> point(ii,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                pmlArr_[kk].c_hxh_0_ -> point(ii,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb0_0_-> point(ii,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb1_0_-> point(ii,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hx_->point(ii,0)].dielectric(1.0);
+                                sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                sigyx = pmlArr_[abs(kk-1)].sigma(0.5,eps);
+                                pmlArr_[kk].c_bxb_n_ -> point(ii,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                pmlArr_[kk].c_bxe_n_ -> point(ii,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                pmlArr_[kk].c_hxh_n_ -> point(ii,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb0_n_-> point(ii,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb1_n_-> point(ii,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                //Update Hy factors
+                                eps    = objArr_[pmlArr_[kk].phys_Hy_->point(ii,0)].dielectric(1.0);
+                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
+                                sigyy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                                pmlArr_[kk].c_byb_0_ -> point(ii,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_bye_0_ -> point(ii,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                pmlArr_[kk].c_hyh_0_ -> point(ii,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb0_0_-> point(ii,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb1_0_-> point(ii,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(ii,0)].dielectric(1.0);
+                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
+                                sigyy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                                pmlArr_[kk].c_byb_n_ -> point(ii,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_bye_n_ -> point(ii,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                pmlArr_[kk].c_hyh_n_ -> point(ii,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb0_n_-> point(ii,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb1_n_-> point(ii,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hy_->point(ii,0)].dielectric(1.0);
+                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
+                                sigyy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                                pmlArr_[kk].c_byb_0_ -> point(ii,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_bye_0_ -> point(ii,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                pmlArr_[kk].c_hyh_0_ -> point(ii,ny_-1) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb0_0_-> point(ii,ny_-1) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb1_0_-> point(ii,ny_-1) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(ii,ny_-1)].dielectric(1.0);
+                                sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
+                                sigyy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                                pmlArr_[kk].c_byb_n_ -> point(ii,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_bye_n_ -> point(ii,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                pmlArr_[kk].c_hyh_n_ -> point(ii,ny_-1) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb0_n_-> point(ii,ny_-1) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb1_n_-> point(ii,ny_-1) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                //Update Ez factors
+                                eps = objArr_[phys_Ez_->point(ii,0)].dielectric(1.0);
+                                sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                sigy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                                pmlArr_[kk].c_dzd_0_ -> point(ii,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_0_ -> point(ii,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_0_ -> point(ii,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_0_-> point(ii,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_0_-> point(ii,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                eps = objArr_[phys_Ez_->point(nx_-1-ii,0)].dielectric(1.0);
+                                sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                sigy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                                pmlArr_[kk].c_dzd_n_ -> point(ii,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_n_ -> point(ii,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_n_ -> point(ii,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_n_-> point(ii,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_n_-> point(ii,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                eps = objArr_[phys_Ez_->point(ii,ny_-1)].dielectric(1.0);
+                                sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                sigy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                                pmlArr_[kk].c_dzd_0_ -> point(ii,ny_-1) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_0_ -> point(ii,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_0_ -> point(ii,ny_-1) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_0_-> point(ii,ny_-1) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_0_-> point(ii,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1-0)].dielectric(1.0);
+                                sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                sigy  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                                pmlArr_[kk].c_dzd_n_ -> point(ii,ny_-1) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_n_ -> point(ii,ny_-1) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_n_ -> point(ii,ny_-1) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_n_-> point(ii,ny_-1) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_n_-> point(ii,ny_-1) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            }
+                            for(int jj = 1; jj < pmlArr_[abs(kk-1)].thickness(); jj++)
+                            {
+                                //Update Hx factors
+                                eps    = objArr_[pmlArr_[kk].phys_Hx_->point(0,jj)].dielectric(1.0);
+                                sigxx  = pmlArr_[kk].sigma(0.0,eps);
+                                sigyx = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) + 0.5,eps);
+                                pmlArr_[kk].c_bxb_0_ -> point(0,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                pmlArr_[kk].c_bxe_0_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                pmlArr_[kk].c_hxh_0_ -> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb0_0_-> point(0,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb1_0_-> point(0,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(0,jj)].dielectric(1.0);
+                                sigxx  = pmlArr_[kk].sigma(0.0,eps);
+                                sigyx = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) + 0.5,eps);
+                                pmlArr_[kk].c_bxb_n_ -> point(0,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                pmlArr_[kk].c_bxe_n_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                pmlArr_[kk].c_hxh_n_ -> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb0_n_-> point(0,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb1_n_-> point(0,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hx_->point(0,ny_-1-jj)].dielectric(1.0);
+                                sigxx  = pmlArr_[kk].sigma(0.0,eps);
+                                sigyx = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) - 0.5,eps);
+                                pmlArr_[kk].c_bxb_0_ -> point(0,ny_-1-jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                pmlArr_[kk].c_bxe_0_ -> point(0,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                pmlArr_[kk].c_hxh_0_ -> point(0,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb0_0_-> point(0,ny_-1-jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb1_0_-> point(0,ny_-1-jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(0,ny_-1-jj)].dielectric(1.0);
+                                sigxx  = pmlArr_[kk].sigma(0.0,eps);
+                                sigyx = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) - 0.5,eps);
+                                pmlArr_[kk].c_bxb_n_ -> point(0,ny_-1-jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                pmlArr_[kk].c_bxe_n_ -> point(0,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                pmlArr_[kk].c_hxh_n_ -> point(0,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb0_n_-> point(0,ny_-1-jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb1_n_-> point(0,ny_-1-jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                //Update Hy factors
+                                //Right edge does not get updated
+                                eps    = objArr_[pmlArr_[kk].phys_Hy_->point(0,jj)].dielectric(1.0);
+                                sigxy = pmlArr_[kk].sigma(0.5,eps);
+                                sigyy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                pmlArr_[kk].c_byb_0_ -> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_bye_0_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                pmlArr_[kk].c_hyh_0_ -> point(0,jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb0_0_-> point(0,jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb1_0_-> point(0,jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hy_->point(0,jj)].dielectric(1.0);
+                                sigxy = pmlArr_[kk].sigma(0.5,eps);
+                                sigyy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                pmlArr_[kk].c_byb_0_ -> point(0,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_bye_0_ -> point(0,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                pmlArr_[kk].c_hyh_0_ -> point(0,ny_-1-jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb0_0_-> point(0,ny_-1-jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb1_0_-> point(0,ny_-1-jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                //Update Ez factors
+                                eps = objArr_[phys_Ez_->point(0,jj)].dielectric(1.0);
+                                sigx = pmlArr_[kk].sigma(0.0,eps);
+                                sigy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                pmlArr_[kk].c_dzd_0_ -> point(0,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_0_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_0_ -> point(0,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_0_-> point(0,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_0_-> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                eps = objArr_[phys_Ez_->point(nx_-1,jj)].dielectric(1.0);
+                                sigx = pmlArr_[kk].sigma(0.0,eps);
+                                sigy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                pmlArr_[kk].c_dzd_n_ -> point(0,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_n_ -> point(0,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_n_ -> point(0,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_n_-> point(0,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_n_-> point(0,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                eps = objArr_[phys_Ez_->point(0,ny_-1-jj)].dielectric(1.0);
+                                sigx = pmlArr_[kk].sigma(0.0,eps);
+                                sigy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                pmlArr_[kk].c_dzd_0_ -> point(0,ny_-1-jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_0_ -> point(0,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_0_ -> point(0,ny_-1-jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_0_-> point(0,ny_-1-jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_0_-> point(0,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                eps = objArr_[phys_Ez_->point(nx_-1,ny_-1-jj)].dielectric(1.0);
+                                sigx = pmlArr_[kk].sigma(0.0,eps);
+                                sigy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                pmlArr_[kk].c_dzd_n_ -> point(0,ny_-1-jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_n_ -> point(0,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_n_ -> point(0,ny_-1-jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_n_-> point(0,ny_-1-jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_n_-> point(0,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            }
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
+                            {
+                                for(int jj = 1; jj < pmlArr_[abs(kk-1)].thickness(); jj++)
+                                {
+                                    //Update Hx factors
+                                    eps    = objArr_[pmlArr_[kk].phys_Hx_->point(ii,jj)].dielectric(1.0);
+                                    sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    sigyx = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) + 0.5,eps);
+                                    pmlArr_[kk].c_bxb_0_ -> point(ii,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    pmlArr_[kk].c_bxe_0_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    pmlArr_[kk].c_hxh_0_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb0_0_-> point(ii,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb1_0_-> point(ii,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(ii,jj)].dielectric(1.0);
+                                    sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    sigyx = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) + 0.5,eps);
+                                    pmlArr_[kk].c_bxb_n_ -> point(ii,jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    pmlArr_[kk].c_bxe_n_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    pmlArr_[kk].c_hxh_n_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb0_n_-> point(ii,jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb1_n_-> point(ii,jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hx_->point(ii,ny_-1-jj)].dielectric(1.0);
+                                    sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    sigyx = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) - 0.5,eps);
+                                    pmlArr_[kk].c_bxb_0_ -> point(ii,ny_-1-jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    pmlArr_[kk].c_bxe_0_ -> point(ii,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    pmlArr_[kk].c_hxh_0_ -> point(ii,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb0_0_-> point(ii,ny_-1-jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb1_0_-> point(ii,ny_-1-jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(ii,ny_-1-jj)].dielectric(1.0);
+                                    sigxx  = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    sigyx = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) - 0.5,eps);
+                                    pmlArr_[kk].c_bxb_n_ -> point(ii,ny_-1-jj) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    pmlArr_[kk].c_bxe_n_ -> point(ii,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    pmlArr_[kk].c_hxh_n_ -> point(ii,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb0_n_-> point(ii,ny_-1-jj) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb1_n_-> point(ii,ny_-1-jj) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    //Update Hy factors
+                                    eps    = objArr_[pmlArr_[kk].phys_Hy_->point(ii,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    sigyy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                    pmlArr_[kk].c_byb_0_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_bye_0_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    pmlArr_[kk].c_hyh_0_ -> point(ii,jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb0_0_-> point(ii,jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb1_0_-> point(ii,jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(ii,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
+                                    sigyy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                    pmlArr_[kk].c_byb_n_ -> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_bye_n_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    pmlArr_[kk].c_hyh_n_ -> point(ii,jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb0_n_-> point(ii,jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb1_n_-> point(ii,jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hy_->point(ii,jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    sigyy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                    pmlArr_[kk].c_byb_0_ -> point(ii,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_bye_0_ -> point(ii,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    pmlArr_[kk].c_hyh_0_ -> point(ii,ny_-1-jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb0_0_-> point(ii,ny_-1-jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb1_0_-> point(ii,ny_-1-jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(ii,ny_-1-jj)].dielectric(1.0);
+                                    sigxy = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
+                                    sigyy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                    pmlArr_[kk].c_byb_n_ -> point(ii,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_bye_n_ -> point(ii,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    pmlArr_[kk].c_hyh_n_ -> point(ii,ny_-1-jj) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb0_n_-> point(ii,ny_-1-jj) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb1_n_-> point(ii,ny_-1-jj) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    //Update Ez factors
+                                    eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
+                                    sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    sigy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                    pmlArr_[kk].c_dzd_0_ -> point(ii,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    pmlArr_[kk].c_dzh_0_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    pmlArr_[kk].c_eze_0_ -> point(ii,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    pmlArr_[kk].c_ezd1_0_-> point(ii,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    pmlArr_[kk].c_ezd0_0_-> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                    eps = objArr_[phys_Ez_->point(nx_-1-ii,jj)].dielectric(1.0);
+                                    sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    sigy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                    pmlArr_[kk].c_dzd_n_ -> point(ii,jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    pmlArr_[kk].c_dzh_n_ -> point(ii,jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    pmlArr_[kk].c_eze_n_ -> point(ii,jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    pmlArr_[kk].c_ezd1_n_-> point(ii,jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    pmlArr_[kk].c_ezd0_n_-> point(ii,jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                    eps = objArr_[phys_Ez_->point(ii,ny_-1-jj)].dielectric(1.0);
+                                    sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    sigy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                    pmlArr_[kk].c_dzd_0_ -> point(ii,ny_-1-jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    pmlArr_[kk].c_dzh_0_ -> point(ii,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    pmlArr_[kk].c_eze_0_ -> point(ii,ny_-1-jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    pmlArr_[kk].c_ezd1_0_-> point(ii,ny_-1-jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    pmlArr_[kk].c_ezd0_0_-> point(ii,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                    eps = objArr_[phys_Ez_->point(nx_-1-ii,ny_-1-jj)].dielectric(1.0);
+                                    sigx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    sigy  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                    pmlArr_[kk].c_dzd_n_ -> point(ii,ny_-1-jj) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    pmlArr_[kk].c_dzh_n_ -> point(ii,ny_-1-jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    pmlArr_[kk].c_eze_n_ -> point(ii,ny_-1-jj) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    pmlArr_[kk].c_ezd1_n_-> point(ii,ny_-1-jj) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    pmlArr_[kk].c_ezd0_n_-> point(ii,ny_-1-jj) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+                case Y:
+                {
+                    double sigz = 0.0; double sigx = 0.0; double sigy = 0.0;
+                    double sigxx = 0.0; double sigxy = 0.0; double sigyx = 0.0; double sigyy = 0.0;
+                    if(Ez_)
+                    {
+                        if(xPML_ == 0)
+                        {
+                            //Update Hx factors
+                            eps    = objArr_[pmlArr_[kk].phys_Hx_->point(nx_-1,0)].dielectric(1.0);
+                            sigyx  = pmlArr_[kk].sigma(0.5,eps);
+                            pmlArr_[kk].c_bxb_0_ -> point(nx_-1,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                            pmlArr_[kk].c_bxe_0_ -> point(nx_-1,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                            pmlArr_[kk].c_hxh_0_ -> point(nx_-1,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                            pmlArr_[kk].c_hxb0_0_-> point(nx_-1,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                            pmlArr_[kk].c_hxb1_0_-> point(nx_-1,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                            //Top row neve updated
+
+                            //Update Hy factors -> not updated in the top right corner
+
+                            //Update Ez factors
+                            eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
+                            sigy = pmlArr_[kk].sigma(0.0,eps);
+                            pmlArr_[kk].c_dzd_0_ -> point(nx_-1,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                            pmlArr_[kk].c_dzh_0_ -> point(nx_-1,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                            pmlArr_[kk].c_eze_0_ -> point(nx_-1,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                            pmlArr_[kk].c_ezd1_0_-> point(nx_-1,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            pmlArr_[kk].c_ezd0_0_-> point(nx_-1,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                            eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
+                            sigy = pmlArr_[kk].sigma(0.0,eps);
+                            pmlArr_[kk].c_dzd_n_ -> point(nx_-1,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                            pmlArr_[kk].c_dzh_n_ -> point(nx_-1,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                            pmlArr_[kk].c_eze_n_ -> point(nx_-1,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                            pmlArr_[kk].c_ezd1_n_-> point(nx_-1,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            pmlArr_[kk].c_ezd0_n_-> point(nx_-1,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            for(int jj = 0; jj < nx_-1; jj++)
+                            {
+                                //Update Hx factors
+                                eps    = objArr_[pmlArr_[kk].phys_Hx_->point(jj,0)].dielectric(1.0);
+                                sigyx  = pmlArr_[kk].sigma(0.5,eps);
+                                pmlArr_[kk].c_bxb_0_ -> point(jj,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                pmlArr_[kk].c_bxe_0_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                pmlArr_[kk].c_hxh_0_ -> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb0_0_-> point(jj,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb1_0_-> point(jj,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                //Top row neve updated
+
+                                //Update Hy factors
+                                eps    = objArr_[pmlArr_[kk].phys_Hy_->point(jj,0)].dielectric(1.0);
+                                sigyy = pmlArr_[kk].sigma(0.0,eps);
+                                pmlArr_[kk].c_byb_0_ -> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_bye_0_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                pmlArr_[kk].c_hyh_0_ -> point(jj,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb0_0_-> point(jj,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb1_0_-> point(jj,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(jj,0)].dielectric(1.0);
+                                sigyy = pmlArr_[kk].sigma(0.0,eps);
+                                pmlArr_[kk].c_byb_n_ -> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_bye_n_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                pmlArr_[kk].c_hyh_n_ -> point(jj,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb0_n_-> point(jj,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb1_n_-> point(jj,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                //Update Ez factors
+                                eps = objArr_[phys_Ez_->point(jj,0)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(0.0,eps);
+                                pmlArr_[kk].c_dzd_0_ -> point(jj,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_0_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_0_ -> point(jj,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_0_-> point(jj,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_0_-> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                eps = objArr_[phys_Ez_->point(jj,ny_-1)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(0.0,eps);
+                                pmlArr_[kk].c_dzd_n_ -> point(jj,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_n_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_n_ -> point(jj,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_n_-> point(jj,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_n_-> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            }
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
+                            {
+                                //Update Hx factors
+                                eps    = objArr_[pmlArr_[kk].phys_Hx_->point(nx_-1,ii)].dielectric(1.0);
+                                sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
+                                pmlArr_[kk].c_bxb_0_ -> point(nx_-1,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                pmlArr_[kk].c_bxe_0_ -> point(nx_-1,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                pmlArr_[kk].c_hxh_0_ -> point(nx_-1,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb0_0_-> point(nx_-1,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb1_0_-> point(nx_-1,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(nx_-1,ii)].dielectric(1.0);
+                                sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
+                                pmlArr_[kk].c_bxb_n_ -> point(nx_-1,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                pmlArr_[kk].c_bxe_n_ -> point(nx_-1,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                pmlArr_[kk].c_hxh_n_ -> point(nx_-1,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb0_n_-> point(nx_-1,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb1_n_-> point(nx_-1,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                //Update Hy factors -> Nothing to update since its the right col
+
+                                //Update Ez factors
+                                eps = objArr_[phys_Ez_->point(nx_-1,ii)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                pmlArr_[kk].c_dzd_0_ -> point(nx_-1,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_0_ -> point(nx_-1,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_0_ -> point(nx_-1,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_0_-> point(nx_-1,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_0_-> point(nx_-1,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                eps = objArr_[phys_Ez_->point(nx_-1,ny_-1-ii)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                pmlArr_[kk].c_dzd_n_ -> point(nx_-1,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_n_ -> point(nx_-1,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_n_ -> point(nx_-1,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_n_-> point(nx_-1,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_n_-> point(nx_-1,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            }
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
+                            {
+                                for(int jj = 0; jj < nx_-1; jj++)
+                                {
+                                    //Update Hx factors
+                                    eps    = objArr_[pmlArr_[kk].phys_Hx_->point(jj,ii)].dielectric(1.0);
+                                    sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    pmlArr_[kk].c_bxb_0_ -> point(jj,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    pmlArr_[kk].c_bxe_0_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    pmlArr_[kk].c_hxh_0_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb0_0_-> point(jj,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb1_0_-> point(jj,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(jj,ii)].dielectric(1.0);
+                                    sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
+                                    pmlArr_[kk].c_bxb_n_ -> point(jj,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    pmlArr_[kk].c_bxe_n_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    pmlArr_[kk].c_hxh_n_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb0_n_-> point(jj,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb1_n_-> point(jj,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    //Update Hy factors
+                                    eps    = objArr_[pmlArr_[kk].phys_Hy_->point(jj,ii)].dielectric(1.0);
+                                    sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_byb_0_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_bye_0_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    pmlArr_[kk].c_hyh_0_ -> point(jj,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb0_0_-> point(jj,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb1_0_-> point(jj,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(jj,ii)].dielectric(1.0);
+                                    sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_byb_n_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_bye_n_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    pmlArr_[kk].c_hyh_n_ -> point(jj,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb0_n_-> point(jj,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb1_n_-> point(jj,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    //Update Ez factors
+                                    eps = objArr_[phys_Ez_->point(jj,ii)].dielectric(1.0);
+                                    sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_dzd_0_ -> point(jj,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    pmlArr_[kk].c_dzh_0_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    pmlArr_[kk].c_eze_0_ -> point(jj,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    pmlArr_[kk].c_ezd1_0_-> point(jj,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    pmlArr_[kk].c_ezd0_0_-> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                    eps = objArr_[phys_Ez_->point(jj,ny_-1-ii)].dielectric(1.0);
+                                    sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_dzd_n_ -> point(jj,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    pmlArr_[kk].c_dzh_n_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    pmlArr_[kk].c_eze_n_ -> point(jj,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    pmlArr_[kk].c_ezd1_n_-> point(jj,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    pmlArr_[kk].c_ezd0_n_-> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            for(int jj = xPML_; jj < nx_ - xPML_; jj++)
+                            {
+                                //Update Hx factors
+                                eps    = objArr_[pmlArr_[kk].phys_Hx_->point(jj,0)].dielectric(1.0);
+                                sigyx  = pmlArr_[kk].sigma(0.5,eps);
+                                pmlArr_[kk].c_bxb_0_ -> point(jj,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                pmlArr_[kk].c_bxe_0_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                pmlArr_[kk].c_hxh_0_ -> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb0_0_-> point(jj,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb1_0_-> point(jj,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                //Top row never updated
+
+                                //Update Hy factors
+                                eps    = objArr_[pmlArr_[kk].phys_Hy_->point(jj,0)].dielectric(1.0);
+                                sigyy = pmlArr_[kk].sigma(0.0,eps);
+                                pmlArr_[kk].c_byb_0_ -> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_bye_0_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                pmlArr_[kk].c_hyh_0_ -> point(jj,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb0_0_-> point(jj,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb1_0_-> point(jj,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(jj,0)].dielectric(1.0);
+                                sigyy = pmlArr_[kk].sigma(0.0,eps);
+                                pmlArr_[kk].c_byb_n_ -> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_bye_n_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                pmlArr_[kk].c_hyh_n_ -> point(jj,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb0_n_-> point(jj,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb1_n_-> point(jj,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                //Update Ez factors
+                                eps = objArr_[phys_Ez_->point(jj,0)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(0.0,eps);
+                                pmlArr_[kk].c_dzd_0_ -> point(jj,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_0_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_0_ -> point(jj,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_0_-> point(jj,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_0_-> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                eps = objArr_[phys_Ez_->point(jj,ny_-1)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(0.0,eps);
+                                pmlArr_[kk].c_dzd_n_ -> point(jj,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_n_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_n_ -> point(jj,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_n_-> point(jj,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_n_-> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            }
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
+                            {
+                                for(int jj = xPML_; jj < nx_-xPML_; jj++)
+                                {
+                                    //Update Hx factors
+                                    eps    = objArr_[pmlArr_[kk].phys_Hx_->point(jj,ii)].dielectric(1.0);
+                                    sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    pmlArr_[kk].c_bxb_0_ -> point(jj,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    pmlArr_[kk].c_bxe_0_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    pmlArr_[kk].c_hxh_0_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb0_0_-> point(jj,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb1_0_-> point(jj,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(jj,ii)].dielectric(1.0);
+                                    sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
+                                    pmlArr_[kk].c_bxb_n_ -> point(jj,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    pmlArr_[kk].c_bxe_n_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    pmlArr_[kk].c_hxh_n_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb0_n_-> point(jj,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb1_n_-> point(jj,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    //Update Hy factors
+                                    eps    = objArr_[pmlArr_[kk].phys_Hy_->point(jj,ii)].dielectric(1.0);
+                                    sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_byb_0_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_bye_0_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    pmlArr_[kk].c_hyh_0_ -> point(jj,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb0_0_-> point(jj,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb1_0_-> point(jj,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(jj,ii)].dielectric(1.0);
+                                    sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_byb_n_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_bye_n_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    pmlArr_[kk].c_hyh_n_ -> point(jj,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb0_n_-> point(jj,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb1_n_-> point(jj,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    //Update Ez factors
+                                    eps = objArr_[phys_Ez_->point(jj,ii)].dielectric(1.0);
+                                    sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_dzd_0_ -> point(jj,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    pmlArr_[kk].c_dzh_0_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    pmlArr_[kk].c_eze_0_ -> point(jj,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    pmlArr_[kk].c_ezd1_0_-> point(jj,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    pmlArr_[kk].c_ezd0_0_-> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                    eps = objArr_[phys_Ez_->point(jj,ny_-1-ii)].dielectric(1.0);
+                                    sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_dzd_n_ -> point(jj,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    pmlArr_[kk].c_dzh_n_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    pmlArr_[kk].c_eze_n_ -> point(jj,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    pmlArr_[kk].c_ezd1_n_-> point(jj,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    pmlArr_[kk].c_ezd0_n_-> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                }
+                            }
+                            // Corners
+                            //Update Hx factors
+                            //Top  is never updated
+                            sigyx =0.0;sigyy =00.0; sigxy =0.0,sigxx=0.0;sigy=0.0;sigx=0.0;
+                            eps    = objArr_[pmlArr_[kk].phys_Hx_->point(0,0)].dielectric(1.0);
+                            sigyx  = pmlArr_[kk].sigma(0.5,eps);
+                            sigxx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                            pmlArr_[kk].c_bxb_0_ -> point(0,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                            pmlArr_[kk].c_bxe_0_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                            pmlArr_[kk].c_hxh_0_ -> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                            pmlArr_[kk].c_hxb0_0_-> point(0,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                            pmlArr_[kk].c_hxb1_0_-> point(0,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                            eps    = objArr_[pmlArr_[kk].phys_Hx_->point(nx_-1,0)].dielectric(1.0);
+                            sigyx  = pmlArr_[kk].sigma(0.5,eps);
+                            sigxx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                            pmlArr_[kk].c_bxb_0_ -> point(nx_-1,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                            pmlArr_[kk].c_bxe_0_ -> point(nx_-1,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                            pmlArr_[kk].c_hxh_0_ -> point(nx_-1,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                            pmlArr_[kk].c_hxb0_0_-> point(nx_-1,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                            pmlArr_[kk].c_hxb1_0_-> point(nx_-1,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                            //Update Hy factors
+                            eps    = objArr_[pmlArr_[kk].phys_Hy_->point(0,0)].dielectric(1.0);
+                            sigyx  = pmlArr_[abs(kk-1)].sigma(0.5,eps);
+                            sigyy = pmlArr_[kk].sigma(0.0,eps);
+                            pmlArr_[kk].c_byb_0_ -> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                            pmlArr_[kk].c_bye_0_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                            pmlArr_[kk].c_hyh_0_ -> point(0,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                            pmlArr_[kk].c_hyb0_0_-> point(0,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                            pmlArr_[kk].c_hyb1_0_-> point(0,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                            eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(0,0)].dielectric(1.0);
+                            sigyx  = pmlArr_[abs(kk-1)].sigma(0.5,eps);
+                            sigyy = pmlArr_[kk].sigma(0.0,eps);
+                            pmlArr_[kk].c_byb_n_ -> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                            pmlArr_[kk].c_bye_n_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                            pmlArr_[kk].c_hyh_n_ -> point(0,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                            pmlArr_[kk].c_hyb0_n_-> point(0,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                            pmlArr_[kk].c_hyb1_n_-> point(0,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                            //Right side not updated
+
+                            //Update Ez factors
+                            eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0);
+                            sigy = pmlArr_[kk].sigma(0.0,eps);
+                            sigx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                            pmlArr_[kk].c_dzd_0_ -> point(0,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                            pmlArr_[kk].c_dzh_0_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                            pmlArr_[kk].c_eze_0_ -> point(0,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                            pmlArr_[kk].c_ezd1_0_-> point(0,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            pmlArr_[kk].c_ezd0_0_-> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                            eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
+                            sigy = pmlArr_[kk].sigma(0.0,eps);
+                            sigx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                            pmlArr_[kk].c_dzd_n_ -> point(0,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                            pmlArr_[kk].c_dzh_n_ -> point(0,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                            pmlArr_[kk].c_eze_n_ -> point(0,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                            pmlArr_[kk].c_ezd1_n_-> point(0,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            pmlArr_[kk].c_ezd0_n_-> point(0,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                            eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
+                            sigy = pmlArr_[kk].sigma(0.0,eps);
+                            sigx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                            pmlArr_[kk].c_dzd_0_ -> point(nx_-1,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                            pmlArr_[kk].c_dzh_0_ -> point(nx_-1,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                            pmlArr_[kk].c_eze_0_ -> point(nx_-1,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                            pmlArr_[kk].c_ezd1_0_-> point(nx_-1,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            pmlArr_[kk].c_ezd0_0_-> point(nx_-1,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                            eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
+                            sigy = pmlArr_[kk].sigma(0.0,eps);
+                            sigx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                            pmlArr_[kk].c_dzd_n_ -> point(nx_-1,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                            pmlArr_[kk].c_dzh_n_ -> point(nx_-1,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                            pmlArr_[kk].c_eze_n_ -> point(nx_-1,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                            pmlArr_[kk].c_ezd1_n_-> point(nx_-1,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            pmlArr_[kk].c_ezd0_n_-> point(nx_-1,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
+                            {
+                                //Update Hx factors
+                                eps    = objArr_[pmlArr_[kk].phys_Hx_->point(0,ii)].dielectric(1.0);
+                                sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
+                                sigxx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                                pmlArr_[kk].c_bxb_0_ -> point(0,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                pmlArr_[kk].c_bxe_0_ -> point(0,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                pmlArr_[kk].c_hxh_0_ -> point(0,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb0_0_-> point(0,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb1_0_-> point(0,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(0,ii)].dielectric(1.0);
+                                sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
+                                sigxx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                                pmlArr_[kk].c_bxb_n_ -> point(0,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                pmlArr_[kk].c_bxe_n_ -> point(0,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                pmlArr_[kk].c_hxh_n_ -> point(0,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb0_n_-> point(0,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb1_n_-> point(0,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hx_->point(nx_-1,ii)].dielectric(1.0);
+                                sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
+                                sigxx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                                pmlArr_[kk].c_bxb_0_ -> point(nx_-1,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                pmlArr_[kk].c_bxe_0_ -> point(nx_-1,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                pmlArr_[kk].c_hxh_0_ -> point(nx_-1,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb0_0_-> point(nx_-1,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb1_0_-> point(nx_-1,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(nx_-1,ii)].dielectric(1.0);
+                                sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
+                                sigxx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                                pmlArr_[kk].c_bxb_n_ -> point(nx_-1,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                pmlArr_[kk].c_bxe_n_ -> point(nx_-1,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                pmlArr_[kk].c_hxh_n_ -> point(nx_-1,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb0_n_-> point(nx_-1,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb1_n_-> point(nx_-1,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                //Update Hy factors
+                                eps    = objArr_[pmlArr_[kk].phys_Hy_->point(0,ii)].dielectric(1.0);
+                                sigyx  = pmlArr_[abs(kk-1)].sigma(0.5,eps);
+                                sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                pmlArr_[kk].c_byb_0_ -> point(0,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_bye_0_ -> point(0,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                pmlArr_[kk].c_hyh_0_ -> point(0,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb0_0_-> point(0,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb1_0_-> point(0,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(0,ii)].dielectric(1.0);
+                                sigyx  = pmlArr_[abs(kk-1)].sigma(0.5,eps);
+                                sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                pmlArr_[kk].c_byb_n_ -> point(0,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_bye_n_ -> point(0,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                pmlArr_[kk].c_hyh_n_ -> point(0,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb0_n_-> point(0,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb1_n_-> point(0,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                //Right side not updated
+
+                                //Update Ez factors
+                                eps = objArr_[phys_Ez_->point(0,ii)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                sigx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                                pmlArr_[kk].c_dzd_0_ -> point(0,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_0_ -> point(0,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_0_ -> point(0,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_0_-> point(0,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_0_-> point(0,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                eps = objArr_[phys_Ez_->point(0,ny_-1-ii)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                sigx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                                pmlArr_[kk].c_dzd_n_ -> point(0,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_n_ -> point(0,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_n_ -> point(0,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_n_-> point(0,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_n_-> point(0,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                eps = objArr_[phys_Ez_->point(nx_-1,ii)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                sigx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                                pmlArr_[kk].c_dzd_0_ -> point(nx_-1,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_0_ -> point(nx_-1,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_0_ -> point(nx_-1,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_0_-> point(nx_-1,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_0_-> point(nx_-1,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                eps = objArr_[phys_Ez_->point(nx_-1,ny_-1-ii)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                sigx  = pmlArr_[abs(kk-1)].sigma(0.0,eps);
+                                pmlArr_[kk].c_dzd_n_ -> point(nx_-1,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_n_ -> point(nx_-1,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_n_ -> point(nx_-1,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_n_-> point(nx_-1,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_n_-> point(nx_-1,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            }
+                            for(int jj = 1; jj < pmlArr_[abs(kk-1)].thickness(); jj++)
+                            {
+                                //Update Hx factors
+                                // Top row never updated
+                                eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(jj,0)].dielectric(1.0);
+                                sigyx  = pmlArr_[kk].sigma(0.5,eps);
+                                sigxx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                pmlArr_[kk].c_bxb_0_ -> point(jj,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                pmlArr_[kk].c_bxe_0_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                pmlArr_[kk].c_hxh_0_ -> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb0_0_-> point(jj,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb1_0_-> point(jj,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hx_->point(nx_-1-jj,0)].dielectric(1.0);
+                                sigyx  = pmlArr_[kk].sigma(0.5,eps);
+                                sigxx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                pmlArr_[kk].c_bxb_0_ -> point(nx_-1-jj,0) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                pmlArr_[kk].c_bxe_0_ -> point(nx_-1-jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                pmlArr_[kk].c_hxh_0_ -> point(nx_-1-jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb0_0_-> point(nx_-1-jj,0) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_hxb1_0_-> point(nx_-1-jj,0) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                //Update Hy factors
+                                eps    = objArr_[pmlArr_[kk].phys_Hy_->point(jj,0)].dielectric(1.0);
+                                sigyx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) + 0.5,eps);
+                                sigyy = pmlArr_[kk].sigma(0.0,eps);
+                                pmlArr_[kk].c_byb_0_ -> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_bye_0_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                pmlArr_[kk].c_hyh_0_ -> point(jj,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb0_0_-> point(jj,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb1_0_-> point(jj,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(jj,0)].dielectric(1.0);
+                                sigyx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) + 0.5,eps);
+                                sigyy = pmlArr_[kk].sigma(0.0,eps);
+                                pmlArr_[kk].c_byb_n_ -> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_bye_n_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                pmlArr_[kk].c_hyh_n_ -> point(jj,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb0_n_-> point(jj,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb1_n_-> point(jj,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hy_->point(nx_-1-jj,0)].dielectric(1.0);
+                                sigyx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(nx_-1-jj) - 0.5,eps);
+                                sigyy = pmlArr_[kk].sigma(0.0,eps);
+                                pmlArr_[kk].c_byb_0_ -> point(nx_-1-jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_bye_0_ -> point(nx_-1-jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                pmlArr_[kk].c_hyh_0_ -> point(nx_-1-jj,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb0_0_-> point(nx_-1-jj,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb1_0_-> point(nx_-1-jj,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(nx_-1-jj,0)].dielectric(1.0);
+                                sigyx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(nx_-1-jj) - 0.5,eps);
+                                sigyy = pmlArr_[kk].sigma(0.0,eps);
+                                pmlArr_[kk].c_byb_n_ -> point(nx_-1-jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                pmlArr_[kk].c_bye_n_ -> point(nx_-1-jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                pmlArr_[kk].c_hyh_n_ -> point(nx_-1-jj,0) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb0_n_-> point(nx_-1-jj,0) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                pmlArr_[kk].c_hyb1_n_-> point(nx_-1-jj,0) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                //Update Ez factors
+                                eps = objArr_[phys_Ez_->point(jj,0)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(0.0,eps);
+                                sigx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                pmlArr_[kk].c_dzd_0_ -> point(jj,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_0_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_0_ -> point(jj,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_0_-> point(jj,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_0_-> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                eps = objArr_[phys_Ez_->point(jj,ny_-1)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(0.0,eps);
+                                sigx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                pmlArr_[kk].c_dzd_n_ -> point(jj,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_n_ -> point(jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_n_ -> point(jj,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_n_-> point(jj,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_n_-> point(jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                eps = objArr_[phys_Ez_->point(nx_-1-jj,0)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(0.0,eps);
+                                sigx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                pmlArr_[kk].c_dzd_0_ -> point(nx_-1-jj,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_0_ -> point(nx_-1-jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_0_ -> point(nx_-1-jj,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_0_-> point(nx_-1-jj,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_0_-> point(nx_-1-jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                eps = objArr_[phys_Ez_->point(nx_-1-jj,ny_-1)].dielectric(1.0);
+                                sigy = pmlArr_[kk].sigma(0.0,eps);
+                                sigx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                pmlArr_[kk].c_dzd_n_ -> point(nx_-1-jj,0) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                pmlArr_[kk].c_dzh_n_ -> point(nx_-1-jj,0) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                pmlArr_[kk].c_eze_n_ -> point(nx_-1-jj,0) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                pmlArr_[kk].c_ezd1_n_-> point(nx_-1-jj,0) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                pmlArr_[kk].c_ezd0_n_-> point(nx_-1-jj,0) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                            }
+                            for(int ii = 1; ii < pmlArr_[kk].thickness(); ii++)
+                            {
+                                for(int jj = 1; jj < pmlArr_[abs(kk-1)].thickness(); jj++)
+                                {
+                                    //Update Hx factors
+                                    eps    = objArr_[pmlArr_[kk].phys_Hx_->point(jj,ii)].dielectric(1.0);
+                                    sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    sigxx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                    pmlArr_[kk].c_bxb_0_ -> point(jj,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    pmlArr_[kk].c_bxe_0_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    pmlArr_[kk].c_hxh_0_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb0_0_-> point(jj,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb1_0_-> point(jj,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(jj,ii)].dielectric(1.0);
+                                    sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
+                                    sigxx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                    pmlArr_[kk].c_bxb_n_ -> point(jj,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    pmlArr_[kk].c_bxe_n_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    pmlArr_[kk].c_hxh_n_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb0_n_-> point(jj,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb1_n_-> point(jj,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hx_->point(nx_-1-jj,ii)].dielectric(1.0);
+                                    sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) + 0.5,eps);
+                                    sigxx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                    pmlArr_[kk].c_bxb_0_ -> point(nx_-1-jj,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    pmlArr_[kk].c_bxe_0_ -> point(nx_-1-jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    pmlArr_[kk].c_hxh_0_ -> point(nx_-1-jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb0_0_-> point(nx_-1-jj,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb1_0_-> point(nx_-1-jj,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(nx_-1-jj,ii)].dielectric(1.0);
+                                    sigyx  = pmlArr_[kk].sigma(static_cast<double>(ii) - 0.5,eps);
+                                    sigxx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                    pmlArr_[kk].c_bxb_n_ -> point(nx_-1-jj,ii) = (2*eps*kapy - sigyx*dt_) / (2*eps*kapy + sigyx*dt_);
+                                    pmlArr_[kk].c_bxe_n_ -> point(nx_-1-jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapy + sigyx*dt_));
+                                    pmlArr_[kk].c_hxh_n_ -> point(nx_-1-jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb0_n_-> point(nx_-1-jj,ii) = (2*eps*kapx - sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_hxb1_n_-> point(nx_-1-jj,ii) = (2*eps*kapx + sigxx*dt_) / (2*eps*kapz + sigz*dt_);
+
+                                    //Update Hy factors
+                                    eps    = objArr_[pmlArr_[kk].phys_Hy_->point(jj,ii)].dielectric(1.0);
+                                    sigyx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) + 0.5,eps);
+                                    sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_byb_0_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_bye_0_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    pmlArr_[kk].c_hyh_0_ -> point(jj,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb0_0_-> point(jj,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb1_0_-> point(jj,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(jj,ii)].dielectric(1.0);
+                                    sigyx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj) + 0.5,eps);
+                                    sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_byb_n_ -> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_bye_n_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    pmlArr_[kk].c_hyh_n_ -> point(jj,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb0_n_-> point(jj,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb1_n_-> point(jj,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hy_->point(nx_-1-jj,ii)].dielectric(1.0);
+                                    sigyx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(nx_-1-jj) - 0.5,eps);
+                                    sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_byb_0_ -> point(nx_-1-jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_bye_0_ -> point(nx_-1-jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    pmlArr_[kk].c_hyh_0_ -> point(nx_-1-jj,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb0_0_-> point(nx_-1-jj,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb1_0_-> point(nx_-1-jj,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    eps    = objArr_[pmlArr_[kk].phys_Hy_end_->point(nx_-1-jj,ii)].dielectric(1.0);
+                                    sigyx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(nx_-1-jj) - 0.5,eps);
+                                    sigyy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    pmlArr_[kk].c_byb_n_ -> point(nx_-1-jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapz + sigz*dt_);
+                                    pmlArr_[kk].c_bye_n_ -> point(nx_-1-jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapz + sigz*dt_));
+                                    pmlArr_[kk].c_hyh_n_ -> point(nx_-1-jj,ii) = (2*eps*kapx - sigxy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb0_n_-> point(nx_-1-jj,ii) = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+                                    pmlArr_[kk].c_hyb1_n_-> point(nx_-1-jj,ii) = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
+
+                                    //Update Ez factors
+                                    eps = objArr_[phys_Ez_->point(jj,ii)].dielectric(1.0);
+                                    sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    sigx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                    pmlArr_[kk].c_dzd_0_ -> point(jj,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    pmlArr_[kk].c_dzh_0_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    pmlArr_[kk].c_eze_0_ -> point(jj,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    pmlArr_[kk].c_ezd1_0_-> point(jj,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    pmlArr_[kk].c_ezd0_0_-> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                    eps = objArr_[phys_Ez_->point(jj,ny_-1-ii)].dielectric(1.0);
+                                    sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    sigx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                    pmlArr_[kk].c_dzd_n_ -> point(jj,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    pmlArr_[kk].c_dzh_n_ -> point(jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    pmlArr_[kk].c_eze_n_ -> point(jj,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    pmlArr_[kk].c_ezd1_n_-> point(jj,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    pmlArr_[kk].c_ezd0_n_-> point(jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                    eps = objArr_[phys_Ez_->point(nx_-1-jj,ii)].dielectric(1.0);
+                                    sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    sigx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                    pmlArr_[kk].c_dzd_0_ -> point(nx_-1-jj,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    pmlArr_[kk].c_dzh_0_ -> point(nx_-1-jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    pmlArr_[kk].c_eze_0_ -> point(nx_-1-jj,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    pmlArr_[kk].c_ezd1_0_-> point(nx_-1-jj,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    pmlArr_[kk].c_ezd0_0_-> point(nx_-1-jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+
+                                    eps = objArr_[phys_Ez_->point(nx_-1-jj,ny_-1-ii)].dielectric(1.0);
+                                    sigy = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
+                                    sigx  = pmlArr_[abs(kk-1)].sigma(static_cast<double>(jj),eps);
+                                    pmlArr_[kk].c_dzd_n_ -> point(nx_-1-jj,ii) = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
+                                    pmlArr_[kk].c_dzh_n_ -> point(nx_-1-jj,ii) = (2 * eps * dt_) / (dy_ * (2*eps*kapx + sigx*dt_));
+                                    pmlArr_[kk].c_eze_n_ -> point(nx_-1-jj,ii) = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
+                                    pmlArr_[kk].c_ezd1_n_-> point(nx_-1-jj,ii) = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                    pmlArr_[kk].c_ezd0_n_-> point(nx_-1-jj,ii) = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+                case Z:
+                    throw logic_error("We sadly have not implimented the Z direction yet. Please stay tuned as we develop it");
+                    break;
+                default:
+                    throw logic_error("Please refrain from inventing new dimensions within an FDTD simulation, we just can't handle that type of innovative thinking");
+                    break;
+            }
+        }
+    }
+    */
     cout << pmlArr_.size()<<endl;
     string fname("fout/Hy/c_hyh_0_.dat");
     pmlArr_[0].c_hyh_0_->gridOut(fname);
