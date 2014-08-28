@@ -17,6 +17,7 @@ fdtd_config*
 install-sh
 Makefile
 Makefile.in
+Makefile.am
 missing
 stamp-h1
 autom4te.cache

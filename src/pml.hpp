@@ -33,17 +33,21 @@ protected:
     bool precalc_;
     Polarization pol_;
     int nj_,ni_;
+    double dx_,dy_,dt_;
 
 public:
     std::shared_ptr<Grid2D<T>> Dx_,Dy,Dz_,Bx_,By_,Bz_,Dx_end_,Dyend_,Dz_end_,Bx_end_,By_end_,Bz_end_;
     std::shared_ptr<Grid2D<int>> phys_Hx_,phys_Hy_,phys_Hz_, phys_Hx_end_,phys_Hy_end_,phys_Hz_end_,phys_Ex_,phys_Ey_,phys_Ez_, phys_Ex_end_,phys_Ey_end_,phys_Ez_end_;
 
-    std::shared_ptr<Grid2D<double>> c_bxb_0_, c_bxe_0_, c_hxh_0_, c_hxb0_0_, c_hxb1_0_,c_bxb_n_, c_bxe_n_, c_hxh_n_, c_hxb0_n_, c_hxb1_n_;
-    std::shared_ptr<Grid2D<double>> c_byb_0_, c_bye_0_, c_hyh_0_, c_hyb0_0_, c_hyb1_0_,c_byb_n_, c_bye_n_, c_hyh_n_, c_hyb0_n_, c_hyb1_n_;
-    std::shared_ptr<Grid2D<double>> c_bzb_0_, c_bze_0_, c_hzh_0_, c_hzb0_0_, c_hzb1_0_,c_bzb_n_, c_bze_n_, c_hzh_n_, c_hzb0_n_, c_hzb1_n_;
-    std::shared_ptr<Grid2D<double>> c_dxd_0_, c_dxh_0_, c_exe_0_, c_exd0_0_, c_exd1_0_,c_dxd_n_, c_dxh_n_, c_exe_n_, c_exd0_n_, c_exd1_n_;
-    std::shared_ptr<Grid2D<double>> c_dyd_0_, c_dyh_0_, c_eye_0_, c_eyd0_0_, c_eyd1_0_,c_dyd_n_, c_dyh_n_, c_eye_n_, c_eyd0_n_, c_eyd1_n_;
-    std::shared_ptr<Grid2D<double>> c_dzd_0_, c_dzh_0_, c_eze_0_, c_ezd0_0_, c_ezd1_0_,c_dzd_n_, c_dzh_n_, c_eze_n_, c_ezd0_n_, c_ezd1_n_;
+    std::shared_ptr<std::vector<std::vector<std::array<double,5>>>> c_hx_0_, c_hy_0_, c_ez_0_, c_hx_n_, c_hy_n_, c_ez_n_;
+    std::shared_ptr<std::vector<std::vector<std::array<double,5>>>> c_ex_0_, c_ey_0_, c_hz_0_, c_ex_n_, c_ey_n_, c_hz_n_;
+
+    // std::shared_ptr<Grid2D<double>> c_bxb_0_, c_bxe_0_, c_hxh_0_, c_hxb0_0_, c_hxb1_0_,c_bxb_n_, c_bxe_n_, c_hxh_n_, c_hxb0_n_, c_hxb1_n_;
+    // std::shared_ptr<Grid2D<double>> c_byb_0_, c_bye_0_, c_hyh_0_, c_hyb0_0_, c_hyb1_0_,c_byb_n_, c_bye_n_, c_hyh_n_, c_hyb0_n_, c_hyb1_n_;
+    // std::shared_ptr<Grid2D<double>> c_bzb_0_, c_bze_0_, c_hzh_0_, c_hzb0_0_, c_hzb1_0_,c_bzb_n_, c_bze_n_, c_hzh_n_, c_hzb0_n_, c_hzb1_n_;
+    // std::shared_ptr<Grid2D<double>> c_dxd_0_, c_dxh_0_, c_exe_0_, c_exd0_0_, c_exd1_0_,c_dxd_n_, c_dxh_n_, c_exe_n_, c_exd0_n_, c_exd1_n_;
+    // std::shared_ptr<Grid2D<double>> c_dyd_0_, c_dyh_0_, c_eye_0_, c_eyd0_0_, c_eyd1_0_,c_dyd_n_, c_dyh_n_, c_eye_n_, c_eyd0_n_, c_eyd1_n_;
+    // std::shared_ptr<Grid2D<double>> c_dzd_0_, c_dzh_0_, c_eze_0_, c_ezd0_0_, c_ezd1_0_,c_dzd_n_, c_dzh_n_, c_eze_n_, c_ezd0_n_, c_ezd1_n_;
 
 
     /**
@@ -59,7 +63,7 @@ public:
      * @param dy unit cell spacing for the y direction
      * @param pol A polarization so it can set up the right auxilliary fields
      */
-    UPML(int thickness, Direction d, double m, double R0, int nx, int ny, double dx, double dy, Polarization pol, bool precalc) : thickness_(thickness), d_(d), m_(m), R0_(R0), precalc_(precalc), pol_(pol)
+    UPML(int thickness, Direction d, double m, double R0, int nx, int ny, double dx, double dy, double dt, Polarization pol, bool precalc) : thickness_(thickness), d_(d), m_(m), R0_(R0), dx_(dx), dy_(dy), dt_(dt), precalc_(precalc), pol_(pol)
     {
         sigmaMax_ = -(m_+1)*log(R0_)/(2*thickness_*dx); // eta should be included;
         kappaMax_ = 1.0;
@@ -96,7 +100,6 @@ public:
             phys_Ey_ = std::make_shared<Grid2D<int>>(thickness,nj_,dx,dy);
             phys_Ey_end_ = std::make_shared<Grid2D<int>>(thickness,nj_,dx,dy);
 
-
             phys_Hy_ = nullptr;
             phys_Hy_end_ = nullptr;
             phys_Hx_ = nullptr;
@@ -106,63 +109,18 @@ public:
 
             if(precalc_ == false)
             {
-                c_bxb_0_ = nullptr; c_bxe_0_ = nullptr; c_hxh_0_ = nullptr; c_hxb0_0_ = nullptr; c_hxb1_0_ = nullptr;
-                c_bxb_n_ = nullptr; c_bxe_n_ = nullptr; c_hxh_n_ = nullptr; c_hxb0_n_ = nullptr; c_hxb1_n_ = nullptr;
-                c_byb_0_ = nullptr; c_bye_0_ = nullptr; c_hyh_0_ = nullptr; c_hyb0_0_ = nullptr; c_hyb1_0_ = nullptr;
-                c_byb_n_ = nullptr; c_bye_n_ = nullptr; c_hyh_n_ = nullptr; c_hyb0_n_ = nullptr; c_hyb1_n_ = nullptr;
-                c_bzb_0_ = nullptr; c_bze_0_ = nullptr; c_hzh_0_ = nullptr; c_hzb0_0_ = nullptr; c_hzb1_0_ = nullptr;
-                c_bzb_n_ = nullptr; c_bze_n_ = nullptr; c_hzh_n_ = nullptr; c_hzb0_n_ = nullptr; c_hzb1_n_ = nullptr;
-                c_dxd_0_ = nullptr; c_dxh_0_ = nullptr; c_exe_0_ = nullptr; c_exd0_0_ = nullptr; c_exd1_0_ = nullptr;
-                c_dxd_n_ = nullptr; c_dxh_n_ = nullptr; c_exe_n_ = nullptr; c_exd0_n_ = nullptr; c_exd1_n_ = nullptr;
-                c_dyd_0_ = nullptr; c_dyh_0_ = nullptr; c_eye_0_ = nullptr; c_eyd0_0_ = nullptr; c_eyd1_0_ = nullptr;
-                c_dyd_n_ = nullptr; c_dyh_n_ = nullptr; c_eye_n_ = nullptr; c_eyd0_n_ = nullptr; c_eyd1_n_ = nullptr;
-                c_dzd_0_ = nullptr; c_dzh_0_ = nullptr; c_eze_0_ = nullptr; c_ezd0_0_ = nullptr; c_ezd1_0_ = nullptr;
-                c_dzd_n_ = nullptr; c_dzh_n_ = nullptr; c_eze_n_ = nullptr; c_ezd0_n_ = nullptr; c_ezd1_n_ = nullptr;
+                c_hx_0_ = nullptr; c_hy_0_ = nullptr; c_ez_0_ = nullptr; c_hx_n_ = nullptr; c_hy_n_ = nullptr; c_ez_n_= nullptr;
+                c_ex_0_ = nullptr; c_ey_0_ = nullptr; c_hz_0_ = nullptr; c_ex_n_ = nullptr; c_ey_n_ = nullptr; c_hz_n_ = nullptr;
             }
             else
             {
-                c_bxb_0_  = nullptr; c_bxe_0_ = nullptr; c_hxh_0_ = nullptr; c_hxb0_0_ = nullptr; c_hxb1_0_ = nullptr;
-                c_bxb_n_  = nullptr; c_bxe_n_ = nullptr; c_hxh_n_ = nullptr; c_hxb0_n_ = nullptr; c_hxb1_n_ = nullptr;
-                c_byb_0_  = nullptr; c_bye_0_ = nullptr; c_hyh_0_ = nullptr; c_hyb0_0_ = nullptr; c_hyb1_0_ = nullptr;
-                c_byb_n_  = nullptr; c_bye_n_ = nullptr; c_hyh_n_ = nullptr; c_hyb0_n_ = nullptr; c_hyb1_n_ = nullptr;
-
-                c_bzb_0_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_bze_0_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_hzh_0_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_hzb0_0_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_hzb1_0_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_bzb_n_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_bze_n_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_hzh_n_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_hzb0_n_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_hzb1_n_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-
-                c_dxd_0_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_dxh_0_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_exe_0_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_exd0_0_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_exd1_0_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-
-                c_dxd_n_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_dxh_n_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_exe_n_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_exd0_n_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_exd1_n_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-
-                c_dyd_0_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_dyh_0_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_eye_0_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_eyd0_0_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_eyd1_0_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-
-                c_dyd_n_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_dyh_n_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_eye_n_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_eyd0_n_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_eyd1_n_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-
-                c_dzd_0_  = nullptr; c_dzh_0_ = nullptr; c_eze_0_ = nullptr; c_ezd0_0_ = nullptr; c_ezd1_0_ = nullptr;
-                c_dzd_n_  = nullptr; c_dzh_n_ = nullptr; c_eze_n_ = nullptr; c_ezd0_n_ = nullptr; c_ezd1_n_ = nullptr;
+                c_hx_0_ = nullptr; c_hy_0_ = nullptr; c_ez_0_ = nullptr; c_hx_n_ = nullptr; c_hy_n_ = nullptr; c_ez_n_= nullptr;
+                c_ex_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_)); 
+                c_ey_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
+                c_hz_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
+                c_ex_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
+                c_ey_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
+                c_hz_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
             }
         }
         else
@@ -197,406 +155,20 @@ public:
            
             if(precalc_ == false)
             {
-                c_bxb_0_ = nullptr; c_bxe_0_ = nullptr; c_hxh_0_ = nullptr; c_hxb0_0_ = nullptr; c_hxb1_0_ = nullptr;
-                c_bxb_n_ = nullptr; c_bxe_n_ = nullptr; c_hxh_n_ = nullptr; c_hxb0_n_ = nullptr; c_hxb1_n_ = nullptr;
-                c_byb_0_ = nullptr; c_bye_0_ = nullptr; c_hyh_0_ = nullptr; c_hyb0_0_ = nullptr; c_hyb1_0_ = nullptr;
-                c_byb_n_ = nullptr; c_bye_n_ = nullptr; c_hyh_n_ = nullptr; c_hyb0_n_ = nullptr; c_hyb1_n_ = nullptr;
-                c_bzb_0_ = nullptr; c_bze_0_ = nullptr; c_hzh_0_ = nullptr; c_hzb0_0_ = nullptr; c_hzb1_0_ = nullptr;
-                c_bzb_n_ = nullptr; c_bze_n_ = nullptr; c_hzh_n_ = nullptr; c_hzb0_n_ = nullptr; c_hzb1_n_ = nullptr;
-                c_dxd_0_ = nullptr; c_dxh_0_ = nullptr; c_exe_0_ = nullptr; c_exd0_0_ = nullptr; c_exd1_0_ = nullptr;
-                c_dxd_n_ = nullptr; c_dxh_n_ = nullptr; c_exe_n_ = nullptr; c_exd0_n_ = nullptr; c_exd1_n_ = nullptr;
-                c_dyd_0_ = nullptr; c_dyh_0_ = nullptr; c_eye_0_ = nullptr; c_eyd0_0_ = nullptr; c_eyd1_0_ = nullptr;
-                c_dyd_n_ = nullptr; c_dyh_n_ = nullptr; c_eye_n_ = nullptr; c_eyd0_n_ = nullptr; c_eyd1_n_ = nullptr;
-                c_dzd_0_ = nullptr; c_dzh_0_ = nullptr; c_eze_0_ = nullptr; c_ezd0_0_ = nullptr; c_ezd1_0_ = nullptr;
-                c_dzd_n_ = nullptr; c_dzh_n_ = nullptr; c_eze_n_ = nullptr; c_ezd0_n_ = nullptr; c_ezd1_n_ = nullptr;
+                c_hx_0_ = nullptr; c_hy_0_ = nullptr; c_ez_0_ = nullptr; c_hx_n_ = nullptr; c_hy_n_ = nullptr; c_ez_n_= nullptr;
+                c_ex_0_ = nullptr; c_ey_0_ = nullptr; c_hz_0_ = nullptr; c_ex_n_ = nullptr; c_ey_n_ = nullptr; c_hz_n_ = nullptr;
             }
             else
             {
-                c_bxb_0_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_bxe_0_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_hxh_0_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_hxb0_0_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_hxb1_0_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-
-                c_bxb_n_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_bxe_n_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_hxh_n_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_hxb0_n_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_hxb1_n_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-
-                c_byb_0_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_bye_0_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_hyh_0_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_hyb0_0_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_hyb1_0_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-
-                c_byb_n_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_bye_n_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_hyh_n_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_hyb0_n_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_hyb1_n_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-
-                c_bzb_0_  = nullptr; c_bze_0_ = nullptr; c_hzh_0_ = nullptr; c_hzb0_0_ = nullptr; c_hzb1_0_ = nullptr;
-                c_bzb_n_  = nullptr; c_bze_n_ = nullptr; c_hzh_n_ = nullptr; c_hzb0_n_ = nullptr; c_hzb1_n_ = nullptr;
-                c_dxd_0_  = nullptr; c_dxh_0_ = nullptr; c_exe_0_ = nullptr; c_exd0_0_ = nullptr; c_exd1_0_ = nullptr;
-                c_dxd_n_  = nullptr; c_dxh_n_ = nullptr; c_exe_n_ = nullptr; c_exd0_n_ = nullptr; c_exd1_n_ = nullptr;
-                c_dyd_0_  = nullptr; c_dyh_0_ = nullptr; c_eye_0_ = nullptr; c_eyd0_0_ = nullptr; c_eyd1_0_ = nullptr;
-                c_dyd_n_  = nullptr; c_dyh_n_ = nullptr; c_eye_n_ = nullptr; c_eyd0_n_ = nullptr; c_eyd1_n_ = nullptr;
-
-                c_dzd_0_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_dzh_0_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_eze_0_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_ezd0_0_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_ezd1_0_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-
-                c_dzd_n_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_dzh_n_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_eze_n_  = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_ezd0_n_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
-                c_ezd1_n_ = std::make_shared<Grid2D<double>>(thickness,nj_,dx,dy);
+                c_ex_0_ = nullptr; c_ey_0_ = nullptr; c_hz_0_ = nullptr; c_ex_n_ = nullptr; c_ey_n_ = nullptr; c_hz_n_= nullptr;
+                c_hx_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_)); 
+                c_hy_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
+                c_ez_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
+                c_hx_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
+                c_hy_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
+                c_ez_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
             }
         }
-        /*if(d == X)
-        {
-            if(pol == EX || pol == EY || pol == HZ)
-            {
-                Dx_ = std::make_shared<Grid2D<T>>(thickness,nx,dx,dy);
-                Dy = std::make_shared<Grid2D<T>>(thickness,nx-1,dx,dy);
-                Bz_ = std::make_shared<Grid2D<T>>(thickness,nx-1,dx,dy);
-                Dx_end_ = std::make_shared<Grid2D<T>>(thickness,nx,dx,dy);
-                Dyend_ = std::make_shared<Grid2D<T>>(thickness,nx-1,dx,dy);
-                Bz_end_ = std::make_shared<Grid2D<T>>(thickness,nx-1,dx,dy);
-
-                Bx_ = nullptr;
-                By_ = nullptr;
-                Dz_ = nullptr;
-                Bx_end_ = nullptr;
-                By_end_ = nullptr;
-                Dz_end_ = nullptr;
-
-                phys_Hz_ = std::make_shared<Grid2D<int>>(thickness,nx-1,dx,dy);
-                phys_Hz_end_ = std::make_shared<Grid2D<int>>(thickness,nx-1,dx,dy);
-
-                phys_Hy_ = nullptr;
-                phys_Hy_end_ = nullptr;
-                phys_Hx_ = nullptr;
-                phys_Hx_end_ = nullptr;
-
-                if(precalc_ == false)
-                {
-                    c_bxb_0_ = nullptr; c_bxe_0_ = nullptr; c_hxh_0_ = nullptr; c_hxb0_0_ = nullptr; c_hxb1_0_ = nullptr;
-                    c_bxb_n_ = nullptr; c_bxe_n_ = nullptr; c_hxh_n_ = nullptr; c_hxb0_n_ = nullptr; c_hxb1_n_ = nullptr;
-                    c_byb_0_ = nullptr; c_bye_0_ = nullptr; c_hyh_0_ = nullptr; c_hyb0_0_ = nullptr; c_hyb1_0_ = nullptr;
-                    c_byb_n_ = nullptr; c_bye_n_ = nullptr; c_hyh_n_ = nullptr; c_hyb0_n_ = nullptr; c_hyb1_n_ = nullptr;
-                    c_bzb_0_ = nullptr; c_bze_0_ = nullptr; c_hzh_0_ = nullptr; c_hzb0_0_ = nullptr; c_hzb1_0_ = nullptr;
-                    c_bzb_n_ = nullptr; c_bze_n_ = nullptr; c_hzh_n_ = nullptr; c_hzb0_n_ = nullptr; c_hzb1_n_ = nullptr;
-                    c_dxd_0_ = nullptr; c_dxh_0_ = nullptr; c_exe_0_ = nullptr; c_exd0_0_ = nullptr; c_exd1_0_ = nullptr;
-                    c_dxd_n_ = nullptr; c_dxh_n_ = nullptr; c_exe_n_ = nullptr; c_exd0_n_ = nullptr; c_exd1_n_ = nullptr;
-                    c_dyd_0_ = nullptr; c_dyh_0_ = nullptr; c_eye_0_ = nullptr; c_eyd0_0_ = nullptr; c_eyd1_0_ = nullptr;
-                    c_dyd_n_ = nullptr; c_dyh_n_ = nullptr; c_eye_n_ = nullptr; c_eyd0_n_ = nullptr; c_eyd1_n_ = nullptr;
-                    c_dzd_0_ = nullptr; c_dzh_0_ = nullptr; c_eze_0_ = nullptr; c_ezd0_0_ = nullptr; c_ezd1_0_ = nullptr;
-                    c_dzd_n_ = nullptr; c_dzh_n_ = nullptr; c_eze_n_ = nullptr; c_ezd0_n_ = nullptr; c_ezd1_n_ = nullptr;
-                }
-                else
-                {
-                    c_bxb_0_  = nullptr; c_bxe_0_ = nullptr; c_hxh_0_ = nullptr; c_hxb0_0_ = nullptr; c_hxb1_0_ = nullptr;
-                    c_bxb_n_  = nullptr; c_bxe_n_ = nullptr; c_hxh_n_ = nullptr; c_hxb0_n_ = nullptr; c_hxb1_n_ = nullptr;
-                    c_byb_0_  = nullptr; c_bye_0_ = nullptr; c_hyh_0_ = nullptr; c_hyb0_0_ = nullptr; c_hyb1_0_ = nullptr;
-                    c_byb_n_  = nullptr; c_bye_n_ = nullptr; c_hyh_n_ = nullptr; c_hyb0_n_ = nullptr; c_hyb1_n_ = nullptr;
-
-                    c_bzb_0_  = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_bze_0_  = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_hzh_0_  = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_hzb0_0_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_hzb1_0_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_bzb_n_  = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_bze_n_  = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_hzh_n_  = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_hzb0_n_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_hzb1_n_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-
-                    c_dxd_0_  = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_dxh_0_  = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_exe_0_  = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_exd0_0_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_exd1_0_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-
-                    c_dxd_n_  = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_dxh_n_  = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_exe_n_  = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_exd0_n_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_exd1_n_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-
-                    c_dyd_0_  = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_dyh_0_  = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_eye_0_  = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_eyd0_0_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_eyd1_0_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-
-                    c_dyd_n_  = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_dyh_n_  = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_eye_n_  = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_eyd0_n_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_eyd1_n_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-
-                    c_dzd_0_  = nullptr; c_dzh_0_ = nullptr; c_eze_0_ = nullptr; c_ezd0_0_ = nullptr; c_ezd1_0_ = nullptr;
-                    c_dzd_n_  = nullptr; c_dzh_n_ = nullptr; c_eze_n_ = nullptr; c_ezd0_n_ = nullptr; c_ezd1_n_ = nullptr;
-                }
-            }
-            else
-            {
-                Bx_ = std::make_shared<Grid2D<T>>(thickness,nx-1,dx,dy);
-                By_ = std::make_shared<Grid2D<T>>(thickness,nx,dx,dy);
-                Dz_ = std::make_shared<Grid2D<T>>(thickness,nx,dx,dy);
-                Dx_ = nullptr;
-                Dy = nullptr;
-                Bz_ = nullptr;
-
-                Bx_end_ = std::make_shared<Grid2D<T>>(thickness,nx-1,dx,dy);
-                By_end_ = std::make_shared<Grid2D<T>>(thickness,nx,dx,dy);
-                Dz_end_ = std::make_shared<Grid2D<T>>(thickness,nx,dx,dy);
-                Dx_end_ = nullptr;
-                Dyend_ = nullptr;
-                Bz_end_ = nullptr;
-
-                phys_Hz_ = nullptr;
-                phys_Hz_end_ = nullptr;
-                phys_Hy_ = std::make_shared<Grid2D<int>>(thickness,nx,dx,dy);
-                phys_Hy_end_ = std::make_shared<Grid2D<int>>(thickness,nx,dx,dy);
-                phys_Hx_ = std::make_shared<Grid2D<int>>(thickness,nx-1,dx,dy);
-                phys_Hx_end_ = std::make_shared<Grid2D<int>>(thickness,nx-1,dx,dy);
-                if(precalc_ == false)
-                {
-                    c_bxb_0_ = nullptr; c_bxe_0_ = nullptr; c_hxh_0_ = nullptr; c_hxb0_0_ = nullptr; c_hxb1_0_ = nullptr;
-                    c_bxb_n_ = nullptr; c_bxe_n_ = nullptr; c_hxh_n_ = nullptr; c_hxb0_n_ = nullptr; c_hxb1_n_ = nullptr;
-                    c_byb_0_ = nullptr; c_bye_0_ = nullptr; c_hyh_0_ = nullptr; c_hyb0_0_ = nullptr; c_hyb1_0_ = nullptr;
-                    c_byb_n_ = nullptr; c_bye_n_ = nullptr; c_hyh_n_ = nullptr; c_hyb0_n_ = nullptr; c_hyb1_n_ = nullptr;
-                    c_bzb_0_ = nullptr; c_bze_0_ = nullptr; c_hzh_0_ = nullptr; c_hzb0_0_ = nullptr; c_hzb1_0_ = nullptr;
-                    c_bzb_n_ = nullptr; c_bze_n_ = nullptr; c_hzh_n_ = nullptr; c_hzb0_n_ = nullptr; c_hzb1_n_ = nullptr;
-                    c_dxd_0_ = nullptr; c_dxh_0_ = nullptr; c_exe_0_ = nullptr; c_exd0_0_ = nullptr; c_exd1_0_ = nullptr;
-                    c_dxd_n_ = nullptr; c_dxh_n_ = nullptr; c_exe_n_ = nullptr; c_exd0_n_ = nullptr; c_exd1_n_ = nullptr;
-                    c_dyd_0_ = nullptr; c_dyh_0_ = nullptr; c_eye_0_ = nullptr; c_eyd0_0_ = nullptr; c_eyd1_0_ = nullptr;
-                    c_dyd_n_ = nullptr; c_dyh_n_ = nullptr; c_eye_n_ = nullptr; c_eyd0_n_ = nullptr; c_eyd1_n_ = nullptr;
-                    c_dzd_0_ = nullptr; c_dzh_0_ = nullptr; c_eze_0_ = nullptr; c_ezd0_0_ = nullptr; c_ezd1_0_ = nullptr;
-                    c_dzd_n_ = nullptr; c_dzh_n_ = nullptr; c_eze_n_ = nullptr; c_ezd0_n_ = nullptr; c_ezd1_n_ = nullptr;
-                }
-                else
-                {
-                    c_bxb_0_  = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_bxe_0_  = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_hxh_0_  = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_hxb0_0_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_hxb1_0_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-
-                    c_bxb_n_  = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_bxe_n_  = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_hxh_n_  = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_hxb0_n_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-                    c_hxb1_n_ = std::make_shared<Grid2D<double>>(thickness,nx-1,dx,dy);
-
-                    c_byb_0_  = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_bye_0_  = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_hyh_0_  = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_hyb0_0_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_hyb1_0_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-
-                    c_byb_n_  = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_bye_n_  = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_hyh_n_  = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_hyb0_n_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_hyb1_n_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-
-                    c_bzb_0_  = nullptr; c_bze_0_ = nullptr; c_hzh_0_ = nullptr; c_hzb0_0_ = nullptr; c_hzb1_0_ = nullptr;
-                    c_bzb_n_  = nullptr; c_bze_n_ = nullptr; c_hzh_n_ = nullptr; c_hzb0_n_ = nullptr; c_hzb1_n_ = nullptr;
-                    c_dxd_0_  = nullptr; c_dxh_0_ = nullptr; c_exe_0_ = nullptr; c_exd0_0_ = nullptr; c_exd1_0_ = nullptr;
-                    c_dxd_n_  = nullptr; c_dxh_n_ = nullptr; c_exe_n_ = nullptr; c_exd0_n_ = nullptr; c_exd1_n_ = nullptr;
-                    c_dyd_0_  = nullptr; c_dyh_0_ = nullptr; c_eye_0_ = nullptr; c_eyd0_0_ = nullptr; c_eyd1_0_ = nullptr;
-                    c_dyd_n_  = nullptr; c_dyh_n_ = nullptr; c_eye_n_ = nullptr; c_eyd0_n_ = nullptr; c_eyd1_n_ = nullptr;
-
-                    c_dzd_0_  = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_dzh_0_  = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_eze_0_  = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_ezd0_0_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_ezd1_0_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-
-                    c_dzd_n_  = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_dzh_n_  = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_eze_n_  = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_ezd0_n_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                    c_ezd1_n_ = std::make_shared<Grid2D<double>>(thickness,nx,dx,dy);
-                }
-            }
-        }
-        else if (d == Y)
-        {
-            if(pol == EX || pol == EY || pol == HZ)
-            {
-                Dx_ = std::make_shared<Grid2D<T>>(nx-1,thickness,dx,dy);
-                Dy = std::make_shared<Grid2D<T>>(nx,thickness,dx,dy);
-                Bz_ = std::make_shared<Grid2D<T>>(nx-1,thickness,dx,dy);
-                Bx_ = nullptr;
-                By_ = nullptr;
-                Dz_ = nullptr;
-                Dx_end_ = std::make_shared<Grid2D<T>>(nx-1,thickness,dx,dy);
-                Dyend_ = std::make_shared<Grid2D<T>>(nx,thickness,dx,dy);
-                Bz_end_ = std::make_shared<Grid2D<T>>(nx-1,thickness,dx,dy);
-                Bx_end_ = nullptr;
-                By_end_ = nullptr;
-                Dz_end_ = nullptr;
-                phys_Hz_ = std::make_shared<Grid2D<int>>(nx-1,thickness,dx,dy);
-                phys_Hz_end_ = std::make_shared<Grid2D<int>>(nx-1,thickness,dx,dy);
-                phys_Hy_ = nullptr;
-                phys_Hy_end_ = nullptr;
-                phys_Hx_ = nullptr;
-                phys_Hx_end_ = nullptr;
-                if(precalc_ == true)
-                {
-                    c_bxb_0_ = nullptr; c_bxe_0_ = nullptr; c_hxh_0_ = nullptr; c_hxb0_0_ = nullptr; c_hxb1_0_ = nullptr;
-                    c_bxb_n_ = nullptr; c_bxe_n_ = nullptr; c_hxh_n_ = nullptr; c_hxb0_n_ = nullptr; c_hxb1_n_ = nullptr;
-                    c_byb_0_ = nullptr; c_bye_0_ = nullptr; c_hyh_0_ = nullptr; c_hyb0_0_ = nullptr; c_hyb1_0_ = nullptr;
-                    c_byb_n_ = nullptr; c_bye_n_ = nullptr; c_hyh_n_ = nullptr; c_hyb0_n_ = nullptr; c_hyb1_n_ = nullptr;
-
-                    c_bzb_0_  = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_bze_0_  = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_hzh_0_  = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_hzb0_0_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_hzb1_0_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-
-                    c_bzb_n_  = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_bze_n_  = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_hzh_n_  = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_hzb0_n_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_hzb1_n_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-
-                    c_dxd_0_  = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_dxh_0_  = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_exe_0_  = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_exd0_0_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_exd1_0_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-
-                    c_dxd_n_  = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_dxh_n_  = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_exe_n_  = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_exd0_n_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_exd1_n_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-
-                    c_dyd_0_  = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_dyh_0_  = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_eye_0_  = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_eyd0_0_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_eyd1_0_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-
-                    c_dyd_n_  = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_dyh_n_  = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_eye_n_  = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_eyd0_n_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_eyd1_n_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-
-                    c_dzd_0_ = nullptr; c_dzh_0_ = nullptr; c_eze_0_ = nullptr; c_ezd0_0_ = nullptr; c_ezd1_0_ = nullptr;
-                    c_dzd_n_ = nullptr; c_dzh_n_ = nullptr; c_eze_n_ = nullptr; c_ezd0_n_ = nullptr; c_ezd1_n_ = nullptr;
-                }
-                else
-                {
-                    c_bxb_0_ = nullptr; c_bxe_0_ = nullptr; c_hxh_0_ = nullptr; c_hxb0_0_ = nullptr; c_hxb1_0_ = nullptr;
-                    c_bxb_n_ = nullptr; c_bxe_n_ = nullptr; c_hxh_n_ = nullptr; c_hxb0_n_ = nullptr; c_hxb1_n_ = nullptr;
-                    c_byb_0_ = nullptr; c_bye_0_ = nullptr; c_hyh_0_ = nullptr; c_hyb0_0_ = nullptr; c_hyb1_0_ = nullptr;
-                    c_byb_n_ = nullptr; c_bye_n_ = nullptr; c_hyh_n_ = nullptr; c_hyb0_n_ = nullptr; c_hyb1_n_ = nullptr;
-                    c_bzb_0_ = nullptr; c_bze_0_ = nullptr; c_hzh_0_ = nullptr; c_hzb0_0_ = nullptr; c_hzb1_0_ = nullptr;
-                    c_bzb_n_ = nullptr; c_bze_n_ = nullptr; c_hzh_n_ = nullptr; c_hzb0_n_ = nullptr; c_hzb1_n_ = nullptr;
-                    c_dxd_0_ = nullptr; c_dxh_0_ = nullptr; c_exe_0_ = nullptr; c_exd0_0_ = nullptr; c_exd1_0_ = nullptr;
-                    c_dxd_n_ = nullptr; c_dxh_n_ = nullptr; c_exe_n_ = nullptr; c_exd0_n_ = nullptr; c_exd1_n_ = nullptr;
-                    c_dyd_0_ = nullptr; c_dyh_0_ = nullptr; c_eye_0_ = nullptr; c_eyd0_0_ = nullptr; c_eyd1_0_ = nullptr;
-                    c_dyd_n_ = nullptr; c_dyh_n_ = nullptr; c_eye_n_ = nullptr; c_eyd0_n_ = nullptr; c_eyd1_n_ = nullptr;
-                    c_dzd_0_ = nullptr; c_dzh_0_ = nullptr; c_eze_0_ = nullptr; c_ezd0_0_ = nullptr; c_ezd1_0_ = nullptr;
-                    c_dzd_n_ = nullptr; c_dzh_n_ = nullptr; c_eze_n_ = nullptr; c_ezd0_n_ = nullptr; c_ezd1_n_ = nullptr;
-                }
-            }
-            else
-            {
-                Bx_ = std::make_shared<Grid2D<T>>(nx,thickness,dx,dy);
-                By_ = std::make_shared<Grid2D<T>>(nx-1,thickness,dx,dy);
-                Dz_ = std::make_shared<Grid2D<T>>(nx,thickness,dx,dy);
-                Dx_ = nullptr;
-                Dy = nullptr;
-                Bz_ = nullptr;
-                Bx_end_ = std::make_shared<Grid2D<T>>(nx,thickness,dx,dy);
-                By_end_ = std::make_shared<Grid2D<T>>(nx-1,thickness,dx,dy);
-                Dz_end_ = std::make_shared<Grid2D<T>>(nx,thickness,dx,dy);
-                Dx_end_ = nullptr;
-                Dyend_ = nullptr;
-                Bz_end_ = nullptr;
-                phys_Hz_ = nullptr;
-                phys_Hz_end_ = nullptr;
-                phys_Hy_ = std::make_shared<Grid2D<int>>(nx-1,thickness,dx,dy);
-                phys_Hy_end_ = std::make_shared<Grid2D<int>>(nx-1,thickness,dx,dy);
-                phys_Hx_ = std::make_shared<Grid2D<int>>(nx,thickness,dx,dy);
-                phys_Hx_end_ = std::make_shared<Grid2D<int>>(nx,thickness,dx,dy);
-                if(precalc_ == false)
-                {
-                    c_bxb_0_ = nullptr; c_bxe_0_ = nullptr; c_hxh_0_ = nullptr; c_hxb0_0_ = nullptr; c_hxb1_0_ = nullptr;
-                    c_bxb_n_ = nullptr; c_bxe_n_ = nullptr; c_hxh_n_ = nullptr; c_hxb0_n_ = nullptr; c_hxb1_n_ = nullptr;
-                    c_byb_0_ = nullptr; c_bye_0_ = nullptr; c_hyh_0_ = nullptr; c_hyb0_0_ = nullptr; c_hyb1_0_ = nullptr;
-                    c_byb_n_ = nullptr; c_bye_n_ = nullptr; c_hyh_n_ = nullptr; c_hyb0_n_ = nullptr; c_hyb1_n_ = nullptr;
-                    c_bzb_0_ = nullptr; c_bze_0_ = nullptr; c_hzh_0_ = nullptr; c_hzb0_0_ = nullptr; c_hzb1_0_ = nullptr;
-                    c_bzb_n_ = nullptr; c_bze_n_ = nullptr; c_hzh_n_ = nullptr; c_hzb0_n_ = nullptr; c_hzb1_n_ = nullptr;
-                    c_dxd_0_ = nullptr; c_dxh_0_ = nullptr; c_exe_0_ = nullptr; c_exd0_0_ = nullptr; c_exd1_0_ = nullptr;
-                    c_dxd_n_ = nullptr; c_dxh_n_ = nullptr; c_exe_n_ = nullptr; c_exd0_n_ = nullptr; c_exd1_n_ = nullptr;
-                    c_dyd_0_ = nullptr; c_dyh_0_ = nullptr; c_eye_0_ = nullptr; c_eyd0_0_ = nullptr; c_eyd1_0_ = nullptr;
-                    c_dyd_n_ = nullptr; c_dyh_n_ = nullptr; c_eye_n_ = nullptr; c_eyd0_n_ = nullptr; c_eyd1_n_ = nullptr;
-                    c_dzd_0_ = nullptr; c_dzh_0_ = nullptr; c_eze_0_ = nullptr; c_ezd0_0_ = nullptr; c_ezd1_0_ = nullptr;
-                    c_dzd_n_ = nullptr; c_dzh_n_ = nullptr; c_eze_n_ = nullptr; c_ezd0_n_ = nullptr; c_ezd1_n_ = nullptr;
-                }
-                else
-                {
-                    c_bxb_0_  = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_bxe_0_  = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_hxh_0_  = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_hxb0_0_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_hxb1_0_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-
-                    c_bxb_n_  = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_bxe_n_  = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_hxh_n_  = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_hxb0_n_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_hxb1_n_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-
-                    c_byb_0_  = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_bye_0_  = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_hyh_0_  = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_hyb0_0_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_hyb1_0_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-
-                    c_byb_n_  = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_bye_n_  = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_hyh_n_  = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_hyb0_n_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-                    c_hyb1_n_ = std::make_shared<Grid2D<double>>(nx-1,thickness,dx,dy);
-
-                    c_bzb_0_ = nullptr; c_bze_0_ = nullptr; c_hzh_0_ = nullptr; c_hzb0_0_ = nullptr; c_hzb1_0_ = nullptr;
-                    c_bzb_n_ = nullptr; c_bze_n_ = nullptr; c_hzh_n_ = nullptr; c_hzb0_n_ = nullptr; c_hzb1_n_ = nullptr;
-                    c_dxd_0_ = nullptr; c_dxh_0_ = nullptr; c_exe_0_ = nullptr; c_exd0_0_ = nullptr; c_exd1_0_ = nullptr;
-                    c_dxd_n_ = nullptr; c_dxh_n_ = nullptr; c_exe_n_ = nullptr; c_exd0_n_ = nullptr; c_exd1_n_ = nullptr;
-                    c_dyd_0_ = nullptr; c_dyh_0_ = nullptr; c_eye_0_ = nullptr; c_eyd0_0_ = nullptr; c_eyd1_0_ = nullptr;
-                    c_dyd_n_ = nullptr; c_dyh_n_ = nullptr; c_eye_n_ = nullptr; c_eyd0_n_ = nullptr; c_eyd1_n_ = nullptr;
-
-                    c_dzd_0_  = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_dzh_0_  = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_eze_0_  = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_ezd0_0_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_ezd1_0_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-
-                    c_dzd_n_  = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_dzh_n_  = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_eze_n_  = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_ezd0_n_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                    c_ezd1_n_ = std::make_shared<Grid2D<double>>(nx,thickness,dx,dy);
-                }
-            }
-
-        }
-        else
-             throw std::logic_error("While yes we could have a thrid dimension to run, I have yet to be implimented to do such a thing. So please accept this error as my sincerest appology.");
-        */
     }
 
     void initializeUPML(std::vector<Obj> objArr, int nx, int ny, double dx, double dy, double dt, int yPML, int xPML, UPML<T> *opp)
@@ -629,6 +201,7 @@ public:
             nj   = nx;
             ni   = ny;
         }
+        std::cout << 1 << std::endl;
         for(int kk = 0; kk < objArr.size(); kk++)
         {
             std::vector<double> pt(2,0.0);
@@ -689,7 +262,7 @@ public:
                 }
             }
         }
-        std::cout << 1 <<std::endl;
+        std::cout << 2 << std::endl;
         if(precalc_)
         {
             double eps=0.0;
@@ -737,7 +310,6 @@ public:
                 ymax = thickness_;
                 xmax = nj_;
             }
-            std::cout <<1<<std::endl;
             if(pol_ == EZ || pol_ == HX || pol_ == HY)
             {
                 int xx = 0; int yy = 0;
@@ -760,89 +332,38 @@ public:
                         eps    = objArr[phys_Hx_->point(*ii,*jj)].dielectric(1.0);
                         sigxx  = (xpml->*sigmax)(static_cast<double>(xx),eps);
                         sigyx  = (ypml->*sigmay)(static_cast<double>(yy) + 0.5,eps);
-                        c_bxb_0_ -> point(*ii,*jj) = (2*eps*kapy - sigyx*dt) / (2*eps*kapy + sigyx*dt);
-                        c_bxe_0_ -> point(*ii,*jj) = (2 * eps * dt) / (dy * (2*eps*kapy + sigyx*dt));
-                        c_hxh_0_ -> point(*ii,*jj) = (2*eps*kapz - sigz*dt) / (2*eps*kapz + sigz*dt);
-                        c_hxb0_0_-> point(*ii,*jj) = (2*eps*kapx - sigxx*dt) / (2*eps*kapz + sigz*dt);
-                        c_hxb1_0_-> point(*ii,*jj) = (2*eps*kapx + sigxx*dt) / (2*eps*kapz + sigz*dt);
+                        c_hx_0_->at(*ii).at(*jj) = calcPreConsts(eps,sigxx, sigyx, sigz);
                         
                         eps    = objArr[phys_Hx_end_->point(*ii,*jj)].dielectric(1.0);
                         sigxx  = (xpml->*sigmax)(static_cast<double>(xx),eps);
                         sigyx  = (ypml->*sigmay)(static_cast<double>(yy)-0.5,eps);
-                        c_bxb_n_ -> point(*ii,*jj) = (2*eps*kapy - sigyx*dt) / (2*eps*kapy + sigyx*dt);
-                        c_bxe_n_ -> point(*ii,*jj) = (2 * eps * dt) / (dy * (2*eps*kapy + sigyx*dt));
-                        c_hxh_n_ -> point(*ii,*jj) = (2*eps*kapz - sigz*dt) / (2*eps*kapz + sigz*dt);
-                        c_hxb0_n_-> point(*ii,*jj) = (2*eps*kapx - sigxx*dt) / (2*eps*kapz + sigz*dt);
-                        c_hxb1_n_-> point(*ii,*jj) = (2*eps*kapx + sigxx*dt) / (2*eps*kapz + sigz*dt);
+                        c_hx_n_->at(*ii).at(*jj) = calcPreConsts(eps,sigxx, sigyx, sigz);
 
                         //Update Hy factors
                         eps    = objArr[phys_Hy_->point(*ii,*jj)].dielectric(1.0);
                         sigxy = (xpml->*sigmax)(static_cast<double>(xx) + 0.5,eps);
                         sigyy = (ypml->*sigmay)(static_cast<double>(yy),eps);
-                        c_byb_0_ -> point(*ii,*jj) = (2*eps*kapz - sigz*dt) / (2*eps*kapz + sigz*dt);
-                        c_bye_0_ -> point(*ii,*jj) = (2 * eps * dt) / (dy * (2*eps*kapz + sigz*dt));
-                        c_hyh_0_ -> point(*ii,*jj) = (2*eps*kapx - sigxy*dt) / (2*eps*kapx + sigxy*dt);
-                        c_hyb0_0_-> point(*ii,*jj) = (2*eps*kapy - sigyy*dt) / (2*eps*kapx + sigxy*dt);
-                        c_hyb1_0_-> point(*ii,*jj) = (2*eps*kapy + sigyy*dt) / (2*eps*kapx + sigxy*dt);
+                        c_hy_0_->at(*ii).at(*jj) = calcPreConsts(eps,sigyy, sigz, sigxy);
 
                         eps    = objArr[phys_Hy_end_->point(*ii,*jj)].dielectric(1.0);
                         sigxy = (xpml->*sigmax)(static_cast<double>(xx) - 0.5,eps);
                         sigyy = (ypml->*sigmay)(static_cast<double>(yy),eps);
-                        c_byb_n_ -> point(*ii,*jj) = (2*eps*kapz - sigz*dt) / (2*eps*kapz + sigz*dt);
-                        c_bye_n_ -> point(*ii,*jj) = (2 * eps * dt) / (dy * (2*eps*kapz + sigz*dt));
-                        c_hyh_n_ -> point(*ii,*jj) = (2*eps*kapx - sigxy*dt) / (2*eps*kapx + sigxy*dt);
-                        c_hyb0_n_-> point(*ii,*jj) = (2*eps*kapy - sigyy*dt) / (2*eps*kapx + sigxy*dt);
-                        c_hyb1_n_-> point(*ii,*jj) = (2*eps*kapy + sigyy*dt) / (2*eps*kapx + sigxy*dt);
+                        c_hy_n_->at(*ii).at(*jj) = calcPreConsts(eps,sigyy, sigz, sigxy);
 
                         //Update Ez factors
                         eps = objArr[phys_Ez_->point(*ii,*jj)].dielectric(1.0);
                         sigx = (xpml->*sigmax)(static_cast<double>(xx),eps);
                         sigy = (ypml->*sigmay)(static_cast<double>(yy),eps);
-                        c_dzd_0_ -> point(*ii,*jj) = (2*eps*kapx - sigx*dt) / (2*eps*kapx + sigx*dt);
-                        c_dzh_0_ -> point(*ii,*jj) = (2 * eps * dt) / (dy * (2*eps*kapx + sigx*dt));
-                        c_eze_0_ -> point(*ii,*jj) = (2*eps*kapy - sigy*dt) / (2*eps*kapy + sigy*dt);
-                        c_ezd1_0_-> point(*ii,*jj) = (2*eps*kapz + sigz*dt) / (2*eps*kapy + sigy*dt) / eps;
-                        c_ezd0_0_-> point(*ii,*jj) = (2*eps*kapz - sigz*dt) / (2*eps*kapy + sigy*dt) / eps;
-
+                        c_ez_0_->at(*ii).at(*jj) = calcPreConsts(eps,sigz, sigx, sigy);
+                        
                         eps = objArr[phys_Ez_end_->point(*ii,*jj)].dielectric(1.0);
                         sigx = (xpml->*sigmax)(static_cast<double>(xx),eps);
                         sigy = (ypml->*sigmay)(static_cast<double>(yy),eps);
-                        c_dzd_n_ -> point(*ii,*jj) = (2*eps*kapx - sigx*dt) / (2*eps*kapx + sigx*dt);
-                        c_dzh_n_ -> point(*ii,*jj) = (2 * eps * dt) / (dy * (2*eps*kapx + sigx*dt));
-                        c_eze_n_ -> point(*ii,*jj) = (2*eps*kapy - sigy*dt) / (2*eps*kapy + sigy*dt);
-                        c_ezd1_n_-> point(*ii,*jj) = (2*eps*kapz + sigz*dt) / (2*eps*kapy + sigy*dt) / eps;
-                        c_ezd0_n_-> point(*ii,*jj) = (2*eps*kapz - sigz*dt) / (2*eps*kapy + sigy*dt) / eps;
+                        c_ez_n_->at(*ii).at(*jj) = calcPreConsts(eps,sigz, sigx, sigy);
                     }
                 }
             }
         }
-        if(false)
-        {
-            std::string fname("fout/Hy/c_hyh_0_.dat");
-            c_hyh_0_->gridOut(fname);
-            fname = "fout/Hy/c_hyh_n_.dat";
-            c_hyh_n_->gridOut(fname);
-
-            fname = "fout/Hy/c_hyb0_0_.dat";
-            c_hyb0_0_->gridOut(fname);
-            fname = "fout/Hy/c_hyb0_n_.dat";
-            c_hyb0_n_->gridOut(fname);
-
-            fname = "fout/Hy/c_hyb1_0_.dat";
-            c_hyb1_0_->gridOut(fname);
-            fname = "fout/Hy/c_hyb1_n_.dat";
-            c_hyb1_n_->gridOut(fname);
-
-            fname = "fout/Hy/c_byb_0_.dat";
-            c_byb_0_->gridOut(fname);
-            fname = "fout/Hy/c_byb_n_.dat";
-            c_byb_n_->gridOut(fname);
-
-            fname = "fout/Hy/c_bye_0_.dat";
-            c_bye_0_->gridOut(fname);
-            fname = "fout/Hy/c_bye_n_.dat";
-            c_bye_n_->gridOut(fname);
-        }   
     }
 
     // Accessor Functions
@@ -882,6 +403,23 @@ public:
 
     double sigmaopp(double x,double eps){return 0.0;} // can't make lamda function
     PMLMemFn sig_ptr() {return &UPML<T>::sigma;}
+
+    std::array<double,5> calcPreConsts(double eps, double sigi, double sigj, double sigk)
+    {
+        std::array<double,5> preFact = {0.0,0.0,0.0,0.0,0.0};
+        double kapi = 1.0; double kapj = 1.0; double kapk = 1.0;
+        // c_bxb_0_ -> point(*ii,*jj) = (2*eps*kapj - sigj*dt_) / (2*eps*kapj + sigj*dt_);
+        // c_bxe_0_ -> point(*ii,*jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapj + sigj*dt_));
+        // c_hxh_0_ -> point(*ii,*jj) = (2*eps*kapk - sigk*dt_) / (2*eps*kapk + sigk*dt_);
+        // c_hxb0_0_-> point(*ii,*jj) = (2*eps*kapi - sigi*dt_) / (2*eps*kapk + sigk*dt_);
+        // c_hxb1_0_-> point(*ii,*jj) = (2*eps*kapi + sigi*dt_) / (2*eps*kapk + sigk*dt_);
+        preFact[0] = (2*eps*kapj - sigj*dt_) / (2*eps*kapj + sigj*dt_);
+        preFact[1] = (2 * eps * dt_) / (dy_ * (2*eps*kapj + sigj*dt_));
+        preFact[2] = (2*eps*kapk - sigk*dt_) / (2*eps*kapk + sigk*dt_);
+        preFact[3] = (2*eps*kapi - sigi*dt_) / (2*eps*kapk + sigk*dt_);
+        preFact[4] = (2*eps*kapi + sigi*dt_) / (2*eps*kapk + sigk*dt_);
+        return preFact;
+    }
 
 };
 

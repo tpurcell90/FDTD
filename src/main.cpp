@@ -40,8 +40,8 @@ int main(int argc, char const *argv[])
         //if (count++ % 20 == 0) fieldToBitMap(FF, filename);
     }
     duration = ( clock() - start ) / (double) CLOCKS_PER_SEC;
-    cout <<duration<<endl;
-    cout << "I am always in error\n";
+    //cout <<duration<<endl;
+    //cout << "I am always in error\n";
     return 0;
 }
 
