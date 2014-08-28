@@ -42,14 +42,6 @@ public:
     std::shared_ptr<std::vector<std::vector<std::array<double,5>>>> c_hx_0_, c_hy_0_, c_ez_0_, c_hx_n_, c_hy_n_, c_ez_n_;
     std::shared_ptr<std::vector<std::vector<std::array<double,5>>>> c_ex_0_, c_ey_0_, c_hz_0_, c_ex_n_, c_ey_n_, c_hz_n_;
 
-    // std::shared_ptr<Grid2D<double>> c_bxb_0_, c_bxe_0_, c_hxh_0_, c_hxb0_0_, c_hxb1_0_,c_bxb_n_, c_bxe_n_, c_hxh_n_, c_hxb0_n_, c_hxb1_n_;
-    // std::shared_ptr<Grid2D<double>> c_byb_0_, c_bye_0_, c_hyh_0_, c_hyb0_0_, c_hyb1_0_,c_byb_n_, c_bye_n_, c_hyh_n_, c_hyb0_n_, c_hyb1_n_;
-    // std::shared_ptr<Grid2D<double>> c_bzb_0_, c_bze_0_, c_hzh_0_, c_hzb0_0_, c_hzb1_0_,c_bzb_n_, c_bze_n_, c_hzh_n_, c_hzb0_n_, c_hzb1_n_;
-    // std::shared_ptr<Grid2D<double>> c_dxd_0_, c_dxh_0_, c_exe_0_, c_exd0_0_, c_exd1_0_,c_dxd_n_, c_dxh_n_, c_exe_n_, c_exd0_n_, c_exd1_n_;
-    // std::shared_ptr<Grid2D<double>> c_dyd_0_, c_dyh_0_, c_eye_0_, c_eyd0_0_, c_eyd1_0_,c_dyd_n_, c_dyh_n_, c_eye_n_, c_eyd0_n_, c_eyd1_n_;
-    // std::shared_ptr<Grid2D<double>> c_dzd_0_, c_dzh_0_, c_eze_0_, c_ezd0_0_, c_ezd1_0_,c_dzd_n_, c_dzh_n_, c_eze_n_, c_ezd0_n_, c_ezd1_n_;
-
-
     /**
      * @brief Constrcuts a PML for both ends of the cell
      * @details Uses the input to construct the functions and auxiliary fields for the PML calculations
@@ -67,24 +59,29 @@ public:
     {
         sigmaMax_ = -(m_+1)*log(R0_)/(2*thickness_*dx); // eta should be included;
         kappaMax_ = 1.0;
+        int xmax; int ymax;
         if (d == X)
         {
             ni_ = nx;
             nj_ = ny;
+            xmax = thickness_;
+            ymax = ny;
         }
         else
         {
+            xmax = nx;
+            ymax = thickness_;
             nj_ = nx;
             ni_ = ny;
         }
         if(pol == EX || pol == EY || pol == HZ)
         {
-            Dx_ = std::make_shared<Grid2D<T>>(thickness,nj_,dx,dy);
-            Dy = std::make_shared<Grid2D<T>>(thickness,nj_,dx,dy);
-            Bz_ = std::make_shared<Grid2D<T>>(thickness,nj_,dx,dy);
-            Dx_end_ = std::make_shared<Grid2D<T>>(thickness,nj_,dx,dy);
-            Dyend_ = std::make_shared<Grid2D<T>>(thickness,nj_,dx,dy);
-            Bz_end_ = std::make_shared<Grid2D<T>>(thickness,nj_,dx,dy);
+            Dx_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
+            Dy = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
+            Bz_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
+            Dx_end_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
+            Dyend_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
+            Bz_end_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
 
             Bx_ = nullptr;
             By_ = nullptr;
@@ -93,12 +90,12 @@ public:
             By_end_ = nullptr;
             Dz_end_ = nullptr;
 
-            phys_Hz_ = std::make_shared<Grid2D<int>>(thickness,nj_,dx,dy);
-            phys_Hz_end_ = std::make_shared<Grid2D<int>>(thickness,nj_,dx,dy);
-            phys_Ex_ = std::make_shared<Grid2D<int>>(thickness,nj_,dx,dy);
-            phys_Ex_end_ = std::make_shared<Grid2D<int>>(thickness,nj_,dx,dy);
-            phys_Ey_ = std::make_shared<Grid2D<int>>(thickness,nj_,dx,dy);
-            phys_Ey_end_ = std::make_shared<Grid2D<int>>(thickness,nj_,dx,dy);
+            phys_Hz_ = std::make_shared<Grid2D<int>>(xmax,ymax,dx,dy);
+            phys_Hz_end_ = std::make_shared<Grid2D<int>>(xmax,ymax,dx,dy);
+            phys_Ex_ = std::make_shared<Grid2D<int>>(xmax,ymax,dx,dy);
+            phys_Ex_end_ = std::make_shared<Grid2D<int>>(xmax,ymax,dx,dy);
+            phys_Ey_ = std::make_shared<Grid2D<int>>(xmax,ymax,dx,dy);
+            phys_Ey_end_ = std::make_shared<Grid2D<int>>(xmax,ymax,dx,dy);
 
             phys_Hy_ = nullptr;
             phys_Hy_end_ = nullptr;
@@ -115,39 +112,39 @@ public:
             else
             {
                 c_hx_0_ = nullptr; c_hy_0_ = nullptr; c_ez_0_ = nullptr; c_hx_n_ = nullptr; c_hy_n_ = nullptr; c_ez_n_= nullptr;
-                c_ex_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_)); 
-                c_ey_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
-                c_hz_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
-                c_ex_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
-                c_ey_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
-                c_hz_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
+                c_ex_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax)); 
+                c_ey_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
+                c_hz_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
+                c_ex_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
+                c_ey_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
+                c_hz_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
             }
         }
         else
         {
-            Bx_ = std::make_shared<Grid2D<T>>(thickness,nj_,dx,dy);
-            By_ = std::make_shared<Grid2D<T>>(thickness,nj_,dx,dy);
-            Dz_ = std::make_shared<Grid2D<T>>(thickness,nj_,dx,dy);
+            Bx_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
+            By_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
+            Dz_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
             Dx_ = nullptr;
             Dy = nullptr;
             Bz_ = nullptr;
 
-            Bx_end_ = std::make_shared<Grid2D<T>>(thickness,nj_,dx,dy);
-            By_end_ = std::make_shared<Grid2D<T>>(thickness,nj_,dx,dy);
-            Dz_end_ = std::make_shared<Grid2D<T>>(thickness,nj_,dx,dy);
+            Bx_end_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
+            By_end_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
+            Dz_end_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
             Dx_end_ = nullptr;
             Dyend_ = nullptr;
             Bz_end_ = nullptr;
 
             phys_Hz_ = nullptr;
             phys_Hz_end_ = nullptr;
-            phys_Hy_ = std::make_shared<Grid2D<int>>(thickness,nj_,dx,dy);
-            phys_Hy_end_ = std::make_shared<Grid2D<int>>(thickness,nj_,dx,dy);
-            phys_Hx_ = std::make_shared<Grid2D<int>>(thickness,nj_,dx,dy);
-            phys_Hx_end_ = std::make_shared<Grid2D<int>>(thickness,nj_,dx,dy);
+            phys_Hy_ = std::make_shared<Grid2D<int>>(xmax,ymax,dx,dy);
+            phys_Hy_end_ = std::make_shared<Grid2D<int>>(xmax,ymax,dx,dy);
+            phys_Hx_ = std::make_shared<Grid2D<int>>(xmax,ymax,dx,dy);
+            phys_Hx_end_ = std::make_shared<Grid2D<int>>(xmax,ymax,dx,dy);
 
-            phys_Ez_ = std::make_shared<Grid2D<int>>(thickness,nj_,dx,dy);
-            phys_Ez_end_ = std::make_shared<Grid2D<int>>(thickness,nj_,dx,dy);
+            phys_Ez_ = std::make_shared<Grid2D<int>>(xmax,ymax,dx,dy);
+            phys_Ez_end_ = std::make_shared<Grid2D<int>>(xmax,ymax,dx,dy);
             phys_Ex_ = nullptr;
             phys_Ex_end_ = nullptr;
             phys_Ey_ = nullptr;
@@ -161,12 +158,12 @@ public:
             else
             {
                 c_ex_0_ = nullptr; c_ey_0_ = nullptr; c_hz_0_ = nullptr; c_ex_n_ = nullptr; c_ey_n_ = nullptr; c_hz_n_= nullptr;
-                c_hx_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_)); 
-                c_hy_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
-                c_ez_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
-                c_hx_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
-                c_hy_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
-                c_ez_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(thickness_, std::vector<std::array<double,5>>(nj_));
+                c_hx_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax)); 
+                c_hy_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
+                c_ez_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
+                c_hx_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
+                c_hy_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
+                c_ez_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
             }
         }
     }
@@ -181,25 +178,30 @@ public:
         int nj   = 0;
         double di = 0.0;
         double dj = 0.0;
+        int xmax; int ymax;
         if (d_ == X)
         {
             jmax = ny-1;
             pt_i = 0;
             pt_j = 1;
-            di   = dx;
-            dj   = dy;
             ni   = nx;
             nj   = ny;
+            di   = dx;
+            dj   = dy;
+            xmax = thickness_;
+            ymax = ny;
         }
         else
         {
             jmax = nx-1;
             pt_i = 1;
             pt_j = 0;
-            dj   = dx;
-            di   = dy;
-            nj   = nx;
             ni   = ny;
+            nj   = nx;
+            di   = dy;
+            dj   = dx;
+            xmax = nx;
+            ymax = thickness_;
         }
         std::cout << 1 << std::endl;
         for(int kk = 0; kk < objArr.size(); kk++)
@@ -218,46 +220,48 @@ public:
                 else if(objArr[kk].s() == block)
                 {
                     
-                    for(int ii =0; ii < thickness_; ii ++)
+                    for(int ii =0; ii < xmax; ii ++)
                     {
-                        for(int jj = 0; jj < jmax; jj++)
+                        for(int jj = 0; jj < ymax; jj++)
                         {
                             pt[pt_i] = (ii+0.5-(ni-1)/2.0)*di;
-                            pt[pt_j] = (jj-(nj-1)/2.0)*dj;
+                            pt[pt_j]  = (jj-(nj-1)/2.0)*dj;
                             if(objArr[kk].isObj(pt)==true)
                                 phys_Hy_->point(ii,jj) = kk;
                             pt[pt_i] -= 0.5*di;
                             if(objArr[kk].isObj(pt)==true)
                                 phys_Ez_->point(ii,jj) = kk;
-                            pt[pt_j] += 0.5*dj;
+                            pt[pt_j]  += 0.5*dj;
                             if(objArr[kk].isObj(pt)==true && kk ==1)
                                 phys_Hx_->point(ii,jj) = kk;
                             pt[pt_i] = ((ni-1-ii)+0.5-(ni-1)/2.0)*di;
-                            pt[pt_j] = (jj-(nj-1)/2.0)*dj;
+                            pt[pt_j]  = (jj-(nj-1)/2.0)*dj;
                             if(objArr[kk].isObj(pt)==true)
                                 phys_Hy_end_->point(ii,jj) = kk;
                             pt[pt_i] -= 0.5*di;
                             if(objArr[kk].isObj(pt)==true)
                                 phys_Ez_end_->point(ii,jj) = kk;
-                            pt[pt_j] += 0.5*dj;
+                            pt[pt_j]  += 0.5*dj;
                             if(objArr[kk].isObj(pt)==true && kk ==1)
                                 phys_Hx_end_->point(ii,jj) = kk;
                         }
                         pt[pt_i]=(ii+0.5-(ni-1)/2.0)*di;
-                        pt[pt_j]=((nj-1)/2.0)*dj;
-                        if(objArr[kk].isObj(pt)==true)
-                            phys_Hy_->point(ii,nj-1) = kk;
-                        pt[pt_i] -= 0.5*di;
-                        if(objArr[kk].isObj(pt)==true)
-                            phys_Ez_->point(ii,nj-1) = kk;
+                        pt[pt_j] =((nj-1)/2.0)*dj;
 
-                        pt[pt_i]=((ni-1-ii)+0.5-(ni-1)/2.0)*di;
-                        pt[pt_j]=((nj-1)/2.0)*dj;
-                        if(objArr[kk].isObj(pt)==true)
-                            phys_Hy_end_->point(ii,nj-1) = kk;
-                        pt[pt_i] -= 0.5*di;
-                        if(objArr[kk].isObj(pt)==true)
-                            phys_Ez_end_->point(ii,nj-1) = kk;
+                        // if(objArr[kk].isObj(pt)==true)
+                        //     phys_Hy_->point(ii,nj-1) = kk;
+                        // pt[pt_i] -= 0.5*di;
+                        // if(objArr[kk].isObj(pt)==true)
+                        //     phys_Ez_->point(ii,nj-1) = kk;
+
+                        // pt[pt_i]=((ni-1-ii)+0.5-(ni-1)/2.0)*di;
+                        // pt[pt_j] =((nj-1)/2.0)*dj;
+                        
+                        // if(objArr[kk].isObj(pt)==true)
+                        //     phys_Hy_end_->point(ii,nj-1) = kk;
+                        // pt[pt_i] -= 0.5*di;
+                        // if(objArr[kk].isObj(pt)==true)
+                        //     phys_Ez_end_->point(ii,nj-1) = kk;
                     }
                 }
             }
@@ -312,60 +316,57 @@ public:
             }
             if(pol_ == EZ || pol_ == HX || pol_ == HY)
             {
-                int xx = 0; int yy = 0;
-                int * ii; int * jj;
-                if(d_== X)
+                for(int ii = 0; ii < xmax; ii++)
                 {
-                    ii = &xx;
-                    jj = &yy;
-                }
-                else
-                {
-                    ii = &yy;
-                    jj = &xx;
-                }
-                for(xx = 0; xx < xmax; xx++)
-                {
-                    for(yy = 0; yy < ymax; yy++)
+                    for(int jj = 0; jj < ymax; jj++)
                     {
                         //Update Hx factors
-                        eps    = objArr[phys_Hx_->point(*ii,*jj)].dielectric(1.0);
-                        sigxx  = (xpml->*sigmax)(static_cast<double>(xx),eps);
-                        sigyx  = (ypml->*sigmay)(static_cast<double>(yy) + 0.5,eps);
-                        c_hx_0_->at(*ii).at(*jj) = calcPreConsts(eps,sigxx, sigyx, sigz);
+                        eps    = objArr[phys_Hx_->point(ii,jj)].dielectric(1.0);
+                        sigxx  = (xpml->*sigmax)(static_cast<double>(ii),eps);
+                        sigyx  = (ypml->*sigmay)(static_cast<double>(jj) + 0.5,eps);
+                        c_hx_0_->at(ii).at(jj) = calcPreConsts(eps,sigxx, sigyx, sigz);
                         
-                        eps    = objArr[phys_Hx_end_->point(*ii,*jj)].dielectric(1.0);
-                        sigxx  = (xpml->*sigmax)(static_cast<double>(xx),eps);
-                        sigyx  = (ypml->*sigmay)(static_cast<double>(yy)-0.5,eps);
-                        c_hx_n_->at(*ii).at(*jj) = calcPreConsts(eps,sigxx, sigyx, sigz);
+                        eps    = objArr[phys_Hx_end_->point(ii,jj)].dielectric(1.0);
+                        sigxx  = (xpml->*sigmax)(static_cast<double>(ii),eps);
+                        sigyx  = (ypml->*sigmay)(static_cast<double>(jj)-0.5,eps);
+                        c_hx_n_->at(ii).at(jj) = calcPreConsts(eps,sigxx, sigyx, sigz);
 
                         //Update Hy factors
-                        eps    = objArr[phys_Hy_->point(*ii,*jj)].dielectric(1.0);
-                        sigxy = (xpml->*sigmax)(static_cast<double>(xx) + 0.5,eps);
-                        sigyy = (ypml->*sigmay)(static_cast<double>(yy),eps);
-                        c_hy_0_->at(*ii).at(*jj) = calcPreConsts(eps,sigyy, sigz, sigxy);
+                        eps    = objArr[phys_Hy_->point(ii,jj)].dielectric(1.0);
+                        sigxy = (xpml->*sigmax)(static_cast<double>(ii) + 0.5,eps);
+                        sigyy = (ypml->*sigmay)(static_cast<double>(jj),eps);
+                        c_hy_0_->at(ii).at(jj) = calcPreConsts(eps,sigyy, sigz, sigxy);
 
-                        eps    = objArr[phys_Hy_end_->point(*ii,*jj)].dielectric(1.0);
-                        sigxy = (xpml->*sigmax)(static_cast<double>(xx) - 0.5,eps);
-                        sigyy = (ypml->*sigmay)(static_cast<double>(yy),eps);
-                        c_hy_n_->at(*ii).at(*jj) = calcPreConsts(eps,sigyy, sigz, sigxy);
+                        eps    = objArr[phys_Hy_end_->point(ii,jj)].dielectric(1.0);
+                        sigxy = (xpml->*sigmax)(static_cast<double>(ii) - 0.5,eps);
+                        sigyy = (ypml->*sigmay)(static_cast<double>(jj),eps);
+                        c_hy_n_->at(ii).at(jj) = calcPreConsts(eps,sigyy, sigz, sigxy);
 
                         //Update Ez factors
-                        eps = objArr[phys_Ez_->point(*ii,*jj)].dielectric(1.0);
-                        sigx = (xpml->*sigmax)(static_cast<double>(xx),eps);
-                        sigy = (ypml->*sigmay)(static_cast<double>(yy),eps);
-                        c_ez_0_->at(*ii).at(*jj) = calcPreConsts(eps,sigz, sigx, sigy);
+                        eps = objArr[phys_Ez_->point(ii,jj)].dielectric(1.0);
+                        sigx = (xpml->*sigmax)(static_cast<double>(ii),eps);
+                        sigy = (ypml->*sigmay)(static_cast<double>(jj),eps);
+                        c_ez_0_->at(ii).at(jj) = calcPreConsts(eps,sigz, sigx, sigy);
                         
-                        eps = objArr[phys_Ez_end_->point(*ii,*jj)].dielectric(1.0);
-                        sigx = (xpml->*sigmax)(static_cast<double>(xx),eps);
-                        sigy = (ypml->*sigmay)(static_cast<double>(yy),eps);
-                        c_ez_n_->at(*ii).at(*jj) = calcPreConsts(eps,sigz, sigx, sigy);
+                        eps = objArr[phys_Ez_end_->point(ii,jj)].dielectric(1.0);
+                        sigx = (xpml->*sigmax)(static_cast<double>(ii),eps);
+                        sigy = (ypml->*sigmay)(static_cast<double>(jj),eps);
+                        c_ez_n_->at(ii).at(jj) = calcPreConsts(eps,sigz, sigx, sigy);
                     }
                 }
             }
         }
     }
 
+    // void updateH(FDTDField *FF)
+    // {
+
+    // }
+
+    // void updateE(FDTDField *FF)
+    // {
+
+    // }
     // Accessor Functions
     /**
      * @brief Reuturns the thickness of the PML
