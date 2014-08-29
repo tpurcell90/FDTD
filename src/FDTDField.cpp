@@ -468,62 +468,62 @@ void FDTDField::initializeGrid()
         pmlArr_[0].initializeUPML(objArr_, nx_,ny_,dx_,dy_,dt_, yPML_, xPML_, nullptr);
 
     }
-    int imax = pmlArr_[0].Bx_->x();
-    int jmax = pmlArr_[0].Bx_->y();
-    std::string filename("fout/Hx/c_hx_0_");
-    for(int kk = 0; kk < 5; kk++)
-    {
-        std::ofstream outFile;
-        outFile.open(filename + std::to_string(kk) +".dat",std::ios_base::app);
-        for(int ii = 0; ii < imax; ii++)
-            for(int jj =0; jj < jmax; jj++)
-                outFile<< ii << "\t" << jj << "\t" << pmlArr_[0].c_hx_0_->at(ii).at(jj)[kk] <<std::endl;
-    }
-    filename = "fout/Hx/c_hx_n_";
-    for(int kk = 0; kk < 5; kk++)
-    {
-        std::ofstream outFile;
-        outFile.open(filename + std::to_string(kk) +".dat",std::ios_base::app);
-        for(int ii = 0; ii < imax; ii++)
-            for(int jj =0; jj < jmax; jj++)
-                outFile<< ii << "\t" << jj << "\t" << pmlArr_[0].c_hx_n_->at(ii).at(jj)[kk] <<std::endl;
-    }
-    filename = "fout/Hy/c_hy_n_";
-    for(int kk = 0; kk < 5; kk++)
-    {
-        std::ofstream outFile;
-        outFile.open(filename + std::to_string(kk) +".dat",std::ios_base::app);
-        for(int ii = 0; ii < imax; ii++)
-            for(int jj =0; jj < jmax; jj++)
-                outFile<< ii << "\t" << jj << "\t" << pmlArr_[0].c_hy_n_->at(ii).at(jj)[kk] <<std::endl;
-    }
-    filename = "fout/Hy/c_hy_0_";
-    for(int kk = 0; kk < 5; kk++)
-    {
-        std::ofstream outFile;
-        outFile.open(filename + std::to_string(kk) +".dat",std::ios_base::app);
-        for(int ii = 0; ii < imax; ii++)
-            for(int jj =0; jj < jmax; jj++)
-                outFile<< ii << "\t" << jj << "\t" << pmlArr_[0].c_hy_0_->at(ii).at(jj)[kk] <<std::endl;
-    }
-    filename = "fout/Ez/c_ez_n_";
-    for(int kk = 0; kk < 5; kk++)
-    {
-        std::ofstream outFile;
-        outFile.open(filename + std::to_string(kk) +".dat",std::ios_base::app);
-        for(int ii = 0; ii < imax; ii++)
-            for(int jj =0; jj < jmax; jj++)
-                outFile<< ii << "\t" << jj << "\t" << pmlArr_[0].c_ez_n_->at(ii).at(jj)[kk] <<std::endl;
-    }
-    filename = "fout/Ez/c_ez_0_";
-    for(int kk = 0; kk < 5; kk++)
-    {
-        std::ofstream outFile;
-        outFile.open(filename + std::to_string(kk) +".dat",std::ios_base::app);
-        for(int ii = 0; ii < imax; ii++)
-            for(int jj =0; jj < jmax; jj++)
-                outFile<< ii << "\t" << jj << "\t" << pmlArr_[0].c_ez_0_->at(ii).at(jj)[kk] <<std::endl;
-    }
+    // int imax = pmlArr_[0].Bx_->x();
+    // int jmax = pmlArr_[0].Bx_->y();
+    // std::string filename("fout/Hx/c_hx_0_");
+    // for(int kk = 0; kk < 5; kk++)
+    // {
+    //     std::ofstream outFile;
+    //     outFile.open(filename + std::to_string(kk) +".dat",std::ios_base::app);
+    //     for(int ii = 0; ii < imax; ii++)
+    //         for(int jj =0; jj < jmax; jj++)
+    //             outFile<< ii << "\t" << jj << "\t" << pmlArr_[0].c_hx_0_->at(ii).at(jj)[kk] <<std::endl;
+    // }
+    // filename = "fout/Hx/c_hx_n_";
+    // for(int kk = 0; kk < 5; kk++)
+    // {
+    //     std::ofstream outFile;
+    //     outFile.open(filename + std::to_string(kk) +".dat",std::ios_base::app);
+    //     for(int ii = 0; ii < imax; ii++)
+    //         for(int jj =0; jj < jmax; jj++)
+    //             outFile<< ii << "\t" << jj << "\t" << pmlArr_[0].c_hx_n_->at(ii).at(jj)[kk] <<std::endl;
+    // }
+    // filename = "fout/Hy/c_hy_n_";
+    // for(int kk = 0; kk < 5; kk++)
+    // {
+    //     std::ofstream outFile;
+    //     outFile.open(filename + std::to_string(kk) +".dat",std::ios_base::app);
+    //     for(int ii = 0; ii < imax; ii++)
+    //         for(int jj =0; jj < jmax; jj++)
+    //             outFile<< ii << "\t" << jj << "\t" << pmlArr_[0].c_hy_n_->at(ii).at(jj)[kk] <<std::endl;
+    // }
+    // filename = "fout/Hy/c_hy_0_";
+    // for(int kk = 0; kk < 5; kk++)
+    // {
+    //     std::ofstream outFile;
+    //     outFile.open(filename + std::to_string(kk) +".dat",std::ios_base::app);
+    //     for(int ii = 0; ii < imax; ii++)
+    //         for(int jj =0; jj < jmax; jj++)
+    //             outFile<< ii << "\t" << jj << "\t" << pmlArr_[0].c_hy_0_->at(ii).at(jj)[kk] <<std::endl;
+    // }
+    // filename = "fout/Ez/c_ez_n_";
+    // for(int kk = 0; kk < 5; kk++)
+    // {
+    //     std::ofstream outFile;
+    //     outFile.open(filename + std::to_string(kk) +".dat",std::ios_base::app);
+    //     for(int ii = 0; ii < imax; ii++)
+    //         for(int jj =0; jj < jmax; jj++)
+    //             outFile<< ii << "\t" << jj << "\t" << pmlArr_[0].c_ez_n_->at(ii).at(jj)[kk] <<std::endl;
+    // }
+    // filename = "fout/Ez/c_ez_0_";
+    // for(int kk = 0; kk < 5; kk++)
+    // {
+    //     std::ofstream outFile;
+    //     outFile.open(filename + std::to_string(kk) +".dat",std::ios_base::app);
+    //     for(int ii = 0; ii < imax; ii++)
+    //         for(int jj =0; jj < jmax; jj++)
+    //             outFile<< ii << "\t" << jj << "\t" << pmlArr_[0].c_ez_0_->at(ii).at(jj)[kk] <<std::endl;
+    // }
 
 }
 /**

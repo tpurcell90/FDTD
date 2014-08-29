@@ -174,20 +174,22 @@ public:
     void initializeUPML(std::vector<Obj> objArr, int nx, int ny, double dx, double dy, double dt, int yPML, int xPML, UPML<T> *opp)
     {
         //[](double x, double eps){return 0.0;}
+        std::cout << "PML"<<std::endl;
         int jmax = 0;
-        int pt_i = 0;
-        int pt_j = 0;
-        int ni   = 0;
-        int nj   = 0;
-        double di = 0.0;
-        double dj = 0.0;
+        int pt_i = 0; int pt_j = 0;
+        int ni   = 0; int nj   = 0;
+        double di = 0.0; double dj = 0.0;
         int xmax; int ymax;
-        int oppPML = 0; int delx =0; int dely = 0; int zaxJmax = 0;
+        int oppPML = 0; 
+        int delx =0; int dely = 0; int zaxJmax = 0;
         double eps=0.0;
         double kapx = 1.0; double kapy = 1.0; double kapz = 1.0;
        
         double sigz = 0.0; double sigx = 0.0; double sigy = 0.0;
         double sigxx = 0.0; double sigxy = 0.0; double sigyx = 0.0; double sigyy = 0.0;
+
+        int jj = 0; int ii = 0;
+        int * xx; int * yy;
 
         PMLMemFn  sigmay;
         PMLMemFn  sigmax;
@@ -196,14 +198,10 @@ public:
         if (d_ == X)
         {
             jmax = ny-1;
-            pt_i = 0;
-            pt_j = 1;
-            ni   = nx;
-            nj   = ny;
-            di   = dx;
-            dj   = dy;
-            xmax = thickness_;
-            ymax = ny;
+            pt_i = 0;  pt_j = 1;
+            ni   = nx; nj   = ny;
+            di   = dx; dj   = dy;
+            xmax = thickness_; ymax = ny;
             sigmax = &UPML<T>::sigma;
             xpml = this;
             if (opp)
@@ -216,23 +214,19 @@ public:
                 sigmay = &UPML<T>::sigmaopp;
                 ypml = this;
             }
-            xmax = thickness_;
-            ymax = nj_;
+            xmax = thickness_; ymax = nj_;
             oppPML = yPML;
-            delx =0;dely=-1;
+            delx =0; dely=-1;
             zaxJmax = ny -yPML-1;
+            xx = &ii;  yy = &jj;
         }
         else
         {
             jmax = nx-1;
-            pt_i = 1;
-            pt_j = 0;
-            ni   = ny;
-            nj   = nx;
-            di   = dy;
-            dj   = dx;
-            xmax = nx;
-            ymax = thickness_;
+            pt_i = 1; pt_j = 0;
+            ni   = ny; nj   = nx;
+            di   = dy; dj   = dx;
+            xmax = nx; ymax = thickness_;
             sigmay = &UPML<T>::sigma;
             ypml = this;
             if (opp)
@@ -245,11 +239,11 @@ public:
                 sigmax = &UPML<T>::sigmaopp;
                 xpml = this;
             }
-            ymax = thickness_;
-            xmax = nj_;
+            ymax = thickness_; xmax = nj_;
             oppPML = xPML;
             delx = -1; dely=0;
             zaxJmax = nx -xPML-1;
+            xx = &jj; yy = &ii;
         }
         for(int kk = 0; kk < objArr.size(); kk++)
         {
@@ -267,91 +261,88 @@ public:
                 else if(objArr[kk].s() == block)
                 {
                     
-                    for(int ii =0; ii < xmax; ii ++)
+                    for(ii =0; ii < thickness_; ii ++)
                     {
-                        for(int jj = 0; jj < ymax; jj++)
+                        for(jj = 0; jj < nj; jj++)
                         {
-                            pt[pt_i] = (ii+0.5-(ni-1)/2.0)*di;
-                            pt[pt_j]  = (jj-(nj-1)/2.0)*dj;
+                            pt[0] = (*xx+0.5-(nx-1)/2.0)*dx;
+                            pt[1]  = (*yy-(ny-1)/2.0)*dy;
                             if(objArr[kk].isObj(pt)==true)
-                                phys_Hy_->point(ii,jj) = kk;
-                            pt[pt_i] -= 0.5*di;
+                                phys_Hy_->point(*xx,*yy) = kk;
+                            
+                            pt[0] -= 0.5*dx;
                             if(objArr[kk].isObj(pt)==true)
-                                phys_Ez_->point(ii,jj) = kk;
-                            pt[pt_j]  += 0.5*dj;
+                                phys_Ez_->point(*xx,*yy) = kk;
+                            
+                            pt[1]  += 0.5*dy;
                             if(objArr[kk].isObj(pt)==true && kk ==1)
-                                phys_Hx_->point(ii,jj) = kk;
-                            pt[pt_i] = ((ni-1-ii)+0.5-(ni-1)/2.0)*di;
+                                phys_Hx_->point(*xx,*yy) = kk;
+
+                            pt[pt_i] = ((ni-1-ii)-(ni-1)/2.0)*di;
                             pt[pt_j]  = (jj-(nj-1)/2.0)*dj;
+                            pt[0] += 0.5*dx;
                             if(objArr[kk].isObj(pt)==true)
-                                phys_Hy_end_->point(ii,jj) = kk;
-                            pt[pt_i] -= 0.5*di;
+                                phys_Hy_end_->point(*xx,*yy) = kk;
+                            
+                            pt[0] -= 0.5*dx;
                             if(objArr[kk].isObj(pt)==true)
-                                phys_Ez_end_->point(ii,jj) = kk;
-                            pt[pt_j]  += 0.5*dj;
+                                phys_Ez_end_->point(*xx,*yy) = kk;
+                            
+                            pt[1]  += 0.5*dy;
                             if(objArr[kk].isObj(pt)==true && kk ==1)
-                                phys_Hx_end_->point(ii,jj) = kk;
+                                phys_Hx_end_->point(*xx,*yy) = kk;
                         }
                     }
                 }
             }
         }
-        // if(precalc_)
-        // {
-        //     if(pol_ == EZ || pol_ == HX || pol_ == HY)
-        //     {
-        //         for(int ii = 0; ii < xmax; ii++)
-        //         {
-        //             for(int jj = 0; jj < ymax; jj++)
-        //             {
-        //                 //Update Hx factors
-        //                 eps    = objArr[phys_Hx_->point(ii,jj)].dielectric(1.0);
-        //                 sigxx  = (xpml->*sigmax)(static_cast<double>(ii),eps);
-        //                 sigyx  = (ypml->*sigmay)(static_cast<double>(jj) + 0.5,eps);
-        //                 c_hx_0_->at(ii).at(jj) = calcPreConsts(eps,sigxx, sigyx, sigz);
-                        
-        //                 eps    = objArr[phys_Hx_end_->point(ii,jj)].dielectric(1.0);
-        //                 sigxx  = (xpml->*sigmax)(static_cast<double>(ii),eps);
-        //                 sigyx  = (ypml->*sigmay)(static_cast<double>(jj)-0.5,eps);
-        //                 c_hx_n_->at(ii).at(jj) = calcPreConsts(eps,sigxx, sigyx, sigz);
-
-        //                 //Update Hy factors
-        //                 eps    = objArr[phys_Hy_->point(ii,jj)].dielectric(1.0);
-        //                 sigxy = (xpml->*sigmax)(static_cast<double>(ii) + 0.5,eps);
-        //                 sigyy = (ypml->*sigmay)(static_cast<double>(jj),eps);
-        //                 c_hy_0_->at(ii).at(jj) = calcPreConsts(eps,sigyy, sigz, sigxy);
-
-        //                 eps    = objArr[phys_Hy_end_->point(ii,jj)].dielectric(1.0);
-        //                 sigxy = (xpml->*sigmax)(static_cast<double>(ii) - 0.5,eps);
-        //                 sigyy = (ypml->*sigmay)(static_cast<double>(jj),eps);
-        //                 c_hy_n_->at(ii).at(jj) = calcPreConsts(eps,sigyy, sigz, sigxy);
-
-        //                 //Update Ez factors
-        //                 eps = objArr[phys_Ez_->point(ii,jj)].dielectric(1.0);
-        //                 sigx = (xpml->*sigmax)(static_cast<double>(ii),eps);
-        //                 sigy = (ypml->*sigmay)(static_cast<double>(jj),eps);
-        //                 c_ez_0_->at(ii).at(jj) = calcPreConsts(eps,sigz, sigx, sigy);
-                        
-        //                 eps = objArr[phys_Ez_end_->point(ii,jj)].dielectric(1.0);
-        //                 sigx = (xpml->*sigmax)(static_cast<double>(ii),eps);
-        //                 sigy = (ypml->*sigmay)(static_cast<double>(jj),eps);
-        //                 c_ez_n_->at(ii).at(jj) = calcPreConsts(eps,sigz, sigx, sigy);
-        //             }
-        //         }
-        //     }
-        // }
-        int jj = 0; int ii = 0;
-        int * xx; int * yy;
-        if(d_ == X)
+        std::string fname("fout/Hx/phys_test.dat");
+        phys_Hx_end_ -> gridOut(fname);
+        if(precalc_)
         {
-            xx = &ii;
-            yy = &jj;
+            if(pol_ == EZ || pol_ == HX || pol_ == HY)
+            {
+                for(int ii = 0; ii < xmax; ii++)
+                {
+                    for(int jj = 0; jj < ymax; jj++)
+                    {
+                        //Update Hx factors
+                        eps    = objArr[phys_Hx_->point(ii,jj)].dielectric(1.0);
+                        sigxx  = (xpml->*sigmax)(static_cast<double>(ii),eps);
+                        sigyx  = (ypml->*sigmay)(static_cast<double>(jj) + 0.5,eps);
+                        c_hx_0_->at(ii).at(jj) = calcPreConsts(eps,sigxx, sigyx, sigz);
+                        
+                        eps    = objArr[phys_Hx_end_->point(ii,jj)].dielectric(1.0);
+                        sigxx  = (xpml->*sigmax)(static_cast<double>(ii),eps);
+                        sigyx  = (ypml->*sigmay)(static_cast<double>(jj)-0.5,eps);
+                        c_hx_n_->at(ii).at(jj) = calcPreConsts(eps,sigxx, sigyx, sigz);
+
+                        //Update Hy factors
+                        eps    = objArr[phys_Hy_->point(ii,jj)].dielectric(1.0);
+                        sigxy = (xpml->*sigmax)(static_cast<double>(ii) + 0.5,eps);
+                        sigyy = (ypml->*sigmay)(static_cast<double>(jj),eps);
+                        c_hy_0_->at(ii).at(jj) = calcPreConsts(eps,sigyy, sigz, sigxy);
+
+                        eps    = objArr[phys_Hy_end_->point(ii,jj)].dielectric(1.0);
+                        sigxy = (xpml->*sigmax)(static_cast<double>(ii) - 0.5,eps);
+                        sigyy = (ypml->*sigmay)(static_cast<double>(jj),eps);
+                        c_hy_n_->at(ii).at(jj) = calcPreConsts(eps,sigyy, sigz, sigxy);
+
+                        //Update Ez factors
+                        eps = objArr[phys_Ez_->point(ii,jj)].dielectric(1.0);
+                        sigx = (xpml->*sigmax)(static_cast<double>(ii),eps);
+                        sigy = (ypml->*sigmay)(static_cast<double>(jj),eps);
+                        c_ez_0_->at(ii).at(jj) = calcPreConsts(eps,sigz, sigx, sigy);
+                        
+                        eps = objArr[phys_Ez_end_->point(ii,jj)].dielectric(1.0);
+                        sigx = (xpml->*sigmax)(static_cast<double>(ii),eps);
+                        sigy = (ypml->*sigmay)(static_cast<double>(jj),eps);
+                        c_ez_n_->at(ii).at(jj) = calcPreConsts(eps,sigz, sigx, sigy);
+                    }
+                }
+            }
         }
-        else
-        {
-            xx = &jj;
-            yy = &ii;
-        }
+        
         for(ii= 0; ii < thickness_; ii++)
         {
             jj = zaxJmax;
@@ -460,9 +451,9 @@ public:
                 jj--;
             }
         }
-        for(int kk = 0; kk < zaxEz_end_.size(); kk++)
+        for(int kk = 0; kk < zaxEz_.size(); kk++)
         {
-            std::cout << zaxEz_end_[kk][0] << "\t" << zaxEz_end_[kk][1] << "\t" << zaxEz_end_[kk][2] << "\t" << zaxEz_end_[kk][3] << "\t" << zaxEz_end_[kk][4] << "\t" << zaxEz_end_[kk][5] << "\t" << zaxEz_end_[kk][6] << "\t" << zaxEz_end_[kk][7] << "\t" << zaxEz_end_[kk][8] << std::endl; 
+            std::cout << std::setw(10) << zaxEz_[kk][0] << "\t" << std::setw(10) << zaxEz_[kk][1] << "\t"<< std::setw(10)  << zaxEz_[kk][2] << "\t" << std::setw(10)  << zaxEz_[kk][3] << "\t" << std::setw(10)  << zaxEz_[kk][4] << "\t" << std::setw(10)  << zaxEz_[kk][5] << "\t" << std::setw(10)  << zaxEz_[kk][6] << "\t" << std::setw(10)  << zaxEz_[kk][7] << "\t" << std::setw(10)  << zaxEz_[kk][8] << std::endl; 
         }
     }
 

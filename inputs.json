@@ -12,10 +12,6 @@
     "PML" :  [
         {
             "thickness" : 5.0,
-            "direction" : "X"
-        },
-        {
-            "thickness" : 5.0,
             "direction" : "Y"
         }
     ],
