@@ -6,8 +6,8 @@
         "z_size"        : 0.0,
         "res"           : 20,
         "courant"       : 0.5,
-        "tLim"          : 0.0,
-        "precalcPML"    : true
+        "tLim"          : 100.0,
+        "precalcPML"    : false
     },
     "PML" :  [
         {

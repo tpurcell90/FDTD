@@ -34,7 +34,6 @@ protected:
     Polarization pol_;
     int nj_,ni_;
     double dx_,dy_,dt_;
-    std::vector<std::array<double,9>> zaxHx_, zaxHy_, zaxEz_, zaxHx_end_, zaxHy_end_, zaxEz_end_;
 
 
 public:
@@ -43,6 +42,8 @@ public:
 
     std::shared_ptr<std::vector<std::vector<std::array<double,5>>>> c_hx_0_, c_hy_0_, c_ez_0_, c_hx_n_, c_hy_n_, c_ez_n_;
     std::shared_ptr<std::vector<std::vector<std::array<double,5>>>> c_ex_0_, c_ey_0_, c_hz_0_, c_ex_n_, c_ey_n_, c_hz_n_;
+
+    std::vector<std::array<double,9>> zaxHx_, zaxHy_, zaxEz_, zaxHx_end_, zaxHy_end_, zaxEz_end_;
 
     /**
      * @brief Constrcuts a PML for both ends of the cell
@@ -173,8 +174,6 @@ public:
 
     void initializeUPML(std::vector<Obj> objArr, int nx, int ny, double dx, double dy, double dt, int yPML, int xPML, UPML<T> *opp)
     {
-        //[](double x, double eps){return 0.0;}
-        std::cout << "PML"<<std::endl;
         int jmax = 0;
         int pt_i = 0; int pt_j = 0;
         int ni   = 0; int nj   = 0;
@@ -216,7 +215,7 @@ public:
             }
             xmax = thickness_; ymax = nj_;
             oppPML = yPML;
-            delx =0; dely=-1;
+            delx = 0; dely = 1;
             zaxJmax = ny -yPML-1;
             xx = &ii;  yy = &jj;
         }
@@ -241,7 +240,7 @@ public:
             }
             ymax = thickness_; xmax = nj_;
             oppPML = xPML;
-            delx = -1; dely=0;
+            delx = 1; dely=0;
             zaxJmax = nx -xPML-1;
             xx = &jj; yy = &ii;
         }
@@ -296,8 +295,6 @@ public:
                 }
             }
         }
-        std::string fname("fout/Hx/phys_test.dat");
-        phys_Hx_end_ -> gridOut(fname);
         if(precalc_)
         {
             if(pol_ == EZ || pol_ == HX || pol_ == HY)
@@ -345,11 +342,11 @@ public:
         
         for(ii= 0; ii < thickness_; ii++)
         {
-            jj = zaxJmax;
+            jj = zaxJmax-dely;
             while(jj > oppPML-1)
             {
                 int jjstore = jj;
-                while(jj > oppPML && phys_Hx_ -> point(*xx,*yy) == phys_Hx_ -> point(*xx,*yy))
+                while(jj > oppPML && phys_Hx_ -> point(*xx,*yy) == phys_Hx_ -> point(*xx-delx,*yy-dely))
                     jj--;
                 std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hx_->point(*xx,*yy))};
                 eps   = objArr[phys_Hx_->point(*xx,*yy)].dielectric(1.0);
@@ -361,13 +358,13 @@ public:
                 jj--;
             }
         }
-        for(ii= 0; ii < thickness_; ii++)
+        for(ii= delx; ii < thickness_; ii++)
         {
-            jj = zaxJmax;
+            jj = zaxJmax-dely;
             while(jj > oppPML-1)
             {
                 int jjstore = jj;
-                while(jj > oppPML && phys_Hx_end_ -> point(*xx,*yy) == phys_Hx_end_ -> point(*xx+delx,*yy+dely)) //Fix
+                while(jj > oppPML && phys_Hx_end_ -> point(*xx,*yy) == phys_Hx_end_ -> point(*xx-delx,*yy-dely)) //Fix
                     jj--;
                 std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hx_end_->point(*xx,*yy))};
                 eps   = objArr[phys_Hx_end_->point(*xx,*yy)].dielectric(1.0);
@@ -381,11 +378,11 @@ public:
         }
         for(ii= 0; ii < thickness_; ii++)
         {
-            jj = zaxJmax;
+            jj = zaxJmax-delx;
             while(jj > oppPML-1)
             {
                 int jjstore = jj;
-                while(jj > oppPML && phys_Hy_ -> point(*xx,*yy) == phys_Hy_ -> point(*xx+delx,*yy+dely))
+                while(jj > oppPML && phys_Hy_ -> point(*xx,*yy) == phys_Hy_ -> point(*xx-delx,*yy-dely))
                     jj--;
                 std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hy_->point(*xx,*yy))};
                 eps    = objArr[phys_Hy_->point(*xx,*yy)].dielectric(1.0);
@@ -397,13 +394,13 @@ public:
                 jj--;
             }
         }
-        for(ii= 0; ii < thickness_; ii++)
+        for(ii= dely; ii < thickness_; ii++)
         {
-            jj = zaxJmax;
+            jj = zaxJmax-delx;
             while(jj > oppPML-1)
             {
                 int jjstore = jj;
-                while(jj > oppPML && phys_Hy_end_ -> point(*xx,*yy) == phys_Hy_end_ -> point(*xx+delx,*yy+dely)) //Fix
+                while(jj > oppPML && phys_Hy_end_ -> point(*xx,*yy) == phys_Hy_end_ -> point(*xx-delx,*yy-dely)) //Fix
                     jj--;
                 std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hy_end_->point(*xx,*yy))};
                 eps    = objArr[phys_Hy_end_->point(*xx,*yy)].dielectric(1.0);
@@ -421,7 +418,7 @@ public:
             while(jj > oppPML-1)
             {
                 int jjstore = jj;
-                while(jj > oppPML && phys_Ez_ -> point(*xx,*yy) == phys_Ez_ -> point(*xx+delx,*yy+dely))
+                while(jj > oppPML && phys_Ez_ -> point(*xx,*yy) == phys_Ez_ -> point(*xx-delx,*yy-dely))
                     jj--;
                 std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ez_->point(*xx,*yy))};
                 eps = objArr[phys_Ez_->point(*xx,*yy)].dielectric(1.0);
@@ -439,7 +436,7 @@ public:
             while(jj > oppPML-1)
             {
                 int jjstore = jj;
-                while(jj > oppPML && phys_Ez_end_ -> point(*xx,*yy) == phys_Ez_end_ -> point(*xx+delx,*yy+dely)) //Fix
+                while(jj > oppPML && phys_Ez_end_ -> point(*xx,*yy) == phys_Ez_end_ -> point(*xx-delx,*yy-dely)) //Fix
                     jj--;
                 std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ez_end_->point(*xx,*yy))};
                 eps = objArr[phys_Ez_end_->point(*xx,*yy)].dielectric(1.0);
@@ -451,21 +448,8 @@ public:
                 jj--;
             }
         }
-        for(int kk = 0; kk < zaxEz_.size(); kk++)
-        {
-            std::cout << std::setw(10) << zaxEz_[kk][0] << "\t" << std::setw(10) << zaxEz_[kk][1] << "\t"<< std::setw(10)  << zaxEz_[kk][2] << "\t" << std::setw(10)  << zaxEz_[kk][3] << "\t" << std::setw(10)  << zaxEz_[kk][4] << "\t" << std::setw(10)  << zaxEz_[kk][5] << "\t" << std::setw(10)  << zaxEz_[kk][6] << "\t" << std::setw(10)  << zaxEz_[kk][7] << "\t" << std::setw(10)  << zaxEz_[kk][8] << std::endl; 
-        }
     }
 
-    // void updateH(FDTDField *FF)
-    // {
-
-    // }
-
-    // void updateE(FDTDField *FF)
-    // {
-
-    // }
     // Accessor Functions
     /**
      * @brief Reuturns the thickness of the PML
@@ -516,8 +500,8 @@ public:
         preFact[0] = (2*eps*kapj - sigj*dt_) / (2*eps*kapj + sigj*dt_);
         preFact[1] = (2 * eps * dt_) / (dy_ * (2*eps*kapj + sigj*dt_));
         preFact[2] = (2*eps*kapk - sigk*dt_) / (2*eps*kapk + sigk*dt_);
-        preFact[3] = (2*eps*kapi - sigi*dt_) / (2*eps*kapk + sigk*dt_);
-        preFact[4] = (2*eps*kapi + sigi*dt_) / (2*eps*kapk + sigk*dt_);
+        preFact[4] = (2*eps*kapi - sigi*dt_) / (2*eps*kapk + sigk*dt_);
+        preFact[3] = (2*eps*kapi + sigi*dt_) / (2*eps*kapk + sigk*dt_);
         return preFact;
     }
 

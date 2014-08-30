@@ -22,13 +22,6 @@ int main(int argc, char const *argv[])
     FDTDField FF(IP);
     cout<<"I MADE THE FDTDField" << endl;
 
-    /*cout << "hello \n";
-    cout << FF.n_x() <<"\n";
-    cout << FF.n_y() <<"\n";
-    cout << FF.d_x() <<"\n";
-    cout << FF.d_y() <<"\n";
-    cout << FF.d_t() <<"\n";
-    */
     FF.initializeGrid();
     cout<<"AND INITIALIZED THE GRID!" << endl;
     int count = 0;
@@ -40,8 +33,8 @@ int main(int argc, char const *argv[])
         //if (count++ % 20 == 0) fieldToBitMap(FF, filename);
     }
     duration = ( clock() - start ) / (double) CLOCKS_PER_SEC;
-    //cout <<duration<<endl;
-    //cout << "I am always in error\n";
+    cout <<duration<<endl;
+    cout << "I am always in error\n";
     return 0;
 }
 

@@ -74,8 +74,10 @@ FDTDField::FDTDField(programInputs &IP)
     }
     else
     {
-        Hx_ = make_shared<Grid2D<complex<double>>>(nx_,ny_-1,dx_,dy_);
-        Hy_ = make_shared<Grid2D<complex<double>>>(nx_-1,ny_,dx_,dy_);
+        // Hx_ = make_shared<Grid2D<complex<double>>>(nx_,ny_-1,dx_,dy_);
+        // Hy_ = make_shared<Grid2D<complex<double>>>(nx_-1,ny_,dx_,dy_);
+        Hx_ = make_shared<Grid2D<complex<double>>>(nx_,ny_,dx_,dy_);
+        Hy_ = make_shared<Grid2D<complex<double>>>(nx_,ny_,dx_,dy_);
         Ez_ = make_shared<Grid2D<complex<double>>>(nx_,ny_,dx_,dy_);
 
         //phys_Hx_ = make_shared<Grid2D<int>>(nx_,ny_-1,dx_,dy_);
@@ -114,8 +116,6 @@ void FDTDField::initializeGrid()
                         if(objArr_[kk].isObj(pt))
                             phys_Ex_->point(ii,jj) = kk;
                         pt[1] += 0.5*dy_;
-                        //if(objArr_[kk].isObj(pt))
-                          //  phys_Hz_->point(ii,jj) = kk;
                         pt[0] -= 0.5*dx_;
                         if(objArr_[kk].isObj(pt))
                             phys_Ey_->point(ii,jj) = kk;
@@ -132,8 +132,6 @@ void FDTDField::initializeGrid()
                         if(objArr_[kk].isObj(pt)==true)
                             phys_Ex_->point(ii,jj) = kk;
                         pt[1] += 0.5*dy_;
-                        //if(objArr_[kk].isObj(pt)==true)
-                          //  phys_Hz_->point(ii,jj) = kk;
                         pt[0] -= 0.5*dx_;
                         if(objArr_[kk].isObj(pt)==true)
                             phys_Ey_->point(ii,jj) = kk;
@@ -149,23 +147,14 @@ void FDTDField::initializeGrid()
                 {
                     for(int jj = 0; jj < ny_-1; jj ++)
                     {
-                        pt= {(ii+0.5-(nx_-1)/2.0)*dx_,(jj-static_cast<double>(ny_-1)/2.0)*dy_};
-                        //if(objArr_[kk].isObj(pt)==true)
-                          //  phys_Hy_->point(ii,jj) = kk;
-                        pt[0] -= 0.5*dx_;
+                        pt= {(ii-(nx_-1)/2.0)*dx_,(jj-static_cast<double>(ny_-1)/2.0)*dy_};
                         if(objArr_[kk].isObj(pt)==true)
                             phys_Ez_->point(ii,jj) = kk;
-                        //pt[1] += 0.5*dy_;
-                        //if(objArr_[kk].isObj(pt)==true)
-                          //  phys_Hx_->point(ii,jj) = kk;
                     }
                 }
                 for(int ii = 0; ii < nx_-1;ii ++)
                 {
-                    pt={(ii+0.5-(nx_-1)/2.0)*dx_,(ny_-1-(ny_-1)/2.0)*dy_};
-                    //if(objArr_[kk].isObj(pt)==true)
-                      //  phys_Hy_->point(ii,ny_-1) = kk;
-                    pt[0] -= 0.5*dx_;
+                    pt={(ii-(nx_-1)/2.0)*dx_,(ny_-1-(ny_-1)/2.0)*dy_};
                     if(objArr_[kk].isObj(pt)==true)
                         phys_Ez_->point(ii,ny_-1) = kk;
                 }
@@ -174,9 +163,6 @@ void FDTDField::initializeGrid()
                     pt = {(nx_-1-(nx_-1)/2.0)*dx_,(jj-(ny_-1)/2.0)*dy_};
                     if(objArr_[kk].isObj(pt)==true)
                         phys_Ez_->point(nx_-1,jj) = kk;
-                    //pt[1] += 0.5*dy_;
-                    //if(objArr_[kk].isObj(pt)==true)
-                      //  phys_Hx_->point(nx_-1,jj) = kk;
                 }
                 pt={(nx_-1-(nx_-1)/2.0)*dx_,(ny_-1-(ny_-1)/2.0)*dy_};
                 if(objArr_[kk].isObj(pt)==true)
@@ -255,25 +241,16 @@ void FDTDField::initializeGrid()
                     {
                         for(int jj = 0; jj < ny_-1; jj ++)
                         {
-                            pt[0] = (ii+0.5-(nx_-1)/2.0)*dx_;
+                            pt[0] = (ii-(nx_-1)/2.0)*dx_;
                             pt[1] = (jj-static_cast<double>(ny_-1)/2.0)*dy_;
-                            //if(objArr_[kk].isObj(pt)==true)
-                              //  phys_Hy_->point(ii,jj) = kk;
-                            pt[0] -= 0.5*dx_;
                             if(objArr_[kk].isObj(pt)==true)
                                 phys_Ez_->point(ii,jj) = kk;
-                            //pt[1] += 0.5*dy_;
-                            //if(objArr_[kk].isObj(pt)==true && kk ==1)
-                              //  phys_Hx_->point(ii,jj) = kk;
                         }
                     }
                     for(int ii = 0; ii < nx_-1;ii ++)
                     {
-                        pt[0]=(ii+0.5-(nx_-1)/2.0)*dx_;
+                        pt[0]=(ii-(nx_-1)/2.0)*dx_;
                         pt[1]=(ny_-1-(ny_-1)/2.0)*dy_;
-                        //if(objArr_[kk].isObj(pt)==true)
-                          //  phys_Hy_->point(ii,ny_-1) = kk;
-                        pt[0] -= 0.5*dx_;
                         if(objArr_[kk].isObj(pt)==true)
                             phys_Ez_->point(ii,ny_-1) = kk;
                     }
@@ -283,9 +260,6 @@ void FDTDField::initializeGrid()
                         pt[1]=(jj-(ny_-1)/2.0)*dy_;
                         if(objArr_[kk].isObj(pt)==true)
                             phys_Ez_->point(nx_-1,jj) = kk;
-                        //pt[1] += 0.5*dy_;
-                        //if(objArr_[kk].isObj(pt)==true)
-                          //  phys_Hx_->point(nx_-1,jj) = kk;
                     }
                     pt[0]=(nx_-1-(nx_-1)/2.0)*dx_;
                     pt[1]=(ny_-1-(ny_-1)/2.0)*dy_;
@@ -455,76 +429,12 @@ void FDTDField::initializeGrid()
     {
         for(int kk = 0; kk < pmlArr_.size(); kk++)
         {
-            // UPML *opp= pmlArr_[abs(kk-1)];
             UPML<complex<double>>* opp = &pmlArr_[abs(kk-1)];
-            //PMLMemFn  sigmaj = pmlArr_[abs(kk-1)].sig_ptr();
             pmlArr_[kk].initializeUPML(objArr_, nx_,ny_,dx_,dy_,dt_, yPML_, xPML_, opp);
         }
     }
     else
-    {
-        //double *sigmaj(double ,double);
-        //sigmaj = [](double x, double eps){return 0.0;};
         pmlArr_[0].initializeUPML(objArr_, nx_,ny_,dx_,dy_,dt_, yPML_, xPML_, nullptr);
-
-    }
-    // int imax = pmlArr_[0].Bx_->x();
-    // int jmax = pmlArr_[0].Bx_->y();
-    // std::string filename("fout/Hx/c_hx_0_");
-    // for(int kk = 0; kk < 5; kk++)
-    // {
-    //     std::ofstream outFile;
-    //     outFile.open(filename + std::to_string(kk) +".dat",std::ios_base::app);
-    //     for(int ii = 0; ii < imax; ii++)
-    //         for(int jj =0; jj < jmax; jj++)
-    //             outFile<< ii << "\t" << jj << "\t" << pmlArr_[0].c_hx_0_->at(ii).at(jj)[kk] <<std::endl;
-    // }
-    // filename = "fout/Hx/c_hx_n_";
-    // for(int kk = 0; kk < 5; kk++)
-    // {
-    //     std::ofstream outFile;
-    //     outFile.open(filename + std::to_string(kk) +".dat",std::ios_base::app);
-    //     for(int ii = 0; ii < imax; ii++)
-    //         for(int jj =0; jj < jmax; jj++)
-    //             outFile<< ii << "\t" << jj << "\t" << pmlArr_[0].c_hx_n_->at(ii).at(jj)[kk] <<std::endl;
-    // }
-    // filename = "fout/Hy/c_hy_n_";
-    // for(int kk = 0; kk < 5; kk++)
-    // {
-    //     std::ofstream outFile;
-    //     outFile.open(filename + std::to_string(kk) +".dat",std::ios_base::app);
-    //     for(int ii = 0; ii < imax; ii++)
-    //         for(int jj =0; jj < jmax; jj++)
-    //             outFile<< ii << "\t" << jj << "\t" << pmlArr_[0].c_hy_n_->at(ii).at(jj)[kk] <<std::endl;
-    // }
-    // filename = "fout/Hy/c_hy_0_";
-    // for(int kk = 0; kk < 5; kk++)
-    // {
-    //     std::ofstream outFile;
-    //     outFile.open(filename + std::to_string(kk) +".dat",std::ios_base::app);
-    //     for(int ii = 0; ii < imax; ii++)
-    //         for(int jj =0; jj < jmax; jj++)
-    //             outFile<< ii << "\t" << jj << "\t" << pmlArr_[0].c_hy_0_->at(ii).at(jj)[kk] <<std::endl;
-    // }
-    // filename = "fout/Ez/c_ez_n_";
-    // for(int kk = 0; kk < 5; kk++)
-    // {
-    //     std::ofstream outFile;
-    //     outFile.open(filename + std::to_string(kk) +".dat",std::ios_base::app);
-    //     for(int ii = 0; ii < imax; ii++)
-    //         for(int jj =0; jj < jmax; jj++)
-    //             outFile<< ii << "\t" << jj << "\t" << pmlArr_[0].c_ez_n_->at(ii).at(jj)[kk] <<std::endl;
-    // }
-    // filename = "fout/Ez/c_ez_0_";
-    // for(int kk = 0; kk < 5; kk++)
-    // {
-    //     std::ofstream outFile;
-    //     outFile.open(filename + std::to_string(kk) +".dat",std::ios_base::app);
-    //     for(int ii = 0; ii < imax; ii++)
-    //         for(int jj =0; jj < jmax; jj++)
-    //             outFile<< ii << "\t" << jj << "\t" << pmlArr_[0].c_ez_0_->at(ii).at(jj)[kk] <<std::endl;
-    // }
-
 }
 /**
  * @brief Outputs the relevant field information to an output file specified by the detector
@@ -1865,8 +1775,8 @@ void FDTDField::updateH()
                 }
             }
         }
-    }
-    else
+    }*/
+    /*else
     {
         if(Ez_)
         {
@@ -2297,6 +2207,104 @@ void FDTDField::updateH()
             }
         }
     }*/
+    if(Ez_)
+    {
+        for(int kk =0; kk < pmlArr_.size(); kk++)
+        {
+            int stride = 1; int stride_rel = 1; 
+            int ni = 0; int nj = 0; int d = 0;
+            if(pmlArr_[kk].d() == X)
+            {
+                stride_rel = nx_;
+                ni         = nx_ - 1;
+                stride     = pmlArr_[kk].thickness();
+            }
+            else
+            {
+                d          = 1;
+                nj         = ny_ - 1;
+            }
+            for(int zz = 0; zz < pmlArr_[kk].zaxHx_.size();zz++)
+            {
+                array<double,9> zaxArr = pmlArr_[kk].zaxHx_[zz];
+                int xx= static_cast<int>(zaxArr[0]); 
+                int yy= static_cast<int>(zaxArr[1]);
+                int nZax = static_cast<int>(zaxArr[2]);
+                
+                vector<complex<double>> bxstore(nZax, 0.0);
+                zcopy_(nZax, &pmlArr_[kk].Bx_ -> point(xx,yy), stride, bxstore.data(), 1);
+
+                zscal_(nZax, zaxArr[4], &pmlArr_[kk].Bx_ -> point(xx,yy), stride);
+                zscal_(nZax, zaxArr[6],             &Hx_ -> point(xx,yy), stride);
+
+                zaxpy_(nZax,      zaxArr[5], &Ez_ -> point(xx,yy  ), stride_rel, &pmlArr_[kk].Bx_ -> point(xx,yy), stride);
+                zaxpy_(nZax, -1.0*zaxArr[5], &Ez_ -> point(xx,yy+1), stride_rel, &pmlArr_[kk].Bx_ -> point(xx,yy), stride);
+
+                zaxpy_(nZax,      zaxArr[7], &pmlArr_[kk].Bx_ -> point(xx,yy), stride, &Hx_ -> point(xx,yy), stride_rel);
+                zaxpy_(nZax, -1.0*zaxArr[8], bxstore.data()                  , 1     , &Hx_ -> point(xx,yy), stride_rel);
+            }
+            for(int zz = 0; zz < pmlArr_[kk].zaxHx_end_.size();zz++)
+            {
+                array<double,9> zaxArr = pmlArr_[kk].zaxHx_end_[zz];
+                int x_rel = ni + pow(-1, 1-d) * static_cast<int>(zaxArr[0]); 
+                int y_rel = nj + pow(-1, d)   * static_cast<int>(zaxArr[1]); //the -1^(d()) is to account for changing signs
+                int xx= static_cast<int>(zaxArr[0]); 
+                int yy= static_cast<int>(zaxArr[1]);
+                int nZax = static_cast<int>(zaxArr[2]);
+                
+                vector<complex<double>> bxstore(nZax, 0.0);
+                zcopy_(nZax, &pmlArr_[kk].Bx_end_ -> point(xx,yy), stride, bxstore.data(), 1);
+
+                zscal_(nZax, zaxArr[4], &pmlArr_[kk].Bx_end_ -> point(xx   ,yy   ), stride);
+                zscal_(nZax, zaxArr[6],                 &Hx_ -> point(x_rel,y_rel), stride);
+
+                zaxpy_(nZax,      zaxArr[5], &Ez_ -> point(x_rel,y_rel  ), stride_rel, &pmlArr_[kk].Bx_end_ -> point(xx,yy), stride);
+                zaxpy_(nZax, -1.0*zaxArr[5], &Ez_ -> point(x_rel,y_rel+1), stride_rel, &pmlArr_[kk].Bx_end_ -> point(xx,yy), stride);
+
+                zaxpy_(nZax,      zaxArr[7], &pmlArr_[kk].Bx_end_ -> point(xx,yy), stride, &Hx_ -> point(x_rel,y_rel), stride_rel);
+                zaxpy_(nZax, -1.0*zaxArr[8], bxstore.data()                      , 1     , &Hx_ -> point(x_rel,y_rel), stride_rel);
+            }
+            for(int zz = 0; zz < pmlArr_[kk].zaxHy_.size();zz++)
+            {
+                array<double,9> zaxArr = pmlArr_[kk].zaxHy_[zz];
+                int xx= static_cast<int>(zaxArr[0]); 
+                int yy= static_cast<int>(zaxArr[1]);
+                int nZax = static_cast<int>(zaxArr[2]);
+                vector<complex<double>> bystore(nZax, 0.0);
+                zcopy_(nZax, &pmlArr_[kk].By_ -> point(xx,yy), stride, bystore.data(), 1);
+
+                zscal_(nZax, zaxArr[4], &pmlArr_[kk].By_ -> point(xx,yy), stride);
+                zscal_(nZax, zaxArr[6],             &Hy_ -> point(xx,yy), stride);
+
+                zaxpy_(nZax,      zaxArr[5], &Ez_ -> point(xx+1,yy), stride_rel, &pmlArr_[kk].By_ -> point(xx,yy), stride);
+                zaxpy_(nZax, -1.0*zaxArr[5], &Ez_ -> point(xx  ,yy), stride_rel, &pmlArr_[kk].By_ -> point(xx,yy), stride);
+
+                zaxpy_(nZax,      zaxArr[7], &pmlArr_[kk].By_ -> point(xx,yy), stride, &Hy_ -> point(xx,yy), stride_rel);
+                zaxpy_(nZax, -1.0*zaxArr[8], bystore.data()                  , 1     , &Hy_ -> point(xx,yy), stride_rel);
+            }
+            for(int zz = 0; zz < pmlArr_[kk].zaxHy_end_.size();zz++)
+            {
+                array<double,9> zaxArr = pmlArr_[kk].zaxHy_end_[zz];
+                int x_rel = ni + pow(-1, 1-d) * static_cast<int>(zaxArr[0]); 
+                int y_rel = nj + pow(-1, d)   * static_cast<int>(zaxArr[1]); //the -1^(d()) is to account for changing signs
+                int xx= static_cast<int>(zaxArr[0]); 
+                int yy= static_cast<int>(zaxArr[1]);
+                int nZax = static_cast<int>(zaxArr[2]);
+                
+                vector<complex<double>> bystore(nZax, 0.0);
+                zcopy_(nZax, &pmlArr_[kk].By_end_ -> point(xx,yy), stride, bystore.data(), 1);
+
+                zscal_(nZax, zaxArr[4], &pmlArr_[kk].By_end_ -> point(xx   ,yy   ), stride);
+                zscal_(nZax, zaxArr[6],                 &Hy_ -> point(x_rel,y_rel), stride);
+
+                zaxpy_(nZax,      zaxArr[5], &Ez_ -> point(x_rel+1,y_rel), stride_rel, &pmlArr_[kk].By_end_ -> point(xx,yy), stride);
+                zaxpy_(nZax, -1.0*zaxArr[5], &Ez_ -> point(x_rel  ,y_rel), stride_rel, &pmlArr_[kk].By_end_ -> point(xx,yy), stride);
+
+                zaxpy_(nZax,      zaxArr[7], &pmlArr_[kk].By_end_ -> point(xx,yy), stride, &Hy_ -> point(x_rel,y_rel), stride_rel);
+                zaxpy_(nZax, -1.0*zaxArr[8], bystore.data()                      , 1     , &Hy_ -> point(x_rel,y_rel), stride_rel);
+            }
+        }
+    }
 }
 
 /**
@@ -2306,9 +2314,9 @@ void FDTDField::updateH()
  * \f$E_z^{q+1}\left[i,j\right] = \frac{1 - \frac{\sigma\left[i,j\right]*d_t}{2*\epsilon\left[i,j\right]}}{1+\frac{\sigma\left[i,j\right]*d_t}{2\epsilon\left[i,j\right]}} E_z^q\left[i,j]\right] +\frac{\frac{dt}{\epsilon\left[i,j\right]}}{1+\frac{\sigma\left[i,j\right]*d_t}{2*\epsilon\left[i,j\right]}}\left\{\frac{1}{dx} \left(H_y^{q+\frac{1}{2}}\left[i+\frac{1}{2},j+\frac{1}{2}\right] - H_y^{q+\frac{1}{2}}\left[i-\frac{1}{2},j+\frac{1}{2}\right]\right) - \frac{1}{dy}\left(H_x^{q+\frac{1}{2}}\left[i+\frac{1}{2},j+\frac{1}{2}\right] - H_x^{q+\frac{1}{2}}\left[i+\frac{1}{2},j-\frac{1}{2}\right]\right) \right\}  \f$
  *
  * For UPML space TM mode \\
- * \f$D_z^{q+1}\left[i,j\right] = \frac{2 \epsilon \kappa_x - \sigma_x dt}{2 \epsilon  \kappa_x + \sigma_x dt} D_z^{q}\left[i,j\right] +  \frac{2  \epsilon  dt}{2  \epsilon  \kappa_x + \sigma_x  dt} \left\{\frac{1}{dx} \left(H_y^{q+\frac{1}{2}}\left[i+\frac{1}{2},j+\frac{1}{2}\right] - H_y^{q+\frac{1}{2}}\left[i-\frac{1}{2},j+\frac{1}{2}\right]\right) - \frac{1}{dy}\left(H_x^{q+\frac{1}{2}}\left[i+\frac{1}{2},j+\frac{1}{2}\right] - H_x^{q+\frac{1}{2}}\left[i+\frac{1}{2},j-\frac{1}{2}\right]\right) \right\}\f$
+ * \f$D_z^{q+1}\left[i,j\right] = \frac{2 \epsilon \kappa_x- \sigma_x dt}{2 \epsilon  \kappa_x + \sigma_x dt} D_z^{q}\left[i,j\right] +  \frac{2  \epsilon  dt}{2  \epsilon  \kappa_x + \sigma_x  dt} \left\{\frac{1}{dx} \left(H_y^{q+\frac{1}{2}}\left[i+\frac{1}{2},j+\frac{1}{2}\right] - H_y^{q+\frac{1}{2}}\left[i-\frac{1}{2},j+\frac{1}{2}\right]\right) - \frac{1}{dy}\left(H_x^{q+\frac{1}{2}}\left[i+\frac{1}{2},j+\frac{1}{2}\right] - H_x^{q+\frac{1}{2}}\left[i+\frac{1}{2},j-\frac{1}{2}\right]\right) \right\}\f$
  *
- *\f$E_z^{q+1}\left[i,j\right] =  \frac{2 \epsilon \kappa_y - \sigma_y dt}{2 \epsilon  \kappa_y + \sigma_y dt} E_z^{q}\left[i,j\right] + \frac{1}{\left(2\epsilon \kappa_y +\sigma_y dt\right)\epsilon} \left\{ \left(2\epsilon\kappa_z + \sigma_z dt\right) D_z^{q+1}\left[i,j\right]  -\left(2\epsilon\kappa_z - \sigma_z dt\right) D_z^{q}\left[i,j\right] \right\} \f$
+ *\f$E_z^{q+1}\left[i,j\right] =  \frac{2 \epsilon \kappa_y- \sigma_y dt}{2 \epsilon  \kappa_y + \sigma_y dt} E_z^{q}\left[i,j\right] + \frac{1}{\left(2\epsilon \kappa_y +\sigma_y dt\right)\epsilon} \left\{ \left(2\epsilon\kappa_z + \sigma_z dt\right) D_z^{q+1}\left[i,j\right]  -\left(2\epsilon\kappa_z - \sigma_z dt\right) D_z^{q}\left[i,j\right] \right\} \f$
  *
  */
 void FDTDField::updateE()
@@ -2520,7 +2528,6 @@ void FDTDField::updateE()
             Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezh * ((-1.0*Hy_->point(nx_-1-1,ny_-1)) - (-1.0*Hx_->point(nx_-1,ny_-1-1)));
         }
     }
-    /*
     if(precalcPML_ == false)
     {
         if(Ez_)
@@ -3414,7 +3421,7 @@ void FDTDField::updateE()
             }
         }
     }
-    else
+    /*else
     {
         if(Ez_)
         {
