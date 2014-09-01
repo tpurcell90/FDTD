@@ -40,8 +40,10 @@ public:
     std::shared_ptr<Grid2D<T>> Dx_,Dy,Dz_,Bx_,By_,Bz_,Dx_end_,Dyend_,Dz_end_,Bx_end_,By_end_,Bz_end_;
     std::shared_ptr<Grid2D<int>> phys_Hx_,phys_Hy_,phys_Hz_, phys_Hx_end_,phys_Hy_end_,phys_Hz_end_,phys_Ex_,phys_Ey_,phys_Ez_, phys_Ex_end_,phys_Ey_end_,phys_Ez_end_;
 
-    std::shared_ptr<std::vector<std::vector<std::array<double,5>>>> c_hx_0_, c_hy_0_, c_ez_0_, c_hx_n_, c_hy_n_, c_ez_n_;
-    std::shared_ptr<std::vector<std::vector<std::array<double,5>>>> c_ex_0_, c_ey_0_, c_hz_0_, c_ex_n_, c_ey_n_, c_hz_n_;
+    std::shared_ptr<std::vector<std::vector<std::array<double,5>>>> c_hx_0_0_, c_hy_0_0_, c_ez_0_0_, c_hx_n_0_, c_hy_n_0_, c_ez_n_0_;
+    std::shared_ptr<std::vector<std::vector<std::array<double,5>>>> c_ex_0_0_, c_ey_0_0_, c_hz_0_0_, c_ex_n_0_, c_ey_n_0_, c_hz_n_0_;
+    std::shared_ptr<std::vector<std::vector<std::array<double,5>>>> c_hx_0_n_, c_hy_0_n_, c_ez_0_n_, c_hx_n_n_, c_hy_n_n_, c_ez_n_n_;
+    std::shared_ptr<std::vector<std::vector<std::array<double,5>>>> c_ex_0_n_, c_ey_0_n_, c_hz_0_n_, c_ex_n_n_, c_ey_n_n_, c_hz_n_n_;
 
     std::vector<std::array<double,9>> zaxHx_, zaxHy_, zaxEz_, zaxHx_end_, zaxHy_end_, zaxEz_end_;
 
@@ -58,7 +60,7 @@ public:
      * @param dy unit cell spacing for the y direction
      * @param pol A polarization so it can set up the right auxilliary fields
      */
-    UPML(int thickness, Direction d, double m, double R0, int nx, int ny, double dx, double dy, double dt, Polarization pol, bool precalc) : thickness_(thickness), d_(d), m_(m), R0_(R0), dx_(dx), dy_(dy), dt_(dt), precalc_(precalc), pol_(pol)
+    UPML(int thickness, Direction d, double m, double R0, int nx, int ny, double dx, double dy, double dt, int xPML, int yPML, Polarization pol, bool precalc) : thickness_(thickness), d_(d), m_(m), R0_(R0), dx_(dx), dy_(dy), dt_(dt), precalc_(precalc), pol_(pol)
     {
         sigmaMax_ = -(m_+1)*log(R0_)/(2*thickness_*dx); // eta should be included;
         kappaMax_ = 1.0;
@@ -108,20 +110,29 @@ public:
             phys_Ez_ = nullptr;
             phys_Ez_end_ = nullptr;
 
-            if(precalc_ == false)
+            if(precalc_ == false || yPML == 0 || xPML == 0)
             {
-                c_hx_0_ = nullptr; c_hy_0_ = nullptr; c_ez_0_ = nullptr; c_hx_n_ = nullptr; c_hy_n_ = nullptr; c_ez_n_= nullptr;
-                c_ex_0_ = nullptr; c_ey_0_ = nullptr; c_hz_0_ = nullptr; c_ex_n_ = nullptr; c_ey_n_ = nullptr; c_hz_n_ = nullptr;
+                c_hx_0_0_ = nullptr; c_hy_0_0_ = nullptr; c_ez_0_0_ = nullptr; c_hx_n_0_ = nullptr; c_hy_n_0_ = nullptr; c_ez_n_0_ = nullptr;
+                c_hx_0_n_ = nullptr; c_hy_0_n_ = nullptr; c_ez_0_n_ = nullptr; c_hx_n_n_ = nullptr; c_hy_n_n_ = nullptr; c_ez_n_n_ = nullptr;
+                c_ex_0_0_ = nullptr; c_ey_0_0_ = nullptr; c_hz_0_0_ = nullptr; c_ex_n_0_ = nullptr; c_ey_n_0_ = nullptr; c_hz_n_0_ = nullptr;
+                c_ex_0_n_ = nullptr; c_ey_0_n_ = nullptr; c_hz_0_n_ = nullptr; c_ex_n_n_ = nullptr; c_ey_n_n_ = nullptr; c_hz_n_n_ = nullptr;
             }
             else
             {
-                c_hx_0_ = nullptr; c_hy_0_ = nullptr; c_ez_0_ = nullptr; c_hx_n_ = nullptr; c_hy_n_ = nullptr; c_ez_n_= nullptr;
-                c_ex_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
-                c_ey_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
-                c_hz_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
-                c_ex_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
-                c_ey_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
-                c_hz_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
+                c_hx_0_0_ = nullptr; c_hy_0_0_ = nullptr; c_ez_0_0_ = nullptr; c_hx_n_0_ = nullptr; c_hy_n_0_ = nullptr; c_ez_n_0_ = nullptr;
+                c_hx_0_n_ = nullptr; c_hy_0_n_ = nullptr; c_ez_0_n_ = nullptr; c_hx_n_n_ = nullptr; c_hy_n_n_ = nullptr; c_ez_n_n_ = nullptr;
+                c_ex_0_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_ey_0_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_hz_0_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_ex_n_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_ey_n_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_hz_n_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_ex_0_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_ey_0_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_hz_0_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_ex_n_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_ey_n_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_hz_n_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
             }
         }
         else
@@ -154,20 +165,29 @@ public:
             phys_Ey_ = nullptr;
             phys_Ey_end_ = nullptr;
 
-            if(precalc_ == false)
+            if(precalc_ == false || yPML == 0 || xPML == 0)
             {
-                c_hx_0_ = nullptr; c_hy_0_ = nullptr; c_ez_0_ = nullptr; c_hx_n_ = nullptr; c_hy_n_ = nullptr; c_ez_n_= nullptr;
-                c_ex_0_ = nullptr; c_ey_0_ = nullptr; c_hz_0_ = nullptr; c_ex_n_ = nullptr; c_ey_n_ = nullptr; c_hz_n_ = nullptr;
+                c_hx_0_0_ = nullptr; c_hy_0_0_ = nullptr; c_ez_0_0_ = nullptr; c_hx_n_0_ = nullptr; c_hy_n_0_ = nullptr; c_ez_n_0_ = nullptr;
+                c_hx_0_n_ = nullptr; c_hy_0_n_ = nullptr; c_ez_0_n_ = nullptr; c_hx_n_n_ = nullptr; c_hy_n_n_ = nullptr; c_ez_n_n_ = nullptr;
+                c_ex_0_0_ = nullptr; c_ey_0_0_ = nullptr; c_hz_0_0_ = nullptr; c_ex_n_0_ = nullptr; c_ey_n_0_ = nullptr; c_hz_n_0_ = nullptr;
+                c_ex_0_n_ = nullptr; c_ey_0_n_ = nullptr; c_hz_0_n_ = nullptr; c_ex_n_n_ = nullptr; c_ey_n_n_ = nullptr; c_hz_n_n_ = nullptr;
             }
             else
             {
-                c_ex_0_ = nullptr; c_ey_0_ = nullptr; c_hz_0_ = nullptr; c_ex_n_ = nullptr; c_ey_n_ = nullptr; c_hz_n_= nullptr;
-                c_hx_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
-                c_hy_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
-                c_ez_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
-                c_hx_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
-                c_hy_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
-                c_ez_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
+                c_ex_0_0_ = nullptr; c_ey_0_0_ = nullptr; c_hz_0_0_ = nullptr; c_ex_n_0_ = nullptr; c_ey_n_0_ = nullptr; c_hz_n_0_ = nullptr;
+                c_ex_0_n_ = nullptr; c_ey_0_n_ = nullptr; c_hz_0_n_ = nullptr; c_ex_n_n_ = nullptr; c_ey_n_n_ = nullptr; c_hz_n_n_ = nullptr;
+                c_hx_0_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_hy_0_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_ez_0_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_hx_n_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_hy_n_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_ez_n_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_hx_0_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_hy_0_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_ez_0_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_hx_n_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_hy_n_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
+                c_ez_n_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xPML, std::vector<std::array<double,5>>(yPML));
             }
         }
     }
@@ -295,46 +315,90 @@ public:
                 }
             }
         }
-        if(precalc_)
+        if(precalc_ && (c_hx_0_0_ || c_ex_0_0_))
         {
             if(pol_ == EZ || pol_ == HX || pol_ == HY)
             {
-                for(int ii = 0; ii < xmax; ii++)
+                for(ii = 0; ii < thickness_; ii++)
                 {
-                    for(int jj = 0; jj < ymax; jj++)
+                    for(int kk = 0; kk < oppPML; kk++)
                     {
-                        //Update Hx factors
-                        eps    = objArr[phys_Hx_->point(ii,jj)].dielectric(1.0);
-                        sigxx  = (xpml->*sigmax)(static_cast<double>(ii),eps);
-                        sigyx  = (ypml->*sigmay)(static_cast<double>(jj) + 0.5,eps);
-                        c_hx_0_->at(ii).at(jj) = calcPreConsts(eps,sigxx, sigyx, sigz);
+                        jj = kk;
+                        int hx = 0; int hy = 0;
+                        //Update Hx factors nj_0 side
+                        eps    = objArr[phys_Hx_->point(*xx,*yy)].dielectric(1.0);
+                        sigxx  = (xpml->*sigmax)(static_cast<double>(*xx),eps);
+                        sigyx  = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,floor(hx/(delx+1))) * 0.5,eps);
+                        c_hx_0_0_->at(*xx).at(*yy) = calcPreConsts(eps,sigxx, sigyx, sigz);
+                        hx++;
 
-                        eps    = objArr[phys_Hx_end_->point(ii,jj)].dielectric(1.0);
-                        sigxx  = (xpml->*sigmax)(static_cast<double>(ii),eps);
-                        sigyx  = (ypml->*sigmay)(static_cast<double>(jj)-0.5,eps);
-                        c_hx_n_->at(ii).at(jj) = calcPreConsts(eps,sigxx, sigyx, sigz);
+                        eps    = objArr[phys_Hx_end_->point(*xx,*yy)].dielectric(1.0);
+                        sigxx  = (xpml->*sigmax)(static_cast<double>(*xx),eps);
+                        sigyx  = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,floor(hx/(delx+1))) * 0.5,eps);
+                        c_hx_n_0_->at(*xx).at(*yy) = calcPreConsts(eps,sigxx, sigyx, sigz);
+                        hx++;
 
-                        //Update Hy factors
-                        eps    = objArr[phys_Hy_->point(ii,jj)].dielectric(1.0);
-                        sigxy = (xpml->*sigmax)(static_cast<double>(ii) + 0.5,eps);
-                        sigyy = (ypml->*sigmay)(static_cast<double>(jj),eps);
-                        c_hy_0_->at(ii).at(jj) = calcPreConsts(eps,sigyy, sigz, sigxy);
+                        //Update Hy factors nj_0 side
+                        eps    = objArr[phys_Hy_->point(*xx,*yy)].dielectric(1.0);
+                        sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,floor(hy/(dely+1))) * 0.5,eps);
+                        sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
+                        c_hy_0_0_->at(*xx).at(*yy) = calcPreConsts(eps,sigyy, sigz, sigxy);
+                        hy++;
 
-                        eps    = objArr[phys_Hy_end_->point(ii,jj)].dielectric(1.0);
-                        sigxy = (xpml->*sigmax)(static_cast<double>(ii) - 0.5,eps);
-                        sigyy = (ypml->*sigmay)(static_cast<double>(jj),eps);
-                        c_hy_n_->at(ii).at(jj) = calcPreConsts(eps,sigyy, sigz, sigxy);
+                        eps    = objArr[phys_Hy_end_->point(*xx,*yy)].dielectric(1.0);
+                        sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,floor(hy/(dely+1))) * 0.5,eps);
+                        sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
+                        c_hy_n_0_->at(*xx).at(*yy) = calcPreConsts(eps,sigyy, sigz, sigxy);
+                        hy++;
 
-                        //Update Ez factors
-                        eps = objArr[phys_Ez_->point(ii,jj)].dielectric(1.0);
-                        sigx = (xpml->*sigmax)(static_cast<double>(ii),eps);
-                        sigy = (ypml->*sigmay)(static_cast<double>(jj),eps);
-                        c_ez_0_->at(ii).at(jj) = calcPreConsts(eps,sigz, sigx, sigy);
+                        //Update Ez factors nj_0 side
+                        eps = objArr[phys_Ez_->point(*xx,*yy)].dielectric(1.0);
+                        sigx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
+                        sigy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
+                        c_ez_0_0_->at(*xx).at(*yy) = calcPreConsts(eps,sigz, sigx, sigy);
 
-                        eps = objArr[phys_Ez_end_->point(ii,jj)].dielectric(1.0);
-                        sigx = (xpml->*sigmax)(static_cast<double>(ii),eps);
-                        sigy = (ypml->*sigmay)(static_cast<double>(jj),eps);
-                        c_ez_n_->at(ii).at(jj) = calcPreConsts(eps,sigz, sigx, sigy);
+                        eps = objArr[phys_Ez_end_->point(*xx,*yy)].dielectric(1.0);
+                        sigx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
+                        sigy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
+                        c_ez_n_0_->at(*xx).at(*yy) = calcPreConsts(eps,sigz, sigx, sigy);
+
+                        jj = nj -1 - kk;
+                        //Update Hx factors nj_n side
+                        eps    = objArr[phys_Hx_->point(*xx,*yy)].dielectric(1.0);
+                        sigxx  = (xpml->*sigmax)(static_cast<double>(*xx),eps);
+                        sigyx  = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,floor(hx/(delx+1))) * 0.5,eps);
+                        c_hx_0_n_->at(*xx).at(*yy) = calcPreConsts(eps,sigxx, sigyx, sigz);
+                        hx++;
+
+                        eps    = objArr[phys_Hx_end_->point(*xx,*yy)].dielectric(1.0);
+                        sigxx  = (xpml->*sigmax)(static_cast<double>(*xx),eps);
+                        sigyx  = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,floor(hx/(delx+1))) * 0.5,eps);
+                        c_hx_n_n_->at(*xx).at(*yy) = calcPreConsts(eps,sigxx, sigyx, sigz);
+                        hx++;
+
+                        //Update Hy factors nj_n side
+                        eps    = objArr[phys_Hy_->point(*xx,*yy)].dielectric(1.0);
+                        sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,floor(hy/(dely+1))) * 0.5,eps);
+                        sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
+                        c_hy_0_n_->at(*xx).at(*yy) = calcPreConsts(eps,sigyy, sigz, sigxy);
+                        hy++;
+
+                        eps    = objArr[phys_Hy_end_->point(*xx,*yy)].dielectric(1.0);
+                        sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,floor(hy/(dely+1))) * 0.5,eps);
+                        sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
+                        c_hy_n_n_->at(*xx).at(*yy) = calcPreConsts(eps,sigyy, sigz, sigxy);
+                        hy++;
+
+                        //Update Ez factors nj_n side
+                        eps = objArr[phys_Ez_->point(*xx,*yy)].dielectric(1.0);
+                        sigx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
+                        sigy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
+                        c_ez_0_n_->at(*xx).at(*yy) = calcPreConsts(eps,sigz, sigx, sigy);
+
+                        eps = objArr[phys_Ez_end_->point(*xx,*yy)].dielectric(1.0);
+                        sigx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
+                        sigy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
+                        c_ez_n_n_->at(*xx).at(*yy) = calcPreConsts(eps,sigz, sigx, sigy);
                     }
                 }
             }
@@ -369,7 +433,7 @@ public:
                 std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hx_end_->point(*xx,*yy))};
                 eps   = objArr[phys_Hx_end_->point(*xx,*yy)].dielectric(1.0);
                 sigxx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
-                sigyx = (ypml->*sigmay)(static_cast<double>(*yy) + 0.5,eps);
+                sigyx = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,delx) * 0.5,eps);
                 std::array<double,5> preconsts = calcPreConsts(eps,sigxx, sigyx, 0.0);
                 std::copy_n(preconsts.begin(),5,tempArr.begin()+4);
                 zaxHx_end_.push_back(tempArr);
@@ -404,7 +468,7 @@ public:
                     jj--;
                 std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hy_end_->point(*xx,*yy))};
                 eps    = objArr[phys_Hy_end_->point(*xx,*yy)].dielectric(1.0);
-                sigxy = (xpml->*sigmax)(static_cast<double>(*xx) - 0.5,eps);
+                sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,dely) * 0.5,eps);
                 sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
                 std::array<double,5> preconsts = calcPreConsts(eps,sigyy, sigz, sigxy);
                 std::copy_n(preconsts.begin(),5,tempArr.begin()+4);
