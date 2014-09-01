@@ -499,6 +499,7 @@ void FDTDField::ouputField(Detector<complex<double>> d) //iostream as input para
  */
 void FDTDField::updateH()
 {
+
     if(Ez_)
     {
         complex<double> c_hxh(1.0,0.0);
@@ -664,10 +665,10 @@ void FDTDField::updateH()
                                 bystore = pmlArr_[kk].By_->point(0,jj);
 
                                 pmlArr_[kk].Bx_->point(0,jj) = c_bxb * pmlArr_[kk].Bx_->point(0,jj) - c_bxe * (Ez_->point(0,jj+1)-Ez_->point(0,jj));
-                                pmlArr_[kk].By_->point(0,jj) = c_byb * pmlArr_[kk].By_->point(0,jj) + c_bye * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
+                                // pmlArr_[kk].By_->point(0,jj) = c_byb * pmlArr_[kk].By_->point(0,jj) + c_bye * (Ez_->point(0+1,jj)-Ez_->point(0,jj));
 
                                 Hx_->point(0,jj) = c_hxh * Hx_->point(0,jj) + c_hxb1 * pmlArr_[kk].Bx_->point(0,jj) - c_hxb0 * bxstore;
-                                Hy_->point(0,jj) = c_hyh * Hy_->point(0,jj) + c_hyb1 * pmlArr_[kk].By_->point(0,jj) - c_hyb0 * bystore;
+                                // Hy_->point(0,jj) = c_hyh * Hy_->point(0,jj) + c_hyb1 * pmlArr_[kk].By_->point(0,jj) - c_hyb0 * bystore;
 
                                 eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(0,jj)].dielectric(1.0);
                                 sigxx  = pmlArr_[kk].sigma(0.0,eps);
@@ -689,8 +690,8 @@ void FDTDField::updateH()
                             c_hyb0 = (2*eps*kapy - sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                             c_hyb1 = (2*eps*kapy + sigyy*dt_) / (2*eps*kapx + sigxy*dt_);
                             bystore = pmlArr_[kk].By_->point(0,ny_-1);
-                            pmlArr_[kk].By_->point(0,ny_-1) = c_byb * pmlArr_[kk].By_->point(0,ny_-1) + c_bye * (Ez_->point(0+1,ny_-1)-Ez_->point(0,ny_-1));
-                            Hy_->point(0,ny_-1) = c_hyh * Hy_->point(0,ny_-1) + c_hyb1 * pmlArr_[kk].By_->point(0,ny_-1) - c_hyb0 * bystore;
+                            // pmlArr_[kk].By_->point(0,ny_-1) = c_byb * pmlArr_[kk].By_->point(0,ny_-1) + c_bye * (Ez_->point(0+1,ny_-1)-Ez_->point(0,ny_-1));
+                            // Hy_->point(0,ny_-1) = c_hyh * Hy_->point(0,ny_-1) + c_hyb1 * pmlArr_[kk].By_->point(0,ny_-1) - c_hyb0 * bystore;
                             for(int ii = 1; ii < pmlArr_[kk].thickness(); ii ++)
                             {
                                 eps    = objArr_[pmlArr_[kk].phys_Hy_->point(ii,ny_-1)].dielectric(1.0);
@@ -703,8 +704,8 @@ void FDTDField::updateH()
 
                                 //top row
                                 bystore = pmlArr_[kk].By_->point(ii,ny_-1);
-                                pmlArr_[kk].By_->point(ii,ny_-1) = c_byb * pmlArr_[kk].By_->point(ii,ny_-1) + c_bye * (Ez_->point(ii+1,ny_-1)-Ez_->point(ii,ny_-1));
-                                Hy_->point(ii,ny_-1) = c_hyh * Hy_->point(ii,ny_-1) + c_hyb1 * pmlArr_[kk].By_->point(ii,ny_-1) - c_hyb0 * bystore;
+                                // pmlArr_[kk].By_->point(ii,ny_-1) = c_byb * pmlArr_[kk].By_->point(ii,ny_-1) + c_bye * (Ez_->point(ii+1,ny_-1)-Ez_->point(ii,ny_-1));
+                                // Hy_->point(ii,ny_-1) = c_hyh * Hy_->point(ii,ny_-1) + c_hyb1 * pmlArr_[kk].By_->point(ii,ny_-1) - c_hyb0 * bystore;
 
                                 for(int jj = 0; jj < ny_-1; jj ++)
                                 {
@@ -729,10 +730,10 @@ void FDTDField::updateH()
                                     bystore = pmlArr_[kk].By_->point(ii,jj);
 
                                     pmlArr_[kk].Bx_->point(ii,jj) = c_bxb * pmlArr_[kk].Bx_->point(ii,jj) - c_bxe * (Ez_->point(ii,jj+1)-Ez_->point(ii,jj));
-                                    pmlArr_[kk].By_->point(ii,jj) = c_byb * pmlArr_[kk].By_->point(ii,jj) + c_bye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
+                                    // pmlArr_[kk].By_->point(ii,jj) = c_byb * pmlArr_[kk].By_->point(ii,jj) + c_bye * (Ez_->point(ii+1,jj)-Ez_->point(ii,jj));
 
                                     Hx_->point(ii,jj) = c_hxh * Hx_->point(ii,jj) + c_hxb1 * pmlArr_[kk].Bx_->point(ii,jj) - c_hxb0 * bxstore;
-                                    Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[kk].By_->point(ii,jj) - c_hyb0 * bystore;
+                                    // Hy_->point(ii,jj) = c_hyh * Hy_->point(ii,jj) + c_hyb1 * pmlArr_[kk].By_->point(ii,jj) - c_hyb0 * bystore;
 
                                     eps    = objArr_[pmlArr_[kk].phys_Hx_end_->point(ii,jj)].dielectric(1.0);
                                     sigxx = pmlArr_[kk].sigma(static_cast<double>(ii),eps);
@@ -2211,7 +2212,7 @@ void FDTDField::updateH()
     {
         for(int kk =0; kk < pmlArr_.size(); kk++)
         {
-            int stride = 1; int stride_rel = 1; 
+            int stride = 1; int stride_rel = 1;
             int ni = 0; int nj = 0; int d = 0;
             if(pmlArr_[kk].d() == X)
             {
@@ -2227,15 +2228,15 @@ void FDTDField::updateH()
             for(int zz = 0; zz < pmlArr_[kk].zaxHx_.size();zz++)
             {
                 array<double,9> zaxArr = pmlArr_[kk].zaxHx_[zz];
-                int xx= static_cast<int>(zaxArr[0]); 
-                int yy= static_cast<int>(zaxArr[1]);
+                int xx = static_cast<int>(zaxArr[0]);
+                int yy = static_cast<int>(zaxArr[1]);
                 int nZax = static_cast<int>(zaxArr[2]);
-                
+
                 vector<complex<double>> bxstore(nZax, 0.0);
                 zcopy_(nZax, &pmlArr_[kk].Bx_ -> point(xx,yy), stride, bxstore.data(), 1);
 
                 zscal_(nZax, zaxArr[4], &pmlArr_[kk].Bx_ -> point(xx,yy), stride);
-                zscal_(nZax, zaxArr[6],             &Hx_ -> point(xx,yy), stride);
+                zscal_(nZax, zaxArr[6],             &Hx_ -> point(xx,yy), stride_rel);
 
                 zaxpy_(nZax,      zaxArr[5], &Ez_ -> point(xx,yy  ), stride_rel, &pmlArr_[kk].Bx_ -> point(xx,yy), stride);
                 zaxpy_(nZax, -1.0*zaxArr[5], &Ez_ -> point(xx,yy+1), stride_rel, &pmlArr_[kk].Bx_ -> point(xx,yy), stride);
@@ -2246,17 +2247,17 @@ void FDTDField::updateH()
             for(int zz = 0; zz < pmlArr_[kk].zaxHx_end_.size();zz++)
             {
                 array<double,9> zaxArr = pmlArr_[kk].zaxHx_end_[zz];
-                int x_rel = ni + pow(-1, 1-d) * static_cast<int>(zaxArr[0]); 
+                int x_rel = ni + pow(-1, 1-d) * static_cast<int>(zaxArr[0]);
                 int y_rel = nj + pow(-1, d)   * static_cast<int>(zaxArr[1]); //the -1^(d()) is to account for changing signs
-                int xx= static_cast<int>(zaxArr[0]); 
-                int yy= static_cast<int>(zaxArr[1]);
+                int xx = static_cast<int>(zaxArr[0]);
+                int yy = static_cast<int>(zaxArr[1]);
                 int nZax = static_cast<int>(zaxArr[2]);
-                
+
                 vector<complex<double>> bxstore(nZax, 0.0);
                 zcopy_(nZax, &pmlArr_[kk].Bx_end_ -> point(xx,yy), stride, bxstore.data(), 1);
 
                 zscal_(nZax, zaxArr[4], &pmlArr_[kk].Bx_end_ -> point(xx   ,yy   ), stride);
-                zscal_(nZax, zaxArr[6],                 &Hx_ -> point(x_rel,y_rel), stride);
+                zscal_(nZax, zaxArr[6],                 &Hx_ -> point(x_rel,y_rel), stride_rel);
 
                 zaxpy_(nZax,      zaxArr[5], &Ez_ -> point(x_rel,y_rel  ), stride_rel, &pmlArr_[kk].Bx_end_ -> point(xx,yy), stride);
                 zaxpy_(nZax, -1.0*zaxArr[5], &Ez_ -> point(x_rel,y_rel+1), stride_rel, &pmlArr_[kk].Bx_end_ -> point(xx,yy), stride);
@@ -2267,17 +2268,18 @@ void FDTDField::updateH()
             for(int zz = 0; zz < pmlArr_[kk].zaxHy_.size();zz++)
             {
                 array<double,9> zaxArr = pmlArr_[kk].zaxHy_[zz];
-                int xx= static_cast<int>(zaxArr[0]); 
-                int yy= static_cast<int>(zaxArr[1]);
+                int xx = static_cast<int>(zaxArr[0]);
+                int yy = static_cast<int>(zaxArr[1]);
                 int nZax = static_cast<int>(zaxArr[2]);
                 vector<complex<double>> bystore(nZax, 0.0);
+
                 zcopy_(nZax, &pmlArr_[kk].By_ -> point(xx,yy), stride, bystore.data(), 1);
 
                 zscal_(nZax, zaxArr[4], &pmlArr_[kk].By_ -> point(xx,yy), stride);
-                zscal_(nZax, zaxArr[6],             &Hy_ -> point(xx,yy), stride);
+                zscal_(nZax, zaxArr[6],             &Hy_ -> point(xx,yy), stride_rel);
 
                 zaxpy_(nZax,      zaxArr[5], &Ez_ -> point(xx+1,yy), stride_rel, &pmlArr_[kk].By_ -> point(xx,yy), stride);
-                zaxpy_(nZax, -1.0*zaxArr[5], &Ez_ -> point(xx  ,yy), stride_rel, &pmlArr_[kk].By_ -> point(xx,yy), stride);
+                zaxpy_(nZax, -1.0*zaxArr[5], &Ez_ -> point(xx,yy  ), stride_rel, &pmlArr_[kk].By_ -> point(xx,yy), stride);
 
                 zaxpy_(nZax,      zaxArr[7], &pmlArr_[kk].By_ -> point(xx,yy), stride, &Hy_ -> point(xx,yy), stride_rel);
                 zaxpy_(nZax, -1.0*zaxArr[8], bystore.data()                  , 1     , &Hy_ -> point(xx,yy), stride_rel);
@@ -2285,17 +2287,17 @@ void FDTDField::updateH()
             for(int zz = 0; zz < pmlArr_[kk].zaxHy_end_.size();zz++)
             {
                 array<double,9> zaxArr = pmlArr_[kk].zaxHy_end_[zz];
-                int x_rel = ni + pow(-1, 1-d) * static_cast<int>(zaxArr[0]); 
+                int x_rel = ni + pow(-1, 1-d) * static_cast<int>(zaxArr[0]);
                 int y_rel = nj + pow(-1, d)   * static_cast<int>(zaxArr[1]); //the -1^(d()) is to account for changing signs
-                int xx= static_cast<int>(zaxArr[0]); 
-                int yy= static_cast<int>(zaxArr[1]);
+                int xx = static_cast<int>(zaxArr[0]);
+                int yy = static_cast<int>(zaxArr[1]);
                 int nZax = static_cast<int>(zaxArr[2]);
-                
+
                 vector<complex<double>> bystore(nZax, 0.0);
                 zcopy_(nZax, &pmlArr_[kk].By_end_ -> point(xx,yy), stride, bystore.data(), 1);
 
                 zscal_(nZax, zaxArr[4], &pmlArr_[kk].By_end_ -> point(xx   ,yy   ), stride);
-                zscal_(nZax, zaxArr[6],                 &Hy_ -> point(x_rel,y_rel), stride);
+                zscal_(nZax, zaxArr[6],                 &Hy_ -> point(x_rel,y_rel), stride_rel);
 
                 zaxpy_(nZax,      zaxArr[5], &Ez_ -> point(x_rel+1,y_rel), stride_rel, &pmlArr_[kk].By_end_ -> point(xx,yy), stride);
                 zaxpy_(nZax, -1.0*zaxArr[5], &Ez_ -> point(x_rel  ,y_rel), stride_rel, &pmlArr_[kk].By_end_ -> point(xx,yy), stride);

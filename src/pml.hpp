@@ -116,7 +116,7 @@ public:
             else
             {
                 c_hx_0_ = nullptr; c_hy_0_ = nullptr; c_ez_0_ = nullptr; c_hx_n_ = nullptr; c_hy_n_ = nullptr; c_ez_n_= nullptr;
-                c_ex_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax)); 
+                c_ex_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
                 c_ey_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
                 c_hz_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
                 c_ex_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
@@ -153,7 +153,7 @@ public:
             phys_Ex_end_ = nullptr;
             phys_Ey_ = nullptr;
             phys_Ey_end_ = nullptr;
-           
+
             if(precalc_ == false)
             {
                 c_hx_0_ = nullptr; c_hy_0_ = nullptr; c_ez_0_ = nullptr; c_hx_n_ = nullptr; c_hy_n_ = nullptr; c_ez_n_= nullptr;
@@ -162,7 +162,7 @@ public:
             else
             {
                 c_ex_0_ = nullptr; c_ey_0_ = nullptr; c_hz_0_ = nullptr; c_ex_n_ = nullptr; c_ey_n_ = nullptr; c_hz_n_= nullptr;
-                c_hx_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax)); 
+                c_hx_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
                 c_hy_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
                 c_ez_0_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
                 c_hx_n_ = std::make_shared<std::vector<std::vector<std::array<double,5>>>>(xmax, std::vector<std::array<double,5>>(ymax));
@@ -179,11 +179,11 @@ public:
         int ni   = 0; int nj   = 0;
         double di = 0.0; double dj = 0.0;
         int xmax; int ymax;
-        int oppPML = 0; 
+        int oppPML = 0;
         int delx =0; int dely = 0; int zaxJmax = 0;
         double eps=0.0;
         double kapx = 1.0; double kapy = 1.0; double kapz = 1.0;
-       
+
         double sigz = 0.0; double sigx = 0.0; double sigy = 0.0;
         double sigxx = 0.0; double sigxy = 0.0; double sigyx = 0.0; double sigyy = 0.0;
 
@@ -193,7 +193,7 @@ public:
         PMLMemFn  sigmay;
         PMLMemFn  sigmax;
 
-        UPML<T> *xpml; UPML<T> *ypml; 
+        UPML<T> *xpml; UPML<T> *ypml;
         if (d_ == X)
         {
             jmax = ny-1;
@@ -249,17 +249,17 @@ public:
             std::vector<double> pt(2,0.0);
             if(pol_ == HZ || pol_ == EX || pol_ == EY)
             {
-                
+
             }
             else
             {
                 if(objArr[kk].s() == sphere)
                 {
-                    
+
                 }
                 else if(objArr[kk].s() == block)
                 {
-                    
+
                     for(ii =0; ii < thickness_; ii ++)
                     {
                         for(jj = 0; jj < nj; jj++)
@@ -268,11 +268,11 @@ public:
                             pt[1]  = (*yy-(ny-1)/2.0)*dy;
                             if(objArr[kk].isObj(pt)==true)
                                 phys_Hy_->point(*xx,*yy) = kk;
-                            
+
                             pt[0] -= 0.5*dx;
                             if(objArr[kk].isObj(pt)==true)
                                 phys_Ez_->point(*xx,*yy) = kk;
-                            
+
                             pt[1]  += 0.5*dy;
                             if(objArr[kk].isObj(pt)==true && kk ==1)
                                 phys_Hx_->point(*xx,*yy) = kk;
@@ -282,11 +282,11 @@ public:
                             pt[0] += 0.5*dx;
                             if(objArr[kk].isObj(pt)==true)
                                 phys_Hy_end_->point(*xx,*yy) = kk;
-                            
+
                             pt[0] -= 0.5*dx;
                             if(objArr[kk].isObj(pt)==true)
                                 phys_Ez_end_->point(*xx,*yy) = kk;
-                            
+
                             pt[1]  += 0.5*dy;
                             if(objArr[kk].isObj(pt)==true && kk ==1)
                                 phys_Hx_end_->point(*xx,*yy) = kk;
@@ -308,7 +308,7 @@ public:
                         sigxx  = (xpml->*sigmax)(static_cast<double>(ii),eps);
                         sigyx  = (ypml->*sigmay)(static_cast<double>(jj) + 0.5,eps);
                         c_hx_0_->at(ii).at(jj) = calcPreConsts(eps,sigxx, sigyx, sigz);
-                        
+
                         eps    = objArr[phys_Hx_end_->point(ii,jj)].dielectric(1.0);
                         sigxx  = (xpml->*sigmax)(static_cast<double>(ii),eps);
                         sigyx  = (ypml->*sigmay)(static_cast<double>(jj)-0.5,eps);
@@ -330,7 +330,7 @@ public:
                         sigx = (xpml->*sigmax)(static_cast<double>(ii),eps);
                         sigy = (ypml->*sigmay)(static_cast<double>(jj),eps);
                         c_ez_0_->at(ii).at(jj) = calcPreConsts(eps,sigz, sigx, sigy);
-                        
+
                         eps = objArr[phys_Ez_end_->point(ii,jj)].dielectric(1.0);
                         sigx = (xpml->*sigmax)(static_cast<double>(ii),eps);
                         sigy = (ypml->*sigmay)(static_cast<double>(jj),eps);
@@ -339,7 +339,7 @@ public:
                 }
             }
         }
-        
+
         for(ii= 0; ii < thickness_; ii++)
         {
             jj = zaxJmax-dely;
