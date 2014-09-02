@@ -201,7 +201,8 @@ public:
         double di = 0.0; double dj = 0.0;
         int xmax; int ymax;
         int oppPML = 0;
-        int delx =0; int dely = 0; int zaxJmax = 0;
+        int delx =0; int dely = 0;
+        int zaxJmax = 0; int zaxXJmax = 0; int zaxYJmax = 0;
         double eps=0.0;
         double kapx = 1.0; double kapy = 1.0; double kapz = 1.0;
 
@@ -238,6 +239,8 @@ public:
             oppPML = yPML;
             delx = 0; dely = 1;
             zaxJmax = ny -yPML-1;
+            zaxXJmax = zaxJmax;
+            zaxYJmax = zaxJmax;
             xx = &ii;  yy = &jj;
         }
         else
@@ -263,7 +266,14 @@ public:
             oppPML = xPML;
             delx = 1; dely=0;
             zaxJmax = nx -xPML-1;
+            zaxXJmax = zaxJmax;
+            zaxYJmax = zaxJmax;
             xx = &jj; yy = &ii;
+        }
+        if(oppPML == 0)
+        {
+            zaxXJmax -= dely;
+            zaxYJmax -= delx;
         }
         for(int kk = 0; kk < objArr.size(); kk++)
         {
@@ -414,59 +424,11 @@ public:
                         c_ez_n_n_->at(*xx).at(*yy) = calcPreConsts(eps,sigz, sigx, sigy);
                     }
                 }
-                /*for(int kk =0; kk< 5; kk++)
-                {
-                    std::ofstream outFile;
-                    outFile.open("fout/Ez/c_ez_0_0_" + std::to_string(static_cast<int>(kk)) + ".dat",std::ios_base::app);
-                    for(ii = 0; ii <  c_ez_0_0_-> size(); ii++)
-                    {
-                        for(jj = 0; jj < c_ez_0_0_-> at(0).size(); jj++)
-                        {
-                            outFile<< ii << "\t" << jj << "\t" << c_ez_0_0_->at(ii).at(jj)[kk] <<std::endl;
-                        }
-                    }
-                }
-                for(int kk =0; kk< 5; kk++)
-                {
-                    std::ofstream outFile;
-                    outFile.open("fout/Ez/c_ez_n_0_" + std::to_string(static_cast<int>(kk)) + ".dat",std::ios_base::app);
-                    for(ii = 0; ii <  c_ez_n_0_-> size(); ii++)
-                    {
-                        for(jj = 0; jj < c_ez_n_0_-> at(ii).size(); jj++)
-                        {
-                            outFile<< ii << "\t" << jj << "\t" << c_ez_n_0_->at(ii).at(jj)[kk] <<std::endl;
-                        }
-                    }
-                }
-                for(int kk =0; kk< 5; kk++)
-                {
-                    std::ofstream outFile;
-                    outFile.open("fout/Ez/c_ez_0_n_" + std::to_string(static_cast<int>(kk)) + ".dat",std::ios_base::app);
-                    for(ii = 0; ii <  c_ez_0_n_-> size(); ii++)
-                    {
-                        for(jj = 0; jj < c_ez_0_n_-> at(ii).size(); jj++)
-                        {
-                            outFile<< ii << "\t" << jj << "\t" << c_ez_0_n_->at(ii).at(jj)[kk] <<std::endl;
-                        }
-                    }
-                }
-                for(int kk =0; kk< 5; kk++)
-                {
-                    std::ofstream outFile;
-                    outFile.open("fout/Ez/c_ez_n_n_" + std::to_string(static_cast<int>(kk)) + ".dat",std::ios_base::app);
-                    for(ii = 0; ii <  c_ez_n_n_-> size(); ii++)
-                    {
-                        for(jj = 0; jj < c_ez_n_n_-> at(ii).size(); jj++)
-                        {
-                            outFile<< ii << "\t" << jj << "\t" << c_ez_n_n_->at(ii).at(jj)[kk] <<std::endl;
-                        }
-                    }
-                }*/
             }
         }
         for(ii= 0; ii < thickness_; ii++)
         {
-            jj = zaxJmax-dely;
+            jj = zaxXJmax;
             while(jj > oppPML-1)
             {
                 int jjstore = jj;
@@ -484,7 +446,7 @@ public:
         }
         for(ii= delx; ii < thickness_; ii++)
         {
-            jj = zaxJmax-dely;
+            jj = zaxXJmax;
             while(jj > oppPML-1)
             {
                 int jjstore = jj;
@@ -502,7 +464,7 @@ public:
         }
         for(ii= 0; ii < thickness_; ii++)
         {
-            jj = zaxJmax-delx;
+            jj = zaxYJmax;
             while(jj > oppPML-1)
             {
                 int jjstore = jj;
@@ -520,7 +482,7 @@ public:
         }
         for(ii= dely; ii < thickness_; ii++)
         {
-            jj = zaxJmax-delx;
+            jj = zaxYJmax;
             while(jj > oppPML-1)
             {
                 int jjstore = jj;

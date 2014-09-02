@@ -491,7 +491,6 @@ void FDTDField::ouputField(Detector<complex<double>> d) //iostream as input para
  */
 void FDTDField::updateH()
 {
-
     if(Ez_)
     {
         complex<double> c_hxh(1.0,0.0);
@@ -513,7 +512,6 @@ void FDTDField::updateH()
 
             }
         }
-
         else if(xPML_ != 0)
         {
             for(int jj = 0; jj < ny_-1; jj++)
@@ -657,6 +655,7 @@ void FDTDField::updateH()
                 zaxpy_(nZax, -1.0*zaxArr[8], bystore.data()                      , 1     , &Hy_ -> point(x_rel,y_rel), stride_rel);
             }
         }
+        complex<double> bxstore(0.0,0.0); complex<double> bystore(0.0,0.0);
         if(pmlArr_.size() > 1)
         {
             int kx = 1;
@@ -699,7 +698,7 @@ void FDTDField::updateH()
                     Hy_->point(xx,yy) = c_hy_0_0->at(ii).at(jj)[2] * Hy_->point(xx,yy) + c_hy_0_0->at(ii).at(jj)[3] * pmlArr_[kx].By_->point(ii,yy) - c_hy_0_0->at(ii).at(jj)[4] * bystore;
 
                     //Top Left
-                    yy = ny_-1-jj;
+                    xx = ii; yy = ny_-1-jj;
                     bxstore = pmlArr_[kx].Bx_->point(ii,yy);
                     bystore = pmlArr_[kx].By_->point(ii,yy);
                     pmlArr_[kx].Bx_->point(ii,yy) = c_hx_0_n->at(ii).at(jj)[0] * pmlArr_[kx].Bx_->point(ii,yy) - c_hx_0_n->at(ii).at(jj)[1] * (Ez_->point(xx,yy+1)-Ez_->point(xx,yy));
@@ -708,7 +707,7 @@ void FDTDField::updateH()
                     Hy_->point(xx,yy) = c_hy_0_n->at(ii).at(jj)[2] * Hy_->point(xx,yy) + c_hy_0_n->at(ii).at(jj)[3] * pmlArr_[kx].By_->point(ii,yy) - c_hy_0_n->at(ii).at(jj)[4] * bystore;
 
                     //Top Right
-                    xx = nx_- 1 -ii;
+                    xx = nx_- 1 -ii; yy = ny_-1-jj;
                     bxstore = pmlArr_[kx].Bx_end_->point(ii,yy);
                     bystore = pmlArr_[kx].By_end_->point(ii,yy);
                     pmlArr_[kx].Bx_end_->point(ii,yy) = c_hx_n_n->at(ii).at(jj)[0] * pmlArr_[kx].Bx_end_->point(ii,yy) - c_hx_n_n->at(ii).at(jj)[1] * (Ez_->point(xx,yy+1)-Ez_->point(xx,yy));
@@ -717,7 +716,7 @@ void FDTDField::updateH()
                     Hy_->point(xx,yy) = c_hy_n_n->at(ii).at(jj)[2] * Hy_->point(xx,yy) + c_hy_n_n->at(ii).at(jj)[3] * pmlArr_[kx].By_end_->point(ii,yy) - c_hy_n_n->at(ii).at(jj)[4] * bystore;
 
                     //Bot Right
-                    yy = jj;
+                    xx = nx_- 1 -ii; yy = jj;
                     bxstore = pmlArr_[kx].Bx_end_->point(ii,yy);
                     bystore = pmlArr_[kx].By_end_->point(ii,yy);
                     pmlArr_[kx].Bx_end_->point(ii,yy) = c_hx_n_0->at(ii).at(jj)[0] * pmlArr_[kx].Bx_end_->point(ii,yy) - c_hx_n_0->at(ii).at(jj)[1] * (Ez_->point(xx,yy+1)-Ez_->point(xx,yy));
@@ -735,19 +734,19 @@ void FDTDField::updateH()
                 Hy_->point(xx,yy) = c_hy_0_0->at(ii).at(0)[2] * Hy_->point(xx,yy) + c_hy_0_0->at(ii).at(0)[3] * pmlArr_[kx].By_->point(ii,0) - c_hy_0_0->at(ii).at(0)[4] * bystore;
 
                 //Top Left
-                yy = ny_-1;
+                xx = ii; yy = ny_-1;
                 bystore = pmlArr_[kx].By_->point(ii,yy);
                 pmlArr_[kx].By_->point(ii,yy) = c_hy_0_n->at(ii).at(0)[0] * pmlArr_[kx].By_->point(ii,yy) + c_hy_0_n->at(ii).at(0)[1] * (Ez_->point(xx+1,yy)-Ez_->point(xx,yy));
                 Hy_->point(xx,yy) = c_hy_0_n->at(ii).at(0)[2] * Hy_->point(xx,yy) + c_hy_0_n->at(ii).at(0)[3] * pmlArr_[kx].By_->point(ii,yy) - c_hy_0_n->at(ii).at(0)[4] * bystore;
 
                 //Top Right
-                xx = nx_- 1 -ii;
+                xx = nx_- 1 -ii; yy = ny_-1;
                 bystore = pmlArr_[kx].By_end_->point(ii,yy);
                 pmlArr_[kx].By_end_->point(ii,yy) = c_hy_n_n->at(ii).at(0)[0] * pmlArr_[kx].By_end_->point(ii,yy) + c_hy_n_n->at(ii).at(0)[1] * (Ez_->point(xx+1,yy)-Ez_->point(xx,yy));
                 Hy_->point(xx,yy) = c_hy_n_n->at(ii).at(0)[2] * Hy_->point(xx,yy) + c_hy_n_n->at(ii).at(0)[3] * pmlArr_[kx].By_end_->point(ii,yy) - c_hy_n_n->at(ii).at(0)[4] * bystore;
 
                 //Bot Right
-                yy = 0;
+                xx = nx_- 1 -ii; yy = 0;
                 bxstore = pmlArr_[kx].Bx_end_->point(ii,0);
                 bystore = pmlArr_[kx].By_end_->point(ii,0);
                 pmlArr_[kx].Bx_end_->point(ii,0) = c_hx_n_0->at(ii).at(0)[0] * pmlArr_[kx].Bx_end_->point(ii,0) - c_hx_n_0->at(ii).at(0)[1] * (Ez_->point(xx,yy+1)-Ez_->point(xx,yy));
@@ -767,7 +766,7 @@ void FDTDField::updateH()
                 Hy_->point(xx,yy) = c_hy_0_0->at(0).at(jj)[2] * Hy_->point(xx,yy) + c_hy_0_0->at(0).at(jj)[3] * pmlArr_[kx].By_->point(0,jj) - c_hy_0_0->at(0).at(jj)[4] * bystore;
 
                 //Top Left
-                yy = ny_-1-jj;
+                xx = 0; yy = ny_-1-jj;
                 bxstore = pmlArr_[kx].Bx_->point(0,yy);
                 bystore = pmlArr_[kx].By_->point(0,yy);
                 pmlArr_[kx].Bx_->point(0,yy) = c_hx_0_n->at(0).at(jj)[0] * pmlArr_[kx].Bx_->point(0,yy) - c_hx_0_n->at(0).at(jj)[1] * (Ez_->point(xx,yy+1)-Ez_->point(xx,yy));
@@ -776,13 +775,13 @@ void FDTDField::updateH()
                 Hy_->point(xx,yy) = c_hy_0_n->at(0).at(jj)[2] * Hy_->point(xx,yy) + c_hy_0_n->at(0).at(jj)[3] * pmlArr_[kx].By_->point(0,yy) - c_hy_0_n->at(0).at(jj)[4] * bystore;
 
                 //Top Right
-                xx = nx_- 1;
+                xx = nx_- 1; yy = ny_-1-jj;
                 bxstore = pmlArr_[kx].Bx_end_->point(0,yy);
                 pmlArr_[kx].Bx_end_->point(0,yy) = c_hx_n_n->at(0).at(jj)[0] * pmlArr_[kx].Bx_end_->point(0,yy) - c_hx_n_n->at(0).at(jj)[1] * (Ez_->point(xx,yy+1)-Ez_->point(xx,yy));
                 Hx_->point(xx,yy) = c_hx_n_n->at(0).at(jj)[2] * Hx_->point(xx,yy) + c_hx_n_n->at(0).at(jj)[3] * pmlArr_[kx].Bx_end_->point(0,yy) - c_hx_n_n->at(0).at(jj)[4] * bxstore;
 
                 //Bot Right
-                yy = jj;
+                xx = nx_- 1; yy = jj;
                 bxstore = pmlArr_[kx].Bx_end_->point(0,jj);
                 pmlArr_[kx].Bx_end_->point(0,jj) = c_hx_n_0->at(0).at(jj)[0] * pmlArr_[kx].Bx_end_->point(0,jj) - c_hx_n_0->at(0).at(jj)[1] * (Ez_->point(xx,yy+1)-Ez_->point(xx,yy));
                 Hx_->point(xx,yy) = c_hx_n_0->at(0).at(jj)[2] * Hx_->point(xx,yy) + c_hx_n_0->at(0).at(jj)[3] * pmlArr_[kx].Bx_end_->point(0,jj) - c_hx_n_0->at(0).at(jj)[4] * bxstore;
@@ -797,7 +796,7 @@ void FDTDField::updateH()
             Hy_->point(xx,yy) = c_hy_0_0->at(0).at(0)[2] * Hy_->point(xx,yy) + c_hy_0_0->at(0).at(0)[3] * pmlArr_[kx].By_->point(0,0) - c_hy_0_0->at(0).at(0)[4] * bystore;
 
             //Top Left
-            yy = ny_-1;
+            xx = 0; yy = ny_-1;
             bystore = pmlArr_[kx].By_->point(0,yy);
             pmlArr_[kx].By_->point(0,yy) = c_hy_0_n->at(0).at(0)[0] * pmlArr_[kx].By_->point(0,yy) + c_hy_0_n->at(0).at(0)[1] * (Ez_->point(xx+1,yy)-Ez_->point(xx,yy));
             Hy_->point(xx,yy) = c_hy_0_n->at(0).at(0)[2] * Hy_->point(xx,yy) + c_hy_0_n->at(0).at(0)[3] * pmlArr_[kx].By_->point(0,yy) - c_hy_0_n->at(0).at(0)[4] * bystore;
