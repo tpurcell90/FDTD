@@ -6,10 +6,14 @@
         "z_size"        : 0.0,
         "res"           : 20,
         "courant"       : 0.5,
-        "tLim"          : 500.0,
+        "tLim"          : 100.0,
         "precalcPML"    : false
     },
     "PML" :  [
+        {
+            "thickness" : 6.0,
+            "direction" : "Y"
+        },
         {
             "thickness" : 5.0,
             "direction" : "X"
@@ -26,7 +30,7 @@
             "size_x"    : 0.00,
             "size_y"    : 15.00,
             "pol"       : "Ez",
-            "loc_x"     : -4.00,
+            "loc_x"     : -3.75,
             "loc_y"     : 0.00
         }
     ],

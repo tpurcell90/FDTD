@@ -165,7 +165,8 @@ public:
             phys_Ey_ = nullptr;
             phys_Ey_end_ = nullptr;
 
-            if(precalc_ == false || yPML == 0 || xPML == 0)
+            //if(precalc_ == false || yPML == 0 || xPML == 0)
+            if(yPML == 0 || xPML == 0)
             {
                 c_hx_0_0_ = nullptr; c_hy_0_0_ = nullptr; c_ez_0_0_ = nullptr; c_hx_n_0_ = nullptr; c_hy_n_0_ = nullptr; c_ez_n_0_ = nullptr;
                 c_hx_0_n_ = nullptr; c_hy_0_n_ = nullptr; c_ez_0_n_ = nullptr; c_hx_n_n_ = nullptr; c_hy_n_n_ = nullptr; c_ez_n_n_ = nullptr;
@@ -315,7 +316,8 @@ public:
                 }
             }
         }
-        if(precalc_ && (c_hx_0_0_ || c_ex_0_0_))
+        //if(precalc_ && (c_hx_0_0_ || c_ex_0_0_))
+        if(c_hx_0_0_ || c_ex_0_0_)
         {
             if(pol_ == EZ || pol_ == HX || pol_ == HY)
             {
@@ -328,7 +330,7 @@ public:
                         //Update Hx factors nj_0 side
                         eps    = objArr[phys_Hx_->point(*xx,*yy)].dielectric(1.0);
                         sigxx  = (xpml->*sigmax)(static_cast<double>(*xx),eps);
-                        sigyx  = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,floor(hx/(delx+1))) * 0.5,eps);
+                        sigyx  = (ypml->*sigmay)(static_cast<double>(*yy) + 0.5,eps);
                         c_hx_0_0_->at(*xx).at(*yy) = calcPreConsts(eps,sigxx, sigyx, sigz);
                         hx++;
 
@@ -340,7 +342,7 @@ public:
 
                         //Update Hy factors nj_0 side
                         eps    = objArr[phys_Hy_->point(*xx,*yy)].dielectric(1.0);
-                        sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,floor(hy/(dely+1))) * 0.5,eps);
+                        sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + 0.5,eps);
                         sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
                         c_hy_0_0_->at(*xx).at(*yy) = calcPreConsts(eps,sigyy, sigz, sigxy);
                         hy++;
@@ -365,45 +367,103 @@ public:
                         jj = nj -1 - kk;
                         //Update Hx factors nj_n side
                         eps    = objArr[phys_Hx_->point(*xx,*yy)].dielectric(1.0);
+                        jj =kk;
                         sigxx  = (xpml->*sigmax)(static_cast<double>(*xx),eps);
                         sigyx  = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,floor(hx/(delx+1))) * 0.5,eps);
                         c_hx_0_n_->at(*xx).at(*yy) = calcPreConsts(eps,sigxx, sigyx, sigz);
                         hx++;
 
+                        jj = nj -1 - kk;
                         eps    = objArr[phys_Hx_end_->point(*xx,*yy)].dielectric(1.0);
+                        jj =kk;
                         sigxx  = (xpml->*sigmax)(static_cast<double>(*xx),eps);
-                        sigyx  = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,floor(hx/(delx+1))) * 0.5,eps);
+                        sigyx  = (ypml->*sigmay)(static_cast<double>(*yy) - 0.5,eps);
                         c_hx_n_n_->at(*xx).at(*yy) = calcPreConsts(eps,sigxx, sigyx, sigz);
                         hx++;
 
                         //Update Hy factors nj_n side
+                        jj = nj -1 - kk;
                         eps    = objArr[phys_Hy_->point(*xx,*yy)].dielectric(1.0);
+                        jj =kk;
                         sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,floor(hy/(dely+1))) * 0.5,eps);
                         sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
                         c_hy_0_n_->at(*xx).at(*yy) = calcPreConsts(eps,sigyy, sigz, sigxy);
                         hy++;
 
+                        jj = nj -1 - kk;
                         eps    = objArr[phys_Hy_end_->point(*xx,*yy)].dielectric(1.0);
-                        sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,floor(hy/(dely+1))) * 0.5,eps);
+                        jj =kk;
+                        sigxy = (xpml->*sigmax)(static_cast<double>(*xx) - 0.5,eps);
                         sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
                         c_hy_n_n_->at(*xx).at(*yy) = calcPreConsts(eps,sigyy, sigz, sigxy);
                         hy++;
 
                         //Update Ez factors nj_n side
+                        jj = nj -1 - kk;
                         eps = objArr[phys_Ez_->point(*xx,*yy)].dielectric(1.0);
+                        jj =kk;
                         sigx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
                         sigy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
                         c_ez_0_n_->at(*xx).at(*yy) = calcPreConsts(eps,sigz, sigx, sigy);
 
+                        jj = nj -1 - kk;
                         eps = objArr[phys_Ez_end_->point(*xx,*yy)].dielectric(1.0);
+                        jj =kk;
                         sigx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
                         sigy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
                         c_ez_n_n_->at(*xx).at(*yy) = calcPreConsts(eps,sigz, sigx, sigy);
                     }
                 }
+                /*for(int kk =0; kk< 5; kk++)
+                {
+                    std::ofstream outFile;
+                    outFile.open("fout/Ez/c_ez_0_0_" + std::to_string(static_cast<int>(kk)) + ".dat",std::ios_base::app);
+                    for(ii = 0; ii <  c_ez_0_0_-> size(); ii++)
+                    {
+                        for(jj = 0; jj < c_ez_0_0_-> at(0).size(); jj++)
+                        {
+                            outFile<< ii << "\t" << jj << "\t" << c_ez_0_0_->at(ii).at(jj)[kk] <<std::endl;
+                        }
+                    }
+                }
+                for(int kk =0; kk< 5; kk++)
+                {
+                    std::ofstream outFile;
+                    outFile.open("fout/Ez/c_ez_n_0_" + std::to_string(static_cast<int>(kk)) + ".dat",std::ios_base::app);
+                    for(ii = 0; ii <  c_ez_n_0_-> size(); ii++)
+                    {
+                        for(jj = 0; jj < c_ez_n_0_-> at(ii).size(); jj++)
+                        {
+                            outFile<< ii << "\t" << jj << "\t" << c_ez_n_0_->at(ii).at(jj)[kk] <<std::endl;
+                        }
+                    }
+                }
+                for(int kk =0; kk< 5; kk++)
+                {
+                    std::ofstream outFile;
+                    outFile.open("fout/Ez/c_ez_0_n_" + std::to_string(static_cast<int>(kk)) + ".dat",std::ios_base::app);
+                    for(ii = 0; ii <  c_ez_0_n_-> size(); ii++)
+                    {
+                        for(jj = 0; jj < c_ez_0_n_-> at(ii).size(); jj++)
+                        {
+                            outFile<< ii << "\t" << jj << "\t" << c_ez_0_n_->at(ii).at(jj)[kk] <<std::endl;
+                        }
+                    }
+                }
+                for(int kk =0; kk< 5; kk++)
+                {
+                    std::ofstream outFile;
+                    outFile.open("fout/Ez/c_ez_n_n_" + std::to_string(static_cast<int>(kk)) + ".dat",std::ios_base::app);
+                    for(ii = 0; ii <  c_ez_n_n_-> size(); ii++)
+                    {
+                        for(jj = 0; jj < c_ez_n_n_-> at(ii).size(); jj++)
+                        {
+                            outFile<< ii << "\t" << jj << "\t" << c_ez_n_n_->at(ii).at(jj)[kk] <<std::endl;
+                        }
+                    }
+                }*/
             }
         }
-
         for(ii= 0; ii < thickness_; ii++)
         {
             jj = zaxJmax-dely;
@@ -512,6 +572,7 @@ public:
                 jj--;
             }
         }
+
     }
 
     // Accessor Functions
@@ -564,8 +625,8 @@ public:
         preFact[0] = (2*eps*kapj - sigj*dt_) / (2*eps*kapj + sigj*dt_);
         preFact[1] = (2 * eps * dt_) / (dy_ * (2*eps*kapj + sigj*dt_));
         preFact[2] = (2*eps*kapk - sigk*dt_) / (2*eps*kapk + sigk*dt_);
-        preFact[4] = (2*eps*kapi - sigi*dt_) / (2*eps*kapk + sigk*dt_);
         preFact[3] = (2*eps*kapi + sigi*dt_) / (2*eps*kapk + sigk*dt_);
+        preFact[4] = (2*eps*kapi - sigi*dt_) / (2*eps*kapk + sigk*dt_);
         return preFact;
     }
 
