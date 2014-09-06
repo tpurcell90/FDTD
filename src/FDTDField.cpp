@@ -338,7 +338,7 @@ void FDTDField::initializeGrid()
             int iistore = ii;
             while(ii < ny_-yPML_-1 && phys_Ez_ -> point(0,ii) == phys_Ez_ -> point(0,ii+1) )
                 ii ++;
-            array<int,4> tempArr = {0,iistore,ii-iistore+1,phys_Ez_->point(iistore,0)};
+            array<int,4> tempArr = {0,iistore,ii-iistore+1,phys_Ez_->point(0,iistore)};
             zaxEzList_.push_back(tempArr);
             ii++;
         }
@@ -347,10 +347,10 @@ void FDTDField::initializeGrid()
         while(ii < ny_-yPML_)
         {
             int iistore = ii;
-            while(ii < ny_-yPML_-1 && phys_Ez_ -> point(0,ii) == phys_Ez_ -> point(0,ii+1) )
+            while(ii < ny_-yPML_-1 && phys_Ez_ -> point(nx_-1,ii) == phys_Ez_ -> point(nx_-1,ii+1) )
                 ii ++;
             int n = nx_-1;
-            array<int,4> tempArr = {n,iistore,ii-iistore+1,phys_Ez_->point(iistore,0)};
+            array<int,4> tempArr = {n,iistore,ii-iistore+1,phys_Ez_->point(nx_-1,iistore)};
             zaxEzList_.push_back(tempArr);
             ii++;
         }
@@ -446,11 +446,11 @@ void FDTDField::ouputField(Detector<complex<double>> d) //iostream as input para
             cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez_,eps).real()<< "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
             break;
         case HX:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hx_,eps)<< endl;
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hx_,eps).real()<< endl;
             cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hx_,eps)<< endl;
             break;
         case HY:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hy_,eps)<< endl;
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hy_,eps).real()<< endl;
             cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hy_,eps)<< endl;
             break;
         case HZ:
@@ -580,7 +580,6 @@ void FDTDField::updateH()
                 int xx = static_cast<int>(zaxArr[0]);
                 int yy = static_cast<int>(zaxArr[1]);
                 int nZax = static_cast<int>(zaxArr[2]);
-
                 vector<complex<double>> bxstore(nZax, 0.0);
                 zcopy_(nZax, &pmlArr_[kk].Bx_ -> point(xx,yy), stride, bxstore.data(), 1);
 
@@ -809,6 +808,8 @@ void FDTDField::updateH()
         }
     }
 }
+
+
 
 /**
  * @brief Updates the E field components for both free space and inside the PML

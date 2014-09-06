@@ -305,7 +305,7 @@ public:
                                 phys_Ez_->point(*xx,*yy) = kk;
 
                             pt[1]  += 0.5*dy;
-                            if(objArr[kk].isObj(pt)==true && kk ==1)
+                            if(objArr[kk].isObj(pt)==true)
                                 phys_Hx_->point(*xx,*yy) = kk;
 
                             pt[pt_i] = ((ni-1-ii)-(ni-1)/2.0)*di;
@@ -319,7 +319,7 @@ public:
                                 phys_Ez_end_->point(*xx,*yy) = kk;
 
                             pt[1]  += 0.5*dy;
-                            if(objArr[kk].isObj(pt)==true && kk ==1)
+                            if(objArr[kk].isObj(pt)==true)
                                 phys_Hx_end_->point(*xx,*yy) = kk;
                         }
                     }
