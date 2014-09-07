@@ -6,7 +6,7 @@
         "z_size"        : 0.0,
         "res"           : 20,
         "courant"       : 0.5,
-        "tLim"          : 100.0,
+        "tLim"          : 500.0,
         "precalcPML"    : false
     },
     "PML" :  [
@@ -37,7 +37,7 @@
             "loc_y"     : 0.00,
             "size_x"    : 8.0,
             "size_y"    : 15.00,
-            "eps"       : 9.00,
+            "eps"       : 4.00,
             "pols"      : [
 
 
