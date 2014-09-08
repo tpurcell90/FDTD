@@ -425,7 +425,7 @@ void FDTDField::initializeGrid()
             pmlArr_[kk].initializeUPML(objArr_, nx_,ny_,dx_,dy_,dt_, yPML_, xPML_, opp);
         }
     }
-    else
+    else if (pmlArr_.size() ==1)
         pmlArr_[0].initializeUPML(objArr_, nx_,ny_,dx_,dy_,dt_, yPML_, xPML_, nullptr);
 }
 /**
@@ -810,7 +810,6 @@ void FDTDField::updateH()
 }
 
 
-
 /**
  * @brief Updates the E field components for both free space and inside the PML
  * @details Te following equations use teh FDTD update equations to update the E-field to the next time step.
@@ -881,6 +880,7 @@ void FDTDField::updateE()
                 for(int zz = 0; zz < pmlArr_[kk].edgei_0_; zz++)
                 {
                     array<double,9> zaxArr = pmlArr_[kk].zaxEz_[zz];
+                    // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << zaxArr[4] << "\t" << zaxArr[5] << "\t" << zaxArr[6] << "\t" << zaxArr[7] << "\t" << zaxArr[8] << "\t" << endl;
                     int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
                     vector<complex<double>> dzstore(nZax, 0.0);
                     zcopy_(nZax, &pmlArr_[kk].Dz_ -> point(xx,yy), stride, dzstore.data(), 1);
@@ -896,9 +896,10 @@ void FDTDField::updateE()
                     zaxpy_(nZax,      zaxArr[7], &pmlArr_[kk].Dz_ -> point(xx,yy), stride, &Ez_ -> point(xx,yy), stride_rel);
                     zaxpy_(nZax, -1.0*zaxArr[8], dzstore.data()                  , 1     , &Ez_ -> point(xx,yy), stride_rel);
                 }
-                for(int zz = pmlArr_[kk].edgei_0_; zz < pmlArr_[kk].edgej_0_0_; zz++)
+                for(int zz = pmlArr_[kk].edgei_0_; zz < pmlArr_[kk].zaxEz_.size(); zz++)
                 {
                     array<double,9> zaxArr = pmlArr_[kk].zaxEz_[zz];
+                    // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << zaxArr[4] << "\t" << zaxArr[5] << "\t" << zaxArr[6] << "\t" << zaxArr[7] << "\t" << zaxArr[8] << "\t" << endl;
                     int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
                     vector<complex<double>> dzstore(nZax, 0.0);
                     zcopy_(nZax, &pmlArr_[kk].Dz_ -> point(xx,yy), stride, dzstore.data(), 1);
@@ -915,7 +916,8 @@ void FDTDField::updateE()
                 }
                 for(int zz = 0; zz < pmlArr_[kk].edgei_n_; zz++)
                 {
-                    array<double,9> zaxArr = pmlArr_[kk].zaxEz_[zz];
+                    array<double,9> zaxArr = pmlArr_[kk].zaxEz_end_[zz];
+                    // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << zaxArr[4] << "\t" << zaxArr[5] << "\t" << zaxArr[6] << "\t" << zaxArr[7] << "\t" << zaxArr[8] << "\t" << endl;
                     int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
                     int xx_rel = nx_-1-xx;
                     vector<complex<double>> dzstore(nZax, 0.0);
@@ -932,9 +934,10 @@ void FDTDField::updateE()
                     zaxpy_(nZax,      zaxArr[7], &pmlArr_[kk].Dz_end_ -> point(xx,yy), stride, &Ez_ -> point(xx_rel,yy), stride_rel);
                     zaxpy_(nZax, -1.0*zaxArr[8], dzstore.data()                  , 1     , &Ez_ -> point(xx_rel,yy), stride_rel);
                 }
-                for(int zz = pmlArr_[kk].edgei_n_; zz < pmlArr_[kk].edgej_n_0_; zz++)
+                for(int zz = pmlArr_[kk].edgei_n_; zz < pmlArr_[kk].zaxEz_end_.size(); zz++)
                 {
-                    array<double,9> zaxArr = pmlArr_[kk].zaxEz_[zz];
+                    array<double,9> zaxArr = pmlArr_[kk].zaxEz_end_[zz];
+                    // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << zaxArr[4] << "\t" << zaxArr[5] << "\t" << zaxArr[6] << "\t" << zaxArr[7] << "\t" << zaxArr[8] << "\t" << endl;
                     int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
                     int xx_rel = nx_-1-xx;
                     vector<complex<double>> dzstore(nZax, 0.0);
