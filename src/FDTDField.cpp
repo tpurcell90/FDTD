@@ -1389,6 +1389,56 @@ void FDTDField::updateE()
                 zaxpy_(nZax,      zaxArr[7], &pmlArr_[0].Dz_end_ -> point(xx,yy), 1, &Ez_ -> point(xx,yy_rel), 1);
                 zaxpy_(nZax, -1.0*zaxArr[8], dzstore.data()                      , 1, &Ez_ -> point(xx,yy_rel), 1);
             }
+            for(int ii = 1; ii< pmlArr_[0].thickness(); ii++)
+            {
+                //Bot Left
+                int xx = 0; int yy = ii;
+                complex<double> dzstore = pmlArr_[0].Dz_->point(xx,ii);
+                pmlArr_[0].Dz_->point(xx,ii) = pmlArr_[0].c_ez_0_0_->at(0).at(ii)[0] * pmlArr_[0].Dz_->point(xx,ii) + pmlArr_[0].c_ez_0_0_->at(0).at(ii)[1] * ((Hy_->point(xx,yy)) - (Hx_->point(xx,yy) - Hx_->point(xx,yy-1)));
+                Ez_->point(xx,yy) = pmlArr_[0].c_ez_0_0_->at(0).at(ii)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_0_0_->at(0).at(ii)[3] * pmlArr_[0].Dz_->point(xx,ii) - pmlArr_[0].c_ez_0_0_->at(0).at(ii)[4] * dzstore;
+
+                //Top Left
+                xx = 0; yy = ny_-1 - ii;
+                dzstore = pmlArr_[0].Dz_end_->point(xx,ii);
+                pmlArr_[0].Dz_end_->point(xx,ii) = pmlArr_[0].c_ez_n_0_->at(0).at(ii)[0] * pmlArr_[0].Dz_end_->point(xx,ii) + pmlArr_[0].c_ez_n_0_->at(0).at(ii)[1] * ((Hy_->point(xx,yy)) - (Hx_->point(xx,yy) - Hx_->point(xx,yy-1)));
+                Ez_->point(xx,yy) = pmlArr_[0].c_ez_n_0_->at(0).at(ii)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_n_0_->at(0).at(ii)[3] * pmlArr_[0].Dz_end_->point(xx,ii) - pmlArr_[0].c_ez_n_0_->at(0).at(ii)[4] * dzstore;
+
+                //Top Right
+                xx = nx_- 1; yy = ny_-1-ii;
+                dzstore = pmlArr_[0].Dz_end_->point(xx,ii);
+                pmlArr_[0].Dz_end_->point(xx,ii) = pmlArr_[0].c_ez_n_n_->at(0).at(ii)[0] * pmlArr_[0].Dz_end_->point(xx,ii) + pmlArr_[0].c_ez_n_n_->at(0).at(ii)[1] * ((-1.0*Hy_->point(xx-1,yy)) - (Hx_->point(xx,yy) - Hx_->point(xx,yy-1)));
+                Ez_->point(xx,yy) = pmlArr_[0].c_ez_n_n_->at(0).at(ii)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_n_n_->at(0).at(ii)[3] * pmlArr_[0].Dz_end_->point(xx,ii) - pmlArr_[0].c_ez_n_n_->at(0).at(ii)[4] * dzstore;
+
+                //Bot Right
+                xx = nx_- 1; yy = ii;
+                dzstore = pmlArr_[0].Dz_->point(xx,ii);
+                pmlArr_[0].Dz_->point(xx,ii) = pmlArr_[0].c_ez_0_n_->at(0).at(ii)[0] * pmlArr_[0].Dz_->point(xx,ii) + pmlArr_[0].c_ez_0_n_->at(0).at(ii)[1] * ((-1.0*Hy_->point(xx-1,yy)) - (Hx_->point(xx,yy) - Hx_->point(xx,yy-1)));
+                Ez_->point(xx,yy) = pmlArr_[0].c_ez_0_n_->at(0).at(ii)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_0_n_->at(0).at(ii)[3] * pmlArr_[0].Dz_->point(xx,ii) - pmlArr_[0].c_ez_0_n_->at(0).at(ii)[4] * dzstore;
+            }
+
+            //Bot Left
+            int xx = 0; int yy = 0;
+            complex<double> dzstore = pmlArr_[0].Dz_->point(xx,0);
+            pmlArr_[0].Dz_->point(xx,0) = pmlArr_[0].c_ez_0_0_->at(0).at(0)[0] * pmlArr_[0].Dz_->point(xx,0) + pmlArr_[0].c_ez_0_0_->at(0).at(0)[1] * ((Hy_->point(xx,yy)) - (Hx_->point(xx,yy)));
+            Ez_->point(xx,yy) = pmlArr_[0].c_ez_0_0_->at(0).at(0)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_0_0_->at(0).at(0)[3] * pmlArr_[0].Dz_->point(xx,0) - pmlArr_[0].c_ez_0_0_->at(0).at(0)[4] * dzstore;
+
+            //Top Left
+            xx = 0; yy = ny_-1;
+            dzstore = pmlArr_[0].Dz_end_->point(xx,0);
+            pmlArr_[0].Dz_end_->point(xx,0) = pmlArr_[0].c_ez_n_0_->at(0).at(0)[0] * pmlArr_[0].Dz_end_->point(xx,0) + pmlArr_[0].c_ez_n_0_->at(0).at(0)[1] * ((Hy_->point(xx,yy)) + (Hx_->point(xx,yy-1)));
+            Ez_->point(xx,yy) = pmlArr_[0].c_ez_n_0_->at(0).at(0)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_n_0_->at(0).at(0)[3] * pmlArr_[0].Dz_end_->point(xx,0) - pmlArr_[0].c_ez_n_0_->at(0).at(0)[4] * dzstore;
+
+            //Top Right
+            xx = nx_- 1; yy = ny_-1;
+            dzstore = pmlArr_[0].Dz_end_->point(xx,0);
+            pmlArr_[0].Dz_end_->point(xx,0) = pmlArr_[0].c_ez_n_n_->at(0).at(0)[0] * pmlArr_[0].Dz_end_->point(xx,0) + pmlArr_[0].c_ez_n_n_->at(0).at(0)[1] * (-1.0*Hy_->point(xx-1,yy) + (Hx_->point(xx,yy-1)));
+            Ez_->point(xx,yy) = pmlArr_[0].c_ez_n_n_->at(0).at(0)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_n_n_->at(0).at(0)[3] * pmlArr_[0].Dz_end_->point(xx,0) - pmlArr_[0].c_ez_n_n_->at(0).at(0)[4] * dzstore;
+
+            //Bot Right
+            xx = nx_- 1; yy = 0;
+            dzstore = pmlArr_[0].Dz_->point(xx,0);
+            pmlArr_[0].Dz_->point(xx,0) = pmlArr_[0].c_ez_0_n_->at(0).at(0)[0] * pmlArr_[0].Dz_->point(xx,0) + pmlArr_[0].c_ez_0_n_->at(0).at(0)[1] * (-1.0 * Hy_->point(xx-1,yy) - (Hx_->point(xx,yy)));
+            Ez_->point(xx,yy) = pmlArr_[0].c_ez_0_n_->at(0).at(0)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_0_n_->at(0).at(0)[3] * pmlArr_[0].Dz_->point(xx,0) - pmlArr_[0].c_ez_0_n_->at(0).at(0)[4] * dzstore;
         }
         else
         {
@@ -1396,7 +1446,7 @@ void FDTDField::updateE()
             {
                 eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
-                zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][kk],zaxEzList_[kk][1]),1);
                 zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]-1), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hy_->point(zaxEzList_[kk][0]-1,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
@@ -1464,46 +1514,57 @@ void FDTDField::step()
     // Source
     for(int kk = 0; kk < srcArr_.size(); kk ++)
     {
-        if(abs(real(srcArr_[kk].prof().pulse(static_cast<double>(t_step_)))) > 1.0e-70)
+        int ii = srcArr_[kk].loc()[0];
+        int jj = srcArr_[kk].loc()[1];
+        switch ( srcArr_[kk].pol() )
         {
-            int ii = srcArr_[kk].loc()[0];
-            int jj = srcArr_[kk].loc()[1];
-            double eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
-            double c_ezj = dt_/(eps);
-            Ez_ -> point(ii,jj) += c_ezj * srcArr_[kk].prof().pulse(static_cast<double>(t_step_));
-        }
-        // int ii = srcArr_[kk].loc()[0];
-        // int jj = srcArr_[kk].loc()[1];
-        // switch ( srcArr_[kk].pol() )
-        // {
 
-        //     case EZ: //if(srcArr[kk].pol() == EZ)
-        //         if(abs(real(srcArr_[kk].prof().pulse(static_cast<double>(t_step_)))) > 1.0e-70)
-        //         {
-        //             double eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
-        //             double c_ezj = dt_/(eps);
-        //             Ez_ -> point(ii,jj) += c_ezj * srcArr_[kk].prof().pulse(static_cast<double>(t_step_));
-        //         }
-        //         break;
-        //     case HX: //else if(srcArr[kk].pol() == HX)
-        //         Hx_ -> point(ii,jj) += srcArr_[kk].prof().pulse(tcur_);
-        //         break;
-        //     case HY: //else if(srcArr[kk].pol() == HY)
-        //         Hy_ -> point(ii,jj) += srcArr_[kk].prof().pulse(tcur_);
-        //         break;
-        //     case HZ: //else if(srcArr[kk].pol() == HZ)
-        //         Hz_ -> point(ii,jj) += srcArr_[kk].prof().pulse(tcur_);
-        //         break;
-        //     case EX: //else if(srcArr[kk].pol() == EX)
-        //         Ex_ -> point(ii,jj) += srcArr_[kk].prof().pulse(tcur_);
-        //         break;
-        //     case EY: //else if(srcArr[kk].pol() == EY)
-        //         Ey_ -> point(ii,jj) += srcArr_[kk].prof().pulse(tcur_);
-        //         break;
-        //     default:
-        //         throw logic_error("reached a default case in a switch state that should never happen!");
-        //         break;
-        // }
+            case EZ: //if(srcArr[kk].pol() == EZ)
+                if(abs(real(srcArr_[kk].prof().pulse(static_cast<double>(t_step_)))) > 1.0e-70)
+                {
+                    double eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
+                    double c_ezj = dt_/(eps);
+                    Ez_ -> point(ii,jj) += c_ezj * srcArr_[kk].prof().pulse(static_cast<double>(t_step_));
+                }
+                break;
+            case HX: //else if(srcArr[kk].pol() == HX)
+                if(abs(real(srcArr_[kk].prof().pulse(static_cast<double>(t_step_)))) > 1.0e-70)
+                {
+                    Hx_ -> point(ii,jj) += srcArr_[kk].prof().pulse(static_cast<double>(t_step_));
+                }
+                break;
+            case HY: //else if(srcArr[kk].pol() == HY)
+                if(abs(real(srcArr_[kk].prof().pulse(static_cast<double>(t_step_)))) > 1.0e-70)
+                {
+                    Hy_ -> point(ii,jj) += srcArr_[kk].prof().pulse(static_cast<double>(t_step_));
+                }
+                break;
+            case HZ: //else if(srcArr[kk].pol() == HZ)
+                if(abs(real(srcArr_[kk].prof().pulse(static_cast<double>(t_step_)))) > 1.0e-70)
+                {
+                    Hz_ -> point(ii,jj) += srcArr_[kk].prof().pulse(static_cast<double>(t_step_));
+                }
+                break;
+            case EX: //else if(srcArr[kk].pol() == EX)
+                if(abs(real(srcArr_[kk].prof().pulse(static_cast<double>(t_step_)))) > 1.0e-70)
+                {
+                    double eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
+                    double c_ezj = dt_/(eps);
+                    Ex_ -> point(ii,jj) += c_ezj * srcArr_[kk].prof().pulse(static_cast<double>(t_step_));
+                }
+                break;
+            case EY: //else if(srcArr[kk].pol() == EY)
+                if(abs(real(srcArr_[kk].prof().pulse(static_cast<double>(t_step_)))) > 1.0e-70)
+                {
+                    double eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
+                    double c_ezj = dt_/(eps);
+                    Ey_ -> point(ii,jj) += c_ezj * srcArr_[kk].prof().pulse(static_cast<double>(t_step_));
+                }
+                break;
+            default:
+                throw logic_error("reached a default case in a switch state that should never happen!");
+                break;
+        }
     }
     updateH();
 

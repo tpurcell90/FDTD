@@ -30,7 +30,6 @@ protected:
     double R0_;
     double sigmaMax_;
     double kappaMax_;
-    bool precalc_;
     Polarization pol_;
     int nj_,ni_;
     double dx_,dy_,dt_;
@@ -57,12 +56,15 @@ public:
      * @param d Direction the PML is occupying
      * @param m Order of the polynomial grading for the kappa and sigma vectors
      * @param R0 Max allowed reflection for normally incident waves
-     * @param nx Number of unit cells in the normal direction of the PML
+     * @param nx Number of unit cells in the x direction
+     * @param ny Number of unit cells in the y direction
      * @param dx unit cell spacing for the x direction
      * @param dy unit cell spacing for the y direction
+     * @param xPML thickness of the x direction PML
+     * @param yPML thickness of the y direction PML
      * @param pol A polarization so it can set up the right auxilliary fields
      */
-    UPML(int thickness, Direction d, double m, double R0, int nx, int ny, double dx, double dy, double dt, int xPML, int yPML, Polarization pol, bool precalc) : thickness_(thickness), d_(d), m_(m), R0_(R0), dx_(dx), dy_(dy), dt_(dt), precalc_(precalc), pol_(pol)
+    UPML(int thickness, Direction d, double m, double R0, int nx, int ny, double dx, double dy, double dt, int xPML, int yPML, Polarization pol) : thickness_(thickness), d_(d), m_(m), R0_(R0), dx_(dx), dy_(dy), dt_(dt), pol_(pol)
     {
         edgei_0_ = 0;
         edgei_n_ = 0;
@@ -86,6 +88,7 @@ public:
             nj_ = nx;
             ni_ = ny;
         }
+        // Create fields and precostant containers
         if(pol == EX || pol == EY || pol == HZ)
         {
             Dx_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
@@ -170,8 +173,7 @@ public:
             phys_Ex_end_ = nullptr;
             phys_Ey_ = nullptr;
             phys_Ey_end_ = nullptr;
-
-            //if(precalc_ == false || yPML == 0 || xPML == 0)
+            // Corners v. no corners check. The preconstants for edges in the non corner case still need to be calculated for Ez
             if(yPML == 0)
             {
                 c_ex_0_0_ = nullptr; c_ey_0_0_ = nullptr; c_hz_0_0_ = nullptr; c_ex_n_0_ = nullptr; c_ey_n_0_ = nullptr; c_hz_n_0_ = nullptr;
@@ -638,7 +640,6 @@ public:
      * @brief Returns the direction of the PML
      */
     Direction d(){return d_;}
-    bool precalc() {return precalc_;}
     /**
      * @brief Returns the alue of Kappa given a position
      * @details Will Return the value of Kappa at a given position once implimented, at the moment it's all zero
