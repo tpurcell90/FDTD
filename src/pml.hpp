@@ -372,7 +372,7 @@ public:
 
                         eps    = objArr[phys_Hx_end_->point(*xx,*yy)].dielectric(1.0);
                         sigxx  = (xpml->*sigmax)(static_cast<double>(*xx),eps);
-                        sigyx  = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,floor(hx/(delx+1))) * 0.5,eps);
+                        sigyx  = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,floor(hx/(delx+1))) * 0.5,eps); //Switch to see if PML is on teh different side yet
                         c_hx_n_0_->at(*xx).at(*yy) = calcHPreConsts(eps,sigxx, sigyx, sigz);
                         hx++;
 
@@ -384,7 +384,7 @@ public:
                         hy++;
 
                         eps    = objArr[phys_Hy_end_->point(*xx,*yy)].dielectric(1.0);
-                        sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,floor(hy/(dely+1))) * 0.5,eps);
+                        sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,floor(hy/(dely+1))) * 0.5,eps); //Switch to see if PML is on teh different side yet
                         sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
                         c_hy_n_0_->at(*xx).at(*yy) = calcHPreConsts(eps,sigyy, sigz, sigxy);
                         hy++;
@@ -405,7 +405,7 @@ public:
                         eps    = objArr[phys_Hx_->point(*xx,*yy)].dielectric(1.0);
                         jj =kk;
                         sigxx  = (xpml->*sigmax)(static_cast<double>(*xx),eps);
-                        sigyx  = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,floor(hx/(delx+1))) * 0.5,eps);
+                        sigyx  = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,floor(hx/(delx+1))) * 0.5,eps); //Switch to see if PML is on teh different side yet
                         c_hx_0_n_->at(*xx).at(*yy) = calcHPreConsts(eps,sigxx, sigyx, sigz);
                         hx++;
 
@@ -421,7 +421,7 @@ public:
                         jj = nj -1 - kk;
                         eps    = objArr[phys_Hy_->point(*xx,*yy)].dielectric(1.0);
                         jj =kk;
-                        sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,floor(hy/(dely+1))) * 0.5,eps);
+                        sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,floor(hy/(dely+1))) * 0.5,eps); //Switch to see if PML is on teh different side yet
                         sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
                         c_hy_0_n_->at(*xx).at(*yy) = calcHPreConsts(eps,sigyy, sigz, sigxy);
                         hy++;
@@ -516,7 +516,7 @@ public:
                 std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hx_end_->point(*xx,*yy))};
                 eps   = objArr[phys_Hx_end_->point(*xx,*yy)].dielectric(1.0);
                 sigxx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
-                sigyx = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,delx) * 0.5,eps);
+                sigyx = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,delx) * 0.5,eps); //Switch to see if PML is on teh different side yet
                 std::array<double,5> preconsts = calcHPreConsts(eps,sigxx, sigyx, sigz);
                 std::copy_n(preconsts.begin(),5,tempArr.begin()+4);
                 zaxHx_end_.push_back(tempArr);
@@ -551,7 +551,7 @@ public:
                     jj--;
                 std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hy_end_->point(*xx,*yy))};
                 eps    = objArr[phys_Hy_end_->point(*xx,*yy)].dielectric(1.0);
-                sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,dely) * 0.5,eps);
+                sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,dely) * 0.5,eps); //Switch to see if PML is on teh different side yet
                 sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
                 std::array<double,5> preconsts = calcHPreConsts(eps,sigyy, sigz, sigxy);
                 std::copy_n(preconsts.begin(),5,tempArr.begin()+4);
@@ -664,19 +664,37 @@ public:
         else
             return 0.0;
     }
-
+    /**
+     * @brief lambda function that returns 0
+     * @details FUnction with the same paramters as teh sigma fuction that returns 0 (used for oppisite pml clacs)
+     *
+     * @param x position
+     * @param eps dielectric
+     *
+     * @return 0
+     */
     double sigmaopp(double x,double eps){return 0.0;} // can't make lamda function
-    PMLMemFn sig_ptr() {return &UPML<T>::sigma;}
+    /**
+     * @brief Gets the member function pointer to sigma
+     * @details  Gets the member function pointer to sigma
+     * @return the member function pointer to sigma
+     */
+    MLMemFn sig_ptr() {return &UPML<T>::sigma;}
 
+    /**
+     * @brief Finds the PML Preconstants
+     * @details determines the H preconstants
+     *
+     * @param eps dielectric constant
+     * @param sigi sigma value along the direction of the PML
+     * @param sigj sigma value along next in the cylic version
+     * @param sigk sigma value in the cyclic direction
+     * @return H preconstants
+     */
     std::array<double,5> calcHPreConsts(double eps, double sigi, double sigj, double sigk)
     {
         std::array<double,5> preFact = {0.0,0.0,0.0,0.0,0.0};
         double kapi = 1.0; double kapj = 1.0; double kapk = 1.0;
-        // c_bxb_0_ -> point(*ii,*jj) = (2*eps*kapj - sigj*dt_) / (2*eps*kapj + sigj*dt_);
-        // c_bxe_0_ -> point(*ii,*jj) = (2 * eps * dt_) / (dy_ * (2*eps*kapj + sigj*dt_));
-        // c_hxh_0_ -> point(*ii,*jj) = (2*eps*kapk - sigk*dt_) / (2*eps*kapk + sigk*dt_);
-        // c_hxb0_0_-> point(*ii,*jj) = (2*eps*kapi - sigi*dt_) / (2*eps*kapk + sigk*dt_);
-        // c_hxb1_0_-> point(*ii,*jj) = (2*eps*kapi + sigi*dt_) / (2*eps*kapk + sigk*dt_);
         preFact[0] = (2*eps*kapj - sigj*dt_) / (2*eps*kapj + sigj*dt_);
         preFact[1] = (2 * eps * dt_) / (dy_ * (2*eps*kapj + sigj*dt_));
         preFact[2] = (2*eps*kapk - sigk*dt_) / (2*eps*kapk + sigk*dt_);
@@ -684,15 +702,19 @@ public:
         preFact[4] = (2*eps*kapi - sigi*dt_) / (2*eps*kapk + sigk*dt_);
         return preFact;
     }
+    /**
+     * @brief Finds the PML Preconstants
+     * @details determines the E preconstants
+     *
+     * @param eps dielectric constant
+     * @param sigi sigma value along the direction of the PML
+     * @param sigj sigma value along next in the cylic version
+     * @param sigk sigma value in the cyclic direction
+     * @return E preconstants
+     */
     std::array<double,5> calcEPreConsts(double eps, double sigi, double sigj, double sigk)
     {
         std::array<double,5> preFact = {0.0,0.0,0.0,0.0,0.0};
-        double kapi = 1.0; double kapj = 1.0; double kapk = 1.0;
-        // c_dzd = (2*eps*kapx - sigx*dt_) / (2*eps*kapx + sigx*dt_);
-        // c_dzh = 2 * eps * dt_ / (dy_ * (2*eps*kapx + sigx*dt_));
-        // c_eze = (2*eps*kapy - sigy*dt_) / (2*eps*kapy + sigy*dt_);
-        // c_ezd1 = (2*eps*kapz + sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
-        // c_ezd0 = (2*eps*kapz - sigz*dt_) / (2*eps*kapy + sigy*dt_) / eps;
         preFact[0] = (2*eps*kapj - sigj*dt_) / (2*eps*kapj + sigj*dt_);
         preFact[1] = (2 * eps * dt_) / (dy_ * (2*eps*kapj + sigj*dt_));
         preFact[2] = (2*eps*kapk - sigk*dt_) / (2*eps*kapk + sigk*dt_);

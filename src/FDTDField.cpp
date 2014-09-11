@@ -93,6 +93,7 @@ FDTDField::FDTDField(programInputs &IP)
  */
 void FDTDField::initializeGrid()
 {
+    //Sotres the locations of the objects in the grid.
     for(int kk = 0; kk < objArr_.size(); kk++)
     {
         vector<double> pt(2,0.0);
@@ -134,134 +135,105 @@ void FDTDField::initializeGrid()
         }
         else
         {
-            if(objArr_[kk].s() == sphere)
+            if(yPML_ != 0 && xPML_ != 0)
+            {
+                for(int ii = xPML_; ii < nx_-xPML_;ii ++)
+                {
+                    for(int jj = yPML_; jj < ny_-yPML_; jj ++)
+                    {
+                        pt[0] = (ii-(nx_-1)/2.0)*dx_;
+                        pt[1] = (jj-static_cast<double>(ny_-1)/2.0)*dy_;
+                        if(objArr_[kk].isObj(pt)==true)
+                            phys_Ez_->point(ii,jj) = kk;
+                    }
+                }
+                pt[0]=(nx_-1-(nx_-1)/2.0)*dx_;
+                pt[1]=(ny_-1-(ny_-1)/2.0)*dy_;
+                if(objArr_[kk].isObj(pt)==true)
+                    phys_Ez_->point(nx_-1,ny_-1) = kk;
+            }
+            else if(yPML_ != 0)
             {
                 for(int ii = 0; ii < nx_-1;ii ++)
                 {
+                    for(int jj = yPML_; jj < ny_-yPML_; jj ++)
+                    {
+                        pt[0] = (ii-(nx_-1)/2.0)*dx_;
+                        pt[1] = (jj-static_cast<double>(ny_-1)/2.0)*dy_;
+                        if(objArr_[kk].isObj(pt)==true)
+                            phys_Ez_->point(ii,jj) = kk;
+                    }
+                }
+                for(int jj = 0; jj < ny_-1; jj ++)
+                {
+                    pt[0]=(nx_-1-(nx_-1)/2.0)*dx_;
+                    pt[1]=(jj-(ny_-1)/2.0)*dy_;
+                    if(objArr_[kk].isObj(pt)==true)
+                        phys_Ez_->point(nx_-1,jj) = kk;
+                }
+                pt[0]=(nx_-1-(nx_-1)/2.0)*dx_;
+                pt[1]=(ny_-1-(ny_-1)/2.0)*dy_;
+                if(objArr_[kk].isObj(pt)==true)
+                    phys_Ez_->point(nx_-1,ny_-1) = kk;
+            }
+            else if(xPML_ != 0)
+            {
+                for(int ii = xPML_; ii < nx_-xPML_;ii ++)
+                {
                     for(int jj = 0; jj < ny_-1; jj ++)
                     {
-                        pt= {(ii-(nx_-1)/2.0)*dx_,(jj-static_cast<double>(ny_-1)/2.0)*dy_};
+                        pt[0] = (ii-(nx_-1)/2.0)*dx_;
+                        pt[1] = (jj-static_cast<double>(ny_-1)/2.0)*dy_;
                         if(objArr_[kk].isObj(pt)==true)
                             phys_Ez_->point(ii,jj) = kk;
                     }
                 }
                 for(int ii = 0; ii < nx_-1;ii ++)
                 {
-                    pt={(ii-(nx_-1)/2.0)*dx_,(ny_-1-(ny_-1)/2.0)*dy_};
+                    pt[0]=(ii-(nx_-1)/2.0)*dx_;
+                    pt[1]=(ny_-1-(ny_-1)/2.0)*dy_;
+                    if(objArr_[kk].isObj(pt)==true)
+                        phys_Ez_->point(ii,ny_-1) = kk;
+                }
+                pt[0]=(nx_-1-(nx_-1)/2.0)*dx_;
+                pt[1]=(ny_-1-(ny_-1)/2.0)*dy_;
+                if(objArr_[kk].isObj(pt)==true)
+                    phys_Ez_->point(nx_-1,ny_-1) = kk;
+            }
+            else
+            {
+                for(int ii = 0; ii < nx_-1;ii ++)
+                {
+                    for(int jj = 0; jj < ny_-1; jj ++)
+                    {
+                        pt[0] = (ii-(nx_-1)/2.0)*dx_;
+                        pt[1] = (jj-static_cast<double>(ny_-1)/2.0)*dy_;
+                        if(objArr_[kk].isObj(pt)==true)
+                            phys_Ez_->point(ii,jj) = kk;
+                    }
+                }
+                for(int ii = 0; ii < nx_-1;ii ++)
+                {
+                    pt[0]=(ii-(nx_-1)/2.0)*dx_;
+                    pt[1]=(ny_-1-(ny_-1)/2.0)*dy_;
                     if(objArr_[kk].isObj(pt)==true)
                         phys_Ez_->point(ii,ny_-1) = kk;
                 }
                 for(int jj = 0; jj < ny_-1; jj ++)
                 {
-                    pt = {(nx_-1-(nx_-1)/2.0)*dx_,(jj-(ny_-1)/2.0)*dy_};
+                    pt[0]=(nx_-1-(nx_-1)/2.0)*dx_;
+                    pt[1]=(jj-(ny_-1)/2.0)*dy_;
                     if(objArr_[kk].isObj(pt)==true)
                         phys_Ez_->point(nx_-1,jj) = kk;
                 }
-                pt={(nx_-1-(nx_-1)/2.0)*dx_,(ny_-1-(ny_-1)/2.0)*dy_};
+                pt[0]=(nx_-1-(nx_-1)/2.0)*dx_;
+                pt[1]=(ny_-1-(ny_-1)/2.0)*dy_;
                 if(objArr_[kk].isObj(pt)==true)
                     phys_Ez_->point(nx_-1,ny_-1) = kk;
             }
-            else if(objArr_[kk].s() == block)
-            {
-                if(yPML_ != 0 && xPML_ != 0)
-                {
-                    for(int ii = xPML_; ii < nx_-xPML_;ii ++)
-                    {
-                        for(int jj = yPML_; jj < ny_-yPML_; jj ++)
-                        {
-                            pt[0] = (ii-(nx_-1)/2.0)*dx_;
-                            pt[1] = (jj-static_cast<double>(ny_-1)/2.0)*dy_;
-                            if(objArr_[kk].isObj(pt)==true)
-                                phys_Ez_->point(ii,jj) = kk;
-                        }
-                    }
-                    pt[0]=(nx_-1-(nx_-1)/2.0)*dx_;
-                    pt[1]=(ny_-1-(ny_-1)/2.0)*dy_;
-                    if(objArr_[kk].isObj(pt)==true)
-                        phys_Ez_->point(nx_-1,ny_-1) = kk;
-                }
-                else if(yPML_ != 0)
-                {
-                    for(int ii = 0; ii < nx_-1;ii ++)
-                    {
-                        for(int jj = yPML_; jj < ny_-yPML_; jj ++)
-                        {
-                            pt[0] = (ii-(nx_-1)/2.0)*dx_;
-                            pt[1] = (jj-static_cast<double>(ny_-1)/2.0)*dy_;
-                            if(objArr_[kk].isObj(pt)==true)
-                                phys_Ez_->point(ii,jj) = kk;
-                        }
-                    }
-                    for(int jj = 0; jj < ny_-1; jj ++)
-                    {
-                        pt[0]=(nx_-1-(nx_-1)/2.0)*dx_;
-                        pt[1]=(jj-(ny_-1)/2.0)*dy_;
-                        if(objArr_[kk].isObj(pt)==true)
-                            phys_Ez_->point(nx_-1,jj) = kk;
-                    }
-                    pt[0]=(nx_-1-(nx_-1)/2.0)*dx_;
-                    pt[1]=(ny_-1-(ny_-1)/2.0)*dy_;
-                    if(objArr_[kk].isObj(pt)==true)
-                        phys_Ez_->point(nx_-1,ny_-1) = kk;
-                }
-                else if(xPML_ != 0)
-                {
-                    for(int ii = xPML_; ii < nx_-xPML_;ii ++)
-                    {
-                        for(int jj = 0; jj < ny_-1; jj ++)
-                        {
-                            pt[0] = (ii-(nx_-1)/2.0)*dx_;
-                            pt[1] = (jj-static_cast<double>(ny_-1)/2.0)*dy_;
-                            if(objArr_[kk].isObj(pt)==true)
-                                phys_Ez_->point(ii,jj) = kk;
-                        }
-                    }
-                    for(int ii = 0; ii < nx_-1;ii ++)
-                    {
-                        pt[0]=(ii-(nx_-1)/2.0)*dx_;
-                        pt[1]=(ny_-1-(ny_-1)/2.0)*dy_;
-                        if(objArr_[kk].isObj(pt)==true)
-                            phys_Ez_->point(ii,ny_-1) = kk;
-                    }
-                    pt[0]=(nx_-1-(nx_-1)/2.0)*dx_;
-                    pt[1]=(ny_-1-(ny_-1)/2.0)*dy_;
-                    if(objArr_[kk].isObj(pt)==true)
-                        phys_Ez_->point(nx_-1,ny_-1) = kk;
-                }
-                else
-                {
-                    for(int ii = 0; ii < nx_-1;ii ++)
-                    {
-                        for(int jj = 0; jj < ny_-1; jj ++)
-                        {
-                            pt[0] = (ii-(nx_-1)/2.0)*dx_;
-                            pt[1] = (jj-static_cast<double>(ny_-1)/2.0)*dy_;
-                            if(objArr_[kk].isObj(pt)==true)
-                                phys_Ez_->point(ii,jj) = kk;
-                        }
-                    }
-                    for(int ii = 0; ii < nx_-1;ii ++)
-                    {
-                        pt[0]=(ii-(nx_-1)/2.0)*dx_;
-                        pt[1]=(ny_-1-(ny_-1)/2.0)*dy_;
-                        if(objArr_[kk].isObj(pt)==true)
-                            phys_Ez_->point(ii,ny_-1) = kk;
-                    }
-                    for(int jj = 0; jj < ny_-1; jj ++)
-                    {
-                        pt[0]=(nx_-1-(nx_-1)/2.0)*dx_;
-                        pt[1]=(jj-(ny_-1)/2.0)*dy_;
-                        if(objArr_[kk].isObj(pt)==true)
-                            phys_Ez_->point(nx_-1,jj) = kk;
-                    }
-                    pt[0]=(nx_-1-(nx_-1)/2.0)*dx_;
-                    pt[1]=(ny_-1-(ny_-1)/2.0)*dy_;
-                    if(objArr_[kk].isObj(pt)==true)
-                        phys_Ez_->point(nx_-1,ny_-1) = kk;
-                }
-            }
         }
     }
+    //Set up the parmeters for the MKL calls for the Electric fields, conditionals are because of edge cases.
     if(xPML_ != 0 && yPML_ != 0)
     {
         for(int jj = yPML_; jj < ny_ - yPML_; jj++)
@@ -473,6 +445,13 @@ void FDTDField::ouputField(Detector<complex<double>> d) //iostream as input para
     outFile.close();
 }
 
+/**
+ * @brief Periodic Boundry correction
+ * @details Determines the prefactor to correct for lattice vector distances for PBC
+ *
+ * @param r Point on the lattice to find the prefactor in
+ * @return Prefactor correnction
+ */
 complex<double> FDTDField::per_factor(std::vector<double> r)
 {
     complex<double> i1(0.0,-1.0);
@@ -507,7 +486,6 @@ void FDTDField::updateH()
         double c_hye = 1.0 * dt_/dy_;
         if(xPML_ != 0 && yPML_ !=0)
         {
-            //vector<complex<double>> hxstore(nx_-(2*xPML_),0.0);
             for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
             {
                 zscal_(nx_-2*xPML_, c_hxh, &Hx_ ->point(xPML_,jj),1);
@@ -538,7 +516,6 @@ void FDTDField::updateH()
         }
         else if(yPML_ != 0)
         {
-            //vector<complex<double>> hxstore(nx_,0.0);
             for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
             {
                 zscal_(nx_, c_hxh, &Hx_ ->point(0,jj),1);
@@ -605,21 +582,21 @@ void FDTDField::updateH()
                 array<double,9> zaxArr = pmlArr_[kk].zaxHx_end_[zz];
                 int xx = static_cast<int>(zaxArr[0]);
                 int yy = static_cast<int>(zaxArr[1]);
-                int x_rel = ni + pow(-1, 1-d) * static_cast<int>(zaxArr[0]);
-                int y_rel = nj + pow(-1, d)   * static_cast<int>(zaxArr[1]); //the -1^(d()) is to account for changing signs
+                int xx_rel = ni + pow(-1, 1-d) * xx;  /// If the pml is is the x direction xx_rel = nx - xx, else xrel = xx
+                int yy_rel = nj + pow(-1, d)   * yy); /// If the pml is is the y direction yy_rel = ny - yy, else yrel = yy
                 int nZax = static_cast<int>(zaxArr[2]);
 
                 vector<complex<double>> bxstore(nZax, 0.0);
                 zcopy_(nZax, &pmlArr_[kk].Bx_end_ -> point(xx,yy), stride, bxstore.data(), 1);
 
                 zscal_(nZax, zaxArr[4], &pmlArr_[kk].Bx_end_ -> point(xx   ,yy   ), stride);
-                zscal_(nZax, zaxArr[6],                 &Hx_ -> point(x_rel,y_rel), stride_rel);
+                zscal_(nZax, zaxArr[6],                 &Hx_ -> point(xx_rel,y_rel), stride_rel);
 
-                zaxpy_(nZax,      zaxArr[5], &Ez_ -> point(x_rel,y_rel  ), stride_rel, &pmlArr_[kk].Bx_end_ -> point(xx,yy), stride);
-                zaxpy_(nZax, -1.0*zaxArr[5], &Ez_ -> point(x_rel,y_rel+1), stride_rel, &pmlArr_[kk].Bx_end_ -> point(xx,yy), stride);
+                zaxpy_(nZax,      zaxArr[5], &Ez_ -> point(xx_rel,y_rel  ), stride_rel, &pmlArr_[kk].Bx_end_ -> point(xx,yy), stride);
+                zaxpy_(nZax, -1.0*zaxArr[5], &Ez_ -> point(xx_rel,y_rel+1), stride_rel, &pmlArr_[kk].Bx_end_ -> point(xx,yy), stride);
 
-                zaxpy_(nZax,      zaxArr[7], &pmlArr_[kk].Bx_end_ -> point(xx,yy), stride, &Hx_ -> point(x_rel,y_rel), stride_rel);
-                zaxpy_(nZax, -1.0*zaxArr[8], bxstore.data()                      , 1     , &Hx_ -> point(x_rel,y_rel), stride_rel);
+                zaxpy_(nZax,      zaxArr[7], &pmlArr_[kk].Bx_end_ -> point(xx,yy), stride, &Hx_ -> point(xx_rel,y_rel), stride_rel);
+                zaxpy_(nZax, -1.0*zaxArr[8], bxstore.data()                      , 1     , &Hx_ -> point(xx_rel,y_rel), stride_rel);
             }
             for(int zz = 0; zz < pmlArr_[kk].zaxHy_.size();zz++)
             {
@@ -645,26 +622,27 @@ void FDTDField::updateH()
                 array<double,9> zaxArr = pmlArr_[kk].zaxHy_end_[zz];
                 int xx = static_cast<int>(zaxArr[0]);
                 int yy = static_cast<int>(zaxArr[1]);
-                int x_rel = ni + pow(-1, 1-d) * static_cast<int>(zaxArr[0]);
-                int y_rel = nj + pow(-1, d)   * static_cast<int>(zaxArr[1]); //the -1^(d()) is to account for changing signs
+                int xx_rel = ni + pow(-1, 1-d) * xx; // If the pml is is the x direction xx_rel = nx - xx, else xrel = xx
+                int yy_rel = nj + pow(-1, d)   * yy; // If the pml is is the y direction yy_rel = ny - yy, else yrel = yy
                 int nZax = static_cast<int>(zaxArr[2]);
 
                 vector<complex<double>> bystore(nZax, 0.0);
                 zcopy_(nZax, &pmlArr_[kk].By_end_ -> point(xx,yy), stride, bystore.data(), 1);
 
                 zscal_(nZax, zaxArr[4], &pmlArr_[kk].By_end_ -> point(xx   ,yy   ), stride);
-                zscal_(nZax, zaxArr[6],                 &Hy_ -> point(x_rel,y_rel), stride_rel);
+                zscal_(nZax, zaxArr[6],                 &Hy_ -> point(xx_rel,y_rel), stride_rel);
 
-                zaxpy_(nZax,      zaxArr[5], &Ez_ -> point(x_rel+1,y_rel), stride_rel, &pmlArr_[kk].By_end_ -> point(xx,yy), stride);
-                zaxpy_(nZax, -1.0*zaxArr[5], &Ez_ -> point(x_rel  ,y_rel), stride_rel, &pmlArr_[kk].By_end_ -> point(xx,yy), stride);
+                zaxpy_(nZax,      zaxArr[5], &Ez_ -> point(xx_rel+1,y_rel), stride_rel, &pmlArr_[kk].By_end_ -> point(xx,yy), stride);
+                zaxpy_(nZax, -1.0*zaxArr[5], &Ez_ -> point(xx_rel  ,y_rel), stride_rel, &pmlArr_[kk].By_end_ -> point(xx,yy), stride);
 
-                zaxpy_(nZax,      zaxArr[7], &pmlArr_[kk].By_end_ -> point(xx,yy), stride, &Hy_ -> point(x_rel,y_rel), stride_rel);
-                zaxpy_(nZax, -1.0*zaxArr[8], bystore.data()                      , 1     , &Hy_ -> point(x_rel,y_rel), stride_rel);
+                zaxpy_(nZax,      zaxArr[7], &pmlArr_[kk].By_end_ -> point(xx,yy), stride, &Hy_ -> point(xx_rel,y_rel), stride_rel);
+                zaxpy_(nZax, -1.0*zaxArr[8], bystore.data()                      , 1     , &Hy_ -> point(xx_rel,y_rel), stride_rel);
             }
         }
         complex<double> bxstore(0.0,0.0); complex<double> bystore(0.0,0.0);
         if(pmlArr_.size() > 1)
         {
+            // Setting everything such that the X-PML stores all the information for the corners
             int kx = 1;
             shared_ptr<vector<vector<array<double,5>>>> c_hx_0_n;
             shared_ptr<vector<vector<array<double,5>>>> c_hx_n_0;
@@ -675,6 +653,7 @@ void FDTDField::updateH()
             shared_ptr<vector<vector<array<double,5>>>> c_hx_n_n = pmlArr_[1].c_hx_n_n_;
             shared_ptr<vector<vector<array<double,5>>>> c_hy_0_0 = pmlArr_[1].c_hy_0_0_;
             shared_ptr<vector<vector<array<double,5>>>> c_hy_n_n = pmlArr_[1].c_hy_n_n_;
+            // Ensures corners are correct in all cases
             if(pmlArr_[1].d() == X)
             {
                 c_hx_0_n = pmlArr_[1].c_hx_0_n_;
@@ -839,6 +818,7 @@ void FDTDField::updateE()
         double eps =1.0;
         complex<double> c_eze(1.0,0.0);
         double c_ezh = dt_/(eps*dx_);
+        // Seperated out by PML because edge cases require special treatment
         if(xPML_ != 0 && yPML_ !=0)
         {
             for(int kk = 0; kk < zaxEzList_.size(); kk++)
@@ -870,7 +850,6 @@ void FDTDField::updateE()
                 for(int zz = 0; zz < pmlArr_[kk].edgei_0_; zz++)
                 {
                     array<double,9> zaxArr = pmlArr_[kk].zaxEz_[zz];
-                    // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << zaxArr[4] << "\t" << zaxArr[5] << "\t" << zaxArr[6] << "\t" << zaxArr[7] << "\t" << zaxArr[8] << "\t" << endl;
                     int xx   = static_cast<int>(zaxArr[0]);
                     int yy   = static_cast<int>(zaxArr[1]);
                     int nZax = static_cast<int>(zaxArr[2]);
@@ -891,12 +870,11 @@ void FDTDField::updateE()
                 for(int zz = 0; zz < pmlArr_[kk].edgei_n_; zz++)
                 {
                     array<double,9> zaxArr = pmlArr_[kk].zaxEz_end_[zz];
-                    // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << zaxArr[4] << "\t" << zaxArr[5] << "\t" << zaxArr[6] << "\t" << zaxArr[7] << "\t" << zaxArr[8] << "\t" << endl;
                     int xx    = static_cast<int>(zaxArr[0]);
                     int yy    = static_cast<int>(zaxArr[1]);
                     int nZax  = static_cast<int>(zaxArr[2]);
-                    int xx_rel = ni + pow(-1, 1-d) * static_cast<int>(zaxArr[0]);
-                    int yy_rel = nj + pow(-1, d)   * static_cast<int>(zaxArr[1]); //the -1^(d()) is to account for changing signs
+                    int xx_rel = ni + pow(-1, 1-d) * xx; // If the pml is is the x direction xx_rel = nx - xx, else xrel = xx
+                    int yy_rel = nj + pow(-1, d)   * yy; // If the pml is is the y direction yy_rel = ny - yy, else yrel = yy
 
                     vector<complex<double>> dzstore(nZax, 0.0);
                     zcopy_(nZax, &pmlArr_[kk].Dz_end_ -> point(xx,yy), stride, dzstore.data(), 1);
@@ -919,7 +897,6 @@ void FDTDField::updateE()
                         for(int zz = pmlArr_[kk].edgei_0_; zz < pmlArr_[kk].zaxEz_.size(); zz++)
                         {
                             array<double,9> zaxArr = pmlArr_[kk].zaxEz_[zz];
-                            // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << zaxArr[4] << "\t" << zaxArr[5] << "\t" << zaxArr[6] << "\t" << zaxArr[7] << "\t" << zaxArr[8] << "\t" << endl;
                             int xx   = static_cast<int>(zaxArr[0]);
                             int yy   = static_cast<int>(zaxArr[1]);
                             int nZax = static_cast<int>(zaxArr[2]);
@@ -939,12 +916,11 @@ void FDTDField::updateE()
                         for(int zz = pmlArr_[kk].edgei_n_; zz < pmlArr_[kk].zaxEz_end_.size(); zz++)
                         {
                             array<double,9> zaxArr = pmlArr_[kk].zaxEz_end_[zz];
-                            // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << zaxArr[4] << "\t" << zaxArr[5] << "\t" << zaxArr[6] << "\t" << zaxArr[7] << "\t" << zaxArr[8] << "\t" << endl;
                             int xx    = static_cast<int>(zaxArr[0]);
                             int yy    = static_cast<int>(zaxArr[1]);
                             int nZax  = static_cast<int>(zaxArr[2]);
-                            int xx_rel = ni + pow(-1, 1-d) * static_cast<int>(zaxArr[0]);
-                            int yy_rel = nj + pow(-1, d)   * static_cast<int>(zaxArr[1]); //the -1^(d()) is to account for changing signs
+                            int xx_rel = ni + pow(-1, 1-d) * xx; // If the pml is is the x direction xx_rel = nx - xx, else xrel = xx
+                            int yy_rel = nj + pow(-1, d)   * yy; // If the pml is is the y direction yy_rel = ny - yy, else yrel = yy
 
                             vector<complex<double>> dzstore(nZax, 0.0);
                             zcopy_(nZax, &pmlArr_[kk].Dz_end_ -> point(xx,yy), stride, dzstore.data(), 1);
@@ -966,7 +942,6 @@ void FDTDField::updateE()
                         for(int zz = pmlArr_[kk].edgei_0_; zz < pmlArr_[kk].zaxEz_.size(); zz++)
                         {
                             array<double,9> zaxArr = pmlArr_[kk].zaxEz_[zz];
-                            // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << zaxArr[4] << "\t" << zaxArr[5] << "\t" << zaxArr[6] << "\t" << zaxArr[7] << "\t" << zaxArr[8] << "\t" << endl;
                             int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
                             vector<complex<double>> dzstore(nZax, 0.0);
                             zcopy_(nZax, &pmlArr_[kk].Dz_ -> point(xx,yy), 1, dzstore.data(), 1);
@@ -984,7 +959,6 @@ void FDTDField::updateE()
                         for(int zz = pmlArr_[kk].edgei_n_; zz < pmlArr_[kk].zaxEz_end_.size(); zz++)
                         {
                             array<double,9> zaxArr = pmlArr_[kk].zaxEz_end_[zz];
-                            // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << zaxArr[4] << "\t" << zaxArr[5] << "\t" << zaxArr[6] << "\t" << zaxArr[7] << "\t" << zaxArr[8] << "\t" << endl;
                             int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
                             int yy_rel = ny_-1-yy;
                             vector<complex<double>> dzstore(nZax, 0.0);
@@ -1006,7 +980,7 @@ void FDTDField::updateE()
                         throw logic_error("You really don't want to go into 3D, it's just not that fun");
                         break;
                     default:
-                        throw logic_error("How did you get here? Defaults where the fun goes to die");
+                        throw logic_error("How did you get here? Defaults are where the fun goes to die");
                         break;
                 }
             }
@@ -1148,15 +1122,15 @@ void FDTDField::updateE()
             {
                 eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
-                vector<complex<double>> oppHx(zaxEzList_[kk][2], 0.0);
+                zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 if(periodic_)
                 {
                     vector<double> r = {zaxEzList_[kk][0] * dx_,(ny_-2)*dy_};
                     complex<double> c_kpoint_ = per_factor(r);
+                    vector<complex<double>> oppHx(zaxEzList_[kk][2], 0.0);
                     zaxpy_(zaxEzList_[kk][2], c_kpoint_, &Hx_->point(zaxEzList_[kk][0]  ,ny_-2), 1, oppHx.data(),1);
+                    zaxpy_(zaxEzList_[kk][2],     c_ezh, oppHx.data()                                        , 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 }
-                zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
-                zaxpy_(zaxEzList_[kk][2],     c_ezh, oppHx.data()                                        , 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hy_->point(zaxEzList_[kk][0]-1,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hy_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
@@ -1165,15 +1139,16 @@ void FDTDField::updateE()
             {
                 eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
-                vector<complex<double>> oppHx(zaxEzList_[kk][2], 0.0);
+                zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
+                // If PBC are in place use other side multiplied by the per feactor. Otherwise
                 if(periodic_)
                 {
+                    vector<complex<double>> oppHx(zaxEzList_[kk][2], 0.0);
                     vector<double> r = {zaxEzList_[kk][0] * dx_,0};
                     complex<double> c_kpoint_ = per_factor(r);
                     zaxpy_(zaxEzList_[kk][2], c_kpoint_, &Hx_->point(zaxEzList_[kk][0]  ,0), 1, oppHx.data(),1);
+                    zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, oppHx.data()                                        , 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 }
-                zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
-                zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, oppHx.data()                                        , 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]-1), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hy_->point(zaxEzList_[kk][0]-1,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hy_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
@@ -1183,7 +1158,6 @@ void FDTDField::updateE()
             for(int zz = 0; zz < pmlArr_[0].edgei_0_; zz++)
             {
                 array<double,9> zaxArr = pmlArr_[0].zaxEz_[zz];
-                // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << zaxArr[4] << "\t" << zaxArr[5] << "\t" << zaxArr[6] << "\t" << zaxArr[7] << "\t" << zaxArr[8] << "\t" << endl;
                 int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
                 vector<complex<double>> dzstore(nZax, 0.0);
                 zcopy_(nZax, &pmlArr_[0].Dz_ -> point(xx,yy), stride, dzstore.data(), 1);
@@ -1202,7 +1176,6 @@ void FDTDField::updateE()
             for(int zz = pmlArr_[0].edgei_0_; zz < pmlArr_[0].zaxEz_.size(); zz++)
             {
                 array<double,9> zaxArr = pmlArr_[0].zaxEz_[zz];
-                // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << zaxArr[4] << "\t" << zaxArr[5] << "\t" << zaxArr[6] << "\t" << zaxArr[7] << "\t" << zaxArr[8] << "\t" << endl;
                 int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
                 vector<complex<double>> dzstore(nZax, 0.0);
                 zcopy_(nZax, &pmlArr_[0].Dz_ -> point(xx,yy), stride, dzstore.data(), 1);
@@ -1220,7 +1193,6 @@ void FDTDField::updateE()
             for(int zz = 0; zz < pmlArr_[0].edgei_n_; zz++)
             {
                 array<double,9> zaxArr = pmlArr_[0].zaxEz_end_[zz];
-                // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << zaxArr[4] << "\t" << zaxArr[5] << "\t" << zaxArr[6] << "\t" << zaxArr[7] << "\t" << zaxArr[8] << "\t" << endl;
                 int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
                 int xx_rel = nx_-1-xx;
                 vector<complex<double>> dzstore(nZax, 0.0);
@@ -1240,7 +1212,6 @@ void FDTDField::updateE()
             for(int zz = pmlArr_[0].edgei_n_; zz < pmlArr_[0].zaxEz_end_.size(); zz++)
             {
                 array<double,9> zaxArr = pmlArr_[0].zaxEz_end_[zz];
-                // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << zaxArr[4] << "\t" << zaxArr[5] << "\t" << zaxArr[6] << "\t" << zaxArr[7] << "\t" << zaxArr[8] << "\t" << endl;
                 int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
                 int xx_rel = nx_-1-xx;
                 vector<complex<double>> dzstore(nZax, 0.0);
@@ -1375,14 +1346,14 @@ void FDTDField::updateE()
             {
                 eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
-                vector<complex<double>> oppHy(zaxEzList_[kk][2],0.0);
+                zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 if(periodic_)
                 {
+                    vector<complex<double>> oppHy(zaxEzList_[kk][2],0.0);
                     vector<double> r = {(nx_-2) * dx_, zaxEzList_[kk][1] * dy_};
                     complex<double> c_kpoint_ = per_factor(r);
                     zaxpy_(zaxEzList_[kk][2], c_kpoint_, &Hy_->point(nx_-2, zaxEzList_[kk][1]), nx_, oppHy.data(),1);
                 }
-                zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), nx_, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),nx_);
                 zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]-1), nx_, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),nx_);
                 zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hy_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), nx_, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),nx_);
@@ -1409,7 +1380,6 @@ void FDTDField::updateE()
             for(int zz = 0; zz < pmlArr_[0].edgei_0_; zz++)
             {
                 array<double,9> zaxArr = pmlArr_[0].zaxEz_[zz];
-                // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << zaxArr[4] << "\t" << zaxArr[5] << "\t" << zaxArr[6] << "\t" << zaxArr[7] << "\t" << zaxArr[8] << "\t" << endl;
                 int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
                 vector<complex<double>> dzstore(nZax, 0.0);
                 zcopy_(nZax, &pmlArr_[0].Dz_ -> point(xx,yy), 1, dzstore.data(), 1);
@@ -1428,7 +1398,6 @@ void FDTDField::updateE()
             for(int zz = pmlArr_[0].edgei_0_; zz < pmlArr_[0].zaxEz_.size(); zz++)
             {
                 array<double,9> zaxArr = pmlArr_[0].zaxEz_[zz];
-                // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << zaxArr[4] << "\t" << zaxArr[5] << "\t" << zaxArr[6] << "\t" << zaxArr[7] << "\t" << zaxArr[8] << "\t" << endl;
                 int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
                 vector<complex<double>> dzstore(nZax, 0.0);
                 zcopy_(nZax, &pmlArr_[0].Dz_ -> point(xx,yy), 1, dzstore.data(), 1);
@@ -1446,7 +1415,6 @@ void FDTDField::updateE()
             for(int zz = 0; zz < pmlArr_[0].edgei_n_; zz++)
             {
                 array<double,9> zaxArr = pmlArr_[0].zaxEz_end_[zz];
-                // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << zaxArr[4] << "\t" << zaxArr[5] << "\t" << zaxArr[6] << "\t" << zaxArr[7] << "\t" << zaxArr[8] << "\t" << endl;
                 int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
                 int yy_rel = ny_-1-yy;
                 vector<complex<double>> dzstore(nZax, 0.0);
@@ -1466,7 +1434,6 @@ void FDTDField::updateE()
             for(int zz = pmlArr_[0].edgei_n_; zz < pmlArr_[0].zaxEz_end_.size(); zz++)
             {
                 array<double,9> zaxArr = pmlArr_[0].zaxEz_end_[zz];
-                // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << zaxArr[4] << "\t" << zaxArr[5] << "\t" << zaxArr[6] << "\t" << zaxArr[7] << "\t" << zaxArr[8] << "\t" << endl;
                 int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
                 int yy_rel = ny_-1-yy;
                 vector<complex<double>> dzstore(nZax, 0.0);

@@ -23,7 +23,7 @@
         {
             "profile"   : "gaussian",
             "fcen"      : 1.0,
-            "fwidth"    : 1.0,
+            "fwidth"    : 3.0,
             "cutoff"    : 10.00,
             "t_start"   : 0.00,
             "size_y"    : 0.00,
