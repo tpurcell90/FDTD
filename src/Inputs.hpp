@@ -36,6 +36,7 @@ public:
     vector<Source<complex<double>>> srcArr_;
     vector<Detector<complex<double>>> dctArr_;
     vector<UPML<complex<double>>> pmlArr_;
+    std::vector<double> k_point_;
 	//Geometry Will add parameters as I write
 	int n_struct_;
 

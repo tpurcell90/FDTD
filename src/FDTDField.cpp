@@ -48,7 +48,7 @@ FDTDField::FDTDField(programInputs &IP)
     ynEdgeInd_  = 0;
     x0EdgeInd_  = 0;
     xnEdgeInd_  = 0;
-    k_point_    = {1/(nx_*dx_),1/(ny_*dy_)};
+    k_point_    = IP.k_point_;
 
     if(IP.pol_.compare("Hz") == 0 || IP.pol_.compare("Ey") == 0 || IP.pol_.compare("Ex") == 0)
     {

@@ -29,6 +29,11 @@ programInputs::programInputs(std::string fn) : filename_(fn)
     output_base_ = IP.get<string>("CompCell.output", "dtc_out");
     periodic_    = IP.get<bool>("CompCell.PBC", false);
     tMax_        = IP.get<double>("CompCell.tLim",100.0);
+    for (auto& iter : IP.get_child("k-point"))
+    {
+        k_point_.push_back(iter.second.get<double>("X"));
+        k_point_.push_back(iter.second.get<double>("Y"));
+    }
     for (auto& iter : IP.get_child("SourceList"))
     {
         string p = iter.second.get<string>("profile");
