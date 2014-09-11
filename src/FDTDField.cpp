@@ -44,10 +44,11 @@ FDTDField::FDTDField(programInputs &IP)
     precalcPML_ = IP.pmlCalc_;
     periodic_   = IP.periodic_;
     zaxEzList_  = {};
-    y0EdgeInd_   = 0;
-    ynEdgeInd_   = 0;
-    x0EdgeInd_   = 0;
-    xnEdgeInd_   = 0;
+    y0EdgeInd_  = 0;
+    ynEdgeInd_  = 0;
+    x0EdgeInd_  = 0;
+    xnEdgeInd_  = 0;
+    k_point_    = {1/(nx_*dx_),1/(ny_*dy_)};
 
     if(IP.pol_.compare("Hz") == 0 || IP.pol_.compare("Ey") == 0 || IP.pol_.compare("Ex") == 0)
     {
@@ -470,6 +471,13 @@ void FDTDField::ouputField(Detector<complex<double>> d) //iostream as input para
             break;
     }
     outFile.close();
+}
+
+complex<double> FDTDField::per_factor(std::vector<double> r)
+{
+    complex<double> i1(0.0,-1.0);
+    double ip = inner_product(r.begin(),r.end(), k_point_.begin(),0);
+    return exp(i1*ip);
 }
 
 /**
@@ -1151,6 +1159,12 @@ void FDTDField::updateE()
                 eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
                 vector<complex<double>> oppHx(zaxEzList_[kk][2], 0.0);
+                if(periodic_)
+                {
+                    vector<double> r = {zaxEzList_[kk][0] * dx_,(ny_-2)*dy_};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    zaxpy_(zaxEzList_[kk][2], c_kpoint_, &Hx_->point(zaxEzList_[kk][0]  ,ny_-2), 1, oppHx.data(),1);
+                }
                 zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 zaxpy_(zaxEzList_[kk][2],     c_ezh, oppHx.data()                                        , 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
@@ -1162,6 +1176,12 @@ void FDTDField::updateE()
                 eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
                 vector<complex<double>> oppHx(zaxEzList_[kk][2], 0.0);
+                if(periodic_)
+                {
+                    vector<double> r = {zaxEzList_[kk][0] * dx_,0};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    zaxpy_(zaxEzList_[kk][2], c_kpoint_, &Hx_->point(zaxEzList_[kk][0]  ,0), 1, oppHx.data(),1);
+                }
                 zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, oppHx.data()                                        , 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]-1), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
@@ -1196,7 +1216,12 @@ void FDTDField::updateE()
                 int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
                 vector<complex<double>> dzstore(nZax, 0.0);
                 vector<complex<double>> oppHy(nZax, 0.0);
-
+                if(periodic_)
+                {
+                    vector<double> r = {(nx_-2)*dx_, yy * dy_};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    zaxpy_(nZax, c_kpoint_, &Hy_->point(nx_-2, yy), stride_rel, oppHy.data(),1);
+                }
                 zcopy_(nZax, &pmlArr_[0].Dz_ -> point(xx,yy), stride, dzstore.data(), 1);
 
                 zscal_(nZax, zaxArr[4], &pmlArr_[0].Dz_ -> point(xx,yy), stride);
@@ -1238,6 +1263,12 @@ void FDTDField::updateE()
                 int xx_rel = nx_-1-xx;
                 vector<complex<double>> dzstore(nZax, 0.0);
                 vector<complex<double>> oppHy(nZax, 0.0);
+                if(periodic_)
+                {
+                    vector<double> r = {(0)*dx_, yy * dy_};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    zaxpy_(nZax, c_kpoint_, &Hy_->point(0, yy), stride_rel, oppHy.data(),1);
+                }
                 zcopy_(nZax, &pmlArr_[0].Dz_end_ -> point(xx,yy), stride, dzstore.data(), 1);
 
                 zscal_(nZax, zaxArr[4], &pmlArr_[0].Dz_end_ -> point(xx,yy), stride);
@@ -1256,50 +1287,112 @@ void FDTDField::updateE()
                 complex<double> oppHx(0.0,0.0);
                 //Bot Left
                 int xx = ii; int yy = 0;
+                if(periodic_)
+                {
+                    vector<double> r = {(xx)*dx_, (ny_-2) * dy_};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    oppHx = c_kpoint_ * Hx_->point(xx,ny_-2);
+                }
                 complex<double> dzstore = pmlArr_[0].Dz_->point(ii,yy);
                 pmlArr_[0].Dz_->point(ii,yy) = pmlArr_[0].c_ez_0_0_->at(ii).at(0)[0] * pmlArr_[0].Dz_->point(ii,yy) + pmlArr_[0].c_ez_0_0_->at(ii).at(0)[1] * ((Hy_->point(xx,yy)-Hy_->point(xx-1,yy)) - (Hx_->point(xx,yy) - oppHx));
                 Ez_->point(xx,yy) = pmlArr_[0].c_ez_0_0_->at(ii).at(0)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_0_0_->at(ii).at(0)[3] * pmlArr_[0].Dz_->point(ii,yy) - pmlArr_[0].c_ez_0_0_->at(ii).at(0)[4] * dzstore;
 
                 //Top Left
                 xx = ii; yy = ny_-1;
+                if(periodic_)
+                {
+                    vector<double> r = {(xx)*dx_, 0 * dy_};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    oppHx = c_kpoint_ * Hx_->point(xx,0);
+                }
                 dzstore = pmlArr_[0].Dz_->point(ii,yy);
                 pmlArr_[0].Dz_->point(ii,yy) = pmlArr_[0].c_ez_0_n_->at(ii).at(0)[0] * pmlArr_[0].Dz_->point(ii,yy) + pmlArr_[0].c_ez_0_n_->at(ii).at(0)[1] * ((Hy_->point(xx,yy)-Hy_->point(xx-1,yy)) - (oppHx - Hx_->point(xx,yy-1)));
                 Ez_->point(xx,yy) = pmlArr_[0].c_ez_0_n_->at(ii).at(0)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_0_n_->at(ii).at(0)[3] * pmlArr_[0].Dz_->point(ii,yy) - pmlArr_[0].c_ez_0_n_->at(ii).at(0)[4] * dzstore;
 
                 //Top Right
                 xx = nx_- 1 -ii; yy = ny_-1;
+                if(periodic_)
+                {
+                    vector<double> r = {(xx)*dx_, 0 * dy_};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    oppHx = c_kpoint_ * Hx_->point(xx,0);
+                }
                 dzstore = pmlArr_[0].Dz_end_->point(ii,yy);
                 pmlArr_[0].Dz_end_->point(ii,yy) = pmlArr_[0].c_ez_n_n_->at(ii).at(0)[0] * pmlArr_[0].Dz_end_->point(ii,yy) + pmlArr_[0].c_ez_n_n_->at(ii).at(0)[1] * ((Hy_->point(xx,yy)-Hy_->point(xx-1,yy)) - (oppHx - Hx_->point(xx,yy-1)));
                 Ez_->point(xx,yy) = pmlArr_[0].c_ez_n_n_->at(ii).at(0)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_n_n_->at(ii).at(0)[3] * pmlArr_[0].Dz_end_->point(ii,yy) - pmlArr_[0].c_ez_n_n_->at(ii).at(0)[4] * dzstore;
 
                 //Bot Right
                 xx = nx_- 1 -ii; yy = 0;
+                if(periodic_)
+                {
+                    vector<double> r = {(xx)*dx_, (ny_-2) * dy_};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    oppHx = c_kpoint_ * Hx_->point(xx,ny_-2);
+                }
                 dzstore = pmlArr_[0].Dz_end_->point(ii,yy);
                 pmlArr_[0].Dz_end_->point(ii,yy) = pmlArr_[0].c_ez_n_0_->at(ii).at(0)[0] * pmlArr_[0].Dz_end_->point(ii,yy) + pmlArr_[0].c_ez_n_0_->at(ii).at(0)[1] * ((Hy_->point(xx,yy)-Hy_->point(xx-1,yy)) - (Hx_->point(xx,yy) - oppHx));
                 Ez_->point(xx,yy) = pmlArr_[0].c_ez_n_0_->at(ii).at(0)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_n_0_->at(ii).at(0)[3] * pmlArr_[0].Dz_end_->point(ii,yy) - pmlArr_[0].c_ez_n_0_->at(ii).at(0)[4] * dzstore;
             }
             complex<double> oppHx(0.0,0.0);
             complex<double> oppHy(0.0,0.0);
+            complex<double> c_kpoint_(0.0,00);
+            vector<double> r ={0,0};
             //Bot Left
             int xx = 0; int yy = 0;
+            if(periodic_)
+            {
+                r = {(xx)*dx_, (ny_-2) * dy_};
+                c_kpoint_ = per_factor(r);
+                oppHx = c_kpoint_ * Hx_->point(xx,ny_-2);
+                r = {(nx_-2)*dx_, yy * dy_};
+                c_kpoint_ = per_factor(r);
+                oppHy = c_kpoint_ * Hy_->point(nx_-2, yy);
+            }
             complex<double> dzstore = pmlArr_[0].Dz_->point(0,yy);
             pmlArr_[0].Dz_->point(0,yy) = pmlArr_[0].c_ez_0_0_->at(0).at(0)[0] * pmlArr_[0].Dz_->point(0,yy) + pmlArr_[0].c_ez_0_0_->at(0).at(0)[1] * ((Hy_->point(xx,yy) - oppHy) - (Hx_->point(xx,yy) - oppHx));
             Ez_->point(xx,yy) = pmlArr_[0].c_ez_0_0_->at(0).at(0)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_0_0_->at(0).at(0)[3] * pmlArr_[0].Dz_->point(0,yy) - pmlArr_[0].c_ez_0_0_->at(0).at(0)[4] * dzstore;
 
             //Top Left
             xx = 0; yy = ny_-1;
+            if(periodic_)
+            {
+                r = {(xx)*dx_, 0 * dy_};
+                c_kpoint_ = per_factor(r);
+                oppHx = c_kpoint_ * Hx_->point(xx,0);
+                r = {(nx_-2)*dx_, yy * dy_};
+                c_kpoint_ = per_factor(r);
+                oppHy = c_kpoint_ * Hy_->point(nx_-2, yy);
+            }
             dzstore = pmlArr_[0].Dz_->point(0,yy);
             pmlArr_[0].Dz_->point(0,yy) = pmlArr_[0].c_ez_0_n_->at(0).at(0)[0] * pmlArr_[0].Dz_->point(0,yy) + pmlArr_[0].c_ez_0_n_->at(0).at(0)[1] * ((Hy_->point(xx,yy) - oppHy) - (oppHx - Hx_->point(xx,yy-1)));
             Ez_->point(xx,yy) = pmlArr_[0].c_ez_0_n_->at(0).at(0)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_0_n_->at(0).at(0)[3] * pmlArr_[0].Dz_->point(0,yy) - pmlArr_[0].c_ez_0_n_->at(0).at(0)[4] * dzstore;
 
             //Top Right
             xx = nx_- 1; yy = ny_-1;
+            if(periodic_)
+            {
+                r = {(xx)*dx_, 0 * dy_};
+                c_kpoint_ = per_factor(r);
+                oppHx = c_kpoint_ * Hx_->point(xx,0);
+                r = {(0)*dx_, yy * dy_};
+                c_kpoint_ = per_factor(r);
+                oppHy = c_kpoint_ * Hy_->point(0, yy);
+            }
             dzstore = pmlArr_[0].Dz_end_->point(0,yy);
             pmlArr_[0].Dz_end_->point(0,yy) = pmlArr_[0].c_ez_n_n_->at(0).at(0)[0] * pmlArr_[0].Dz_end_->point(0,yy) + pmlArr_[0].c_ez_n_n_->at(0).at(0)[1] * (oppHy - Hy_->point(xx-1,yy) - (oppHx - Hx_->point(xx,yy-1)));
             Ez_->point(xx,yy) = pmlArr_[0].c_ez_n_n_->at(0).at(0)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_n_n_->at(0).at(0)[3] * pmlArr_[0].Dz_end_->point(0,yy) - pmlArr_[0].c_ez_n_n_->at(0).at(0)[4] * dzstore;
 
             //Bot Right
             xx = nx_- 1; yy = 0;
+            if(periodic_)
+            {
+                r = {(xx)*dx_, (ny_-2) * dy_};
+                c_kpoint_ = per_factor(r);
+                oppHx = c_kpoint_ * Hx_->point(xx,ny_-2);
+                r = {(0)*dx_, yy * dy_};
+                c_kpoint_ = per_factor(r);
+                oppHy = c_kpoint_ * Hy_->point(0, yy);
+            }
             dzstore = pmlArr_[0].Dz_end_->point(0,yy);
             pmlArr_[0].Dz_end_->point(0,yy) = pmlArr_[0].c_ez_n_0_->at(0).at(0)[0] * pmlArr_[0].Dz_end_->point(0,yy) + pmlArr_[0].c_ez_n_0_->at(0).at(0)[1] * (oppHy - Hy_->point(xx-1,yy) - (Hx_->point(xx,yy) - oppHx));
             Ez_->point(xx,yy) = pmlArr_[0].c_ez_n_0_->at(0).at(0)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_n_0_->at(0).at(0)[3] * pmlArr_[0].Dz_end_->point(0,yy) - pmlArr_[0].c_ez_n_0_->at(0).at(0)[4] * dzstore;
@@ -1321,6 +1414,12 @@ void FDTDField::updateE()
                 eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
                 vector<complex<double>> oppHy(zaxEzList_[kk][2],0.0);
+                if(periodic_)
+                {
+                    vector<double> r = {(nx_-2) * dx_, zaxEzList_[kk][1] * dy_};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    zaxpy_(zaxEzList_[kk][2], c_kpoint_, &Hy_->point(nx_-2, zaxEzList_[kk][1]), nx_, oppHy.data(),1);
+                }
                 zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), nx_, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),nx_);
                 zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]-1), nx_, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),nx_);
@@ -1332,6 +1431,12 @@ void FDTDField::updateE()
                 eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
                 vector<complex<double>> oppHy(zaxEzList_[kk][2],0.0);
+                if(periodic_)
+                {
+                    vector<double> r = {0 * dx_, zaxEzList_[kk][1] * dy_};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    zaxpy_(zaxEzList_[kk][2], c_kpoint_, &Hy_->point(0, zaxEzList_[kk][1]), nx_, oppHy.data(),1);
+                }
                 zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
                 zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]-1), nx_, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),nx_);
                 zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), nx_, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),nx_);
@@ -1365,7 +1470,12 @@ void FDTDField::updateE()
                 int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
                 vector<complex<double>> dzstore(nZax, 0.0);
                 vector<complex<double>> oppHx(nZax, 0.0);
-
+                if(periodic_)
+                {
+                    vector<double> r = {xx * dx_, (ny_-2) * dy_};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    zaxpy_(nZax, c_kpoint_, &Hx_->point(xx, ny_-2), 1, oppHx.data(),1);
+                }
                 zcopy_(nZax, &pmlArr_[0].Dz_ -> point(xx,yy), 1, dzstore.data(), 1);
 
                 zscal_(nZax, zaxArr[4], &pmlArr_[0].Dz_ -> point(xx,yy), 1);
@@ -1407,6 +1517,12 @@ void FDTDField::updateE()
                 int yy_rel = ny_-1-yy;
                 vector<complex<double>> oppHx(nZax, 0.0);
                 vector<complex<double>> dzstore(nZax, 0.0);
+                if(periodic_)
+                {
+                    vector<double> r = {xx * dx_, 0 * dy_};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    zaxpy_(nZax, c_kpoint_, &Hx_->point(xx, 0), 1, oppHx.data(),1);
+                }
                 zcopy_(nZax, &pmlArr_[0].Dz_end_ -> point(xx,yy), 1, dzstore.data(), 1);
 
                 zscal_(nZax, zaxArr[4], &pmlArr_[0].Dz_end_ -> point(xx,yy), 1);
@@ -1425,24 +1541,48 @@ void FDTDField::updateE()
                 //Bot Left
                 int xx = 0; int yy = ii;
                 complex<double> oppHy(0.0,0.0);
+                if(periodic_)
+                {
+                    vector<double> r = {(nx_-2) * dx_,yy*dy_};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    oppHy = c_kpoint_ * Hy_->point(nx_-2,yy);
+                }
                 complex<double> dzstore = pmlArr_[0].Dz_->point(xx,ii);
                 pmlArr_[0].Dz_->point(xx,ii) = pmlArr_[0].c_ez_0_0_->at(0).at(ii)[0] * pmlArr_[0].Dz_->point(xx,ii) + pmlArr_[0].c_ez_0_0_->at(0).at(ii)[1] * ((Hy_->point(xx,yy) - oppHy) - (Hx_->point(xx,yy) - Hx_->point(xx,yy-1)));
                 Ez_->point(xx,yy) = pmlArr_[0].c_ez_0_0_->at(0).at(ii)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_0_0_->at(0).at(ii)[3] * pmlArr_[0].Dz_->point(xx,ii) - pmlArr_[0].c_ez_0_0_->at(0).at(ii)[4] * dzstore;
 
                 //Top Left
                 xx = 0; yy = ny_-1 - ii;
+                if(periodic_)
+                {
+                    vector<double> r = {(nx_-2) * dx_,yy*dy_};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    oppHy = c_kpoint_ * Hy_->point(nx_-2,yy);
+                }
                 dzstore = pmlArr_[0].Dz_end_->point(xx,ii);
                 pmlArr_[0].Dz_end_->point(xx,ii) = pmlArr_[0].c_ez_n_0_->at(0).at(ii)[0] * pmlArr_[0].Dz_end_->point(xx,ii) + pmlArr_[0].c_ez_n_0_->at(0).at(ii)[1] * ((Hy_->point(xx,yy) - oppHy) - (Hx_->point(xx,yy) - Hx_->point(xx,yy-1)));
                 Ez_->point(xx,yy) = pmlArr_[0].c_ez_n_0_->at(0).at(ii)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_n_0_->at(0).at(ii)[3] * pmlArr_[0].Dz_end_->point(xx,ii) - pmlArr_[0].c_ez_n_0_->at(0).at(ii)[4] * dzstore;
 
                 //Top Right
                 xx = nx_- 1; yy = ny_-1-ii;
+                if(periodic_)
+                {
+                    vector<double> r = {(0) * dx_,yy*dy_};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    oppHy = c_kpoint_ * Hy_->point(0,yy);
+                }
                 dzstore = pmlArr_[0].Dz_end_->point(xx,ii);
                 pmlArr_[0].Dz_end_->point(xx,ii) = pmlArr_[0].c_ez_n_n_->at(0).at(ii)[0] * pmlArr_[0].Dz_end_->point(xx,ii) + pmlArr_[0].c_ez_n_n_->at(0).at(ii)[1] * ((oppHy - Hy_->point(xx-1,yy)) - (Hx_->point(xx,yy) - Hx_->point(xx,yy-1)));
                 Ez_->point(xx,yy) = pmlArr_[0].c_ez_n_n_->at(0).at(ii)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_n_n_->at(0).at(ii)[3] * pmlArr_[0].Dz_end_->point(xx,ii) - pmlArr_[0].c_ez_n_n_->at(0).at(ii)[4] * dzstore;
 
                 //Bot Right
                 xx = nx_- 1; yy = ii;
+                if(periodic_)
+                {
+                    vector<double> r = {(0) * dx_,yy*dy_};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    oppHy = c_kpoint_ * Hy_->point(0,yy);
+                }
                 dzstore = pmlArr_[0].Dz_->point(xx,ii);
                 pmlArr_[0].Dz_->point(xx,ii) = pmlArr_[0].c_ez_0_n_->at(0).at(ii)[0] * pmlArr_[0].Dz_->point(xx,ii) + pmlArr_[0].c_ez_0_n_->at(0).at(ii)[1] * ((oppHy - Hy_->point(xx-1,yy)) - (Hx_->point(xx,yy) - Hx_->point(xx,yy-1)));
                 Ez_->point(xx,yy) = pmlArr_[0].c_ez_0_n_->at(0).at(ii)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_0_n_->at(0).at(ii)[3] * pmlArr_[0].Dz_->point(xx,ii) - pmlArr_[0].c_ez_0_n_->at(0).at(ii)[4] * dzstore;
@@ -1452,24 +1592,60 @@ void FDTDField::updateE()
             int xx = 0; int yy = 0;
             complex<double> oppHy(0.0,0.0);
             complex<double> oppHx(0.0,0.0);
+            if(periodic_)
+            {
+                vector<double> r = {(nx_-2) * dx_,(yy * dy_)};
+                complex<double> c_kpoint_ = per_factor(r);
+                oppHy = c_kpoint_ * Hy_->point(nx_-2,yy);
+                r = {(xx) * dx_,(ny_-2 * dy_)};
+                c_kpoint_ = per_factor(r);
+                oppHx = c_kpoint_ * Hx_->point(xx,ny_-2);
+            }
             complex<double> dzstore = pmlArr_[0].Dz_->point(xx,0);
             pmlArr_[0].Dz_->point(xx,0) = pmlArr_[0].c_ez_0_0_->at(0).at(0)[0] * pmlArr_[0].Dz_->point(xx,0) + pmlArr_[0].c_ez_0_0_->at(0).at(0)[1] * ((Hy_->point(xx,yy) - oppHy) - (Hx_->point(xx,yy) - oppHx));
             Ez_->point(xx,yy) = pmlArr_[0].c_ez_0_0_->at(0).at(0)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_0_0_->at(0).at(0)[3] * pmlArr_[0].Dz_->point(xx,0) - pmlArr_[0].c_ez_0_0_->at(0).at(0)[4] * dzstore;
 
             //Top Left
             xx = 0; yy = ny_-1;
+            if(periodic_)
+            {
+                vector<double> r = {(nx_-2) * dx_,(yy * dy_)};
+                complex<double> c_kpoint_ = per_factor(r);
+                oppHy = c_kpoint_ * Hy_->point(nx_-2,yy);
+                r = {(xx) * dx_,0};
+                c_kpoint_ = per_factor(r);
+                oppHx = c_kpoint_ * Hx_->point(xx,0);
+            }
             dzstore = pmlArr_[0].Dz_end_->point(xx,0);
             pmlArr_[0].Dz_end_->point(xx,0) = pmlArr_[0].c_ez_n_0_->at(0).at(0)[0] * pmlArr_[0].Dz_end_->point(xx,0) + pmlArr_[0].c_ez_n_0_->at(0).at(0)[1] * ((Hy_->point(xx,yy) - oppHy) - (oppHx - Hx_->point(xx,yy-1)));
             Ez_->point(xx,yy) = pmlArr_[0].c_ez_n_0_->at(0).at(0)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_n_0_->at(0).at(0)[3] * pmlArr_[0].Dz_end_->point(xx,0) - pmlArr_[0].c_ez_n_0_->at(0).at(0)[4] * dzstore;
 
             //Top Right
             xx = nx_- 1; yy = ny_-1;
+            if(periodic_)
+            {
+                vector<double> r = {(0) * dx_,(yy * dy_)};
+                complex<double> c_kpoint_ = per_factor(r);
+                oppHy = c_kpoint_ * Hy_->point(0,yy);
+                r = {(xx) * dx_,0};
+                c_kpoint_ = per_factor(r);
+                oppHx = c_kpoint_ * Hx_->point(xx,0);
+            }
             dzstore = pmlArr_[0].Dz_end_->point(xx,0);
             pmlArr_[0].Dz_end_->point(xx,0) = pmlArr_[0].c_ez_n_n_->at(0).at(0)[0] * pmlArr_[0].Dz_end_->point(xx,0) + pmlArr_[0].c_ez_n_n_->at(0).at(0)[1] * (oppHy - Hy_->point(xx-1,yy) - (oppHx - Hx_->point(xx,yy-1)));
             Ez_->point(xx,yy) = pmlArr_[0].c_ez_n_n_->at(0).at(0)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_n_n_->at(0).at(0)[3] * pmlArr_[0].Dz_end_->point(xx,0) - pmlArr_[0].c_ez_n_n_->at(0).at(0)[4] * dzstore;
 
             //Bot Right
             xx = nx_- 1; yy = 0;
+            if(periodic_)
+            {
+                vector<double> r = {(0) * dx_,(yy * dy_)};
+                complex<double> c_kpoint_ = per_factor(r);
+                oppHy = c_kpoint_ * Hy_->point(0,yy);
+                r = {(xx) * dx_,(ny_-2 * dy_)};
+                c_kpoint_ = per_factor(r);
+                oppHx = c_kpoint_ * Hx_->point(xx,ny_-2);
+            }
             dzstore = pmlArr_[0].Dz_->point(xx,0);
             pmlArr_[0].Dz_->point(xx,0) = pmlArr_[0].c_ez_0_n_->at(0).at(0)[0] * pmlArr_[0].Dz_->point(xx,0) + pmlArr_[0].c_ez_0_n_->at(0).at(0)[1] * (oppHy - Hy_->point(xx-1,yy) - (Hx_->point(xx,yy) - oppHx));
             Ez_->point(xx,yy) = pmlArr_[0].c_ez_0_n_->at(0).at(0)[2] * Ez_->point(xx,yy) + pmlArr_[0].c_ez_0_n_->at(0).at(0)[3] * pmlArr_[0].Dz_->point(xx,0) - pmlArr_[0].c_ez_0_n_->at(0).at(0)[4] * dzstore;
@@ -1492,6 +1668,12 @@ void FDTDField::updateE()
                 eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
                 vector<complex<double>> oppHx(zaxEzList_[kk][2],0.0);
+                if(periodic_)
+                {
+                    vector<double> r = {zaxEzList_[kk][0] * dx_, (ny_-2) * dy_};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    zaxpy_(zaxEzList_[kk][2], c_kpoint_, &Hx_->point(zaxEzList_[kk][0], ny_-2), 1, oppHx.data(),1);
+                }
                 zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
 
                 zaxpy_(zaxEzList_[kk][2],     c_ezh, oppHx.data()                                        , 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
@@ -1504,6 +1686,12 @@ void FDTDField::updateE()
                 eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
                 vector<complex<double>> oppHx(zaxEzList_[kk][2],0.0);
+                if(periodic_)
+                {
+                    vector<double> r = {zaxEzList_[kk][0] * dx_, (0) * dy_};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    zaxpy_(zaxEzList_[kk][2], c_kpoint_, &Hx_->point(zaxEzList_[kk][0], 0), 1, oppHx.data(),1);
+                }
                 zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
 
                 zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]-1), 1, &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
@@ -1516,6 +1704,12 @@ void FDTDField::updateE()
                 eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
                 vector<complex<double>> oppHy(zaxEzList_[kk][2],0.0);
+                if(periodic_)
+                {
+                    vector<double> r = {(nx_-2) * dx_, zaxEzList_[kk][1] * dy_};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    zaxpy_(zaxEzList_[kk][2], c_kpoint_, &Hy_->point(nx_-2,zaxEzList_[kk][1]), nx_, oppHy.data(),1);
+                }
                 zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
 
                 zaxpy_(zaxEzList_[kk][2],-1.0*c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]  ), nx_,   &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),nx_);
@@ -1528,6 +1722,12 @@ void FDTDField::updateE()
                 eps = objArr_[zaxEzList_[kk][3]].dielectric(1.0);
                 c_ezh = dt_/(eps*dx_);
                 vector<complex<double>> oppHy(zaxEzList_[kk][2],0.0);
+                if(periodic_)
+                {
+                    vector<double> r = {(0) * dx_, zaxEzList_[kk][1] * dy_};
+                    complex<double> c_kpoint_ = per_factor(r);
+                    zaxpy_(zaxEzList_[kk][2], c_kpoint_, &Hy_->point(0,zaxEzList_[kk][1]), nx_, oppHy.data(),1);
+                }
                 zscal_(zaxEzList_[kk][2], c_eze, &Ez_ ->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),1);
 
                 zaxpy_(zaxEzList_[kk][2],     c_ezh, &Hx_->point(zaxEzList_[kk][0]  ,zaxEzList_[kk][1]-1), nx_,   &Ez_->point(zaxEzList_[kk][0],zaxEzList_[kk][1]),nx_);
@@ -1539,15 +1739,51 @@ void FDTDField::updateE()
             complex<double> oppHx(0.0,0.0);
             eps = objArr_[phys_Ez_->point(0,0)].dielectric(1.0);
             c_ezh = dt_/(eps*dx_);
+            if(periodic_)
+            {
+                vector<double> r = {(nx_-2) * dx_, (0) * dy_};
+                complex<double> c_kpoint_ = per_factor(r);
+                oppHy = c_kpoint_ * Hy_->point(nx_-2,0);
+                r = {(0) * dx_, (ny_-2) * dy_};
+                c_kpoint_ = per_factor(r);
+                oppHx = c_kpoint_ * Hx_->point(0,ny_-2);
+            }
             Ez_->point(0,0) = c_eze * Ez_->point(0,0) + c_ezh * ((Hy_->point(0,0) - oppHy) - (Hx_->point(0,0) - oppHx));
             eps = objArr_[phys_Ez_->point(0,ny_-1)].dielectric(1.0);
             c_ezh = dt_/(eps*dx_);
+            if(periodic_)
+            {
+                vector<double> r = {(nx_-2) * dx_, (ny_-1) * dy_};
+                complex<double> c_kpoint_ = per_factor(r);
+                oppHy = c_kpoint_ * Hy_->point(nx_-2,ny_-1);
+                r = {(0) * dx_, (0) * dy_};
+                c_kpoint_ = per_factor(r);
+                oppHx = c_kpoint_ * Hx_->point(0,0);
+            }
             Ez_->point(0,ny_-1) = c_eze * Ez_->point(0,ny_-1) + c_ezh * ((Hy_->point(0,ny_-1) - oppHy) - (oppHx - Hx_->point(0,ny_-1-1)));
             eps = objArr_[phys_Ez_->point(nx_-1,0)].dielectric(1.0);
             c_ezh = dt_/(eps*dx_);
+            if(periodic_)
+            {
+                vector<double> r = {(0) * dx_, (0) * dy_};
+                complex<double> c_kpoint_ = per_factor(r);
+                oppHy = c_kpoint_ * Hy_->point(0,0);
+                r = {(nx_-1) * dx_, (ny_-2) * dy_};
+                c_kpoint_ = per_factor(r);
+                oppHx = c_kpoint_ * Hx_->point(nx_-1,ny_-2);
+            }
             Ez_->point(nx_-1,0) = c_eze * Ez_->point(nx_-1,0) + c_ezh * ((oppHy - Hy_->point(nx_-1-1,0)) - (Hx_->point(nx_-1,0) - oppHx));
             eps = objArr_[phys_Ez_->point(nx_-1,ny_-1)].dielectric(1.0);
             c_ezh = dt_/(eps*dx_);
+            if(periodic_)
+            {
+                vector<double> r = {(0) * dx_, (ny_-1) * dy_};
+                complex<double> c_kpoint_ = per_factor(r);
+                oppHy = c_kpoint_ * Hy_->point(0,ny_-1);
+                r = {(nx_-1) * dx_, (0) * dy_};
+                c_kpoint_ = per_factor(r);
+                oppHx = c_kpoint_ * Hx_->point(nx_-1,0);
+            }
             Ez_->point(nx_-1,ny_-1) = c_eze * Ez_->point(nx_-1,ny_-1) + c_ezh * ((oppHy - Hy_->point(nx_-1-1,ny_-1)) - (oppHx - Hx_->point(nx_-1,ny_-1-1)));
         }
     }

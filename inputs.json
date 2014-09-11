@@ -2,17 +2,15 @@
     "CompCell" : {
         "procs"         : 1,
         "y_size"        : 15.0,
-        "x_size"        : 20.0,
+        "x_size"        : 60.0,
         "z_size"        : 0.0,
         "res"           : 20,
-        "courant"       : 0.5,
-        "tLim"          : 500.0
+        "courant"       : 0.1,
+        "tLim"          : 2000.0,
+        "PBC"           : "false"
     },
     "PML" :  [
-        {
-            "thickness" : 5.0,
-            "direction" : "X"
-        }
+
     ],
     "SourceList"  : [
 
@@ -25,7 +23,7 @@
             "size_x"    : 0.00,
             "size_y"    : 15.00,
             "pol"       : "Ez",
-            "loc_x"     : -4.00,
+            "loc_x"     : -30.00,
             "loc_y"     : 0.00
         }
     ],
@@ -36,7 +34,7 @@
             "loc_y"     : 0.00,
             "size_x"    : 8.0,
             "size_y"    : 50.00,
-            "eps"       : 9.00,
+            "eps"       : 1.00,
             "pols"      : [
 
 
@@ -44,16 +42,9 @@
         }
     ],
     "DetectorList"  : [
+
         {
-            "loc_x"     : -3.50,
-            "loc_y"     : 0.00,
-            "size_x"    : 0.00,
-            "size_y"    : 0.00,
-            "type"      : "field",
-            "pol"       : "Ez"
-        },
-        {
-            "loc_x"     : 3.50,
+            "loc_x"     : 0.00,
             "loc_y"     : 0.00,
             "size_x"    : 0.00,
             "size_y"    : 0.00,

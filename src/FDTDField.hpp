@@ -34,6 +34,7 @@ protected:
     bool precalcPML_;
     std::vector<std::array<int,4>> zaxEzList_;
     int y0EdgeInd_, x0EdgeInd_, ynEdgeInd_, xnEdgeInd_;
+    std::vector<double> k_point_;
 
 
 public:
@@ -65,6 +66,7 @@ public:
     void updateH();
     void updateE();
     std::vector<double> pml(int npml, int m, int ma);
+    std::complex<double> per_factor(std::vector<double> r);
 };
 
 #endif
