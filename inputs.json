@@ -16,10 +16,6 @@
         }
     ],
     "PML" :  [
-        {
-            "direction" : "X",
-            "thickness" : 5.0
-        }
 
     ],
     "SourceList"  : [
