@@ -33,6 +33,8 @@ protected:
     bool periodic_;
     bool precalcPML_;
     std::vector<std::array<int,4>> zaxEzList_;
+    std::vector<std::array<int,4>> zaxExList_;
+    std::vector<std::array<int,4>> zaxEyList_;
     int y0EdgeInd_, x0EdgeInd_, ynEdgeInd_, xnEdgeInd_;
     std::vector<double> k_point_;
 
