@@ -62,7 +62,7 @@
             "size_y"    : 0.00,
             "size_x"    : 0.00,
             "type"      : "field",
-            "pol"       : "Ez"
+            "pol"       : "Ex"
         }
     ]
 }

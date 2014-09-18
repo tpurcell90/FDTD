@@ -36,7 +36,7 @@ protected:
 
 
 public:
-    std::shared_ptr<Grid2D<T>> Dx_,Dy,Dz_,Bx_,By_,Bz_,Dx_end_,Dyend_,Dz_end_,Bx_end_,By_end_,Bz_end_;
+    std::shared_ptr<Grid2D<T>> Dx_,Dy_,Dz_,Bx_,By_,Bz_,Dx_end_,Dy_end_,Dz_end_,Bx_end_,By_end_,Bz_end_;
     std::shared_ptr<Grid2D<int>> phys_Hx_,phys_Hy_,phys_Hz_, phys_Hx_end_,phys_Hy_end_,phys_Hz_end_,phys_Ex_,phys_Ey_,phys_Ez_, phys_Ex_end_,phys_Ey_end_,phys_Ez_end_;
 
     std::shared_ptr<std::vector<std::vector<std::array<double,5>>>> c_hx_0_0_, c_hy_0_0_, c_ez_0_0_, c_hx_n_0_, c_hy_n_0_, c_ez_n_0_;
@@ -94,10 +94,10 @@ public:
         if(pol == EX || pol == EY || pol == HZ)
         {
             Dx_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
-            Dy = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
+            Dy_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
             Bz_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
             Dx_end_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
-            Dyend_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
+            Dy_end_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
             Bz_end_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
 
             Bx_ = nullptr;
@@ -171,14 +171,14 @@ public:
             By_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
             Dz_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
             Dx_ = nullptr;
-            Dy = nullptr;
+            Dy_ = nullptr;
             Bz_ = nullptr;
 
             Bx_end_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
             By_end_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
             Dz_end_ = std::make_shared<Grid2D<T>>(xmax,ymax,dx,dy);
             Dx_end_ = nullptr;
-            Dyend_ = nullptr;
+            Dy_end_ = nullptr;
             Bz_end_ = nullptr;
 
             phys_Hz_ = nullptr;
