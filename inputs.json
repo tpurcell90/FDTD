@@ -6,7 +6,7 @@
         "z_size"        : 0.0,
         "res"           : 20,
         "courant"       : 0.5,
-        "tLim"          : 200.0,
+        "tLim"          : 6000.0,
         "PBC"           : "true"
     },
     "k-point"           : [
@@ -16,14 +16,7 @@
         }
     ],
     "PML" :  [
-        {
-            "thickness" : 5.00,
-            "direction" : "X"
-        },
-        {
-            "thickness" : 5.00,
-            "direction" : "Y"
-        }
+
     ],
     "SourceList"  : [
 
