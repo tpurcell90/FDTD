@@ -1507,7 +1507,7 @@ void FDTDField::updateH()
                 vector<double> r = {(0) * dx_,yPML_ * dy_};
                 complex<double> c_kpoint_ = per_factor(r);
                 zaxpy_(ny_-2*yPML_, c_kpoint_, &Ey_->point(0, yPML_), nx_, oppEy.data(),1);
-                zaxpy_(ny_-2*yPML_,-1.0*c_hze, oppEy.data()               , 1  , &Hz_ ->point(yPML_,0),nx_);
+                zaxpy_(ny_-2*yPML_,-1.0*c_hze, oppEy.data()               , 1  , &Hz_ ->point(nx_-1,yPML_),nx_);
             }
             zaxpy_(ny_-2*yPML_,      c_hze, &Ey_->point(nx_-2, yPML_)  , nx_, &Hz_ ->point(nx_-1,yPML_),nx_);
             zaxpy_(ny_-2*yPML_, -1.0*c_hze, &Ex_->point(nx_-1, yPML_-1), nx_, &Hz_ ->point(nx_-1,yPML_),nx_);
@@ -1543,11 +1543,11 @@ void FDTDField::updateH()
                 zscal_(nZax, zaxArr[6],             &Hz_ -> point(xx,yy), 1);
 
                 zaxpy_(nZax,     zaxArr[5], &Ex_->point(xx  ,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
+                zaxpy_(nZax,     zaxArr[5], &Ey_->point(xx-1,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
                 zaxpy_(nZax,-1.0*zaxArr[5], &Ey_->point(xx  ,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
-                zaxpy_(nZax,-    zaxArr[5], &Ey_->point(xx-1,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
 
                 zaxpy_(nZax,      zaxArr[7], &pmlArr_[0].Bz_ -> point(xx,yy), 1, &Hz_ -> point(xx,yy), 1);
-                zaxpy_(nZax, -1.0*zaxArr[8], bzstore.data()                  , 1, &Hz_ -> point(xx,yy), 1);
+                zaxpy_(nZax, -1.0*zaxArr[8], bzstore.data()                 , 1, &Hz_ -> point(xx,yy), 1);
             }
             for(int zz = 0; zz < pmlArr_[0].edgei_n_; zz++)
             {
