@@ -616,7 +616,7 @@ void FDTDField::ouputField(Detector<complex<double>> d) //iostream as input para
             cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ex_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
             break;
         case EY:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ey_,eps).real()<< srcArr_[0].prof().pulse(t_step_).real() << endl;
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ey_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
             cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ey_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
             break;
         default:
@@ -1270,36 +1270,36 @@ void FDTDField::updateH()
             for(int jj = 1; jj < ny_ - 1; jj ++)
             {
                 zscal_(nx_-2*xPML_,      c_hzh, &Hz_->point(xPML_  ,jj  ), 1);
-                zaxpy_(nx_-2*xPML_, -1.0*c_hze, &Ey_->point(xPML_-1,jj  ), 1, &Hz_ ->point(xPML_,jj),1);
-                zaxpy_(nx_-2*xPML_,      c_hze, &Ey_->point(xPML_  ,jj  ), 1, &Hz_ ->point(xPML_,jj),1);
-                zaxpy_(nx_-2*xPML_,      c_hze, &Ex_->point(xPML_  ,jj-1), 1, &Hz_ ->point(xPML_,jj),1);
-                zaxpy_(nx_-2*xPML_, -1.0*c_hze, &Ex_->point(xPML_  ,jj  ), 1, &Hz_ ->point(xPML_,jj),1);
+                zaxpy_(nx_-2*xPML_,      c_hze, &Ey_->point(xPML_-1,jj  ), 1, &Hz_ ->point(xPML_,jj),1);
+                zaxpy_(nx_-2*xPML_, -1.0*c_hze, &Ey_->point(xPML_  ,jj  ), 1, &Hz_ ->point(xPML_,jj),1);
+                zaxpy_(nx_-2*xPML_, -1.0*c_hze, &Ex_->point(xPML_  ,jj-1), 1, &Hz_ ->point(xPML_,jj),1);
+                zaxpy_(nx_-2*xPML_,      c_hze, &Ex_->point(xPML_  ,jj  ), 1, &Hz_ ->point(xPML_,jj),1);
             }
-            zscal_(nx_-2*xPML_,      c_hzh, &Hz_->point(xPML_,0), 1);
+            zscal_(nx_-2*xPML_,c_hzh, &Hz_->point(xPML_,0), 1);
             if(periodic_)
             {
-                vector<complex<double>> oppEx(ny_-2*yPML_,0.0);
-                vector<double> r = {(nx_-2) * dx_,yPML_ * dy_};
+                vector<complex<double>> oppEx(nx_-2*xPML_,0.0);
+                vector<double> r = {xPML_ * dx_,ny_-2 * dy_};
                 complex<double> c_kpoint_ = per_factor(r);
                 zaxpy_(nx_-2*xPML_, c_kpoint_, &Ex_->point(xPML_,ny_-2), 1, oppEx.data()         ,1);
-                zaxpy_(nx_-2*xPML_, c_hze    , oppEx.data()            , 1, &Hz_ ->point(xPML_,0),1);
+                zaxpy_(nx_-2*xPML_, -1.0*c_hze    , oppEx.data()            , 1, &Hz_ ->point(xPML_,0),1);
             }
-            zaxpy_(nx_-2*xPML_,      c_hze, &Ey_->point(xPML_  , 0)  , 1, &Hz_ ->point(xPML_,0),1);
-            zaxpy_(nx_-2*xPML_, -1.0*c_hze, &Ey_->point(xPML_-1, 0)  , 1, &Hz_ ->point(xPML_,0),1);
-            zaxpy_(nx_-2*xPML_, -1.0*c_hze, &Ex_->point(xPML_  , 0)  , 1, &Hz_ ->point(xPML_,0),1);
+            zaxpy_(nx_-2*xPML_, -1.0*c_hze, &Ey_->point(xPML_  , 0)  , 1, &Hz_ ->point(xPML_,0),1);
+            zaxpy_(nx_-2*xPML_,      c_hze, &Ey_->point(xPML_-1, 0)  , 1, &Hz_ ->point(xPML_,0),1);
+            zaxpy_(nx_-2*xPML_,      c_hze, &Ex_->point(xPML_  , 0)  , 1, &Hz_ ->point(xPML_,0),1);
 
             zscal_(nx_-2*xPML_,      c_hzh, &Hz_->point(xPML_,ny_-1), 1);
             if(periodic_)
             {
                 vector<complex<double>> oppEx(nx_-2*xPML_,0.0);
-                vector<double> r = {(0) * dx_,yPML_ * dy_};
+                vector<double> r = {(xPML_) * dx_,0 * dy_};
                 complex<double> c_kpoint_ = per_factor(r);
-                zaxpy_(nx_-2*xPML_, c_kpoint_ , &Ex_->point(0, 0), 1, oppEx.data(),1);
-                zaxpy_(nx_-2*xPML_, -1.0*c_hze,  oppEx.data()           , 1, &Hz_ ->point(xPML_,ny_-1),1);
+                zaxpy_(nx_-2*xPML_, c_kpoint_ , &Ex_->point(xPML_, 0), 1, oppEx.data(),1);
+                zaxpy_(nx_-2*xPML_, c_hze,  oppEx.data()           , 1, &Hz_ ->point(xPML_,ny_-1),1);
             }
-            zaxpy_(nx_-2*xPML_, -1.0*c_hze, &Ey_->point(xPML_-1, ny_-1)  , 1, &Hz_ ->point(xPML_,ny_-1),1);
-            zaxpy_(nx_-2*xPML_,      c_hze, &Ey_->point(xPML_  , ny_-1)  , 1, &Hz_ ->point(xPML_,ny_-1),1);
-            zaxpy_(nx_-2*xPML_,      c_hze, &Ex_->point(xPML_  , ny_-2)  , 1, &Hz_ ->point(xPML_,ny_-1),1);
+            zaxpy_(nx_-2*xPML_,      c_hze, &Ey_->point(xPML_-1, ny_-1)  , 1, &Hz_ ->point(xPML_,ny_-1),1);
+            zaxpy_(nx_-2*xPML_, -1.0*c_hze, &Ey_->point(xPML_  , ny_-1)  , 1, &Hz_ ->point(xPML_,ny_-1),1);
+            zaxpy_(nx_-2*xPML_, -1.0*c_hze, &Ex_->point(xPML_  , ny_-2)  , 1, &Hz_ ->point(xPML_,ny_-1),1);
 
             //PML
             int stride = pmlArr_[0].thickness(); int stride_rel = nx_;
@@ -1309,14 +1309,13 @@ void FDTDField::updateH()
                 int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
                 vector<complex<double>> bzstore(nZax, 0.0);
                 zcopy_(nZax, &pmlArr_[0].Bz_ -> point(xx,yy), stride, bzstore.data(), 1);
-
                 zscal_(nZax, zaxArr[4], &pmlArr_[0].Bz_ -> point(xx,yy), stride);
                 zscal_(nZax, zaxArr[6],             &Hz_ -> point(xx,yy), stride_rel);
 
-                zaxpy_(nZax,-1.0*zaxArr[5], &Ex_->point(xx  ,yy  ), stride_rel, &pmlArr_[0].Bz_->point(xx,yy), stride);
-                zaxpy_(nZax,     zaxArr[5], &Ex_->point(xx  ,yy-1), stride_rel, &pmlArr_[0].Bz_->point(xx,yy), stride);
-                zaxpy_(nZax,-1.0*zaxArr[5], &Ey_->point(xx-1,yy  ), stride_rel, &pmlArr_[0].Bz_->point(xx,yy), stride);
-                zaxpy_(nZax,     zaxArr[5], &Ey_->point(xx  ,yy  ), stride_rel, &pmlArr_[0].Bz_->point(xx,yy), stride);
+                zaxpy_(nZax,     zaxArr[5], &Ex_->point(xx  ,yy  ), stride_rel, &pmlArr_[0].Bz_->point(xx,yy), stride);
+                zaxpy_(nZax,-1.0*zaxArr[5], &Ex_->point(xx  ,yy-1), stride_rel, &pmlArr_[0].Bz_->point(xx,yy), stride);
+                zaxpy_(nZax,     zaxArr[5], &Ey_->point(xx-1,yy  ), stride_rel, &pmlArr_[0].Bz_->point(xx,yy), stride);
+                zaxpy_(nZax,-1.0*zaxArr[5], &Ey_->point(xx  ,yy  ), stride_rel, &pmlArr_[0].Bz_->point(xx,yy), stride);
 
                 zaxpy_(nZax,      zaxArr[7], &pmlArr_[0].Bz_ -> point(xx,yy), stride, &Hz_ -> point(xx,yy), stride_rel);
                 zaxpy_(nZax, -1.0*zaxArr[8], bzstore.data()                  , 1     , &Hz_ -> point(xx,yy), stride_rel);
@@ -1331,9 +1330,9 @@ void FDTDField::updateH()
                 zscal_(nZax, zaxArr[4], &pmlArr_[0].Bz_ -> point(xx,yy), stride);
                 zscal_(nZax, zaxArr[6],             &Hz_ -> point(xx,yy), stride_rel);
 
-                zaxpy_(nZax,-1.0*zaxArr[5], &Ex_->point(xx  ,yy  ), stride_rel, &pmlArr_[0].Bz_->point(xx,yy), stride);
-                zaxpy_(nZax,     zaxArr[5], &Ex_->point(xx  ,yy-1), stride_rel, &pmlArr_[0].Bz_->point(xx,yy), stride);
-                zaxpy_(nZax,     zaxArr[5], &Ey_->point(xx  ,yy  ), stride_rel, &pmlArr_[0].Bz_->point(xx,yy), stride);
+                zaxpy_(nZax,     zaxArr[5], &Ex_->point(xx  ,yy  ), stride_rel, &pmlArr_[0].Bz_->point(xx,yy), stride);
+                zaxpy_(nZax,-1.0*zaxArr[5], &Ex_->point(xx  ,yy-1), stride_rel, &pmlArr_[0].Bz_->point(xx,yy), stride);
+                zaxpy_(nZax,-1.0*zaxArr[5], &Ey_->point(xx  ,yy  ), stride_rel, &pmlArr_[0].Bz_->point(xx,yy), stride);
 
                 zaxpy_(nZax,      zaxArr[7], &pmlArr_[0].Bz_ -> point(xx,yy), stride, &Hz_ -> point(xx,yy), stride_rel);
                 zaxpy_(nZax, -1.0*zaxArr[8], bzstore.data()                  , 1     , &Hz_ -> point(xx,yy), stride_rel);
@@ -1349,10 +1348,10 @@ void FDTDField::updateH()
                 zscal_(nZax, zaxArr[4], &pmlArr_[0].Bz_end_ -> point(xx,yy), stride);
                 zscal_(nZax, zaxArr[6],             &Hz_ -> point(xx_rel,yy), stride_rel);
 
-                zaxpy_(nZax,-1.0*zaxArr[5], &Ex_->point(xx_rel  ,yy  ), stride_rel, &pmlArr_[0].Bz_end_->point(xx,yy), stride);
-                zaxpy_(nZax,     zaxArr[5], &Ex_->point(xx_rel  ,yy-1), stride_rel, &pmlArr_[0].Bz_end_->point(xx,yy), stride);
-                zaxpy_(nZax,-1.0*zaxArr[5], &Ey_->point(xx_rel-1,yy  ), stride_rel, &pmlArr_[0].Bz_end_->point(xx,yy), stride);
-                zaxpy_(nZax,     zaxArr[5], &Ey_->point(xx_rel  ,yy  ), stride_rel, &pmlArr_[0].Bz_end_->point(xx,yy), stride);
+                zaxpy_(nZax,     zaxArr[5], &Ex_->point(xx_rel  ,yy  ), stride_rel, &pmlArr_[0].Bz_end_->point(xx,yy), stride);
+                zaxpy_(nZax,-1.0*zaxArr[5], &Ex_->point(xx_rel  ,yy-1), stride_rel, &pmlArr_[0].Bz_end_->point(xx,yy), stride);
+                zaxpy_(nZax,     zaxArr[5], &Ey_->point(xx_rel-1,yy  ), stride_rel, &pmlArr_[0].Bz_end_->point(xx,yy), stride);
+                zaxpy_(nZax,-1.0*zaxArr[5], &Ey_->point(xx_rel  ,yy  ), stride_rel, &pmlArr_[0].Bz_end_->point(xx,yy), stride);
 
                 zaxpy_(nZax,      zaxArr[7], &pmlArr_[0].Bz_end_ -> point(xx,yy), stride, &Hz_ -> point(xx_rel,yy), stride_rel);
                 zaxpy_(nZax, -1.0*zaxArr[8], bzstore.data()                  , 1     , &Hz_ -> point(xx_rel,yy), stride_rel);
@@ -1368,9 +1367,9 @@ void FDTDField::updateH()
                 zscal_(nZax, zaxArr[4], &pmlArr_[0].Bz_end_ -> point(xx,yy), stride);
                 zscal_(nZax, zaxArr[6],             &Hz_ -> point(xx_rel,yy), stride_rel);
 
-                zaxpy_(nZax,-1.0*zaxArr[5], &Ex_->point(xx_rel  ,yy  ), stride_rel, &pmlArr_[0].Bz_end_->point(xx,yy), stride);
-                zaxpy_(nZax,     zaxArr[5], &Ex_->point(xx_rel  ,yy-1), stride_rel, &pmlArr_[0].Bz_end_->point(xx,yy), stride);
-                zaxpy_(nZax,-1.0*zaxArr[5], &Ey_->point(xx_rel-1,yy  ), stride_rel, &pmlArr_[0].Bz_end_->point(xx,yy), stride);
+                zaxpy_(nZax,     zaxArr[5], &Ex_->point(xx_rel  ,yy  ), stride_rel, &pmlArr_[0].Bz_end_->point(xx,yy), stride);
+                zaxpy_(nZax,-1.0*zaxArr[5], &Ex_->point(xx_rel  ,yy-1), stride_rel, &pmlArr_[0].Bz_end_->point(xx,yy), stride);
+                zaxpy_(nZax,     zaxArr[5], &Ey_->point(xx_rel-1,yy  ), stride_rel, &pmlArr_[0].Bz_end_->point(xx,yy), stride);
 
                 zaxpy_(nZax,      zaxArr[7], &pmlArr_[0].Bz_end_ -> point(xx,yy), stride, &Hz_ -> point(xx_rel,yy), stride_rel);
                 zaxpy_(nZax, -1.0*zaxArr[8], bzstore.data()                  , 1     , &Hz_ -> point(xx_rel,yy), stride_rel);
@@ -1387,7 +1386,7 @@ void FDTDField::updateH()
                     oppEx = c_kpoint_ * Ex_->point(xx,ny_-2);
                 }
                 complex<double> bzstore = pmlArr_[0].Bz_->point(ii,yy);
-                pmlArr_[0].Bz_->point(ii,yy) = pmlArr_[0].c_hz_0_0_->at(ii).at(0)[0] * pmlArr_[0].Bz_->point(ii,yy) + pmlArr_[0].c_hz_0_0_->at(ii).at(0)[1] * ((Ey_->point(xx,yy)-Ey_->point(xx-1,yy)) - (Ex_->point(xx,yy) - oppEx));
+                pmlArr_[0].Bz_->point(ii,yy) = pmlArr_[0].c_hz_0_0_->at(ii).at(0)[0] * pmlArr_[0].Bz_->point(ii,yy) - pmlArr_[0].c_hz_0_0_->at(ii).at(0)[1] * ((Ey_->point(xx,yy)-Ey_->point(xx-1,yy)) - (Ex_->point(xx,yy) - oppEx));
                 Hz_->point(xx,yy) = pmlArr_[0].c_hz_0_0_->at(ii).at(0)[2] * Hz_->point(xx,yy) + pmlArr_[0].c_hz_0_0_->at(ii).at(0)[3] * pmlArr_[0].Bz_->point(ii,yy) - pmlArr_[0].c_hz_0_0_->at(ii).at(0)[4] * bzstore;
 
                 //Top Left
@@ -1399,7 +1398,7 @@ void FDTDField::updateH()
                     oppEx = c_kpoint_ * Ex_->point(xx,0);
                 }
                 bzstore = pmlArr_[0].Bz_->point(ii,yy);
-                pmlArr_[0].Bz_->point(ii,yy) = pmlArr_[0].c_hz_0_n_->at(ii).at(0)[0] * pmlArr_[0].Bz_->point(ii,yy) + pmlArr_[0].c_hz_0_n_->at(ii).at(0)[1] * ((Ey_->point(xx,yy)-Ey_->point(xx-1,yy)) - (oppEx - Ex_->point(xx,yy-1)));
+                pmlArr_[0].Bz_->point(ii,yy) = pmlArr_[0].c_hz_0_n_->at(ii).at(0)[0] * pmlArr_[0].Bz_->point(ii,yy) - pmlArr_[0].c_hz_0_n_->at(ii).at(0)[1] * ((Ey_->point(xx,yy)-Ey_->point(xx-1,yy)) - (oppEx - Ex_->point(xx,yy-1)));
                 Hz_->point(xx,yy) = pmlArr_[0].c_hz_0_n_->at(ii).at(0)[2] * Hz_->point(xx,yy) + pmlArr_[0].c_hz_0_n_->at(ii).at(0)[3] * pmlArr_[0].Bz_->point(ii,yy) - pmlArr_[0].c_hz_0_n_->at(ii).at(0)[4] * bzstore;
 
                 //Top Right
@@ -1411,7 +1410,7 @@ void FDTDField::updateH()
                     oppEx = c_kpoint_ * Ex_->point(xx,0);
                 }
                 bzstore = pmlArr_[0].Bz_end_->point(ii,yy);
-                pmlArr_[0].Bz_end_->point(ii,yy) = pmlArr_[0].c_hz_n_n_->at(ii).at(0)[0] * pmlArr_[0].Bz_end_->point(ii,yy) + pmlArr_[0].c_hz_n_n_->at(ii).at(0)[1] * ((Ey_->point(xx,yy)-Ey_->point(xx-1,yy)) - (oppEx - Ex_->point(xx,yy-1)));
+                pmlArr_[0].Bz_end_->point(ii,yy) = pmlArr_[0].c_hz_n_n_->at(ii).at(0)[0] * pmlArr_[0].Bz_end_->point(ii,yy) - pmlArr_[0].c_hz_n_n_->at(ii).at(0)[1] * ((Ey_->point(xx,yy)-Ey_->point(xx-1,yy)) - (oppEx - Ex_->point(xx,yy-1)));
                 Hz_->point(xx,yy) = pmlArr_[0].c_hz_n_n_->at(ii).at(0)[2] * Hz_->point(xx,yy) + pmlArr_[0].c_hz_n_n_->at(ii).at(0)[3] * pmlArr_[0].Bz_end_->point(ii,yy) - pmlArr_[0].c_hz_n_n_->at(ii).at(0)[4] * bzstore;
 
                 //Bot Right
@@ -1423,7 +1422,7 @@ void FDTDField::updateH()
                     oppEx = c_kpoint_ * Ex_->point(xx,ny_-2);
                 }
                 bzstore = pmlArr_[0].Bz_end_->point(ii,yy);
-                pmlArr_[0].Bz_end_->point(ii,yy) = pmlArr_[0].c_hz_n_0_->at(ii).at(0)[0] * pmlArr_[0].Bz_end_->point(ii,yy) + pmlArr_[0].c_hz_n_0_->at(ii).at(0)[1] * ((Ey_->point(xx,yy)-Ey_->point(xx-1,yy)) - (Ex_->point(xx,yy) - oppEx));
+                pmlArr_[0].Bz_end_->point(ii,yy) = pmlArr_[0].c_hz_n_0_->at(ii).at(0)[0] * pmlArr_[0].Bz_end_->point(ii,yy) - pmlArr_[0].c_hz_n_0_->at(ii).at(0)[1] * ((Ey_->point(xx,yy)-Ey_->point(xx-1,yy)) - (Ex_->point(xx,yy) - oppEx));
                 Hz_->point(xx,yy) = pmlArr_[0].c_hz_n_0_->at(ii).at(0)[2] * Hz_->point(xx,yy) + pmlArr_[0].c_hz_n_0_->at(ii).at(0)[3] * pmlArr_[0].Bz_end_->point(ii,yy) - pmlArr_[0].c_hz_n_0_->at(ii).at(0)[4] * bzstore;
             }
             complex<double> oppEx(0.0,0.0);
@@ -1439,7 +1438,7 @@ void FDTDField::updateH()
                 oppEx = c_kpoint_ * Ex_->point(xx,ny_-2);
             }
             complex<double> bzstore = pmlArr_[0].Bz_->point(0,yy);
-            pmlArr_[0].Bz_->point(0,yy) = pmlArr_[0].c_hz_0_0_->at(0).at(0)[0] * pmlArr_[0].Bz_->point(0,yy) + pmlArr_[0].c_hz_0_0_->at(0).at(0)[1] * ((Ey_->point(xx,yy)) - (Ex_->point(xx,yy) - oppEx));
+            pmlArr_[0].Bz_->point(0,yy) = pmlArr_[0].c_hz_0_0_->at(0).at(0)[0] * pmlArr_[0].Bz_->point(0,yy) - pmlArr_[0].c_hz_0_0_->at(0).at(0)[1] * ((Ey_->point(xx,yy)) - (Ex_->point(xx,yy) - oppEx));
             Hz_->point(xx,yy) = pmlArr_[0].c_hz_0_0_->at(0).at(0)[2] * Hz_->point(xx,yy) + pmlArr_[0].c_hz_0_0_->at(0).at(0)[3] * pmlArr_[0].Bz_->point(0,yy) - pmlArr_[0].c_hz_0_0_->at(0).at(0)[4] * bzstore;
 
             //Top Left
@@ -1451,7 +1450,7 @@ void FDTDField::updateH()
                 oppEx = c_kpoint_ * Ex_->point(xx,0);
             }
             bzstore = pmlArr_[0].Bz_->point(0,yy);
-            pmlArr_[0].Bz_->point(0,yy) = pmlArr_[0].c_hz_0_n_->at(0).at(0)[0] * pmlArr_[0].Bz_->point(0,yy) + pmlArr_[0].c_hz_0_n_->at(0).at(0)[1] * ((Ey_->point(xx,yy)) - (oppEx - Ex_->point(xx,yy-1)));
+            pmlArr_[0].Bz_->point(0,yy) = pmlArr_[0].c_hz_0_n_->at(0).at(0)[0] * pmlArr_[0].Bz_->point(0,yy) - pmlArr_[0].c_hz_0_n_->at(0).at(0)[1] * ((Ey_->point(xx,yy)) - (oppEx - Ex_->point(xx,yy-1)));
             Hz_->point(xx,yy) = pmlArr_[0].c_hz_0_n_->at(0).at(0)[2] * Hz_->point(xx,yy) + pmlArr_[0].c_hz_0_n_->at(0).at(0)[3] * pmlArr_[0].Bz_->point(0,yy) - pmlArr_[0].c_hz_0_n_->at(0).at(0)[4] * bzstore;
 
             //Top Right
@@ -1463,7 +1462,7 @@ void FDTDField::updateH()
                 oppEx = c_kpoint_ * Ex_->point(xx,0);
             }
             bzstore = pmlArr_[0].Bz_end_->point(0,yy);
-            pmlArr_[0].Bz_end_->point(0,yy) = pmlArr_[0].c_hz_n_n_->at(0).at(0)[0] * pmlArr_[0].Bz_end_->point(0,yy) + pmlArr_[0].c_hz_n_n_->at(0).at(0)[1] * (-1.0 * Ey_->point(xx-1,yy) - (oppEx - Ex_->point(xx,yy-1)));
+            pmlArr_[0].Bz_end_->point(0,yy) = pmlArr_[0].c_hz_n_n_->at(0).at(0)[0] * pmlArr_[0].Bz_end_->point(0,yy) - pmlArr_[0].c_hz_n_n_->at(0).at(0)[1] * (-1.0 * Ey_->point(xx-1,yy) - (oppEx - Ex_->point(xx,yy-1)));
             Hz_->point(xx,yy) = pmlArr_[0].c_hz_n_n_->at(0).at(0)[2] * Hz_->point(xx,yy) + pmlArr_[0].c_hz_n_n_->at(0).at(0)[3] * pmlArr_[0].Bz_end_->point(0,yy) - pmlArr_[0].c_hz_n_n_->at(0).at(0)[4] * bzstore;
 
             //Bot Right
@@ -1475,7 +1474,7 @@ void FDTDField::updateH()
                 oppEx = c_kpoint_ * Ex_->point(xx,ny_-2);
             }
             bzstore = pmlArr_[0].Bz_end_->point(0,yy);
-            pmlArr_[0].Bz_end_->point(0,yy) = pmlArr_[0].c_hz_n_0_->at(0).at(0)[0] * pmlArr_[0].Bz_end_->point(0,yy) + pmlArr_[0].c_hz_n_0_->at(0).at(0)[1] * (-1.0*Ey_->point(xx-1,yy) - (Ex_->point(xx,yy) - oppEx));
+            pmlArr_[0].Bz_end_->point(0,yy) = pmlArr_[0].c_hz_n_0_->at(0).at(0)[0] * pmlArr_[0].Bz_end_->point(0,yy) - pmlArr_[0].c_hz_n_0_->at(0).at(0)[1] * (-1.0*Ey_->point(xx-1,yy) - (Ex_->point(xx,yy) - oppEx));
             Hz_->point(xx,yy) = pmlArr_[0].c_hz_n_0_->at(0).at(0)[2] * Hz_->point(xx,yy) + pmlArr_[0].c_hz_n_0_->at(0).at(0)[3] * pmlArr_[0].Bz_end_->point(0,yy) - pmlArr_[0].c_hz_n_0_->at(0).at(0)[4] * bzstore;
         }
         else if(yPML_ != 0)
@@ -1483,10 +1482,10 @@ void FDTDField::updateH()
             for(int jj = yPML_; jj < ny_ - yPML_; jj ++)
             {
                 zscal_(nx_-2,      c_hzh, &Hz_->point(1  ,jj  ), 1);
-                zaxpy_(nx_-2, -1.0*c_hze, &Ey_->point(0  ,jj  ), 1, &Hz_ ->point(1,jj),1);
-                zaxpy_(nx_-2,      c_hze, &Ey_->point(1  ,jj  ), 1, &Hz_ ->point(1,jj),1);
-                zaxpy_(nx_-2,      c_hze, &Ex_->point(1  ,jj-1), 1, &Hz_ ->point(1,jj),1);
-                zaxpy_(nx_-2, -1.0*c_hze, &Ex_->point(1  ,jj  ), 1, &Hz_ ->point(1,jj),1);
+                zaxpy_(nx_-2,      c_hze, &Ey_->point(0  ,jj  ), 1, &Hz_ ->point(1,jj),1);
+                zaxpy_(nx_-2, -1.0*c_hze, &Ey_->point(1  ,jj  ), 1, &Hz_ ->point(1,jj),1);
+                zaxpy_(nx_-2, -1.0*c_hze, &Ex_->point(1  ,jj-1), 1, &Hz_ ->point(1,jj),1);
+                zaxpy_(nx_-2,      c_hze, &Ex_->point(1  ,jj  ), 1, &Hz_ ->point(1,jj),1);
             }
             zscal_(ny_-2*yPML_,      c_hzh, &Hz_->point(0  ,yPML_)  , nx_);
             if(periodic_)
@@ -1495,11 +1494,11 @@ void FDTDField::updateH()
                 vector<double> r = {(nx_-2) * dx_,yPML_ * dy_};
                 complex<double> c_kpoint_ = per_factor(r);
                 zaxpy_(ny_-2*yPML_, c_kpoint_, &Ey_->point(nx_-2, yPML_), nx_, oppEy.data(),1);
-                zaxpy_(ny_-2*yPML_, -1.0*c_hze, oppEy.data()            , 1  , &Hz_ ->point(yPML_,0),nx_);
+                zaxpy_(ny_-2*yPML_,     c_hze, oppEy.data()            , 1  , &Hz_ ->point(0,yPML_),nx_);
             }
-            zaxpy_(ny_-2*yPML_,      c_hze, &Ey_->point(0  ,yPML_)  , nx_, &Hz_ ->point(yPML_,0),nx_);
-            zaxpy_(ny_-2*yPML_,      c_hze, &Ex_->point(0  ,yPML_-1), nx_, &Hz_ ->point(yPML_,0),nx_);
-            zaxpy_(ny_-2*yPML_, -1.0*c_hze, &Ex_->point(0  ,yPML_)  , nx_, &Hz_ ->point(yPML_,0),nx_);
+            zaxpy_(ny_-2*yPML_, -1.0*c_hze, &Ey_->point(0  ,yPML_)  , nx_, &Hz_ ->point(0,yPML_),nx_);
+            zaxpy_(ny_-2*yPML_, -1.0*c_hze, &Ex_->point(0  ,yPML_-1), nx_, &Hz_ ->point(0,yPML_),nx_);
+            zaxpy_(ny_-2*yPML_,      c_hze, &Ex_->point(0  ,yPML_)  , nx_, &Hz_ ->point(0,yPML_),nx_);
 
             zscal_(ny_-2*yPML_,      c_hzh, &Hz_->point(nx_-1, yPML_)  , nx_);
             if(periodic_)
@@ -1508,11 +1507,11 @@ void FDTDField::updateH()
                 vector<double> r = {(0) * dx_,yPML_ * dy_};
                 complex<double> c_kpoint_ = per_factor(r);
                 zaxpy_(ny_-2*yPML_, c_kpoint_, &Ey_->point(0, yPML_), nx_, oppEy.data(),1);
-                zaxpy_(ny_-2*yPML_,      c_hze, oppEy.data()               , 1  , &Hz_ ->point(yPML_,0),nx_);
+                zaxpy_(ny_-2*yPML_,-1.0*c_hze, oppEy.data()               , 1  , &Hz_ ->point(yPML_,0),nx_);
             }
-            zaxpy_(ny_-2*yPML_, -1.0*c_hze, &Ey_->point(nx_-2, yPML_)  , nx_, &Hz_ ->point(yPML_,0),nx_);
-            zaxpy_(ny_-2*yPML_,      c_hze, &Ex_->point(nx_-1, yPML_-1), nx_, &Hz_ ->point(yPML_,0),nx_);
-            zaxpy_(ny_-2*yPML_, -1.0*c_hze, &Ex_->point(nx_-1, yPML_)  , nx_, &Hz_ ->point(yPML_,0),nx_);
+            zaxpy_(ny_-2*yPML_,      c_hze, &Ey_->point(nx_-2, yPML_)  , nx_, &Hz_ ->point(nx_-1,yPML_),nx_);
+            zaxpy_(ny_-2*yPML_, -1.0*c_hze, &Ex_->point(nx_-1, yPML_-1), nx_, &Hz_ ->point(nx_-1,yPML_),nx_);
+            zaxpy_(ny_-2*yPML_,      c_hze, &Ex_->point(nx_-1, yPML_)  , nx_, &Hz_ ->point(nx_-1,yPML_),nx_);
 
             //PML
             for(int zz = 0; zz < pmlArr_[0].edgei_0_; zz++)
@@ -1525,13 +1524,13 @@ void FDTDField::updateH()
                 zscal_(nZax, zaxArr[4], &pmlArr_[0].Bz_ -> point(xx,yy), 1);
                 zscal_(nZax, zaxArr[6],             &Hz_ -> point(xx,yy), 1);
 
-                zaxpy_(nZax,-1.0*zaxArr[5], &Ex_->point(xx  ,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
-                zaxpy_(nZax,     zaxArr[5], &Ex_->point(xx  ,yy-1), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
-                zaxpy_(nZax,-1.0*zaxArr[5], &Ey_->point(xx-1,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
-                zaxpy_(nZax,     zaxArr[5], &Ey_->point(xx  ,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
+                zaxpy_(nZax,     zaxArr[5], &Ex_->point(xx  ,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
+                zaxpy_(nZax,-1.0*zaxArr[5], &Ex_->point(xx  ,yy-1), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
+                zaxpy_(nZax,     zaxArr[5], &Ey_->point(xx-1,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
+                zaxpy_(nZax,-1.0*zaxArr[5], &Ey_->point(xx  ,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
 
                 zaxpy_(nZax,      zaxArr[7], &pmlArr_[0].Bz_ -> point(xx,yy), 1, &Hz_ -> point(xx,yy), 1);
-                zaxpy_(nZax, -1.0*zaxArr[8], bzstore.data()                  , 1, &Hz_ -> point(xx,yy), 1);
+                zaxpy_(nZax, -1.0*zaxArr[8], bzstore.data()                 , 1, &Hz_ -> point(xx,yy), 1);
             }
             for(int zz = pmlArr_[0].edgei_0_; zz < pmlArr_[0].zaxHz_.size(); zz++)
             {
@@ -1543,9 +1542,9 @@ void FDTDField::updateH()
                 zscal_(nZax, zaxArr[4], &pmlArr_[0].Bz_ -> point(xx,yy), 1);
                 zscal_(nZax, zaxArr[6],             &Hz_ -> point(xx,yy), 1);
 
-                zaxpy_(nZax,-1.0*zaxArr[5], &Ex_->point(xx  ,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
-                zaxpy_(nZax,     zaxArr[5], &Ey_->point(xx  ,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
-                zaxpy_(nZax,-1.0*zaxArr[5], &Ey_->point(xx-1,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
+                zaxpy_(nZax,     zaxArr[5], &Ex_->point(xx  ,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
+                zaxpy_(nZax,-1.0*zaxArr[5], &Ey_->point(xx  ,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
+                zaxpy_(nZax,-    zaxArr[5], &Ey_->point(xx-1,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
 
                 zaxpy_(nZax,      zaxArr[7], &pmlArr_[0].Bz_ -> point(xx,yy), 1, &Hz_ -> point(xx,yy), 1);
                 zaxpy_(nZax, -1.0*zaxArr[8], bzstore.data()                  , 1, &Hz_ -> point(xx,yy), 1);
@@ -1561,10 +1560,10 @@ void FDTDField::updateH()
                 zscal_(nZax, zaxArr[4], &pmlArr_[0].Bz_end_ -> point(xx,yy), 1);
                 zscal_(nZax, zaxArr[6],             &Hz_ -> point(xx,yy_rel), 1);
 
-                zaxpy_(nZax,-1.0*zaxArr[5], &Ex_->point(xx  ,yy_rel  ), 1, &pmlArr_[0].Bz_end_->point(xx,yy), 1);
-                zaxpy_(nZax,     zaxArr[5], &Ex_->point(xx  ,yy_rel-1), 1, &pmlArr_[0].Bz_end_->point(xx,yy), 1);
-                zaxpy_(nZax,-1.0*zaxArr[5], &Ey_->point(xx-1,yy_rel  ), 1, &pmlArr_[0].Bz_end_->point(xx,yy), 1);
-                zaxpy_(nZax,     zaxArr[5], &Ey_->point(xx  ,yy_rel  ), 1, &pmlArr_[0].Bz_end_->point(xx,yy), 1);
+                zaxpy_(nZax,     zaxArr[5], &Ex_->point(xx  ,yy_rel  ), 1, &pmlArr_[0].Bz_end_->point(xx,yy), 1);
+                zaxpy_(nZax,-1.0*zaxArr[5], &Ex_->point(xx  ,yy_rel-1), 1, &pmlArr_[0].Bz_end_->point(xx,yy), 1);
+                zaxpy_(nZax,     zaxArr[5], &Ey_->point(xx-1,yy_rel  ), 1, &pmlArr_[0].Bz_end_->point(xx,yy), 1);
+                zaxpy_(nZax,-1.0*zaxArr[5], &Ey_->point(xx  ,yy_rel  ), 1, &pmlArr_[0].Bz_end_->point(xx,yy), 1);
 
                 zaxpy_(nZax,      zaxArr[7], &pmlArr_[0].Bz_end_ -> point(xx,yy), 1, &Hz_ -> point(xx,yy_rel), 1);
                 zaxpy_(nZax, -1.0*zaxArr[8], bzstore.data()                      , 1, &Hz_ -> point(xx,yy_rel), 1);
@@ -1580,9 +1579,9 @@ void FDTDField::updateH()
                 zscal_(nZax, zaxArr[4], &pmlArr_[0].Bz_end_ -> point(xx,yy), 1);
                 zscal_(nZax, zaxArr[6],             &Hz_ -> point(xx,yy_rel), 1);
 
-                zaxpy_(nZax,     zaxArr[5], &Ex_->point(xx  ,yy_rel-1), 1, &pmlArr_[0].Bz_end_->point(xx,yy), 1);
-                zaxpy_(nZax,-1.0*zaxArr[5], &Ey_->point(xx-1,yy_rel  ), 1, &pmlArr_[0].Bz_end_->point(xx,yy), 1);
-                zaxpy_(nZax,     zaxArr[5], &Ey_->point(xx  ,yy_rel  ), 1, &pmlArr_[0].Bz_end_->point(xx,yy), 1);
+                zaxpy_(nZax,-1.0*zaxArr[5], &Ex_->point(xx  ,yy_rel-1), 1, &pmlArr_[0].Bz_end_->point(xx,yy), 1);
+                zaxpy_(nZax,     zaxArr[5], &Ey_->point(xx-1,yy_rel  ), 1, &pmlArr_[0].Bz_end_->point(xx,yy), 1);
+                zaxpy_(nZax,-1.0*zaxArr[5], &Ey_->point(xx  ,yy_rel  ), 1, &pmlArr_[0].Bz_end_->point(xx,yy), 1);
 
                 zaxpy_(nZax,      zaxArr[7], &pmlArr_[0].Bz_end_ -> point(xx,yy), 1, &Hz_ -> point(xx,yy_rel), 1);
                 zaxpy_(nZax, -1.0*zaxArr[8], bzstore.data()                      , 1, &Hz_ -> point(xx,yy_rel), 1);
@@ -1599,7 +1598,7 @@ void FDTDField::updateH()
                     oppEy = c_kpoint_ * Ey_->point(nx_-2,yy);
                 }
                 complex<double> bzstore = pmlArr_[0].Bz_->point(xx,ii);
-                pmlArr_[0].Bz_->point(xx,ii) = pmlArr_[0].c_hz_0_0_->at(0).at(ii)[0] * pmlArr_[0].Bz_->point(xx,ii) + pmlArr_[0].c_hz_0_0_->at(0).at(ii)[1] * ((Ey_->point(xx,yy) - oppEy) - (Ex_->point(xx,yy) - Ex_->point(xx,yy-1)));
+                pmlArr_[0].Bz_->point(xx,ii) = pmlArr_[0].c_hz_0_0_->at(0).at(ii)[0] * pmlArr_[0].Bz_->point(xx,ii) - pmlArr_[0].c_hz_0_0_->at(0).at(ii)[1] * ((Ey_->point(xx,yy) - oppEy) - (Ex_->point(xx,yy) - Ex_->point(xx,yy-1)));
                 Hz_->point(xx,yy) = pmlArr_[0].c_hz_0_0_->at(0).at(ii)[2] * Hz_->point(xx,yy) + pmlArr_[0].c_hz_0_0_->at(0).at(ii)[3] * pmlArr_[0].Bz_->point(xx,ii) - pmlArr_[0].c_hz_0_0_->at(0).at(ii)[4] * bzstore;
 
                 //Top Left
@@ -1611,7 +1610,7 @@ void FDTDField::updateH()
                     oppEy = c_kpoint_ * Ey_->point(nx_-2,yy);
                 }
                 bzstore = pmlArr_[0].Bz_end_->point(xx,ii);
-                pmlArr_[0].Bz_end_->point(xx,ii) = pmlArr_[0].c_hz_n_0_->at(0).at(ii)[0] * pmlArr_[0].Bz_end_->point(xx,ii) + pmlArr_[0].c_hz_n_0_->at(0).at(ii)[1] * ((Ey_->point(xx,yy) - oppEy) - (Ex_->point(xx,yy) - Ex_->point(xx,yy-1)));
+                pmlArr_[0].Bz_end_->point(xx,ii) = pmlArr_[0].c_hz_n_0_->at(0).at(ii)[0] * pmlArr_[0].Bz_end_->point(xx,ii) - pmlArr_[0].c_hz_n_0_->at(0).at(ii)[1] * ((Ey_->point(xx,yy) - oppEy) - (Ex_->point(xx,yy) - Ex_->point(xx,yy-1)));
                 Hz_->point(xx,yy) = pmlArr_[0].c_hz_n_0_->at(0).at(ii)[2] * Hz_->point(xx,yy) + pmlArr_[0].c_hz_n_0_->at(0).at(ii)[3] * pmlArr_[0].Bz_end_->point(xx,ii) - pmlArr_[0].c_hz_n_0_->at(0).at(ii)[4] * bzstore;
 
                 //Top Right
@@ -1623,7 +1622,7 @@ void FDTDField::updateH()
                     oppEy = c_kpoint_ * Ey_->point(0,yy);
                 }
                 bzstore = pmlArr_[0].Bz_end_->point(xx,ii);
-                pmlArr_[0].Bz_end_->point(xx,ii) = pmlArr_[0].c_hz_n_n_->at(0).at(ii)[0] * pmlArr_[0].Bz_end_->point(xx,ii) + pmlArr_[0].c_hz_n_n_->at(0).at(ii)[1] * ((oppEy - Ey_->point(xx-1,yy)) - (Ex_->point(xx,yy) - Ex_->point(xx,yy-1)));
+                pmlArr_[0].Bz_end_->point(xx,ii) = pmlArr_[0].c_hz_n_n_->at(0).at(ii)[0] * pmlArr_[0].Bz_end_->point(xx,ii) - pmlArr_[0].c_hz_n_n_->at(0).at(ii)[1] * ((oppEy - Ey_->point(xx-1,yy)) - (Ex_->point(xx,yy) - Ex_->point(xx,yy-1)));
                 Hz_->point(xx,yy) = pmlArr_[0].c_hz_n_n_->at(0).at(ii)[2] * Hz_->point(xx,yy) + pmlArr_[0].c_hz_n_n_->at(0).at(ii)[3] * pmlArr_[0].Bz_end_->point(xx,ii) - pmlArr_[0].c_hz_n_n_->at(0).at(ii)[4] * bzstore;
 
                 //Bot Right
@@ -1635,7 +1634,7 @@ void FDTDField::updateH()
                     oppEy = c_kpoint_ * Ey_->point(0,yy);
                 }
                 bzstore = pmlArr_[0].Bz_->point(xx,ii);
-                pmlArr_[0].Bz_->point(xx,ii) = pmlArr_[0].c_hz_0_n_->at(0).at(ii)[0] * pmlArr_[0].Bz_->point(xx,ii) + pmlArr_[0].c_hz_0_n_->at(0).at(ii)[1] * ((oppEy - Ey_->point(xx-1,yy)) - (Ex_->point(xx,yy) - Ex_->point(xx,yy-1)));
+                pmlArr_[0].Bz_->point(xx,ii) = pmlArr_[0].c_hz_0_n_->at(0).at(ii)[0] * pmlArr_[0].Bz_->point(xx,ii) - pmlArr_[0].c_hz_0_n_->at(0).at(ii)[1] * ((oppEy - Ey_->point(xx-1,yy)) - (Ex_->point(xx,yy) - Ex_->point(xx,yy-1)));
                 Hz_->point(xx,yy) = pmlArr_[0].c_hz_0_n_->at(0).at(ii)[2] * Hz_->point(xx,yy) + pmlArr_[0].c_hz_0_n_->at(0).at(ii)[3] * pmlArr_[0].Bz_->point(xx,ii) - pmlArr_[0].c_hz_0_n_->at(0).at(ii)[4] * bzstore;
             }
 
@@ -1650,7 +1649,7 @@ void FDTDField::updateH()
                 oppEy = c_kpoint_ * Ey_->point(nx_-2,yy);
             }
             complex<double> bzstore = pmlArr_[0].Bz_->point(xx,0);
-            pmlArr_[0].Bz_->point(xx,0) = pmlArr_[0].c_hz_0_0_->at(0).at(0)[0] * pmlArr_[0].Bz_->point(xx,0) + pmlArr_[0].c_hz_0_0_->at(0).at(0)[1] * ((Ey_->point(xx,yy) - oppEy) - (Ex_->point(xx,yy) - oppEx));
+            pmlArr_[0].Bz_->point(xx,0) = pmlArr_[0].c_hz_0_0_->at(0).at(0)[0] * pmlArr_[0].Bz_->point(xx,0) - pmlArr_[0].c_hz_0_0_->at(0).at(0)[1] * ((Ey_->point(xx,yy) - oppEy) - (Ex_->point(xx,yy) - oppEx));
             Hz_->point(xx,yy) = pmlArr_[0].c_hz_0_0_->at(0).at(0)[2] * Hz_->point(xx,yy) + pmlArr_[0].c_hz_0_0_->at(0).at(0)[3] * pmlArr_[0].Bz_->point(xx,0) - pmlArr_[0].c_hz_0_0_->at(0).at(0)[4] * bzstore;
 
             //Top Left
@@ -1662,7 +1661,7 @@ void FDTDField::updateH()
                 oppEy = c_kpoint_ * Ey_->point(nx_-2,yy);
             }
             bzstore = pmlArr_[0].Bz_end_->point(xx,0);
-            pmlArr_[0].Bz_end_->point(xx,0) = pmlArr_[0].c_hz_n_0_->at(0).at(0)[0] * pmlArr_[0].Bz_end_->point(xx,0) + pmlArr_[0].c_hz_n_0_->at(0).at(0)[1] * ((Ey_->point(xx,yy) - oppEy) - (oppEx - Ex_->point(xx,yy-1)));
+            pmlArr_[0].Bz_end_->point(xx,0) = pmlArr_[0].c_hz_n_0_->at(0).at(0)[0] * pmlArr_[0].Bz_end_->point(xx,0) - pmlArr_[0].c_hz_n_0_->at(0).at(0)[1] * ((Ey_->point(xx,yy) - oppEy) - (oppEx - Ex_->point(xx,yy-1)));
             Hz_->point(xx,yy) = pmlArr_[0].c_hz_n_0_->at(0).at(0)[2] * Hz_->point(xx,yy) + pmlArr_[0].c_hz_n_0_->at(0).at(0)[3] * pmlArr_[0].Bz_end_->point(xx,0) - pmlArr_[0].c_hz_n_0_->at(0).at(0)[4] * bzstore;
 
             //Top Right
@@ -1674,7 +1673,7 @@ void FDTDField::updateH()
                 oppEy = c_kpoint_ * Ey_->point(0,yy);
             }
             bzstore = pmlArr_[0].Bz_end_->point(xx,0);
-            pmlArr_[0].Bz_end_->point(xx,0) = pmlArr_[0].c_hz_n_n_->at(0).at(0)[0] * pmlArr_[0].Bz_end_->point(xx,0) + pmlArr_[0].c_hz_n_n_->at(0).at(0)[1] * (oppEy - Ey_->point(xx-1,yy) - (oppEx - Ex_->point(xx,yy-1)));
+            pmlArr_[0].Bz_end_->point(xx,0) = pmlArr_[0].c_hz_n_n_->at(0).at(0)[0] * pmlArr_[0].Bz_end_->point(xx,0) - pmlArr_[0].c_hz_n_n_->at(0).at(0)[1] * (oppEy - Ey_->point(xx-1,yy) - (oppEx - Ex_->point(xx,yy-1)));
             Hz_->point(xx,yy) = pmlArr_[0].c_hz_n_n_->at(0).at(0)[2] * Hz_->point(xx,yy) + pmlArr_[0].c_hz_n_n_->at(0).at(0)[3] * pmlArr_[0].Bz_end_->point(xx,0) - pmlArr_[0].c_hz_n_n_->at(0).at(0)[4] * bzstore;
 
             //Bot Right
@@ -1686,7 +1685,7 @@ void FDTDField::updateH()
                 oppEy = c_kpoint_ * Ey_->point(0,yy);
             }
             bzstore = pmlArr_[0].Bz_->point(xx,0);
-            pmlArr_[0].Bz_->point(xx,0) = pmlArr_[0].c_hz_0_n_->at(0).at(0)[0] * pmlArr_[0].Bz_->point(xx,0) + pmlArr_[0].c_hz_0_n_->at(0).at(0)[1] * (oppEy - Ey_->point(xx-1,yy) - (Ex_->point(xx,yy) - oppEx));
+            pmlArr_[0].Bz_->point(xx,0) = pmlArr_[0].c_hz_0_n_->at(0).at(0)[0] * pmlArr_[0].Bz_->point(xx,0) - pmlArr_[0].c_hz_0_n_->at(0).at(0)[1] * (oppEy - Ey_->point(xx-1,yy) - (Ex_->point(xx,yy) - oppEx));
             Hz_->point(xx,yy) = pmlArr_[0].c_hz_0_n_->at(0).at(0)[2] * Hz_->point(xx,yy) + pmlArr_[0].c_hz_0_n_->at(0).at(0)[3] * pmlArr_[0].Bz_->point(xx,0) - pmlArr_[0].c_hz_0_n_->at(0).at(0)[4] * bzstore;
         }
         else
@@ -2716,6 +2715,7 @@ void FDTDField::updateE()
             eps = objArr_[zaxEx_[kk][3]].dielectric(1.0);
             c_exh = dt_/(eps*dx_);
             int xx = zaxEx_[kk][0]; int yy =  zaxEx_[kk][1]; int nZax =  zaxEx_[kk][2];
+            // cout << xx<<"\t" <<yy <<  "\t" << nZax << endl;
             zscal_(nZax, c_exe, &Ex_ ->point(xx,yy),1);
             zaxpy_(nZax,     c_exh, &Hz_->point(xx  ,yy+1), 1, &Ex_->point(xx,yy),1);
             zaxpy_(nZax,-1.0*c_exh, &Hz_->point(xx  ,yy  ), 1, &Ex_->point(xx,yy),1);
@@ -2750,18 +2750,21 @@ void FDTDField::updateE()
                 array<double,9> zaxArr = pmlArr_[kk].zaxEx_[zz];
                 int xx = static_cast<int>(zaxArr[0]);
                 int yy = static_cast<int>(zaxArr[1]);
+                int xx_rel =  xx;  /// If the pml is is the x direction xx_rel = nx - xx, else xrel = xx
+                int yy_rel =  yy; /// If the pml is is the y direction yy_rel = ny - yy, else yrel = yy
                 int nZax = static_cast<int>(zaxArr[2]);
+
                 vector<complex<double>> dxstore(nZax, 0.0);
                 zcopy_(nZax, &pmlArr_[kk].Dx_ -> point(xx,yy), stride, dxstore.data(), 1);
 
-                zscal_(nZax, zaxArr[4], &pmlArr_[kk].Dx_ -> point(xx,yy), stride);
-                zscal_(nZax, zaxArr[6],             &Ex_ -> point(xx,yy), stride_rel);
+                zscal_(nZax, zaxArr[4], &pmlArr_[kk].Dx_ -> point(xx   ,yy   ), stride);
+                zscal_(nZax, zaxArr[6],                 &Ex_ -> point(xx_rel,yy_rel), stride_rel);
 
-                zaxpy_(nZax, -1.0*zaxArr[5], &Hz_ -> point(xx,yy  ), stride_rel, &pmlArr_[kk].Dx_ -> point(xx,yy), stride);
-                zaxpy_(nZax,      zaxArr[5], &Hz_ -> point(xx,yy+1), stride_rel, &pmlArr_[kk].Dx_ -> point(xx,yy), stride);
+                zaxpy_(nZax, -1.0*zaxArr[5], &Hz_ -> point(xx_rel,yy_rel  ), stride_rel, &pmlArr_[kk].Dx_ -> point(xx,yy), stride);
+                zaxpy_(nZax,      zaxArr[5], &Hz_ -> point(xx_rel,yy_rel+1), stride_rel, &pmlArr_[kk].Dx_ -> point(xx,yy), stride);
 
-                zaxpy_(nZax,      zaxArr[7], &pmlArr_[kk].Dx_ -> point(xx,yy), stride, &Ex_ -> point(xx,yy), stride_rel);
-                zaxpy_(nZax, -1.0*zaxArr[8], dxstore.data()                  , 1     , &Ex_ -> point(xx,yy), stride_rel);
+                zaxpy_(nZax,      zaxArr[7], &pmlArr_[kk].Dx_ -> point(xx,yy), stride, &Ex_ -> point(xx_rel,yy_rel), stride_rel);
+                zaxpy_(nZax, -1.0*zaxArr[8], dxstore.data()                      , 1     , &Ex_ -> point(xx_rel,yy_rel), stride_rel);
             }
             for(int zz = 0; zz < pmlArr_[kk].zaxEx_end_.size();zz++)
             {
@@ -2815,7 +2818,7 @@ void FDTDField::updateE()
                 vector<complex<double>> dystore(nZax, 0.0);
                 zcopy_(nZax, &pmlArr_[kk].Dy_end_ -> point(xx,yy), stride, dystore.data(), 1);
 
-                zscal_(nZax, zaxArr[4], &pmlArr_[kk].Dy_end_ -> point(xx   ,yy   ), stride);
+                zscal_(nZax, zaxArr[4], &pmlArr_[kk].Dy_end_ -> point(xx    ,yy    ), stride);
                 zscal_(nZax, zaxArr[6],                 &Ey_ -> point(xx_rel,yy_rel), stride_rel);
 
                 zaxpy_(nZax, -1.0*zaxArr[5], &Hz_ -> point(xx_rel+1,yy_rel), stride_rel, &pmlArr_[kk].Dy_end_ -> point(xx,yy), stride);

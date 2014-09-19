@@ -681,12 +681,12 @@ public:
                 while(jj > oppPML-1)
                 {
                     int jjstore = jj;
-                    while(jj > oppPML && phys_Ex_ -> point(*xx,*yy) == phys_Ex_ -> point(*xx-delx,*yy-dely))
+                    while(jj > oppPML && phys_Ex_ -> point(*xx,*yy) == phys_Ex_ -> point(*xx-delx,*yy-dely)) //Fix
                         jj--;
-                    std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ex_->point(*xx,*yy))};
+                    std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ex_end_->point(*xx,*yy))};
                     eps   = objArr[phys_Ex_->point(*xx,*yy)].dielectric(1.0);
                     sigxx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
-                    sigyx = (ypml->*sigmay)(static_cast<double>(*yy) + 0.5,eps);
+                    sigyx = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,delx) * 0.5,eps); //Switch to see if PML is on teh different side yet
                     std::array<double,5> preconsts = calcEPreConsts(eps,sigxx, sigyx, sigz);
                     std::copy_n(preconsts.begin(),5,tempArr.begin()+4);
                     zaxEx_.push_back(tempArr);
@@ -765,7 +765,7 @@ public:
                     jj--;
                 }
             }
-            edgei_0_ = zaxEz_.size();
+            edgei_0_ = zaxHz_.size();
             ii = 0;
             jj = zmax;
             while(jj > zmin-1)
