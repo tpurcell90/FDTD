@@ -1,50 +1,49 @@
 {
     "CompCell" : {
         "procs"         : 1,
-        "x_size"        : 15.0,
-        "y_size"        : 20.0,
+        "y_size"        : 15.0,
+        "x_size"        : 20.0,
         "z_size"        : 0.0,
-        "res"           : 20,
+        "res"           : 50,
         "courant"       : 0.5,
-        "tLim"          : 1000.0,
-        "PBC"           : "true"
+        "tLim"          : 500.0,
+        "PBC"           : "false"
     },
     "k-point"           : [
         {
-            "X"         : 0,
-            "Y"         : 0.01666666666
+            "Y"         : 0,
+            "X"         : 0.01666666666
         }
     ],
     "PML" :  [
         {
             "thickness" : 5.00,
-            "direction" : "Y"
+            "direction" : "X"
         }
-
     ],
     "SourceList"  : [
 
         {
             "profile"   : "gaussian",
             "fcen"      : 1.0,
-            "fwidth"    : 3.0,
+            "fwidth"    : 1.0,
             "cutoff"    : 10.00,
             "t_start"   : 0.00,
-            "size_y"    : 0.00,
-            "size_x"    : 15.00,
+            "size_x"    : 0.00,
+            "size_y"    : 15.00,
             "pol"       : "Hz",
-            "loc_y"     : -4.00,
-            "loc_x"     : 0.00
+            "loc_x"     : -4.00,
+            "loc_y"     : 0.00
         }
     ],
     "ObjectList": [
         {
             "shape"     : "block",
-            "loc_y"     : 6.0,
-            "loc_x"     : 0.00,
-            "size_y"    : 8.0,
-            "size_x"    : 50.00,
-            "eps"       : 1.00,
+            "loc_x"     : 6.0,
+            "loc_y"     : 0.00,
+            "size_x"    : 8.0,
+            "size_y"    : 50.00,
+            "eps"       : 9.00,
             "pols"      : [
 
 
@@ -52,14 +51,21 @@
         }
     ],
     "DetectorList"  : [
-
         {
+            "loc_x"     : -3.00,
             "loc_y"     : 0.00,
-            "loc_x"     : 0.00,
-            "size_y"    : 0.00,
             "size_x"    : 0.00,
+            "size_y"    : 0.00,
             "type"      : "field",
-            "pol"       : "Ex"
+            "pol"       : "Ey"
+        },
+        {
+            "loc_x"     : 3.50,
+            "loc_y"     : 0.00,
+            "size_x"    : 0.00,
+            "size_y"    : 0.00,
+            "type"      : "field",
+            "pol"       : "Ey"
         }
     ]
 }

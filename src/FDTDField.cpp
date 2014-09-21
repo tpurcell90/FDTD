@@ -103,91 +103,63 @@ void FDTDField::initializeGrid()
                         pt[0] = (ii +0.5-(nx_-1)/2.0)*dx_;
                         pt[1] = (jj-static_cast<double>(ny_-1)/2.0)*dy_;
                         if(objArr_[kk].isObj(pt)==true)
-                            phys_Ex_->point(ii,jj) = kk;
-                        pt[0] -= 0.5;
-                        pt[1] += 0.5;
-                        if(objArr_[kk].isObj(pt)==true)
                             phys_Ey_->point(ii,jj) = kk;
+                        pt[0] -= 0.5*dx_;
+                        pt[1] += 0.5*dy_;
+                        if(objArr_[kk].isObj(pt)==true)
+                            phys_Ex_->point(ii,jj) = kk;
                     }
                 }
             }
             else if(yPML_ != 0)
             {
-                for(int ii = 0; ii < nx_-1;ii ++)
+                for(int ii = 0; ii < nx_;ii ++)
                 {
                     for(int jj = yPML_; jj < ny_-yPML_; jj ++)
                     {
                         pt[0] = (ii +0.5-(nx_-1)/2.0)*dx_;
                         pt[1] = (jj-static_cast<double>(ny_-1)/2.0)*dy_;
                         if(objArr_[kk].isObj(pt)==true)
-                            phys_Ex_->point(ii,jj) = kk;
-                        pt[0] -= 0.5;
-                        pt[1] += 0.5;
-                        if(objArr_[kk].isObj(pt)==true)
                             phys_Ey_->point(ii,jj) = kk;
+                        pt[0] -= 0.5*dx_;
+                        pt[1] += 0.5*dy_;
+                        if(objArr_[kk].isObj(pt)==true)
+                            phys_Ex_->point(ii,jj) = kk;
                     }
-                }
-                for(int jj = yPML_; jj < ny_-yPML_; jj ++)
-                {
-                    pt[0]=((nx_-1)/2.0)*dx_;
-                    pt[1]=(jj+0.5-(ny_-1)/2.0)*dy_;
-                    if(objArr_[kk].isObj(pt)==true)
-                        phys_Ey_->point(nx_-1,jj) = kk;
                 }
             }
             else if(xPML_ != 0)
             {
                 for(int ii = xPML_; ii < nx_-xPML_;ii ++)
                 {
-                    for(int jj = 0; jj < ny_-1; jj ++)
+                    for(int jj = 0; jj < ny_; jj ++)
                     {
                         pt[0] = (ii +0.5-(nx_-1)/2.0)*dx_;
                         pt[1] = (jj-static_cast<double>(ny_-1)/2.0)*dy_;
                         if(objArr_[kk].isObj(pt)==true)
-                            phys_Ex_->point(ii,jj) = kk;
-                        pt[0] -= 0.5;
-                        pt[1] += 0.5;
-                        if(objArr_[kk].isObj(pt)==true)
                             phys_Ey_->point(ii,jj) = kk;
+                        pt[0] -= 0.5*dx_;
+                        pt[1] += 0.5*dy_;
+                        if(objArr_[kk].isObj(pt)==true)
+                            phys_Ex_->point(ii,jj) = kk;
                     }
-                }
-                for(int ii = xPML_; ii < nx_-xPML_;ii ++)
-                {
-                    pt[0]=(ii+0.5-(nx_-1)/2.0)*dx_;
-                    pt[1]=((ny_-1)/2.0)*dy_;
-                    if(objArr_[kk].isObj(pt)==true)
-                        phys_Ex_->point(ii,ny_-1) = kk;
                 }
             }
             else
             {
-                for(int ii = xPML_; ii < nx_-xPML_;ii ++)
+                for(int ii = 0; ii < nx_;ii ++)
                 {
-                    for(int jj = 0; jj < ny_-1; jj ++)
+                    for(int jj = 0; jj < ny_; jj ++)
                     {
                         pt[0] = (ii +0.5-(nx_-1)/2.0)*dx_;
                         pt[1] = (jj-static_cast<double>(ny_-1)/2.0)*dy_;
                         if(objArr_[kk].isObj(pt)==true)
-                            phys_Ex_->point(ii,jj) = kk;
+                            phys_Ey_->point(ii,jj) = kk;
                         pt[0] -= 0.5;
                         pt[1] += 0.5;
                         if(objArr_[kk].isObj(pt)==true)
-                            phys_Ey_->point(ii,jj) = kk;
+                            phys_Ex_->point(ii,jj) = kk;
                     }
-                }
-                for(int ii = 0; ii < nx_-1;ii ++)
-                {
-                    pt[0]=(ii+0.5-(nx_-1)/2.0)*dx_;
-                    pt[1]=(ny_-1-(ny_-1)/2.0)*dy_;
-                    if(objArr_[kk].isObj(pt)==true)
-                        phys_Ex_->point(ii,ny_-1) = kk;
-                }
-                for(int jj = 0; jj < ny_-1; jj ++)
-                {
-                    pt[0]=(nx_-1-(nx_-1)/2.0)*dx_;
-                    pt[1]=(jj+0.5-(ny_-1)/2.0)*dy_;
-                    if(objArr_[kk].isObj(pt)==true)
-                        phys_Ey_->point(nx_-1,jj) = kk;
                 }
             }
         }
@@ -464,6 +436,7 @@ void FDTDField::initializeGrid()
                     while(ii < nx_-xPML_-1 && phys_Ex_ -> point(ii,jj) == phys_Ex_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ex_->point(iistore,jj)};
+                    cout << tempArr[0] << "\t" << tempArr[1] << "\t" << tempArr[2] << "\t" << tempArr[3] << "\t" << endl;
                     zaxEx_.push_back(tempArr);
                     ii++;
                 }
@@ -477,6 +450,7 @@ void FDTDField::initializeGrid()
                     while(ii < nx_-xPML_-1 && phys_Ey_ -> point(ii,jj) == phys_Ey_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ey_->point(iistore,jj)};
+                    // cout << tempArr[0] << "\t" << tempArr[1] << "\t" << tempArr[2] << "\t" << tempArr[3] << "\t" << endl;
                     zaxEy_.push_back(tempArr);
                     ii++;
                 }
@@ -493,6 +467,7 @@ void FDTDField::initializeGrid()
                     while(ii < nx_-xPML_-1 && phys_Ex_ -> point(ii,jj) == phys_Ex_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ex_->point(iistore,jj)};
+                    cout << tempArr[0] << "\t" << tempArr[1] << "\t" << tempArr[2] << "\t" << tempArr[3] << "\t" << endl;
                     zaxEx_.push_back(tempArr);
                     ii++;
                 }
@@ -506,6 +481,7 @@ void FDTDField::initializeGrid()
                     while(ii < nx_-xPML_-1 && phys_Ey_ -> point(ii,jj) == phys_Ey_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ey_->point(iistore,jj)};
+                    cout << tempArr[0] << "\t" << tempArr[1] << "\t" << tempArr[2] << "\t" << tempArr[3] << "\t" << endl;
                     zaxEy_.push_back(tempArr);
                     ii++;
                 }
@@ -2713,7 +2689,7 @@ void FDTDField::updateE()
         for(int kk = 0; kk < zaxEx_.size(); kk++)
         {
             eps = objArr_[zaxEx_[kk][3]].dielectric(1.0);
-            c_exh = dt_/(eps*dx_);
+            c_exh = dt_/(eps*dy_);
             int xx = zaxEx_[kk][0]; int yy =  zaxEx_[kk][1]; int nZax =  zaxEx_[kk][2];
             // cout << xx<<"\t" <<yy <<  "\t" << nZax << endl;
             zscal_(nZax, c_exe, &Ex_ ->point(xx,yy),1);
