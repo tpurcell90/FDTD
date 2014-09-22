@@ -436,7 +436,7 @@ void FDTDField::initializeGrid()
                     while(ii < nx_-xPML_-1 && phys_Ex_ -> point(ii,jj) == phys_Ex_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ex_->point(iistore,jj)};
-                    cout << tempArr[0] << "\t" << tempArr[1] << "\t" << tempArr[2] << "\t" << tempArr[3] << "\t" << endl;
+                    // cout << tempArr[0] << "\t" << tempArr[1] << "\t" << tempArr[2] << "\t" << tempArr[3] << "\t" << endl;
                     zaxEx_.push_back(tempArr);
                     ii++;
                 }

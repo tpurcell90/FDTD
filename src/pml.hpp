@@ -517,7 +517,7 @@ public:
                 {
                     jj = kk;
                     int hx = 0; int hy = 0;
-                    //Update Ex factors nj_0 side
+                    //Update Hx factors nj_0 side
                     eps    = objArr[phys_Ex_->point(*xx,*yy)].dielectric(1.0);
                     sigxx  = (xpml->*sigmax)(static_cast<double>(*xx),eps);
                     sigyx  = (ypml->*sigmay)(static_cast<double>(*yy) + 0.5,eps);
@@ -530,7 +530,7 @@ public:
                     c_ex_n_0_->at(*xx).at(*yy) = calcEPreConsts(eps,sigxx, sigyx, sigz);
                     hx++;
 
-                    //Update Ey factors nj_0 side
+                    //Update Hy factors nj_0 side
                     eps    = objArr[phys_Ey_->point(*xx,*yy)].dielectric(1.0);
                     sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + 0.5,eps);
                     sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
@@ -543,7 +543,7 @@ public:
                     c_ey_n_0_->at(*xx).at(*yy) = calcEPreConsts(eps,sigyy, sigz, sigxy);
                     hy++;
 
-                    //Update Hz factors nj_0 side
+                    //Update Ez factors nj_0 side
                     eps = objArr[phys_Hz_->point(*xx,*yy)].dielectric(1.0);
                     sigx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
                     sigy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
@@ -555,7 +555,7 @@ public:
                     c_hz_n_0_->at(*xx).at(*yy) = calcHPreConsts(eps,sigz, sigx, sigy);
 
                     jj = nj -1 - kk;
-                    //Update Ex factors nj_n side
+                    //Update Hx factors nj_n side
                     eps    = objArr[phys_Ex_->point(*xx,*yy)].dielectric(1.0);
                     jj =kk;
                     sigxx  = (xpml->*sigmax)(static_cast<double>(*xx),eps);
@@ -571,7 +571,7 @@ public:
                     c_ex_n_n_->at(*xx).at(*yy) = calcEPreConsts(eps,sigxx, sigyx, sigz);
                     hx++;
 
-                    //Update Ey factors nj_n side
+                    //Update Hy factors nj_n side
                     jj = nj -1 - kk;
                     eps    = objArr[phys_Ey_->point(*xx,*yy)].dielectric(1.0);
                     jj =kk;
@@ -588,7 +588,7 @@ public:
                     c_ey_n_n_->at(*xx).at(*yy) = calcEPreConsts(eps,sigyy, sigz, sigxy);
                     hy++;
 
-                    //Update Hz factors nj_n side
+                    //Update Ez factors nj_n side
                     jj = nj -1 - kk;
                     eps = objArr[phys_Hz_->point(*xx,*yy)].dielectric(1.0);
                     jj =kk;
