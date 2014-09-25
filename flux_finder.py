@@ -14,22 +14,22 @@ t = []
 E_refl = []
 E_trans = []
 
-f_incd = open('/home/tap620/git/FDTD/output_data/incd/dtc_out_field_0.dat','r')
+f_incd = open('/home/tap620/git/FDTD/output_data/incd/dtc_out_field_1.dat','r')
 for line in f_incd:
 	E_incd.append(float(line.split('\t')[3]))
 	t.append(float(line.split('\t')[0]))
 f_incd.close()
-f_refl  = open('/home/tap620/git/FDTD/output_data/blocked/dtc_out_field_0.dat','r')
+f_refl  = open('/home/tap620/git/FDTD/output_data/blocked/dtc_out_field_1.dat','r')
 for line in f_refl:
 	E_refl.append(float(line.split('\t')[3]))
 f_refl.close()
 
-f_trans = open('/home/tap620/git/FDTD/output_data/blocked/dtc_out_field_1.dat','r')
+f_trans = open('/home/tap620/git/FDTD/output_data/blocked/dtc_out_field_0.dat','r')
 for line in f_trans:
 	E_trans.append(float(line.split('\t')[3]))
 f_trans.close()
 
-f_trans_incd = open('/home/tap620/git/FDTD/output_data/incd/dtc_out_field_1.dat','r')
+f_trans_incd = open('/home/tap620/git/FDTD/output_data/incd/dtc_out_field_0.dat','r')
 for line in f_trans_incd:
 	E_trans_incd.append(float(line.split('\t')[3]))
 f_trans_incd.close()
@@ -58,7 +58,7 @@ pow_trans = E_trans_freq * E_trans_freq.conjugate() / 2.0 * 3.0
 R = pow_refl / pow_incd
 T = pow_trans / pow_incd
 I = pow_incd / pow_trans_incd
-freq = fftpack.fftfreq(len(R), d = 0.025)
+freq = fftpack.fftfreq(len(R), d = 0.01)
 
 outfile = open("RT.dat","w")
 for ii in range(len(T)):

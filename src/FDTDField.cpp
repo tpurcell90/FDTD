@@ -2812,12 +2812,10 @@ void FDTDField::updateE()
             shared_ptr<vector<vector<array<double,5>>>> c_ex_n_0;
             shared_ptr<vector<vector<array<double,5>>>> c_ey_0_n;
             shared_ptr<vector<vector<array<double,5>>>> c_ey_n_0;
-
-            shared_ptr<vector<vector<array<double,5>>>> c_ex_0_0 = pmlArr_[1].c_ex_0_0_;
-            shared_ptr<vector<vector<array<double,5>>>> c_ex_n_n = pmlArr_[1].c_ex_n_n_;
-            shared_ptr<vector<vector<array<double,5>>>> c_ey_0_0 = pmlArr_[1].c_ey_0_0_;
-            shared_ptr<vector<vector<array<double,5>>>> c_ey_n_n = pmlArr_[1].c_ey_n_n_;
-            // Ensures corners are correct in all cases
+            shared_ptr<vector<vector<array<double,5>>>> c_ex_0_0 = pmlArr_[kx].c_ex_0_0_;
+            shared_ptr<vector<vector<array<double,5>>>> c_ex_n_n = pmlArr_[kx].c_ex_n_n_;
+            shared_ptr<vector<vector<array<double,5>>>> c_ey_0_0 = pmlArr_[kx].c_ey_0_0_;
+            shared_ptr<vector<vector<array<double,5>>>> c_ey_n_n = pmlArr_[kx].c_ey_n_n_;
             if(pmlArr_[1].d() == X)
             {
                 c_ex_0_n = pmlArr_[1].c_ex_0_n_;
@@ -2833,6 +2831,7 @@ void FDTDField::updateE()
                 c_ey_0_n = pmlArr_[1].c_ey_n_0_;
                 c_ey_n_0 = pmlArr_[1].c_ey_0_n_;
             }
+
             complex<double> dxstore(0.0,0.0); complex<double> dystore(0.0,0.0);
             for(int ii = 1; ii < xPML_; ii++)
             {
