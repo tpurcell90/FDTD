@@ -1,28 +1,24 @@
 {
     "CompCell" : {
         "procs"         : 1,
-        "x_size"        : 11.0,
-        "y_size"        : 30.0,
+        "y_size"        : 11.0,
+        "x_size"        : 50.0,
         "z_size"        : 0.0,
         "res"           : 50,
         "courant"       : 0.5,
-        "tLim"          : 200.0,
+        "tLim"          : 300.0,
         "PBC"           : "false"
     },
     "k-point"           : [
         {
-            "X"         : 0,
-            "Y"         : 0.0333333333
+            "Y"         : 0,
+            "X"         : 0.0333333333
         }
     ],
     "PML" :  [
         {
-            "thickness" : 5.00,
+            "thickness" : 15.0,
             "direction" : "X"
-        },
-        {
-            "thickness" : 5.00,
-            "direction" : "Y"
         }
     ],
     "SourceList"  : [
@@ -33,21 +29,21 @@
             "fwidth"    : 1.0,
             "cutoff"    : 10.00,
             "t_start"   : 0.00,
-            "size_y"    : 0.00,
             "size_x"    : 0.00,
-            "pol"       : "Ez",
-            "loc_y"     : -6.00,
-            "loc_x"     : 0.00
+            "size_y"    : 11.00,
+            "pol"       : "Ey",
+            "loc_x"     : -6.00,
+            "loc_y"     : 0.00
         }
     ],
     "ObjectList": [
         {
             "shape"     : "block",
-            "loc_y"     : 11.0,
-            "loc_x"     : 0.00,
-            "size_y"    : 8.0,
-            "size_x"    : 50.00,
-            "eps"       : 1.00,
+            "loc_x"     : 15.0,
+            "loc_y"     : 0.00,
+            "size_x"    : 20.0,
+            "size_y"    : 50.00,
+            "eps"       : 9.00,
             "pols"      : [
 
 
@@ -56,20 +52,20 @@
     ],
     "DetectorList"  : [
         {
-            "loc_y"     : 9.00,
-            "loc_x"     : 0.00,
-            "size_y"    : 0.00,
+            "loc_x"     : 5.50,
+            "loc_y"     : 0.00,
             "size_x"    : 0.00,
+            "size_y"    : 0.00,
             "type"      : "field",
-            "pol"       : "Ez"
+            "pol"       : "Ey"
         },
         {
-            "loc_y"     : -5.00,
-            "loc_x"     : 0.00,
-            "size_y"    : 0.00,
+            "loc_x"     : -5.00,
+            "loc_y"     : 0.00,
             "size_x"    : 0.00,
+            "size_y"    : 0.00,
             "type"      : "field",
-            "pol"       : "Ez"
+            "pol"       : "Ey"
         }
     ]
 }

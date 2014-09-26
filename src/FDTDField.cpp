@@ -1464,6 +1464,9 @@ void FDTDField::updateH()
                 zaxpy_(nx_-2,      c_hze, &Ex_->point(1  ,jj  ), 1, &Hz_ ->point(1,jj),1);
             }
             zscal_(ny_-2*yPML_,      c_hzh, &Hz_->point(0  ,yPML_)  , nx_);
+            zaxpy_(ny_-2*yPML_, -1.0*c_hze, &Ey_->point(0  ,yPML_)  , nx_, &Hz_ ->point(0,yPML_),nx_);
+            zaxpy_(ny_-2*yPML_, -1.0*c_hze, &Ex_->point(0  ,yPML_-1), nx_, &Hz_ ->point(0,yPML_),nx_);
+            zaxpy_(ny_-2*yPML_,      c_hze, &Ex_->point(0  ,yPML_)  , nx_, &Hz_ ->point(0,yPML_),nx_);
             if(periodic_)
             {
                 vector<complex<double>> oppEy(ny_-2*yPML_,0.0);
@@ -1472,11 +1475,12 @@ void FDTDField::updateH()
                 zaxpy_(ny_-2*yPML_, c_kpoint_, &Ey_->point(nx_-2, yPML_), nx_, oppEy.data(),1);
                 zaxpy_(ny_-2*yPML_,     c_hze, oppEy.data()            , 1  , &Hz_ ->point(0,yPML_),nx_);
             }
-            zaxpy_(ny_-2*yPML_, -1.0*c_hze, &Ey_->point(0  ,yPML_)  , nx_, &Hz_ ->point(0,yPML_),nx_);
-            zaxpy_(ny_-2*yPML_, -1.0*c_hze, &Ex_->point(0  ,yPML_-1), nx_, &Hz_ ->point(0,yPML_),nx_);
-            zaxpy_(ny_-2*yPML_,      c_hze, &Ex_->point(0  ,yPML_)  , nx_, &Hz_ ->point(0,yPML_),nx_);
+
 
             zscal_(ny_-2*yPML_,      c_hzh, &Hz_->point(nx_-1, yPML_)  , nx_);
+            zaxpy_(ny_-2*yPML_,      c_hze, &Ey_->point(nx_-2, yPML_)  , nx_, &Hz_ ->point(nx_-1,yPML_),nx_);
+            zaxpy_(ny_-2*yPML_, -1.0*c_hze, &Ex_->point(nx_-1, yPML_-1), nx_, &Hz_ ->point(nx_-1,yPML_),nx_);
+            zaxpy_(ny_-2*yPML_,      c_hze, &Ex_->point(nx_-1, yPML_)  , nx_, &Hz_ ->point(nx_-1,yPML_),nx_);
             if(periodic_)
             {
                 vector<complex<double>> oppEy(ny_-2*yPML_,0.0);
@@ -1485,11 +1489,26 @@ void FDTDField::updateH()
                 zaxpy_(ny_-2*yPML_, c_kpoint_, &Ey_->point(0, yPML_), nx_, oppEy.data(),1);
                 zaxpy_(ny_-2*yPML_,-1.0*c_hze, oppEy.data()               , 1  , &Hz_ ->point(nx_-1,yPML_),nx_);
             }
-            zaxpy_(ny_-2*yPML_,      c_hze, &Ey_->point(nx_-2, yPML_)  , nx_, &Hz_ ->point(nx_-1,yPML_),nx_);
-            zaxpy_(ny_-2*yPML_, -1.0*c_hze, &Ex_->point(nx_-1, yPML_-1), nx_, &Hz_ ->point(nx_-1,yPML_),nx_);
-            zaxpy_(ny_-2*yPML_,      c_hze, &Ex_->point(nx_-1, yPML_)  , nx_, &Hz_ ->point(nx_-1,yPML_),nx_);
+
 
             //PML
+            for(int zz = pmlArr_[0].edgei_0_; zz < pmlArr_[0].zaxHz_.size(); zz++)
+            {
+                array<double,9> zaxArr = pmlArr_[0].zaxHz_[zz];
+                int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
+                vector<complex<double>> bzstore(nZax, 0.0);
+                zcopy_(nZax, &pmlArr_[0].Bz_ -> point(xx,yy), 1, bzstore.data(), 1);
+
+                zscal_(nZax, zaxArr[4], &pmlArr_[0].Bz_ -> point(xx,yy), 1);
+                zscal_(nZax, zaxArr[6],             &Hz_ -> point(xx,yy), 1);
+
+                zaxpy_(nZax,     zaxArr[5], &Ex_->point(xx  ,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
+                zaxpy_(nZax,     zaxArr[5], &Ey_->point(xx-1,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
+                zaxpy_(nZax,-1.0*zaxArr[5], &Ey_->point(xx  ,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
+
+                zaxpy_(nZax,      zaxArr[7], &pmlArr_[0].Bz_ -> point(xx,yy), 1, &Hz_ -> point(xx,yy), 1);
+                zaxpy_(nZax, -1.0*zaxArr[8], bzstore.data()                 , 1, &Hz_ -> point(xx,yy), 1);
+            }
             for(int zz = 0; zz < pmlArr_[0].edgei_0_; zz++)
             {
                 array<double,9> zaxArr = pmlArr_[0].zaxHz_[zz];
@@ -1502,23 +1521,6 @@ void FDTDField::updateH()
 
                 zaxpy_(nZax,     zaxArr[5], &Ex_->point(xx  ,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
                 zaxpy_(nZax,-1.0*zaxArr[5], &Ex_->point(xx  ,yy-1), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
-                zaxpy_(nZax,     zaxArr[5], &Ey_->point(xx-1,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
-                zaxpy_(nZax,-1.0*zaxArr[5], &Ey_->point(xx  ,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
-
-                zaxpy_(nZax,      zaxArr[7], &pmlArr_[0].Bz_ -> point(xx,yy), 1, &Hz_ -> point(xx,yy), 1);
-                zaxpy_(nZax, -1.0*zaxArr[8], bzstore.data()                 , 1, &Hz_ -> point(xx,yy), 1);
-            }
-            for(int zz = pmlArr_[0].edgei_0_; zz < pmlArr_[0].zaxHz_.size(); zz++)
-            {
-                array<double,9> zaxArr = pmlArr_[0].zaxHz_[zz];
-                int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
-                vector<complex<double>> bzstore(nZax, 0.0);
-                zcopy_(nZax, &pmlArr_[0].Bz_ -> point(xx,yy), 1, bzstore.data(), 1);
-
-                zscal_(nZax, zaxArr[4], &pmlArr_[0].Bz_ -> point(xx,yy), 1);
-                zscal_(nZax, zaxArr[6],             &Hz_ -> point(xx,yy), 1);
-
-                zaxpy_(nZax,     zaxArr[5], &Ex_->point(xx  ,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
                 zaxpy_(nZax,     zaxArr[5], &Ey_->point(xx-1,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
                 zaxpy_(nZax,-1.0*zaxArr[5], &Ey_->point(xx  ,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
 
@@ -1564,6 +1566,7 @@ void FDTDField::updateH()
             }
             for(int ii = 1; ii< pmlArr_[0].thickness(); ii++)
             {
+
                 //Bot Left
                 int xx = 0; int yy = ii;
                 complex<double> oppEy(0.0,0.0);
@@ -3025,15 +3028,15 @@ void FDTDField::step()
     updateE();
     for(int ii = 0; ii < dtcArr_.size(); ii ++)
         ouputField(dtcArr_[ii]);
-    //if(abs(tcur_-floor(tcur_+0.5)) < 1e-7)
+    // if(abs(tcur_-floor(tcur_+0.5)) < 1e-7)
     if(false)
     {
         string fname("fout/Hx/HxField_t" + to_string(static_cast<int>(t_step_))+".dat");
-        Hx_->gridOut(fname);
+        Ex_->gridOut(fname);
         fname = "fout/Hy/HyField_t" + to_string(static_cast<int>(t_step_))+".dat";
-        Hy_->gridOut(fname);
+        Ey_->gridOut(fname);
         fname = "fout/Ez/EzField_t" + to_string(static_cast<int>(t_step_))+".dat";
-        Ez_->gridOut(fname);
+        Hz_->gridOut(fname);
     }
 
     tcur_ += dt_;

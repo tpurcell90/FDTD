@@ -431,7 +431,7 @@ public:
 
                     eps    = objArr[phys_Hx_end_->point(*xx,*yy)].dielectric(1.0);
                     sigxx  = (xpml->*sigmax)(static_cast<double>(*xx),eps);
-                    sigyx  = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,floor(hx/(delx+1))) * 0.5,eps); //Switch to see if PML is on teh different side yet
+                    sigyx  = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,floor(hx/(dely+1))) * 0.5,eps); //Switch to see if PML is on teh different side yet
                     c_hx_n_0_->at(*xx).at(*yy) = calcHPreConsts(eps,sigxx, sigyx, sigz);
                     hx++;
 
@@ -443,7 +443,7 @@ public:
                     hy++;
 
                     eps    = objArr[phys_Hy_end_->point(*xx,*yy)].dielectric(1.0);
-                    sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,floor(hy/(dely+1))) * 0.5,eps); //Switch to see if PML is on teh different side yet
+                    sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,floor(hy/(delx+1))) * 0.5,eps); //Switch to see if PML is on teh different side yet
                     sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
                     c_hy_n_0_->at(*xx).at(*yy) = calcHPreConsts(eps,sigyy, sigz, sigxy);
                     hy++;
@@ -464,7 +464,7 @@ public:
                     eps    = objArr[phys_Hx_->point(*xx,*yy)].dielectric(1.0);
                     jj =kk;
                     sigxx  = (xpml->*sigmax)(static_cast<double>(*xx),eps);
-                    sigyx  = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,floor(hx/(delx+1))) * 0.5,eps); //Switch to see if PML is on teh different side yet
+                    sigyx  = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,floor(hx/(dely+1))) * 0.5,eps); //Switch to see if PML is on teh different side yet
                     c_hx_0_n_->at(*xx).at(*yy) = calcHPreConsts(eps,sigxx, sigyx, sigz);
                     hx++;
 
@@ -480,7 +480,7 @@ public:
                     jj = nj -1 - kk;
                     eps    = objArr[phys_Hy_->point(*xx,*yy)].dielectric(1.0);
                     jj =kk;
-                    sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,floor(hy/(dely+1))) * 0.5,eps); //Switch to see if PML is on teh different side yet
+                    sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,floor(hy/(delx+1))) * 0.5,eps); //Switch to see if PML is on teh different side yet
                     sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
                     c_hy_0_n_->at(*xx).at(*yy) = calcHPreConsts(eps,sigyy, sigz, sigxy);
                     hy++;
@@ -780,6 +780,7 @@ public:
                     sigy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
                     std::array<double,5> preconsts = calcHPreConsts(eps,sigz, sigx, sigy);
                     std::copy_n(preconsts.begin(),5,tempArr.begin()+4);
+                    std::cout << tempArr[0] << "\t" << tempArr[1] << "\t" << tempArr[2] << "\t" << tempArr[3] << "\t" << std::setw(10) << sigy << "\t" << std::setw(10) << tempArr[4] << "\t" << std::setw(10) << tempArr[5] << "\t" << std::setw(10) << tempArr[6] << "\t" << std::setw(10) << tempArr[7] << "\t" << std::setw(10) << tempArr[8] << "\t" << std::endl;
                     zaxHz_.push_back(tempArr);
                     jj--;
                 }
@@ -1021,9 +1022,9 @@ public:
     double sigma(double x,double eps)
     {
         if(x <= thickness_-1 && x >=-0.25)
-            return sigmaMax_ * pow((static_cast<double>(thickness_-1) - x) / static_cast<double>(thickness_-1) , m_) / sqrt(eps);
+            return sigmaMax_ * pow((static_cast<double>(thickness_-1) - x) / static_cast<double>(thickness_-1) , m_);// / sqrt(eps);
         else if(ni_ -x <= thickness_-1  && x<ni_)
-            return sigmaMax_ * pow((static_cast<double>(thickness_-1) - (ni_-1-x)) / static_cast<double>(thickness_-1) , m_) / sqrt(eps);
+            return sigmaMax_ * pow((static_cast<double>(thickness_-1) - (ni_-1-x)) / static_cast<double>(thickness_-1) , m_);// / sqrt(eps);
         else
             return 0.0;
     }

@@ -85,13 +85,13 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         {
             xPml_ = find_pt(thickness);
             //pmlArr_.push_back(UPML<double>(thickness,d, 4.0, exp(-16), find_pt(y_size_),1.0/res_,1.0/res_,string2pol(pol_)));
-            pmlArr_.push_back(UPML<complex<double>>(xPml_,d, 3.0, 1e-50, find_pt(x_size_) + 1,find_pt(y_size_) + 1,1.0/res_,1.0/res_, courant_/res_, xPml_, yPml_,string2pol(pol_)));
+            pmlArr_.push_back(UPML<complex<double>>(xPml_,d, 4.0, 1e-50, find_pt(x_size_) + 1,find_pt(y_size_) + 1,1.0/res_,1.0/res_, courant_/res_, xPml_, yPml_,string2pol(pol_)));
         }
         else if(d == Y)
         {
             yPml_ = find_pt(thickness);
             //pmlArr_.push_back(UPML<double>(thickness,d, 4.0, exp(-16), find_pt(x_size_),1.0/res_,1.0/res_,string2pol(pol_)));
-            pmlArr_.push_back(UPML<complex<double>>(yPml_,d, 3.0, 1e-50, find_pt(x_size_) + 1,find_pt(y_size_) + 1,1.0/res_,1.0/res_, courant_/res_, xPml_, yPml_,string2pol(pol_)));
+            pmlArr_.push_back(UPML<complex<double>>(yPml_,d, 4.0, 1e-50, find_pt(x_size_) + 1,find_pt(y_size_) + 1,1.0/res_,1.0/res_, courant_/res_, xPml_, yPml_,string2pol(pol_)));
         }
         else if (d == Z)
             throw logic_error("While yes we could have a thrid dimension to run, I have yet to be implimented to do such a thing. So please accept this error as my sincerest appology.");
