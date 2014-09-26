@@ -86,6 +86,7 @@ FDTDField::FDTDField(programInputs &IP)
  * @details Initializes the physical grid for materials look up, sets the object to the number in the object array will overwrite to the last one if multiple objects exist at the same point
  *
  */
+ // cout
 void FDTDField::initializeGrid()
 {
     //Sotres the locations of the objects in the grid.
@@ -467,7 +468,7 @@ void FDTDField::initializeGrid()
                     while(ii < nx_-xPML_-1 && phys_Ex_ -> point(ii,jj) == phys_Ex_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ex_->point(iistore,jj)};
-                    cout << tempArr[0] << "\t" << tempArr[1] << "\t" << tempArr[2] << "\t" << tempArr[3] << "\t" << endl;
+                    // cout << tempArr[0] << "\t" << tempArr[1] << "\t" << tempArr[2] << "\t" << tempArr[3] << "\t" << endl;
                     zaxEx_.push_back(tempArr);
                     ii++;
                 }
@@ -481,7 +482,7 @@ void FDTDField::initializeGrid()
                     while(ii < nx_-xPML_-1 && phys_Ey_ -> point(ii,jj) == phys_Ey_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ey_->point(iistore,jj)};
-                    cout << tempArr[0] << "\t" << tempArr[1] << "\t" << tempArr[2] << "\t" << tempArr[3] << "\t" << endl;
+                    // cout << tempArr[0] << "\t" << tempArr[1] << "\t" << tempArr[2] << "\t" << tempArr[3] << "\t" << endl;
                     zaxEy_.push_back(tempArr);
                     ii++;
                 }
@@ -1517,7 +1518,7 @@ void FDTDField::updateH()
                 zcopy_(nZax, &pmlArr_[0].Bz_ -> point(xx,yy), 1, bzstore.data(), 1);
 
                 zscal_(nZax, zaxArr[4], &pmlArr_[0].Bz_ -> point(xx,yy), 1);
-                zscal_(nZax, zaxArr[6],             &Hz_ -> point(xx,yy), 1);
+                zscal_(nZax, zaxArr[6],            &Hz_ -> point(xx,yy), 1);
 
                 zaxpy_(nZax,     zaxArr[5], &Ex_->point(xx  ,yy  ), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
                 zaxpy_(nZax,-1.0*zaxArr[5], &Ex_->point(xx  ,yy-1), 1, &pmlArr_[0].Bz_->point(xx,yy), 1);
@@ -1530,6 +1531,7 @@ void FDTDField::updateH()
             for(int zz = 0; zz < pmlArr_[0].edgei_n_; zz++)
             {
                 array<double,9> zaxArr = pmlArr_[0].zaxHz_end_[zz];
+                // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << setw(10) << zaxArr[4] << "\t" << setw(10) << zaxArr[5] << "\t" <<  setw(10) << zaxArr[6] << "\t" <<  setw(10) << zaxArr[7] << "\t" <<  setw(10) << zaxArr[8] << "\t" << endl;
                 int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
                 int yy_rel = ny_-1-yy;
                 vector<complex<double>> bzstore(nZax, 0.0);
@@ -1549,6 +1551,7 @@ void FDTDField::updateH()
             for(int zz = pmlArr_[0].edgei_n_; zz < pmlArr_[0].zaxHz_end_.size(); zz++)
             {
                 array<double,9> zaxArr = pmlArr_[0].zaxHz_end_[zz];
+                // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << setw(10) << zaxArr[4] << "\t" << setw(10) << zaxArr[5] << "\t" <<  setw(10) << zaxArr[6] << "\t" <<  setw(10) << zaxArr[7] << "\t" <<  setw(10) << zaxArr[8] << "\t" << endl;
                 int xx = static_cast<int>(zaxArr[0]); int yy = static_cast<int>(zaxArr[1]); int nZax = static_cast<int>(zaxArr[2]);
                 int yy_rel = ny_-1-yy;
                 vector<complex<double>> bzstore(nZax, 0.0);
@@ -2724,26 +2727,25 @@ void FDTDField::updateE()
                 d          = 1;
                 nj         = ny_ - 1;
             }
+            // cout << "EX" << endl;
             for(int zz = 0; zz < pmlArr_[kk].zaxEx_.size();zz++)
             {
                 array<double,9> zaxArr = pmlArr_[kk].zaxEx_[zz];
                 int xx = static_cast<int>(zaxArr[0]);
                 int yy = static_cast<int>(zaxArr[1]);
-                int xx_rel =  xx;  /// If the pml is is the x direction xx_rel = nx - xx, else xrel = xx
-                int yy_rel =  yy; /// If the pml is is the y direction yy_rel = ny - yy, else yrel = yy
                 int nZax = static_cast<int>(zaxArr[2]);
-
+                // cout << zaxArr[0] << "\t" << zaxArr[1] << "\t" << zaxArr[2] << "\t" << zaxArr[3] << "\t" << setw(10) << zaxArr[4] << "\t" << setw(10) << zaxArr[5] << "\t" << setw(10) << zaxArr[6] << "\t" << setw(10) << zaxArr[7] << "\t" << setw(10) << zaxArr[8] << "\t" << endl;
                 vector<complex<double>> dxstore(nZax, 0.0);
                 zcopy_(nZax, &pmlArr_[kk].Dx_ -> point(xx,yy), stride, dxstore.data(), 1);
 
                 zscal_(nZax, zaxArr[4], &pmlArr_[kk].Dx_ -> point(xx   ,yy   ), stride);
-                zscal_(nZax, zaxArr[6],                 &Ex_ -> point(xx_rel,yy_rel), stride_rel);
+                zscal_(nZax, zaxArr[6],                 &Ex_ -> point(xx,yy), stride_rel);
 
-                zaxpy_(nZax, -1.0*zaxArr[5], &Hz_ -> point(xx_rel,yy_rel  ), stride_rel, &pmlArr_[kk].Dx_ -> point(xx,yy), stride);
-                zaxpy_(nZax,      zaxArr[5], &Hz_ -> point(xx_rel,yy_rel+1), stride_rel, &pmlArr_[kk].Dx_ -> point(xx,yy), stride);
+                zaxpy_(nZax, -1.0*zaxArr[5], &Hz_ -> point(xx,yy  ), stride_rel, &pmlArr_[kk].Dx_ -> point(xx,yy), stride);
+                zaxpy_(nZax,      zaxArr[5], &Hz_ -> point(xx,yy+1), stride_rel, &pmlArr_[kk].Dx_ -> point(xx,yy), stride);
 
-                zaxpy_(nZax,      zaxArr[7], &pmlArr_[kk].Dx_ -> point(xx,yy), stride, &Ex_ -> point(xx_rel,yy_rel), stride_rel);
-                zaxpy_(nZax, -1.0*zaxArr[8], dxstore.data()                      , 1     , &Ex_ -> point(xx_rel,yy_rel), stride_rel);
+                zaxpy_(nZax,      zaxArr[7], &pmlArr_[kk].Dx_ -> point(xx,yy), stride, &Ex_ -> point(xx,yy), stride_rel);
+                zaxpy_(nZax, -1.0*zaxArr[8], dxstore.data()                      , 1     , &Ex_ -> point(xx,yy), stride_rel);
             }
             for(int zz = 0; zz < pmlArr_[kk].zaxEx_end_.size();zz++)
             {

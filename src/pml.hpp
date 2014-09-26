@@ -34,7 +34,6 @@ protected:
     int nj_,ni_;
     double dx_,dy_,dt_;
 
-
 public:
     std::shared_ptr<Grid2D<T>> Dx_,Dy_,Dz_,Bx_,By_,Bz_,Dx_end_,Dy_end_,Dz_end_,Bx_end_,By_end_,Bz_end_;
     std::shared_ptr<Grid2D<int>> phys_Hx_,phys_Hy_,phys_Hz_, phys_Hx_end_,phys_Hy_end_,phys_Hz_end_,phys_Ex_,phys_Ey_,phys_Ez_, phys_Ex_end_,phys_Ey_end_,phys_Ez_end_;
@@ -65,6 +64,7 @@ public:
      * @param yPML thickness of the y direction PML
      * @param pol A polarization so it can set up the right auxilliary fields
      */
+
     UPML(int thickness, Direction d, double m, double R0, int nx, int ny, double dx, double dy, double dt, int xPML, int yPML, Polarization pol) : thickness_(thickness), d_(d), m_(m), R0_(R0), dx_(dx), dy_(dy), dt_(dt), pol_(pol)
     {
         edgei_0_ = 0;
@@ -121,10 +121,8 @@ public:
             phys_Hx_end_ = nullptr;
             phys_Ez_ = nullptr;
             phys_Ez_end_ = nullptr;
-            std::cout << xPML << "\t" << yPML << std::endl;
             if(xPML == 0)
             {
-                std::cout << "xpml" << std::endl;
                 c_hx_0_0_ = nullptr; c_hy_0_0_ = nullptr; c_ez_0_0_ = nullptr; c_hx_n_0_ = nullptr; c_hy_n_0_ = nullptr; c_ez_n_0_ = nullptr;
                 c_hx_0_n_ = nullptr; c_hy_0_n_ = nullptr; c_ez_0_n_ = nullptr; c_hx_n_n_ = nullptr; c_hy_n_n_ = nullptr; c_ez_n_n_ = nullptr;
                 c_ex_0_0_ = nullptr; c_ey_0_0_ = nullptr;  c_ex_n_0_ = nullptr; c_ey_n_0_ = nullptr;
@@ -136,7 +134,6 @@ public:
             }
             else if(yPML == 0)
             {
-                std::cout << "ypml" << std::endl;
                 c_hx_0_0_ = nullptr; c_hy_0_0_ = nullptr; c_ez_0_0_ = nullptr; c_hx_n_0_ = nullptr; c_hy_n_0_ = nullptr; c_ez_n_0_ = nullptr;
                 c_hx_0_n_ = nullptr; c_hy_0_n_ = nullptr; c_ez_0_n_ = nullptr; c_hx_n_n_ = nullptr; c_hy_n_n_ = nullptr; c_ez_n_n_ = nullptr;
                 c_ex_0_0_ = nullptr; c_ey_0_0_ = nullptr;  c_ex_n_0_ = nullptr; c_ey_n_0_ = nullptr;
@@ -148,7 +145,6 @@ public:
             }
             else
             {
-                std::cout << "neither" << std::endl;
                 c_hx_0_0_ = nullptr; c_hy_0_0_ = nullptr; c_ez_0_0_ = nullptr; c_hx_n_0_ = nullptr; c_hy_n_0_ = nullptr; c_ez_n_0_ = nullptr;
                 c_hx_0_n_ = nullptr; c_hy_0_n_ = nullptr; c_ez_0_n_ = nullptr; c_hx_n_n_ = nullptr; c_hy_n_n_ = nullptr; c_ez_n_n_ = nullptr;
 
@@ -509,22 +505,22 @@ public:
                     c_ez_n_n_->at(*xx).at(*yy) = calcEPreConsts(eps,sigz, sigx, sigy);
                 }
             }
-            for(jj = 0; jj < oppPML; jj ++)
-                for(ii = 0; ii < thickness_; ii++)
-                    std::cout << *xx << "\t" << *yy << "\t" << std::setw(10)  <<c_hy_0_0_->at(*xx).at(*yy)[0] << "\t" << std::setw(10) << c_hy_0_0_->at(*xx).at(*yy)[1] << "\t" << std::setw(10) << c_hy_0_0_->at(*xx).at(*yy)[2] << "\t" << std::setw(10) << c_hy_0_0_->at(*xx).at(*yy)[3] << "\t" << std::setw(10) << c_hy_0_0_->at(*xx).at(*yy)[4] << std::endl;
+            // for(jj = 0; jj < oppPML; jj ++)
+            //     for(ii = 0; ii < thickness_; ii++)
+                    // std::cout << *xx << "\t" << *yy << "\t" << std::setw(10)  <<c_hy_0_0_->at(*xx).at(*yy)[0] << "\t" << std::setw(10) << c_hy_0_0_->at(*xx).at(*yy)[1] << "\t" << std::setw(10) << c_hy_0_0_->at(*xx).at(*yy)[2] << "\t" << std::setw(10) << c_hy_0_0_->at(*xx).at(*yy)[3] << "\t" << std::setw(10) << c_hy_0_0_->at(*xx).at(*yy)[4] << std::endl;
 
-            std::cout << "0_n" << std::endl;
-            for(jj = 0; jj < oppPML; jj ++)
-                for(ii = 0; ii < thickness_; ii++)
-                    std::cout << *xx << "\t" << *yy << "\t"  << std::setw(10)  <<c_hy_0_n_->at(*xx).at(*yy)[0] << "\t" << std::setw(10) << c_hy_0_n_->at(*xx).at(*yy)[1] << "\t" << std::setw(10) << c_hy_0_n_->at(*xx).at(*yy)[2] << "\t" << std::setw(10) << c_hy_0_n_->at(*xx).at(*yy)[3] << "\t" << std::setw(10) << c_hy_0_n_->at(*xx).at(*yy)[4] << std::endl;
-            std::cout << "n_0" << std::endl;
-            for(jj = 0; jj < oppPML; jj ++)
-                for(ii = 0; ii < thickness_; ii++)
-                    std::cout << *xx << "\t" << *yy << "\t"  << std::setw(10)  <<c_hy_n_0_->at(*xx).at(*yy)[0] << "\t" << std::setw(10) << c_hy_n_0_->at(*xx).at(*yy)[1] << "\t" << std::setw(10) << c_hy_n_0_->at(*xx).at(*yy)[2] << "\t" << std::setw(10) << c_hy_n_0_->at(*xx).at(*yy)[3] << "\t" << std::setw(10) << c_hy_n_0_->at(*xx).at(*yy)[4] << std::endl;
-            std::cout << "n_n" << std::endl;
-            for(jj = 0; jj < oppPML; jj ++)
-                for(ii = 0; ii < thickness_; ii++)
-                    std::cout << *xx << "\t" << *yy << "\t"  << std::setw(10)  <<c_hy_n_n_->at(*xx).at(*yy)[0] << "\t" << std::setw(10) << c_hy_n_n_->at(*xx).at(*yy)[1] << "\t" << std::setw(10) << c_hy_n_n_->at(*xx).at(*yy)[2] << "\t" << std::setw(10) << c_hy_n_n_->at(*xx).at(*yy)[3] << "\t" << std::setw(10) << c_hy_n_n_->at(*xx).at(*yy)[4] << std::endl;
+            // std::cout << "0_n" << std::endl;
+            // for(jj = 0; jj < oppPML; jj ++)
+            //     for(ii = 0; ii < thickness_; ii++)
+            //         std::cout << *xx << "\t" << *yy << "\t"  << std::setw(10)  <<c_hy_0_n_->at(*xx).at(*yy)[0] << "\t" << std::setw(10) << c_hy_0_n_->at(*xx).at(*yy)[1] << "\t" << std::setw(10) << c_hy_0_n_->at(*xx).at(*yy)[2] << "\t" << std::setw(10) << c_hy_0_n_->at(*xx).at(*yy)[3] << "\t" << std::setw(10) << c_hy_0_n_->at(*xx).at(*yy)[4] << std::endl;
+            // std::cout << "n_0" << std::endl;
+            // for(jj = 0; jj < oppPML; jj ++)
+            //     for(ii = 0; ii < thickness_; ii++)
+            //         std::cout << *xx << "\t" << *yy << "\t"  << std::setw(10)  <<c_hy_n_0_->at(*xx).at(*yy)[0] << "\t" << std::setw(10) << c_hy_n_0_->at(*xx).at(*yy)[1] << "\t" << std::setw(10) << c_hy_n_0_->at(*xx).at(*yy)[2] << "\t" << std::setw(10) << c_hy_n_0_->at(*xx).at(*yy)[3] << "\t" << std::setw(10) << c_hy_n_0_->at(*xx).at(*yy)[4] << std::endl;
+            // std::cout << "n_n" << std::endl;
+            // for(jj = 0; jj < oppPML; jj ++)
+            //     for(ii = 0; ii < thickness_; ii++)
+            //         std::cout << *xx << "\t" << *yy << "\t"  << std::setw(10)  <<c_hy_n_n_->at(*xx).at(*yy)[0] << "\t" << std::setw(10) << c_hy_n_n_->at(*xx).at(*yy)[1] << "\t" << std::setw(10) << c_hy_n_n_->at(*xx).at(*yy)[2] << "\t" << std::setw(10) << c_hy_n_n_->at(*xx).at(*yy)[3] << "\t" << std::setw(10) << c_hy_n_n_->at(*xx).at(*yy)[4] << std::endl;
 
         }
         else if(c_ex_0_0_)
@@ -694,6 +690,7 @@ public:
 
         if(pol_ == HZ || pol_ == EX || pol_ == EY)
         {
+            // std::cout << "Ex" << std::endl;
             for(ii= 0; ii < thickness_; ii++)
             {
                 jj = zaxXJmax;
@@ -705,9 +702,10 @@ public:
                     std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ex_->point(*xx,*yy))};
                     eps   = objArr[phys_Ex_->point(*xx,*yy)].dielectric(1.0);
                     sigxx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
-                    sigyx = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,delx) * 0.5,eps); //Switch to see if PML is on teh different side yet
+                    sigyx = (ypml->*sigmay)(static_cast<double>(*yy) + 0.5,eps); //Switch to see if PML is on teh different side yet
                     std::array<double,5> preconsts = calcEPreConsts(eps,sigxx, sigyx, sigz);
                     std::copy_n(preconsts.begin(),5,tempArr.begin()+4);
+                    // std::cout << tempArr[0] << "\t" << tempArr[1] << "\t" << tempArr[2] << "\t" << tempArr[3] << std::setw(10) << tempArr[4] << "\t" << std::setw(10) << tempArr[5] << "\t" << std::setw(10) << tempArr[6] << "\t" << std::setw(10) << tempArr[7] << "\t" << std::setw(10) << tempArr[8] << "\t" << std::endl;
                     zaxEx_.push_back(tempArr);
                     jj--;
                 }
@@ -730,6 +728,7 @@ public:
                     jj--;
                 }
             }
+            // std::cout << "Ey" << std::endl;
             for(ii= 0; ii < thickness_; ii++)
             {
                 jj = zaxYJmax;
@@ -744,6 +743,7 @@ public:
                     sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
                     std::array<double,5> preconsts = calcEPreConsts(eps,sigyy, sigz, sigxy);
                     std::copy_n(preconsts.begin(),5,tempArr.begin()+4);
+                    // std::cout << tempArr[0] << "\t" << tempArr[1] << "\t" << tempArr[2] << "\t" << tempArr[3] << "\t" << std::setw(10) << tempArr[4] << "\t" << std::setw(10) << tempArr[5] << "\t" << std::setw(10) << tempArr[6] << "\t" << std::setw(10) << tempArr[7] << "\t" << std::setw(10) << tempArr[8] << "\t" << std::endl;
                     zaxEy_.push_back(tempArr);
                     jj--;
                 }
@@ -766,6 +766,7 @@ public:
                     jj--;
                 }
             }
+            // std::cout << "Hz" << std::endl;
             for(ii= 1; ii < thickness_; ii++)
             {
                 jj = zmax;
@@ -780,7 +781,7 @@ public:
                     sigy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
                     std::array<double,5> preconsts = calcHPreConsts(eps,sigz, sigx, sigy);
                     std::copy_n(preconsts.begin(),5,tempArr.begin()+4);
-                    std::cout << tempArr[0] << "\t" << tempArr[1] << "\t" << tempArr[2] << "\t" << tempArr[3] << "\t" << std::setw(10) << sigy << "\t" << std::setw(10) << tempArr[4] << "\t" << std::setw(10) << tempArr[5] << "\t" << std::setw(10) << tempArr[6] << "\t" << std::setw(10) << tempArr[7] << "\t" << std::setw(10) << tempArr[8] << "\t" << std::endl;
+                    // std::cout << tempArr[0] << "\t" << tempArr[1] << "\t" << tempArr[2] << "\t" << tempArr[3] << "\t" << std::setw(10) << tempArr[4] << "\t" << std::setw(10) << tempArr[5] << "\t" << std::setw(10) << tempArr[6] << "\t" << std::setw(10) << tempArr[7] << "\t" << std::setw(10) << tempArr[8] << "\t" << std::endl;
                     zaxHz_.push_back(tempArr);
                     jj--;
                 }
@@ -799,6 +800,7 @@ public:
                 sigy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
                 std::array<double,5> preconsts = calcHPreConsts(eps,sigz, sigx, sigy);
                 std::copy_n(preconsts.begin(),5,tempArr.begin()+4);
+                // std::cout << tempArr[0] << "\t" << tempArr[1] << "\t" << tempArr[2] << "\t" << tempArr[3] << "\t" << std::setw(10) << tempArr[4] << "\t" << std::setw(10) << tempArr[5] << "\t" << std::setw(10) << tempArr[6] << "\t" << std::setw(10) << tempArr[7] << "\t" << std::setw(10) << tempArr[8] << "\t" << std::endl;
                 zaxHz_.push_back(tempArr);
                 jj--;
             }
@@ -890,7 +892,7 @@ public:
                     sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
                     std::array<double,5> preconsts = calcHPreConsts(eps,sigyy, sigz, sigxy);
                     std::copy_n(preconsts.begin(),5,tempArr.begin()+4);
-                    std::cout << tempArr[0] << "\t" << tempArr[1] << "\t"  << std::setw(10)  <<tempArr[4] << "\t" << std::setw(10) << tempArr[5] << "\t" << std::setw(10) << tempArr[6] << "\t" << std::setw(10) << tempArr[7] << "\t" << std::setw(10) << tempArr[8] << std::endl;
+                    // std::cout << tempArr[0] << "\t" << tempArr[1] << "\t"  << std::setw(10)  <<tempArr[4] << "\t" << std::setw(10) << tempArr[5] << "\t" << std::setw(10) << tempArr[6] << "\t" << std::setw(10) << tempArr[7] << "\t" << std::setw(10) << tempArr[8] << std::endl;
                     zaxHy_.push_back(tempArr);
                     jj--;
                 }
@@ -1021,9 +1023,9 @@ public:
      */
     double sigma(double x,double eps)
     {
-        if(x <= thickness_-1 && x >=-0.25)
+        if(x <= thickness_ && x >=-0.25)
             return sigmaMax_ * pow((static_cast<double>(thickness_-1) - x) / static_cast<double>(thickness_-1) , m_);// / sqrt(eps);
-        else if(ni_ -x <= thickness_-1  && x<ni_)
+        else if(ni_ -x <= thickness_  && x<ni_)
             return sigmaMax_ * pow((static_cast<double>(thickness_-1) - (ni_-1-x)) / static_cast<double>(thickness_-1) , m_);// / sqrt(eps);
         else
             return 0.0;

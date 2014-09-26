@@ -2,22 +2,22 @@
     "CompCell" : {
         "procs"         : 1,
         "y_size"        : 11.0,
-        "x_size"        : 50.0,
+        "x_size"        : 20.0,
         "z_size"        : 0.0,
         "res"           : 50,
         "courant"       : 0.5,
-        "tLim"          : 300.0,
-        "PBC"           : "false"
+        "tLim"          : 100.0,
+        "PBC"           : "true"
     },
     "k-point"           : [
         {
             "Y"         : 0,
-            "X"         : 0.0333333333
+            "X"         : 0.05
         }
     ],
     "PML" :  [
         {
-            "thickness" : 15.0,
+            "thickness" : 5.0,
             "direction" : "X"
         }
     ],
@@ -39,9 +39,9 @@
     "ObjectList": [
         {
             "shape"     : "block",
-            "loc_x"     : 15.0,
+            "loc_x"     : 6.0,
             "loc_y"     : 0.00,
-            "size_x"    : 20.0,
+            "size_x"    : 8.0,
             "size_y"    : 50.00,
             "eps"       : 9.00,
             "pols"      : [
@@ -52,7 +52,7 @@
     ],
     "DetectorList"  : [
         {
-            "loc_x"     : 5.50,
+            "loc_x"     : 3.0,
             "loc_y"     : 0.00,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
