@@ -505,23 +505,6 @@ public:
                     c_ez_n_n_->at(*xx).at(*yy) = calcEPreConsts(eps,sigz, sigx, sigy);
                 }
             }
-            // for(jj = 0; jj < oppPML; jj ++)
-            //     for(ii = 0; ii < thickness_; ii++)
-                    // std::cout << *xx << "\t" << *yy << "\t" << std::setw(10)  <<c_hy_0_0_->at(*xx).at(*yy)[0] << "\t" << std::setw(10) << c_hy_0_0_->at(*xx).at(*yy)[1] << "\t" << std::setw(10) << c_hy_0_0_->at(*xx).at(*yy)[2] << "\t" << std::setw(10) << c_hy_0_0_->at(*xx).at(*yy)[3] << "\t" << std::setw(10) << c_hy_0_0_->at(*xx).at(*yy)[4] << std::endl;
-
-            // std::cout << "0_n" << std::endl;
-            // for(jj = 0; jj < oppPML; jj ++)
-            //     for(ii = 0; ii < thickness_; ii++)
-            //         std::cout << *xx << "\t" << *yy << "\t"  << std::setw(10)  <<c_hy_0_n_->at(*xx).at(*yy)[0] << "\t" << std::setw(10) << c_hy_0_n_->at(*xx).at(*yy)[1] << "\t" << std::setw(10) << c_hy_0_n_->at(*xx).at(*yy)[2] << "\t" << std::setw(10) << c_hy_0_n_->at(*xx).at(*yy)[3] << "\t" << std::setw(10) << c_hy_0_n_->at(*xx).at(*yy)[4] << std::endl;
-            // std::cout << "n_0" << std::endl;
-            // for(jj = 0; jj < oppPML; jj ++)
-            //     for(ii = 0; ii < thickness_; ii++)
-            //         std::cout << *xx << "\t" << *yy << "\t"  << std::setw(10)  <<c_hy_n_0_->at(*xx).at(*yy)[0] << "\t" << std::setw(10) << c_hy_n_0_->at(*xx).at(*yy)[1] << "\t" << std::setw(10) << c_hy_n_0_->at(*xx).at(*yy)[2] << "\t" << std::setw(10) << c_hy_n_0_->at(*xx).at(*yy)[3] << "\t" << std::setw(10) << c_hy_n_0_->at(*xx).at(*yy)[4] << std::endl;
-            // std::cout << "n_n" << std::endl;
-            // for(jj = 0; jj < oppPML; jj ++)
-            //     for(ii = 0; ii < thickness_; ii++)
-            //         std::cout << *xx << "\t" << *yy << "\t"  << std::setw(10)  <<c_hy_n_n_->at(*xx).at(*yy)[0] << "\t" << std::setw(10) << c_hy_n_n_->at(*xx).at(*yy)[1] << "\t" << std::setw(10) << c_hy_n_n_->at(*xx).at(*yy)[2] << "\t" << std::setw(10) << c_hy_n_n_->at(*xx).at(*yy)[3] << "\t" << std::setw(10) << c_hy_n_n_->at(*xx).at(*yy)[4] << std::endl;
-
         }
         else if(c_ex_0_0_)
         {

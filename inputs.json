@@ -1,7 +1,7 @@
 {
     "CompCell" : {
         "procs"         : 1,
-        "y_size"        : 11.0,
+        "y_size"        : 15.0,
         "x_size"        : 20.0,
         "z_size"        : 0.0,
         "res"           : 50,
@@ -19,6 +19,10 @@
         {
             "thickness" : 5.0,
             "direction" : "X"
+        },
+        {
+            "thickness" : 5.0,
+            "direction" : "Y"
         }
     ],
     "SourceList"  : [
@@ -30,9 +34,9 @@
             "cutoff"    : 10.00,
             "t_start"   : 0.00,
             "size_x"    : 0.00,
-            "size_y"    : 11.00,
-            "pol"       : "Ey",
-            "loc_x"     : -6.00,
+            "size_y"    : 0.00,
+            "pol"       : "Hz",
+            "loc_x"     : -4.00,
             "loc_y"     : 0.00
         }
     ],
@@ -43,7 +47,7 @@
             "loc_y"     : 0.00,
             "size_x"    : 8.0,
             "size_y"    : 50.00,
-            "eps"       : 9.00,
+            "eps"       : 1.00,
             "pols"      : [
 
 
@@ -57,15 +61,16 @@
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",
-            "pol"       : "Ey"
+            "pol"       : "Hz"
         },
         {
-            "loc_x"     : -5.00,
+            "loc_x"     : 1.90,
             "loc_y"     : 0.00,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",
-            "pol"       : "Ey"
+            "pol"       : "Hz"
         }
+
     ]
 }
