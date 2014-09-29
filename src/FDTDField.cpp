@@ -534,7 +534,7 @@ void FDTDField::initializeGrid()
             }
             for(int jj = 0; jj < ny_; jj++)
             {
-                int ii = 1;
+                int ii = 0;
                 while(ii < nx_-1)
                 {
                     int iistore = ii;
@@ -1684,11 +1684,11 @@ void FDTDField::updateH()
             zscal_(nx_-2,      c_hzh, &Hz_->point(1,0), 1);
             if(periodic_)
             {
-                vector<complex<double>> oppEx(ny_-2*yPML_,0.0);
+                vector<complex<double>> oppEx(nx_-2,0.0);
                 vector<double> r = {(nx_-2) * dx_,yPML_ * dy_};
                 complex<double> c_kpoint_ = per_factor(r);
-                zaxpy_(nx_-2,  c_kpoint_, &Ex_->point(1,ny_-2), 1, oppEx.data()         ,1);
-                zaxpy_(nx_-2, -1.0*c_hze, oppEx.data()            , 1, &Hz_ ->point(1,0),1);
+                zaxpy_(nx_-2,  c_kpoint_, &Ex_->point(1,ny_-2), 1, oppEx.data()     ,1);
+                zaxpy_(nx_-2, -1.0*c_hze, oppEx.data()        , 1, &Hz_ ->point(1,0),1);
             }
             zaxpy_(nx_-2, -1.0*c_hze, &Ey_->point(1  , 0)  , 1, &Hz_ ->point(1,0),1);
             zaxpy_(nx_-2,      c_hze, &Ey_->point(0  , 0)  , 1, &Hz_ ->point(1,0),1);
@@ -1708,17 +1708,17 @@ void FDTDField::updateH()
             zaxpy_(nx_-2, -1.0*c_hze, &Ex_->point(1  , ny_-2)  , 1, &Hz_ ->point(1,ny_-1),1);
 
             zscal_(ny_-2,      c_hzh, &Hz_->point(0  ,1)  , nx_);
+            zaxpy_(ny_-2, -1.0*c_hze, &Ey_->point(0  ,1)  , nx_, &Hz_ ->point(0,1),nx_);
+            zaxpy_(ny_-2, -1.0*c_hze, &Ex_->point(0  ,0)  , nx_, &Hz_ ->point(0,1),nx_);
+            zaxpy_(ny_-2,      c_hze, &Ex_->point(0  ,1)  , nx_, &Hz_ ->point(0,1),nx_);
             if(periodic_)
             {
                 vector<complex<double>> oppEy(ny_-2,0.0);
                 vector<double> r = {(nx_-2) * dx_,1 * dy_};
                 complex<double> c_kpoint_ = per_factor(r);
-                zaxpy_(ny_-2, c_kpoint_, &Ey_->point(nx_-2, 1), nx_, oppEy.data(),1);
-                zaxpy_(ny_-2,      c_hze, oppEy.data()            , 1  , &Hz_ ->point(0,1),nx_);
+                zaxpy_(ny_-2,  c_kpoint_, &Ey_->point(nx_-2, 1), nx_, oppEy.data()     ,1);
+                zaxpy_(ny_-2,      c_hze, oppEy.data()         , 1  , &Hz_ ->point(0,1),nx_);
             }
-            zaxpy_(ny_-2, -1.0*c_hze, &Ey_->point(0  ,1)  , nx_, &Hz_ ->point(0,1),nx_);
-            zaxpy_(ny_-2, -1.0*c_hze, &Ex_->point(0  ,0)  , nx_, &Hz_ ->point(0,1),nx_);
-            zaxpy_(ny_-2,      c_hze, &Ex_->point(0  ,1)  , nx_, &Hz_ ->point(0,1),nx_);
 
             zscal_(ny_-2,      c_hzh, &Hz_->point(nx_-1, 1)  , nx_);
             if(periodic_)
@@ -1726,8 +1726,8 @@ void FDTDField::updateH()
                 vector<complex<double>> oppEy(ny_-2,0.0);
                 vector<double> r = {(0) * dx_,1 * dy_};
                 complex<double> c_kpoint_ = per_factor(r);
-                zaxpy_(ny_-2, c_kpoint_, &Ey_->point(0, 1), nx_, oppEy.data(),1);
-                zaxpy_(ny_-2, -1.0*c_hze, oppEy.data()               , 1  , &Hz_ ->point(nx_-1,1),nx_);
+                zaxpy_(ny_-2,  c_kpoint_, &Ey_->point(0, 1), nx_, oppEy.data()         ,1);
+                zaxpy_(ny_-2, -1.0*c_hze, oppEy.data()     , 1  , &Hz_ ->point(nx_-1,1),nx_);
             }
             zaxpy_(ny_-2,      c_hze, &Ey_->point(nx_-2, 1)  , nx_, &Hz_ ->point(nx_-1,1),nx_);
             zaxpy_(ny_-2, -1.0*c_hze, &Ex_->point(nx_-1, 0)  , nx_, &Hz_ ->point(nx_-1,1),nx_);
@@ -2707,6 +2707,7 @@ void FDTDField::updateE()
             eps = objArr_[zaxEy_[kk][3]].dielectric(1.0);
             c_eyh = dt_/(eps*dx_);
             int xx = zaxEy_[kk][0]; int yy =  zaxEy_[kk][1]; int nZax =  zaxEy_[kk][2];
+            // cout << xx << "\t" << yy << "\t" << nZax << endl;
             zscal_(nZax, c_eye, &Ey_ ->point(xx,yy),1);
             zaxpy_(nZax,     c_eyh, &Hz_->point(xx  ,yy  ), 1, &Ey_->point(xx,yy),1);
             zaxpy_(nZax,-1.0*c_eyh, &Hz_->point(xx+1,yy  ), 1, &Ey_->point(xx,yy),1);
