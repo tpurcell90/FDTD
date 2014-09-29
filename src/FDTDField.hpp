@@ -67,6 +67,10 @@ public:
     void step();
     void updateH();
     void updateE();
+
+    void xyFieldUpdate(shared_ptr<Grid2D<complex<double>>> fUp, shared_ptr<Grid2D<complex<double>>> fIn1, shared_ptr<Grid2D<complex<double>>> fIn2, array<double,4> axConsts, array<complex<double>,5> upConsts);
+    void zFieldUpdate (shared_ptr<Grid2D<complex<double>>> fUp, shared_ptr<Grid2D<complex<double>>> fIn1, shared_ptr<Grid2D<complex<double>>> fIn2, array<double,4> axConsts, array<complex<double>,5> upConsts);
+
     std::vector<double> pml(int npml, int m, int ma);
     std::complex<double> per_factor(std::vector<double> r);
 };
