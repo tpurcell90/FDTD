@@ -54,11 +54,11 @@ FDTDField::FDTDField(programInputs &IP)
 
     if(IP.pol_.compare("Hz") == 0 || IP.pol_.compare("Ey") == 0 || IP.pol_.compare("Ex") == 0)
     {
-        Ex_ = make_shared<Grid2D<complex<double>>>(nx_,ny_,dx_,dy_);
-        Ey_ = make_shared<Grid2D<complex<double>>>(nx_,ny_,dx_,dy_);
-        Hz_ = make_shared<Grid2D<complex<double>>>(nx_,ny_,dx_,dy_);
-        phys_Ex_ = make_shared<Grid2D<int>>(nx_,ny_,dx_,dy_);
-        phys_Ey_ = make_shared<Grid2D<int>>(nx_,ny_,dx_,dy_);
+        Ex_ = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
+        Ey_ = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
+        Hz_ = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
+        phys_Ex_ = make_shared<Grid2D<int>>(nx_+2,ny_+2,dx_,dy_);
+        phys_Ey_ = make_shared<Grid2D<int>>(nx_+2,ny_+2,dx_,dy_);
         //These are never used in the TE mode
         Hx_ = nullptr;
         Hy_ = nullptr;
@@ -519,26 +519,26 @@ void FDTDField::initializeGrid()
         }
         else
         {
-            for(int jj = 0; jj < ny_ - 1; jj++)
+            for(int jj = 1; jj < ny_; jj++)
             {
-                int ii = 0;
-                while(ii < nx_)
+                int ii = 1;
+                while(ii < nx_+1)
                 {
                     int iistore = ii;
-                    while(ii < nx_-1 && phys_Ex_ -> point(ii,jj) == phys_Ex_ -> point(ii+1,jj) )
+                    while(ii < nx_ && phys_Ex_ -> point(ii,jj) == phys_Ex_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ex_ -> point(iistore,jj)};
                     zaxEx_.push_back(tempArr);
                     ii++;
                 }
             }
-            for(int jj = 0; jj < ny_; jj++)
+            for(int jj = 1; jj < ny_+1; jj++)
             {
-                int ii = 0;
-                while(ii < nx_-1)
+                int ii = 1;
+                while(ii < nx_)
                 {
                     int iistore = ii;
-                    while(ii < nx_-1-1 && phys_Ey_ -> point(ii,jj) == phys_Ey_ -> point(ii+1,jj) )
+                    while(ii < nx_-1 && phys_Ey_ -> point(ii,jj) == phys_Ey_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ey_ -> point(iistore,jj)};
                     zaxEy_.push_back(tempArr);
@@ -573,28 +573,28 @@ void FDTDField::ouputField(Detector<complex<double>> d) //iostream as input para
     switch ( d.pol() )
     {
         case EZ:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez_,eps).real()<< "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ez_,eps).real()<< "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Ez_,eps).real()<< "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Ez_,eps).real()<< "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
             break;
         case HX:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hx_,eps).real()<< endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hx_,eps)<< endl;
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Hx_,eps).real()<< endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Hx_,eps)<< endl;
             break;
         case HY:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hy_,eps).real()<< endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hy_,eps)<< endl;
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Hy_,eps).real()<< endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Hy_,eps)<< endl;
             break;
         case HZ:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hz_,eps).real()<< endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Hz_,eps).real()<< endl;
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Hz_,eps).real()<< endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Hz_,eps).real()<< endl;
             break;
         case EX:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ex_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ex_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Ex_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Ex_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
             break;
         case EY:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ey_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[0] << "\t" << d.loc()[1] << "\t" << setw(10) << d.output(Ey_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Ey_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Ey_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
             break;
         default:
             throw logic_error("reached a default case in a switch state that should never happen!");
@@ -1673,114 +1673,133 @@ void FDTDField::updateH()
         }
         else
         {
-            for(int jj = 1; jj < ny_ - 1; jj ++)
+            for(int jj = 1; jj < ny_+ 1; jj ++)
             {
-                array<int,4> axConsts = {1, jj, static_cast<int>(nx_-2), 1};
+                // cout << 1 << "\t" << jj << "\t" << nx_ << endl;
+                array<int,4> axConsts = {1, jj, static_cast<int>(nx_), 1};
                 array<complex<double>,5> upConsts = {c_hzh, -1.0*c_hze, c_hze, c_hze, -1.0*c_hze};
                 zFieldUpdate(Hz_, Ex_, Ey_, axConsts, upConsts);
             }
 
-            zscal_(nx_-2,      c_hzh, &Hz_->point(1,0), 1);
-            if(periodic_)
-            {
-                vector<complex<double>> oppEx(nx_-2,0.0);
-                vector<double> r = {(nx_-2) * dx_,yPML_ * dy_};
-                complex<double> c_kpoint_ = per_factor(r);
-                zaxpy_(nx_-2,  c_kpoint_, &Ex_->point(1,ny_-2), 1, oppEx.data()     ,1);
-                zaxpy_(nx_-2, -1.0*c_hze, oppEx.data()        , 1, &Hz_ ->point(1,0),1);
-            }
-            zaxpy_(nx_-2, -1.0*c_hze, &Ey_->point(1  , 0)  , 1, &Hz_ ->point(1,0),1);
-            zaxpy_(nx_-2,      c_hze, &Ey_->point(0  , 0)  , 1, &Hz_ ->point(1,0),1);
-            zaxpy_(nx_-2,      c_hze, &Ex_->point(1  , 0)  , 1, &Hz_ ->point(1,0),1);
+            // zscal_(nx_-2,      c_hzh, &Hz_->point(2,1), 1);
+            // if(periodic_)
+            // {
+            //     vector<complex<double>> oppEx(nx_-2,0.0);
+            //     vector<double> r = {(nx_-2) * dx_,yPML_ * dy_};
+            //     complex<double> c_kpoint_ = per_factor(r);
+            //     zaxpy_(nx_-2,  c_kpoint_, &Ex_->point(1,ny_-2), 1, oppEx.data()     ,1);
+            //     zaxpy_(nx_-2, -1.0*c_hze, oppEx.data()        , 1, &Hz_ ->point(1,0),1);
+            // }
+            // zaxpy_(nx_-2, -1.0*c_hze, &Ey_->point(2,1)  , 1, &Hz_ ->point(2,1),1);
+            // zaxpy_(nx_-2,      c_hze, &Ey_->point(1,1)  , 1, &Hz_ ->point(2,1),1);
+            // zaxpy_(nx_-2,      c_hze, &Ex_->point(2,1)  , 1, &Hz_ ->point(2,1),1);
 
-            zscal_(nx_-2,      c_hzh, &Hz_->point(1,ny_-1), 1);
-            if(periodic_)
-            {
-                vector<complex<double>> oppEx(nx_-2,0.0);
-                vector<double> r = {(0) * dx_,yPML_ * dy_};
-                complex<double> c_kpoint_ = per_factor(r);
-                zaxpy_(nx_-2, c_kpoint_ , &Ex_->point(1, 0), 1, oppEx.data(),1);
-                zaxpy_(nx_-2,      c_hze,  oppEx.data()           , 1, &Hz_ ->point(1,ny_-1),1);
-            }
-            zaxpy_(nx_-2,      c_hze, &Ey_->point(0  , ny_-1)  , 1, &Hz_ ->point(1,ny_-1),1);
-            zaxpy_(nx_-2, -1.0*c_hze, &Ey_->point(1  , ny_-1)  , 1, &Hz_ ->point(1,ny_-1),1);
-            zaxpy_(nx_-2, -1.0*c_hze, &Ex_->point(1  , ny_-2)  , 1, &Hz_ ->point(1,ny_-1),1);
+            // zscal_(nx_-2,      c_hzh, &Hz_->point(2,ny_), 1);
+            // if(periodic_)
+            // {
+            //     vector<complex<double>> oppEx(nx_-2,0.0);
+            //     vector<double> r = {(0) * dx_,yPML_ * dy_};
+            //     complex<double> c_kpoint_ = per_factor(r);
+            //     zaxpy_(nx_-2, c_kpoint_ , &Ex_->point(1, 0), 1, oppEx.data(),1);
+            //     zaxpy_(nx_-2,      c_hze,  oppEx.data()           , 1, &Hz_ ->point(2,ny_),1);
+            // }
+            // zaxpy_(nx_-2,      c_hze, &Ey_->point(1,ny_)  , 1, &Hz_ ->point(2,ny_),1);
+            // zaxpy_(nx_-2, -1.0*c_hze, &Ey_->point(2,ny_)  , 1, &Hz_ ->point(2,ny_),1);
+            // zaxpy_(nx_-2, -1.0*c_hze, &Ex_->point(2,ny_-1)  , 1, &Hz_ ->point(2,ny_),1);
 
-            zscal_(ny_-2,      c_hzh, &Hz_->point(0  ,1)  , nx_);
-            zaxpy_(ny_-2, -1.0*c_hze, &Ey_->point(0  ,1)  , nx_, &Hz_ ->point(0,1),nx_);
-            zaxpy_(ny_-2, -1.0*c_hze, &Ex_->point(0  ,0)  , nx_, &Hz_ ->point(0,1),nx_);
-            zaxpy_(ny_-2,      c_hze, &Ex_->point(0  ,1)  , nx_, &Hz_ ->point(0,1),nx_);
-            if(periodic_)
-            {
-                vector<complex<double>> oppEy(ny_-2,0.0);
-                vector<double> r = {(nx_-2) * dx_,1 * dy_};
-                complex<double> c_kpoint_ = per_factor(r);
-                zaxpy_(ny_-2,  c_kpoint_, &Ey_->point(nx_-2, 1), nx_, oppEy.data()     ,1);
-                zaxpy_(ny_-2,      c_hze, oppEy.data()         , 1  , &Hz_ ->point(0,1),nx_);
-            }
+            // zscal_(ny_-2,      c_hzh, &Hz_->point(1,2)  , nx_);
+            // zaxpy_(ny_-2, -1.0*c_hze, &Ey_->point(1,2)  , nx_, &Hz_ ->point(1,2),nx_);
+            // zaxpy_(ny_-2, -1.0*c_hze, &Ex_->point(1,1)  , nx_, &Hz_ ->point(1,2),nx_);
+            // zaxpy_(ny_-2,      c_hze, &Ex_->point(1,2)  , nx_, &Hz_ ->point(1,2),nx_);
+            // if(periodic_)
+            // {
+            //     vector<complex<double>> oppEy(ny_-2,0.0);
+            //     vector<double> r = {(nx_-2) * dx_,1 * dy_};
+            //     complex<double> c_kpoint_ = per_factor(r);
+            //     zaxpy_(ny_-2,  c_kpoint_, &Ey_->point(nx_-2, 1), nx_, oppEy.data()     ,1);
+            //     zaxpy_(ny_-2,      c_hze, oppEy.data()         , 1  , &Hz_ ->point(0,1),nx_);
+            // }
 
-            zscal_(ny_-2,      c_hzh, &Hz_->point(nx_-1, 1)  , nx_);
-            if(periodic_)
-            {
-                vector<complex<double>> oppEy(ny_-2,0.0);
-                vector<double> r = {(0) * dx_,1 * dy_};
-                complex<double> c_kpoint_ = per_factor(r);
-                zaxpy_(ny_-2,  c_kpoint_, &Ey_->point(0, 1), nx_, oppEy.data()         ,1);
-                zaxpy_(ny_-2, -1.0*c_hze, oppEy.data()     , 1  , &Hz_ ->point(nx_-1,1),nx_);
-            }
-            zaxpy_(ny_-2,      c_hze, &Ey_->point(nx_-2, 1)  , nx_, &Hz_ ->point(nx_-1,1),nx_);
-            zaxpy_(ny_-2, -1.0*c_hze, &Ex_->point(nx_-1, 0)  , nx_, &Hz_ ->point(nx_-1,1),nx_);
-            zaxpy_(ny_-2,      c_hze, &Ex_->point(nx_-1, 1)  , nx_, &Hz_ ->point(nx_-1,1),nx_);
+            // zscal_(ny_-2,      c_hzh, &Hz_->point(nx_,2)  , nx_);
+            // if(periodic_)
+            // {
+            //     vector<complex<double>> oppEy(ny_-2,0.0);
+            //     vector<double> r = {(0) * dx_,1 * dy_};
+            //     complex<double> c_kpoint_ = per_factor(r);
+            //     zaxpy_(ny_-2,  c_kpoint_, &Ey_->point(0, 1), nx_, oppEy.data()         ,1);
+            //     zaxpy_(ny_-2, -1.0*c_hze, oppEy.data()     , 1  , &Hz_ ->point(nx_-1,1),nx_);
+            // }
+            // zaxpy_(ny_-2,      c_hze, &Ey_->point(nx_-1, 2)  , nx_, &Hz_ ->point(nx_,2),nx_);
+            // zaxpy_(ny_-2, -1.0*c_hze, &Ex_->point(nx_,1)  , nx_, &Hz_ ->point(nx_,2),nx_);
+            // zaxpy_(ny_-2,      c_hze, &Ex_->point(nx_,2)  , nx_, &Hz_ ->point(nx_,2),nx_);
 
-            complex<double> oppEy(0.0,0.0);
-            complex<double> oppEx(0.0,0.0);
-            if(periodic_)
-            {
-                vector<double> r = {(nx_-2) * dx_, (0) * dy_};
-                complex<double> c_kpoint_ = per_factor(r);
-                oppEy = c_kpoint_ * Ey_->point(nx_-2,0);
-                r = {(0) * dx_, (ny_-2) * dy_};
-                c_kpoint_ = per_factor(r);
-                oppEx = c_kpoint_ * Ex_->point(0,ny_-2);
-            }
-            Hz_->point(0,0) = c_hzh * Hz_->point(0,0) - c_hze * ((Ey_->point(0,0) - oppEy) - (Ex_->point(0,0) - oppEx));
+            // complex<double> oppEy(0.0,0.0);
+            // complex<double> oppEx(0.0,0.0);
+            // if(periodic_)
+            // {
+            //     vector<double> r = {(nx_-2) * dx_, (0) * dy_};
+            //     complex<double> c_kpoint_ = per_factor(r);
+            //     oppEy = c_kpoint_ * Ey_->point(nx_-2,0);
+            //     r = {(0) * dx_, (ny_-2) * dy_};
+            //     c_kpoint_ = per_factor(r);
+            //     oppEx = c_kpoint_ * Ex_->point(0,ny_-2);
+            // }
+            // Hz_->point(1,1) = c_hzh * Hz_->point(1,1) - c_hze * ((Ey_->point(1,1) - oppEy) - (Ex_->point(1,1) - oppEx));
 
-            if(periodic_)
-            {
-                vector<double> r = {(nx_-2) * dx_, (ny_-1) * dy_};
-                complex<double> c_kpoint_ = per_factor(r);
-                oppEy = c_kpoint_ * Ey_->point(nx_-2,ny_-1);
-                r = {(0) * dx_, (0) * dy_};
-                c_kpoint_ = per_factor(r);
-                oppEx = c_kpoint_ * Ex_->point(0,0);
-            }
-            Hz_->point(0,ny_-1) = c_hzh * Hz_->point(0,ny_-1) - c_hze * ((Ey_->point(0,ny_-1) - oppEy) - (oppEx - Ex_->point(0,ny_-1-1)));
+            // if(periodic_)
+            // {
+            //     vector<double> r = {(nx_-2) * dx_, (ny_-1) * dy_};
+            //     complex<double> c_kpoint_ = per_factor(r);
+            //     oppEy = c_kpoint_ * Ey_->point(nx_-2,ny_-1);
+            //     r = {(0) * dx_, (0) * dy_};
+            //     c_kpoint_ = per_factor(r);
+            //     oppEx = c_kpoint_ * Ex_->point(0,0);
+            // }
+            // Hz_->point(1,ny_) = c_hzh * Hz_->point(1,ny_) - c_hze * ((Ey_->point(1,ny_) - oppEy) - (oppEx - Ex_->point(1,ny_-1)));
 
-            if(periodic_)
-            {
-                vector<double> r = {(0) * dx_, (0) * dy_};
-                complex<double> c_kpoint_ = per_factor(r);
-                oppEy = c_kpoint_ * Ey_->point(0,0);
-                r = {(nx_-1) * dx_, (ny_-2) * dy_};
-                c_kpoint_ = per_factor(r);
-                oppEx = c_kpoint_ * Ex_->point(nx_-1,ny_-2);
-            }
-            Hz_->point(nx_-1,0) = c_hzh * Hz_->point(nx_-1,0) - c_hze * ((oppEy - Ey_->point(nx_-1-1,0)) - (Ex_->point(nx_-1,0) - oppEx));
+            // if(periodic_)
+            // {
+            //     vector<double> r = {(0) * dx_, (0) * dy_};
+            //     complex<double> c_kpoint_ = per_factor(r);
+            //     oppEy = c_kpoint_ * Ey_->point(0,0);
+            //     r = {(nx_-1) * dx_, (ny_-2) * dy_};
+            //     c_kpoint_ = per_factor(r);
+            //     oppEx = c_kpoint_ * Ex_->point(nx_-1,ny_-2);
+            // }
+            // Hz_->point(nx_,1) = c_hzh * Hz_->point(nx_,1) - c_hze * ((oppEy - Ey_->point(nx_-1,1)) - (Ex_->point(nx_,1) - oppEx));
 
-            if(periodic_)
-            {
-                vector<double> r = {(0) * dx_, (ny_-1) * dy_};
-                complex<double> c_kpoint_ = per_factor(r);
-                oppEy = c_kpoint_ * Ey_->point(0,ny_-1);
-                r = {(nx_-1) * dx_, (0) * dy_};
-                c_kpoint_ = per_factor(r);
-                oppEx = c_kpoint_ * Ex_->point(nx_-1,0);
-            }
-            Hz_->point(nx_-1,ny_-1) = c_hzh * Hz_->point(nx_-1,ny_-1) - c_hze * ((oppEy - Ey_->point(nx_-1-1,ny_-1)) - (oppEx - Ex_->point(nx_-1,ny_-1-1)));
+            // if(periodic_)
+            // {
+            //     vector<double> r = {(0) * dx_, (ny_-1) * dy_};
+            //     complex<double> c_kpoint_ = per_factor(r);
+            //     oppEy = c_kpoint_ * Ey_->point(0,ny_-1);
+            //     r = {(nx_-1) * dx_, (0) * dy_};
+            //     c_kpoint_ = per_factor(r);
+            //     oppEx = c_kpoint_ * Ex_->point(nx_-1,0);
+            // }
+            // Hz_->point(nx_,ny_) = c_hzh * Hz_->point(nx_,ny_) - c_hze * ((oppEy - Ey_->point(nx_-1,ny_)) - (oppEx - Ex_->point(nx_,ny_-1)));
         }
     }
 }
 
+void FDTDField::applyPBC(shared_ptr<Grid2D<complex<double>>> fUp, int nx, int ny)
+{
+    vector<double> r = {0.0,0.0};
+    for(int ii = 1; ii < nx; ii++)
+    {
+        r = {(ii-1)*dx_,(ny-1)*dy_};
+        fUp->point(ii,0) = per_factor(r) * fUp->point(ii,ny-1);
+        r = {(ii-1)*dx_,ny_*dy_};
+        fUp->point(ii,ny) = per_factor(r) * fUp->point(ii,1);
+    }
+    for(int jj = 1; jj < ny; jj++)
+    {
+        r = {(nx-1)*dx_,(jj-1)*dy_};
+        fUp->point(0,jj) = per_factor(r) * fUp->point(nx-1,jj);
+        r = {0*dx_,(jj-1)*dy_};
+        fUp->point(nx,jj) = per_factor(r) * fUp->point(1,jj);
+    }
+}
 
 /**
  * @brief Updates the E field components for both free space and inside the PML
@@ -2701,6 +2720,7 @@ void FDTDField::updateE()
         }
         for(int kk = 0; kk < zaxEy_.size(); kk++)
         {
+            // cout << zaxEy_[kk][0] << '\t' << zaxEy_[kk][1] << '\t' << zaxEy_[kk][2] << '\t' << endl;
             eps = objArr_[zaxEy_[kk][3]].dielectric(1.0);
             c_eyh = dt_/(eps*dy_);
             array<complex<double>,3> upConsts ={c_eye, -1.0*c_eyh, c_eyh};
@@ -3048,7 +3068,16 @@ void FDTDField::step()
         }
     }
     updateH();
+    if(periodic_)
+    {
+        applyPBC(Hz_,nx_+1,ny_+1);
+    }
     updateE();
+    if(periodic_)
+    {
+        applyPBC(Ex_,nx_+1,ny_);
+        applyPBC(Ey_,nx_,ny_+1);
+    }
     for(int ii = 0; ii < dtcArr_.size(); ii ++)
         ouputField(dtcArr_[ii]);
     // if(abs(tcur_-floor(tcur_+0.5)) < 1e-7)

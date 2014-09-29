@@ -65,10 +65,10 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         double loc_x = iter.second.get<double>("loc_x");
         double loc_y = iter.second.get<double>("loc_y");
         // Make proper rounding function
-        int x_min = find_pt(loc_x-sz_x/2.0+x_size_/2.0);
-        int x_max = find_pt(loc_x+sz_x/2.0+x_size_/2.0);
-        int y_min = find_pt(loc_y-sz_y/2.0+y_size_/2.0);
-        int y_max = find_pt(loc_y+sz_y/2.0+y_size_/2.0);
+        int x_min = find_pt(loc_x-sz_x/2.0+x_size_/2.0)+1;
+        int x_max = find_pt(loc_x+sz_x/2.0+x_size_/2.0)+1;
+        int y_min = find_pt(loc_y-sz_y/2.0+y_size_/2.0)+1;
+        int y_max = find_pt(loc_y+sz_y/2.0+y_size_/2.0)+1;
         for(int x = x_min; x <= x_max; x ++)
             for(int y = y_min; y <= y_max; y++)
             {
@@ -154,10 +154,10 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         double loc_x = iter.second.get<double>("loc_x");
         double loc_y = iter.second.get<double>("loc_y");
         // Make proper rounding function
-        int x_min = find_pt(loc_x-sz_x/2.0+x_size_/2.0);
-        int x_max = find_pt(loc_x+sz_x/2.0+x_size_/2.0);
-        int y_min = find_pt(loc_y-sz_y/2.0+y_size_/2.0);
-        int y_max = find_pt(loc_y+sz_y/2.0+y_size_/2.0);
+        int x_min = find_pt(loc_x-sz_x/2.0+x_size_/2.0)+1;
+        int x_max = find_pt(loc_x+sz_x/2.0+x_size_/2.0)+1;
+        int y_min = find_pt(loc_y-sz_y/2.0+y_size_/2.0)+1;
+        int y_max = find_pt(loc_y+sz_y/2.0+y_size_/2.0)+1;
         for(int x = x_min; x <= x_max; x ++)
             for(int y = y_min; y <= y_max; y++)
             {
