@@ -527,7 +527,7 @@ void FDTDField::initializeGrid()
                     int iistore = ii;
                     while(ii < nx_-1 && phys_Ex_ -> point(ii,jj) == phys_Ex_ -> point(ii+1,jj) )
                         ii ++;
-                    array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ex_->point(iistore,jj)};
+                    array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ex_ -> point(iistore,jj)};
                     zaxEx_.push_back(tempArr);
                     ii++;
                 }
@@ -540,7 +540,7 @@ void FDTDField::initializeGrid()
                     int iistore = ii;
                     while(ii < nx_-1-1 && phys_Ey_ -> point(ii,jj) == phys_Ey_ -> point(ii+1,jj) )
                         ii ++;
-                    array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ey_->point(iistore,jj)};
+                    array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ey_ -> point(iistore,jj)};
                     zaxEy_.push_back(tempArr);
                     ii++;
                 }
@@ -955,6 +955,7 @@ void FDTDField::updateH()
     {
         complex<double> c_hzh(1.0,0.0);
         double c_hze = 1.0 * dt_/dx_;
+
         // Seperated out by PML because edge cases require special treatment
         if(xPML_ != 0 && yPML_ !=0)
         {
@@ -1674,15 +1675,9 @@ void FDTDField::updateH()
         {
             for(int jj = 1; jj < ny_ - 1; jj ++)
             {
-                array<double,4> axConsts = {1, static_cast<double>(jj), static_cast<double>(nx_-2), 1};
+                array<int,4> axConsts = {1, jj, static_cast<int>(nx_-2), 1};
                 array<complex<double>,5> upConsts = {c_hzh, -1.0*c_hze, c_hze, c_hze, -1.0*c_hze};
                 zFieldUpdate(Hz_, Ex_, Ey_, axConsts, upConsts);
-                // zscal_(nx_-2,      c_hzh, &Hz_->point(1  ,jj  ), 1);
-                // zaxpy_(nx_-2,      c_hze, &Ey_->point(0  ,jj  ), 1, &Hz_ ->point(1,jj),1);
-                // zaxpy_(nx_-2, -1.0*c_hze, &Ey_->point(1  ,jj  ), 1, &Hz_ ->point(1,jj),1);
-
-                // zaxpy_(nx_-2, -1.0*c_hze, &Ex_->point(1  ,jj-1), 1, &Hz_ ->point(1,jj),1);
-                // zaxpy_(nx_-2,      c_hze, &Ex_->point(1  ,jj  ), 1, &Hz_ ->point(1,jj),1);
             }
 
             zscal_(nx_-2,      c_hzh, &Hz_->point(1,0), 1);
@@ -2700,21 +2695,17 @@ void FDTDField::updateE()
         {
             eps = objArr_[zaxEx_[kk][3]].dielectric(1.0);
             c_exh = dt_/(eps*dy_);
-            int xx = zaxEx_[kk][0]; int yy =  zaxEx_[kk][1]; int nZax =  zaxEx_[kk][2];
-            // cout << xx<<"\t" <<yy <<  "\t" << nZax << endl;
-            zscal_(nZax, c_exe, &Ex_ ->point(xx,yy),1);
-            zaxpy_(nZax,     c_exh, &Hz_->point(xx  ,yy+1), 1, &Ex_->point(xx,yy),1);
-            zaxpy_(nZax,-1.0*c_exh, &Hz_->point(xx  ,yy  ), 1, &Ex_->point(xx,yy),1);
+            array<complex<double>,3> upConsts ={c_exe, c_exh, -1.0*c_exh};
+            array<int, 4> axConsts = {zaxEx_[kk][0], zaxEx_[kk][1],zaxEx_[kk][2],1};
+            xFieldUpdate(Ex_,Hz_, axConsts, upConsts);
         }
         for(int kk = 0; kk < zaxEy_.size(); kk++)
         {
             eps = objArr_[zaxEy_[kk][3]].dielectric(1.0);
-            c_eyh = dt_/(eps*dx_);
-            int xx = zaxEy_[kk][0]; int yy =  zaxEy_[kk][1]; int nZax =  zaxEy_[kk][2];
-            // cout << xx << "\t" << yy << "\t" << nZax << endl;
-            zscal_(nZax, c_eye, &Ey_ ->point(xx,yy),1);
-            zaxpy_(nZax,     c_eyh, &Hz_->point(xx  ,yy  ), 1, &Ey_->point(xx,yy),1);
-            zaxpy_(nZax,-1.0*c_eyh, &Hz_->point(xx+1,yy  ), 1, &Ey_->point(xx,yy),1);
+            c_eyh = dt_/(eps*dy_);
+            array<complex<double>,3> upConsts ={c_eye, -1.0*c_eyh, c_eyh};
+            array<int, 4> axConsts = {zaxEy_[kk][0], zaxEy_[kk][1],zaxEy_[kk][2],1};
+            yFieldUpdate(Ey_,Hz_, axConsts, upConsts);
         }
         //PML
         for(int kk =0; kk < pmlArr_.size(); kk++)
@@ -2969,27 +2960,30 @@ void FDTDField::updateE()
     }
 }
 
-void FDTDField::xyFieldUpdate(shared_ptr<Grid2D<complex<double>>> fUp, shared_ptr<Grid2D<complex<double>>> fIn1, shared_ptr<Grid2D<complex<double>>> fIn2, array<double,4> axConsts, array<complex<double>,5> upConsts)
+void FDTDField::xFieldUpdate(shared_ptr<Grid2D<complex<double>>> fUp, shared_ptr<Grid2D<complex<double>>> fIn, array<int,4> axConsts, array<complex<double>,3> upConsts)
 {
     int xx = axConsts[0]; int yy = axConsts[1]; int nZax = axConsts[2]; int stride = axConsts[3];
     zscal_(nZax, upConsts[0], &fUp ->point(xx  ,yy  ), stride);
-    zaxpy_(nZax, upConsts[1], &fIn1->point(xx  ,yy+1), stride, &fUp ->point(xx,yy), stride);
-    zaxpy_(nZax, upConsts[2], &fIn1->point(xx  ,yy  ), stride, &fUp ->point(xx,yy), stride);
-    zaxpy_(nZax, upConsts[3], &fIn2->point(xx+1,yy  ), stride, &fUp ->point(xx,yy), stride);
-    zaxpy_(nZax, upConsts[4], &fIn2->point(xx  ,yy  ), stride, &fUp ->point(xx,yy), stride);
+    zaxpy_(nZax, upConsts[1], &fIn->point(xx  ,yy+1), stride, &fUp ->point(xx,yy), stride);
+    zaxpy_(nZax, upConsts[2], &fIn->point(xx  ,yy  ), stride, &fUp ->point(xx,yy), stride);
 }
-
-void FDTDField::zFieldUpdate(shared_ptr<Grid2D<complex<double>>> fUp, shared_ptr<Grid2D<complex<double>>> fIn1, shared_ptr<Grid2D<complex<double>>> fIn2, array<double,4> axConsts, array<complex<double>,5> upConsts)
+void FDTDField::yFieldUpdate(shared_ptr<Grid2D<complex<double>>> fUp, shared_ptr<Grid2D<complex<double>>> fIn, array<int,4> axConsts, array<complex<double>,3> upConsts)
+{
+    int xx = axConsts[0]; int yy = axConsts[1]; int nZax = axConsts[2]; int stride = axConsts[3];
+    // cout << upConsts[0] << "\t" << upConsts[1] << "\t" << upConsts[2] << "\t" << stride<< endl;
+    zscal_(nZax, upConsts[0], &fUp->point(xx  ,yy  ), stride);
+    zaxpy_(nZax, upConsts[1], &fIn->point(xx+1,yy  ), stride, &fUp->point(xx,yy), stride);
+    zaxpy_(nZax, upConsts[2], &fIn->point(xx  ,yy  ), stride, &fUp->point(xx,yy), stride);
+}
+void FDTDField::zFieldUpdate(shared_ptr<Grid2D<complex<double>>> fUp, shared_ptr<Grid2D<complex<double>>> fIn1, shared_ptr<Grid2D<complex<double>>> fIn2, array<int,4> axConsts, array<complex<double>,5> upConsts)
 {
     int xx = axConsts[0]; int yy = axConsts[1]; int nZax = axConsts[2]; int stride = axConsts[3];
     // cout << xx << "\t" << yy << "\t" << nZax << "\t" << stride << endl;
     zscal_(nZax, upConsts[0], &fUp ->point(xx  ,yy  ), stride);
-
-    zaxpy_(nZax, upConsts[1].real(), &fIn1->point(xx  ,yy-1), stride, &fUp ->point(xx,yy), stride);
-    zaxpy_(nZax, upConsts[2].real(), &fIn1->point(xx  ,yy  ), stride, &fUp ->point(xx,yy), stride);
-
-    zaxpy_(nZax, upConsts[3].real(), &fIn2->point(xx-1,yy  ), stride, &fUp ->point(xx,yy), stride);
-    zaxpy_(nZax, upConsts[4].real(), &fIn2->point(xx  ,yy  ), stride, &fUp ->point(xx,yy), stride);
+    zaxpy_(nZax, upConsts[1], &fIn1->point(xx  ,yy-1), stride, &fUp ->point(xx,yy), stride);
+    zaxpy_(nZax, upConsts[2], &fIn1->point(xx  ,yy  ), stride, &fUp ->point(xx,yy), stride);
+    zaxpy_(nZax, upConsts[3], &fIn2->point(xx-1,yy  ), stride, &fUp ->point(xx,yy), stride);
+    zaxpy_(nZax, upConsts[4], &fIn2->point(xx  ,yy  ), stride, &fUp ->point(xx,yy), stride);
 }
 /**
  * @brief Updates all fields to the next time step
