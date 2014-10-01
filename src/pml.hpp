@@ -324,87 +324,71 @@ public:
             std::vector<double> pt(2,0.0);
             if(pol_ == HZ || pol_ == EX || pol_ == EY)
             {
-                if(objArr[kk].s() == sphere)
+                for(ii =0; ii < thickness_; ii ++)
                 {
-
-                }
-                else if(objArr[kk].s() == block)
-                {
-
-                    for(ii =0; ii < thickness_; ii ++)
+                    for(jj = 0; jj < nj; jj++)
                     {
-                        for(jj = 0; jj < nj; jj++)
-                        {
-                            pt[0] = (*xx+0.5-(nx-1)/2.0)*dx;
-                            pt[1]  = (*yy-(ny-1)/2.0)*dy;
-                            if(objArr[kk].isObj(pt)==true)
-                                phys_Ey_->point(*xx,*yy) = kk;
+                        pt[0] = ((*xx+1)+0.5-(nx-1)/2.0)*dx;
+                        pt[1] = ((*yy+1)-(ny-1)/2.0)*dy;
+                        if(objArr[kk].isObj(pt)==true)
+                            phys_Ey_->point(*xx,*yy) = kk;
 
-                            pt[0] -= 0.5*dx;
-                            if(objArr[kk].isObj(pt)==true)
-                                phys_Hz_->point(*xx,*yy) = kk;
+                        pt[0] -= 0.5*dx;
+                        if(objArr[kk].isObj(pt)==true)
+                            phys_Hz_->point(*xx,*yy) = kk;
 
-                            pt[1]  += 0.5*dy;
-                            if(objArr[kk].isObj(pt)==true)
-                                phys_Ex_->point(*xx,*yy) = kk;
+                        pt[1]  += 0.5*dy;
+                        if(objArr[kk].isObj(pt)==true)
+                            phys_Ex_->point(*xx,*yy) = kk;
 
-                            pt[pt_i] = ((ni-1-ii)-(ni-1)/2.0)*di;
-                            pt[pt_j]  = (jj-(nj-1)/2.0)*dj;
-                            pt[0] += 0.5*dx;
-                            if(objArr[kk].isObj(pt)==true)
-                                phys_Ey_end_->point(*xx,*yy) = kk;
+                        pt[pt_i] = ((ni-ii)-(ni-1)/2.0)*di;
+                        pt[pt_j] = (jj+1-(nj-1)/2.0)*dj;
+                        pt[0] += 0.5*dx;
+                        if(objArr[kk].isObj(pt)==true)
+                            phys_Ey_end_->point(*xx,*yy) = kk;
 
-                            pt[0] -= 0.5*dx;
-                            if(objArr[kk].isObj(pt)==true)
-                                phys_Hz_end_->point(*xx,*yy) = kk;
+                        pt[0] -= 0.5*dx;
+                        if(objArr[kk].isObj(pt)==true)
+                            phys_Hz_end_->point(*xx,*yy) = kk;
 
-                            pt[1]  += 0.5*dy;
-                            if(objArr[kk].isObj(pt)==true)
-                                phys_Ex_end_->point(*xx,*yy) = kk;
-                        }
+                        pt[1]  += 0.5*dy;
+                        if(objArr[kk].isObj(pt)==true)
+                            phys_Ex_end_->point(*xx,*yy) = kk;
                     }
                 }
             }
             else
             {
-                if(objArr[kk].s() == sphere)
+                for(ii =0; ii < thickness_; ii ++)
                 {
-
-                }
-                else if(objArr[kk].s() == block)
-                {
-
-                    for(ii =0; ii < thickness_; ii ++)
+                    for(jj = 0; jj < nj; jj++)
                     {
-                        for(jj = 0; jj < nj; jj++)
-                        {
-                            pt[0] = (*xx+0.5-(nx-1)/2.0)*dx;
-                            pt[1]  = (*yy-(ny-1)/2.0)*dy;
-                            if(objArr[kk].isObj(pt)==true)
-                                phys_Hy_->point(*xx,*yy) = kk;
+                        pt[0] = ((*xx+1)+0.5-(nx-1)/2.0)*dx;
+                        pt[1] = ((*yy+1)-(ny-1)/2.0)*dy;
+                        if(objArr[kk].isObj(pt)==true)
+                            phys_Hy_->point(*xx,*yy) = kk;
 
-                            pt[0] -= 0.5*dx;
-                            if(objArr[kk].isObj(pt)==true)
-                                phys_Ez_->point(*xx,*yy) = kk;
+                        pt[0] -= 0.5*dx;
+                        if(objArr[kk].isObj(pt)==true)
+                            phys_Ez_->point(*xx,*yy) = kk;
 
-                            pt[1]  += 0.5*dy;
-                            if(objArr[kk].isObj(pt)==true)
-                                phys_Hx_->point(*xx,*yy) = kk;
+                        pt[1]  += 0.5*dy;
+                        if(objArr[kk].isObj(pt)==true)
+                            phys_Hx_->point(*xx,*yy) = kk;
 
-                            pt[pt_i] = ((ni-1-ii)-(ni-1)/2.0)*di;
-                            pt[pt_j]  = (jj-(nj-1)/2.0)*dj;
-                            pt[0] += 0.5*dx;
-                            if(objArr[kk].isObj(pt)==true)
-                                phys_Hy_end_->point(*xx,*yy) = kk;
+                        pt[pt_i] = ((ni-ii)-(ni-1)/2.0)*di;
+                        pt[pt_j] = (jj+1-(nj-1)/2.0)*dj;
+                        pt[0] += 0.5*dx;
+                        if(objArr[kk].isObj(pt)==true)
+                            phys_Hy_end_->point(*xx,*yy) = kk;
 
-                            pt[0] -= 0.5*dx;
-                            if(objArr[kk].isObj(pt)==true)
-                                phys_Ez_end_->point(*xx,*yy) = kk;
+                        pt[0] -= 0.5*dx;
+                        if(objArr[kk].isObj(pt)==true)
+                            phys_Ez_end_->point(*xx,*yy) = kk;
 
-                            pt[1]  += 0.5*dy;
-                            if(objArr[kk].isObj(pt)==true)
-                                phys_Hx_end_->point(*xx,*yy) = kk;
-                        }
+                        pt[1]  += 0.5*dy;
+                        if(objArr[kk].isObj(pt)==true)
+                            phys_Hx_end_->point(*xx,*yy) = kk;
                     }
                 }
             }
@@ -682,7 +666,7 @@ public:
                     int jjstore = jj;
                     while(jj > oppPML && phys_Ex_ -> point(*xx,*yy) == phys_Ex_ -> point(*xx-delx,*yy-dely)) //Fix
                         jj--;
-                    std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ex_->point(*xx,*yy))};
+                    std::array<double,9> tempArr = {static_cast<double>(*xx+1),static_cast<double>(*yy+1),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ex_->point(*xx,*yy))};
                     eps   = objArr[phys_Ex_->point(*xx,*yy)].dielectric(1.0);
                     sigxx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
                     sigyx = (ypml->*sigmay)(static_cast<double>(*yy) + 0.5,eps); //Switch to see if PML is on teh different side yet
@@ -701,7 +685,7 @@ public:
                     int jjstore = jj;
                     while(jj > oppPML && phys_Ex_end_ -> point(*xx,*yy) == phys_Ex_end_ -> point(*xx-delx,*yy-dely)) //Fix
                         jj--;
-                    std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ex_end_->point(*xx,*yy))};
+                    std::array<double,9> tempArr = {static_cast<double>(*xx+1),static_cast<double>(*yy+1),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ex_end_->point(*xx,*yy))};
                     eps   = objArr[phys_Ex_end_->point(*xx,*yy)].dielectric(1.0);
                     sigxx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
                     sigyx = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,delx) * 0.5,eps); //Switch to see if PML is on teh different side yet
@@ -720,7 +704,7 @@ public:
                     int jjstore = jj;
                     while(jj > oppPML && phys_Ey_ -> point(*xx,*yy) == phys_Ey_ -> point(*xx-delx,*yy-dely))
                         jj--;
-                    std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ey_->point(*xx,*yy))};
+                    std::array<double,9> tempArr = {static_cast<double>(*xx+1),static_cast<double>(*yy+1),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ey_->point(*xx,*yy))};
                     eps    = objArr[phys_Ey_->point(*xx,*yy)].dielectric(1.0);
                     sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + 0.5,eps);
                     sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
@@ -739,7 +723,7 @@ public:
                     int jjstore = jj;
                     while(jj > oppPML && phys_Ey_end_ -> point(*xx,*yy) == phys_Ey_end_ -> point(*xx-delx,*yy-dely)) //Fix
                         jj--;
-                    std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ey_end_->point(*xx,*yy))};
+                    std::array<double,9> tempArr = {static_cast<double>(*xx+1),static_cast<double>(*yy+1),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ey_end_->point(*xx,*yy))};
                     eps    = objArr[phys_Ey_end_->point(*xx,*yy)].dielectric(1.0);
                     sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,dely) * 0.5,eps); //Switch to see if PML is on teh different side yet
                     sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
@@ -758,7 +742,7 @@ public:
                     int jjstore = jj;
                     while(jj > zmin && phys_Hz_ -> point(*xx,*yy) == phys_Hz_ -> point(*xx-delx,*yy-dely))
                         jj--;
-                    std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hz_->point(*xx,*yy))};
+                    std::array<double,9> tempArr = {static_cast<double>(*xx+1),static_cast<double>(*yy+1),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hz_->point(*xx,*yy))};
                     eps = objArr[phys_Hz_->point(*xx,*yy)].dielectric(1.0);
                     sigx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
                     sigy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
@@ -777,7 +761,7 @@ public:
                 int jjstore = jj;
                 while(jj > zmin && phys_Hz_ -> point(*xx,*yy) == phys_Hz_ -> point(*xx-delx,*yy-dely))
                     jj--;
-                std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hz_->point(*xx,*yy))};
+                std::array<double,9> tempArr = {static_cast<double>(*xx+1),static_cast<double>(*yy+1),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hz_->point(*xx,*yy))};
                 eps = objArr[phys_Hz_->point(*xx,*yy)].dielectric(1.0);
                 sigx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
                 sigy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
@@ -795,7 +779,7 @@ public:
                     int jjstore = jj;
                     while(jj > zmin && phys_Hz_end_ -> point(*xx,*yy) == phys_Hz_end_ -> point(*xx-delx,*yy-dely)) //Fix
                         jj--;
-                    std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hz_end_->point(*xx,*yy))};
+                    std::array<double,9> tempArr = {static_cast<double>(*xx+1),static_cast<double>(*yy+1),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hz_end_->point(*xx,*yy))};
                     eps = objArr[phys_Hz_end_->point(*xx,*yy)].dielectric(1.0);
                     sigx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
                     sigy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
@@ -813,7 +797,7 @@ public:
                 int jjstore = jj;
                 while(jj > zmin && phys_Hz_end_ -> point(*xx,*yy) == phys_Hz_end_ -> point(*xx-delx,*yy-dely)) //Fix
                     jj--;
-                std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hz_end_->point(*xx,*yy))};
+                std::array<double,9> tempArr = {static_cast<double>(*xx+1),static_cast<double>(*yy+1),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hz_end_->point(*xx,*yy))};
                 eps = objArr[phys_Hz_end_->point(*xx,*yy)].dielectric(1.0);
                 sigx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
                 sigy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
@@ -833,7 +817,7 @@ public:
                     int jjstore = jj;
                     while(jj > oppPML && phys_Hx_ -> point(*xx,*yy) == phys_Hx_ -> point(*xx-delx,*yy-dely))
                         jj--;
-                    std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hx_->point(*xx,*yy))};
+                    std::array<double,9> tempArr = {static_cast<double>(*xx+1),static_cast<double>(*yy+1),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hx_->point(*xx,*yy))};
                     eps   = objArr[phys_Hx_->point(*xx,*yy)].dielectric(1.0);
                     sigxx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
                     sigyx = (ypml->*sigmay)(static_cast<double>(*yy) + 0.5,eps);
@@ -851,7 +835,7 @@ public:
                     int jjstore = jj;
                     while(jj > oppPML && phys_Hx_end_ -> point(*xx,*yy) == phys_Hx_end_ -> point(*xx-delx,*yy-dely)) //Fix
                         jj--;
-                    std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hx_end_->point(*xx,*yy))};
+                    std::array<double,9> tempArr = {static_cast<double>(*xx+1),static_cast<double>(*yy+1),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hx_end_->point(*xx,*yy))};
                     eps   = objArr[phys_Hx_end_->point(*xx,*yy)].dielectric(1.0);
                     sigxx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
                     sigyx = (ypml->*sigmay)(static_cast<double>(*yy) + pow(-1,delx) * 0.5,eps); //Switch to see if PML is on teh different side yet
@@ -869,7 +853,7 @@ public:
                     int jjstore = jj;
                     while(jj > oppPML && phys_Hy_ -> point(*xx,*yy) == phys_Hy_ -> point(*xx-delx,*yy-dely))
                         jj--;
-                    std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hy_->point(*xx,*yy))};
+                    std::array<double,9> tempArr = {static_cast<double>(*xx+1),static_cast<double>(*yy+1),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hy_->point(*xx,*yy))};
                     eps    = objArr[phys_Hy_->point(*xx,*yy)].dielectric(1.0);
                     sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + 0.5,eps);
                     sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
@@ -888,7 +872,7 @@ public:
                     int jjstore = jj;
                     while(jj > oppPML && phys_Hy_end_ -> point(*xx,*yy) == phys_Hy_end_ -> point(*xx-delx,*yy-dely)) //Fix
                         jj--;
-                    std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hy_end_->point(*xx,*yy))};
+                    std::array<double,9> tempArr = {static_cast<double>(*xx+1),static_cast<double>(*yy+1),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Hy_end_->point(*xx,*yy))};
                     eps    = objArr[phys_Hy_end_->point(*xx,*yy)].dielectric(1.0);
                     sigxy = (xpml->*sigmax)(static_cast<double>(*xx) + pow(-1,dely) * 0.5,eps); //Switch to see if PML is on teh different side yet
                     sigyy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
@@ -906,7 +890,7 @@ public:
                     int jjstore = jj;
                     while(jj > zmin && phys_Ez_ -> point(*xx,*yy) == phys_Ez_ -> point(*xx-delx,*yy-dely))
                         jj--;
-                    std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ez_->point(*xx,*yy))};
+                    std::array<double,9> tempArr = {static_cast<double>(*xx+1),static_cast<double>(*yy+1),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ez_->point(*xx,*yy))};
                     eps = objArr[phys_Ez_->point(*xx,*yy)].dielectric(1.0);
                     sigx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
                     sigy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
@@ -925,7 +909,7 @@ public:
                 int jjstore = jj;
                 while(jj > zmin && phys_Ez_ -> point(*xx,*yy) == phys_Ez_ -> point(*xx-delx,*yy-dely))
                     jj--;
-                std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ez_->point(*xx,*yy))};
+                std::array<double,9> tempArr = {static_cast<double>(*xx+1),static_cast<double>(*yy+1),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ez_->point(*xx,*yy))};
                 eps = objArr[phys_Ez_->point(*xx,*yy)].dielectric(1.0);
                 sigx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
                 sigy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
@@ -942,7 +926,7 @@ public:
                     int jjstore = jj;
                     while(jj > zmin && phys_Ez_end_ -> point(*xx,*yy) == phys_Ez_end_ -> point(*xx-delx,*yy-dely)) //Fix
                         jj--;
-                    std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ez_end_->point(*xx,*yy))};
+                    std::array<double,9> tempArr = {static_cast<double>(*xx+1),static_cast<double>(*yy+1),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ez_end_->point(*xx,*yy))};
                     eps = objArr[phys_Ez_end_->point(*xx,*yy)].dielectric(1.0);
                     sigx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
                     sigy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
@@ -960,7 +944,7 @@ public:
                 int jjstore = jj;
                 while(jj > zmin && phys_Ez_end_ -> point(*xx,*yy) == phys_Ez_end_ -> point(*xx-delx,*yy-dely)) //Fix
                     jj--;
-                std::array<double,9> tempArr = {static_cast<double>(*xx),static_cast<double>(*yy),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ez_end_->point(*xx,*yy))};
+                std::array<double,9> tempArr = {static_cast<double>(*xx+1),static_cast<double>(*yy+1),static_cast<double>(jjstore - jj + 1),static_cast<double>(phys_Ez_end_->point(*xx,*yy))};
                 eps = objArr[phys_Ez_end_->point(*xx,*yy)].dielectric(1.0);
                 sigx = (xpml->*sigmax)(static_cast<double>(*xx),eps);
                 sigy = (ypml->*sigmay)(static_cast<double>(*yy),eps);
