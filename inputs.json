@@ -4,9 +4,9 @@
         "x_size"        : 50.0,
         "y_size"        : 15.0,
         "z_size"        : 0.0,
-        "res"           : 20,
+        "res"           : 50,
         "courant"       : 0.5,
-        "tLim"          : 500.0,
+        "tLim"          : 200.0,
         "PBC"           : "false"
     },
     "k-point"           : [
@@ -33,29 +33,40 @@
             "fwidth"    : 1.0,
             "cutoff"    : 10.00,
             "t_start"   : 0.00,
-            "size_y"    : 15.00,
+            "size_y"    : 0.00,
             "size_x"    : 0.00,
             "pol"       : "Hz",
             "loc_y"     : 0.0,
-            "loc_x"     : -18.00
+            "loc_x"     : -10.00
         }
     ],
     "ObjectList": [
+        {
+            "shape"     : "block",
+            "size_y"    : 20.00,
+            "size_x"    : 20.00,
+            "loc_x"     : 15.00,
+            "loc_y"     : 0.00,
+            "eps"       : 1.00,
+            "pols"      : [
 
+            ]
+
+        }
 
     ],
     "DetectorList"  : [
         {
             "loc_y"     : 0.00,
-            "loc_x"     : 5.00,
+            "loc_x"     : 4.70,
             "size_y"    : 0.00,
             "size_x"    : 0.00,
             "type"      : "field",
-            "pol"       : "Ex"
+            "pol"       : "Ey"
         },
         {
             "loc_y"     : 0.00,
-            "loc_x"     : 5.00,
+            "loc_x"     : 5.04,
             "size_y"    : 0.00,
             "size_x"    : 0.00,
             "type"      : "field",
