@@ -1,14 +1,14 @@
 {
     "CompCell" : {
         "procs"         : 1,
+        "y_size"        : 20.0,
         "x_size"        : 20.0,
-        "y_size"        : 15.0,
         "z_size"        : 0.0,
-        "res"           : 20,
+        "res"           : 50,
         "courant"       : 0.5,
         "tLim"          : 200.0,
-        "PBC"           : "false",
-        "pol"           : "Ez"
+        "PBC"           : "true",
+        "pol"           : "Ex"
     },
     "k-point"           : [
         {
@@ -19,7 +19,7 @@
     "PML" :  [
         {
             "thickness" : 5.0,
-            "direction" : "X"
+            "direction" : "Y"
         }
     ],
     "SourceList"  : [
@@ -28,46 +28,26 @@
             "profile"   : "gaussian",
             "fcen"      : 1.0,
             "fwidth"    : 1.0,
-            "cutoff"    : 10.00,
+            "cutoff"    : 20.00,
             "t_start"   : 0.00,
-            "size_y"    : 15.00,
-            "size_x"    : 0.00,
-            "pol"       : "Ez",
-            "loc_y"     : 0.0,
-            "loc_x"     : -4.00
+            "size_y"    : 0.00,
+            "size_x"    : 20.00,
+            "pol"       : "Ex",
+            "loc_x"     : 0.0,
+            "loc_y"     : 0.00
         }
     ],
     "ObjectList": [
-        {
-            "shape"     : "block",
-            "size_y"    : 20.00,
-            "size_x"    : 8.00,
-            "loc_y"     : 0.00,
-            "loc_x"     : 6.00,
-            "eps"       : 1.00,
-            "pols"      : [
-
-            ]
-
-        }
 
     ],
     "DetectorList"  : [
         {
             "loc_y"     : 0.00,
-            "loc_x"     : 1.90,
-            "size_y"    : 0.00,
+            "loc_x"     : 2.50,
             "size_x"    : 0.00,
-            "type"      : "field",
-            "pol"       : "Ez"
-        },
-        {
-            "loc_y"     : 0.00,
-            "loc_x"     : 2.2,
             "size_y"    : 0.00,
-            "size_x"    : 0.00,
             "type"      : "field",
-            "pol"       : "Ez"
+            "pol"       : "Ex"
         }
     ]
 }

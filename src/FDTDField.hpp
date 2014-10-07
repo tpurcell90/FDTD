@@ -68,9 +68,9 @@ public:
     void updateH();
     void updateE();
 
-    void xFieldUpdate (shared_ptr<Grid2D<complex<double>>> fUp, shared_ptr<Grid2D<complex<double>>> fIn1, array<int,4> axConsts, array<complex<double>,3> upConsts);
-    void yFieldUpdate (shared_ptr<Grid2D<complex<double>>> fUp, shared_ptr<Grid2D<complex<double>>> fIn1, array<int,4> axConsts, array<complex<double>,3> upConsts);
-    void zFieldUpdate (shared_ptr<Grid2D<complex<double>>> fUp, shared_ptr<Grid2D<complex<double>>> fIn1, shared_ptr<Grid2D<complex<double>>> fIn2, array<int,4> axConsts, array<complex<double>,5> upConsts);
+    // void xFieldUpdate (shared_ptr<Grid2D<complex<double>>> fUp, shared_ptr<Grid2D<complex<double>>> fIn1, array<int,4> axConsts, array<complex<double>,3> upConsts);
+    // void yFieldUpdate (shared_ptr<Grid2D<complex<double>>> fUp, shared_ptr<Grid2D<complex<double>>> fIn1, array<int,4> axConsts, array<complex<double>,3> upConsts);
+    // void zFieldUpdate (shared_ptr<Grid2D<complex<double>>> fUp, shared_ptr<Grid2D<complex<double>>> fIn1, shared_ptr<Grid2D<complex<double>>> fIn2, array<int,4> axConsts, array<complex<double>,5> upConsts);
     void applyPBC(shared_ptr<Grid2D<complex<double>>> fUp, int nx, int ny);
 
     std::vector<double> pml(int npml, int m, int ma);

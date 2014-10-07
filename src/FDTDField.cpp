@@ -536,21 +536,24 @@ void FDTDField::updateH()
 {
     if(Ez_)
     {
-        complex<double> c_hxh(1.0,0.0);
+        double c_hxh = 1.0;
         double c_hxe = 1.0 * dt_/dx_;
-        complex<double> c_hyh(1.0,0.0);
+        double c_hyh = 1.0;
         double c_hye = 1.0 * dt_/dy_;
         for(int kk = 0; kk < zaxHx_.size(); kk++)
         {
-            array<complex<double>,3> upConsts = {c_hxh, -1.0*c_hxe, c_hxe};
-            array<int, 4> axConsts = {zaxHx_[kk][0], zaxHx_[kk][1],zaxHx_[kk][2],1};
-            xFieldUpdate(Hx_, Ez_, axConsts, upConsts);
+            int xx = zaxHx_[kk][0]; int yy = zaxHx_[kk][1]; int nZax = zaxHx_[kk][2];
+            zscal_(nZax,      c_hxh, &Hx_->point(xx  ,yy  ), 1);
+            zaxpy_(nZax, -1.0*c_hxe, &Ez_->point(xx  ,yy+1), 1, &Hx_->point(xx,yy), 1);
+            zaxpy_(nZax,      c_hxe, &Ez_->point(xx  ,yy  ), 1, &Hx_->point(xx,yy), 1);
+
         }
         for(int kk = 0; kk < zaxHy_.size(); kk++)
         {
-            array<complex<double>,3> upConsts = {c_hyh, c_hye, -1.0*c_hye};
-            array<int, 4> axConsts = {zaxHy_[kk][0], zaxHy_[kk][1],zaxHy_[kk][2],1};
-            yFieldUpdate(Hy_, Ez_, axConsts, upConsts);
+            int xx = zaxHy_[kk][0]; int yy = zaxHy_[kk][1]; int nZax = zaxHy_[kk][2];
+            zscal_(nZax,      c_hyh, &Hy_->point(xx  ,yy  ), 1);
+            zaxpy_(nZax,      c_hye, &Ez_->point(xx+1,yy  ), 1, &Hy_->point(xx,yy), 1);
+            zaxpy_(nZax, -1.0*c_hye, &Ez_->point(xx  ,yy  ), 1, &Hy_->point(xx,yy), 1);
         }
         // PML
         for(int kk =0; kk < pmlArr_.size(); kk++)
@@ -725,13 +728,19 @@ void FDTDField::updateH()
     }
     else
     {
-        complex<double> c_hzh(1.0,0.0);
+        double c_hzh = 1.0;
         double c_hze = 1.0 * dt_/dx_;
         for(int kk = 0; kk < zaxHz_.size(); kk++)
         {
-            array<complex<double>,5> upConsts = {c_hzh, -1.0*c_hze, c_hze, c_hze, -1.0*c_hze};
-            array<int, 4> axConsts = {zaxHz_[kk][0], zaxHz_[kk][1],zaxHz_[kk][2],1};
-            zFieldUpdate(Hz_, Ex_, Ey_, axConsts, upConsts);
+            int xx = zaxHz_[kk][0]; int yy = zaxHz_[kk][1]; int nZax = zaxHz_[kk][2];
+            zscal_(nZax,       c_hzh, &Hz_->point(xx  ,yy  ), 1);
+            zaxpy_(nZax,  -1.0*c_hze, &Ex_->point(xx  ,yy-1), 1, &Hz_ ->point(xx,yy), 1);
+            zaxpy_(nZax,       c_hze, &Ex_->point(xx  ,yy  ), 1, &Hz_ ->point(xx,yy), 1);
+            zaxpy_(nZax,       c_hze, &Ey_->point(xx-1,yy  ), 1, &Hz_ ->point(xx,yy), 1);
+            zaxpy_(nZax,  -1.0*c_hze, &Ey_->point(xx  ,yy  ), 1, &Hz_ ->point(xx,yy), 1);
+            // array<complex<double>,5> upConsts = {c_hzh, -1.0*c_hze, c_hze, c_hze, -1.0*c_hze};
+            // array<int, 4> axConsts = {zaxHz_[kk][0], zaxHz_[kk][1],zaxHz_[kk][2],1};
+            // zFieldUpdate(Hz_, Ex_, Ey_, axConsts, upConsts);
         }
         for(int kk = 0; kk < pmlArr_.size(); kk++)
         {
@@ -862,16 +871,19 @@ void FDTDField::updateE()
     if(Ez_)
     {
         double eps =1.0;
-        complex<double> c_eze(1.0,0.0);
+        double c_eze =1.0;
         double c_ezh = dt_/(eps*dx_);
         // Seperated out by PML because edge cases require special treatment
         for(int kk = 0; kk < zaxEz_.size(); kk++)
         {
             eps = objArr_[zaxEz_[kk][3]].dielectric(1.0);
             c_ezh = dt_/(eps*dx_);
-            array<complex<double>,5> upConsts = {c_eze, c_ezh, -1.0*c_ezh, -1.0*c_ezh, c_ezh};
-            array<int, 4> axConsts = {zaxEz_[kk][0], zaxEz_[kk][1],zaxEz_[kk][2],1};
-            zFieldUpdate(Ez_, Hx_, Hy_, axConsts, upConsts);
+            int xx = zaxEz_[kk][0]; int yy = zaxEz_[kk][1]; int nZax = zaxEz_[kk][2];
+            zscal_(nZax,      c_eze, &Ez_->point(xx  ,yy  ), 1);
+            zaxpy_(nZax,      c_ezh, &Hx_->point(xx  ,yy-1), 1, &Ez_ ->point(xx,yy), 1);
+            zaxpy_(nZax, -1.0*c_ezh, &Hx_->point(xx  ,yy  ), 1, &Ez_ ->point(xx,yy), 1);
+            zaxpy_(nZax, -1.0*c_ezh, &Hy_->point(xx-1,yy  ), 1, &Ez_ ->point(xx,yy), 1);
+            zaxpy_(nZax,      c_ezh, &Hy_->point(xx  ,yy  ), 1, &Ez_ ->point(xx,yy), 1);
         }
          //PML
         for(int kk = 0; kk < pmlArr_.size(); kk++)
@@ -988,8 +1000,8 @@ void FDTDField::updateE()
     }
     else
     {
-        complex<double> c_exe(1.0,0.0);
-        complex<double> c_eye(1.0,0.0);
+        double c_exe = 1.0;
+        double c_eye = 1.0;
         double c_exh = 0.0;
         double c_eyh = 0.0;
         double eps = 1.0;
@@ -997,17 +1009,19 @@ void FDTDField::updateE()
         {
             eps = objArr_[zaxEx_[kk][3]].dielectric(1.0);
             c_exh = dt_/(eps*dy_);
-            array<complex<double>,3> upConsts ={c_exe, c_exh, -1.0*c_exh};
-            array<int, 4> axConsts = {zaxEx_[kk][0], zaxEx_[kk][1],zaxEx_[kk][2],1};
-            xFieldUpdate(Ex_,Hz_, axConsts, upConsts);
+            int xx = zaxEx_[kk][0]; int yy = zaxEx_[kk][1]; int nZax = zaxEx_[kk][2];
+            zscal_(nZax,      c_exe, &Ex_->point(xx  ,yy  ), 1);
+            zaxpy_(nZax,      c_exh, &Hz_->point(xx  ,yy+1), 1, &Ex_->point(xx,yy), 1);
+            zaxpy_(nZax, -1.0*c_exh, &Hz_->point(xx  ,yy  ), 1, &Ex_->point(xx,yy), 1);
         }
         for(int kk = 0; kk < zaxEy_.size(); kk++)
         {
             eps = objArr_[zaxEy_[kk][3]].dielectric(1.0);
             c_eyh = dt_/(eps*dy_);
-            array<complex<double>,3> upConsts ={c_eye, -1.0*c_eyh, c_eyh};
-            array<int, 4> axConsts = {zaxEy_[kk][0], zaxEy_[kk][1],zaxEy_[kk][2],1};
-            yFieldUpdate(Ey_,Hz_, axConsts, upConsts);
+            int xx = zaxEy_[kk][0]; int yy = zaxEy_[kk][1]; int nZax = zaxEy_[kk][2];
+            zscal_(nZax,      c_eye, &Ey_->point(xx  ,yy  ), 1);
+            zaxpy_(nZax, -1.0*c_eyh, &Hz_->point(xx+1,yy  ), 1, &Ey_->point(xx,yy), 1);
+            zaxpy_(nZax,      c_eyh, &Hz_->point(xx  ,yy  ), 1, &Ey_->point(xx,yy), 1);
         }
         //PML
         for(int kk =0; kk < pmlArr_.size(); kk++)
@@ -1178,31 +1192,6 @@ void FDTDField::updateE()
         }
     }
 }
-
-void FDTDField::xFieldUpdate(shared_ptr<Grid2D<complex<double>>> fUp, shared_ptr<Grid2D<complex<double>>> fIn, array<int,4> axConsts, array<complex<double>,3> upConsts)
-{
-    int xx = axConsts[0]; int yy = axConsts[1]; int nZax = axConsts[2]; int stride = axConsts[3];
-    zscal_(nZax, upConsts[0], &fUp ->point(xx  ,yy  ), stride);
-    zaxpy_(nZax, upConsts[1], &fIn->point(xx  ,yy+1), stride, &fUp ->point(xx,yy), stride);
-    zaxpy_(nZax, upConsts[2], &fIn->point(xx  ,yy  ), stride, &fUp ->point(xx,yy), stride);
-}
-void FDTDField::yFieldUpdate(shared_ptr<Grid2D<complex<double>>> fUp, shared_ptr<Grid2D<complex<double>>> fIn, array<int,4> axConsts, array<complex<double>,3> upConsts)
-{
-    int xx = axConsts[0]; int yy = axConsts[1]; int nZax = axConsts[2]; int stride = axConsts[3];
-    zscal_(nZax, upConsts[0], &fUp->point(xx  ,yy  ), stride);
-    zaxpy_(nZax, upConsts[1], &fIn->point(xx+1,yy  ), stride, &fUp->point(xx,yy), stride);
-    zaxpy_(nZax, upConsts[2], &fIn->point(xx  ,yy  ), stride, &fUp->point(xx,yy), stride);
-}
-void FDTDField::zFieldUpdate(shared_ptr<Grid2D<complex<double>>> fUp, shared_ptr<Grid2D<complex<double>>> fIn1, shared_ptr<Grid2D<complex<double>>> fIn2, array<int,4> axConsts, array<complex<double>,5> upConsts)
-{
-    int xx = axConsts[0]; int yy = axConsts[1]; int nZax = axConsts[2]; int stride = axConsts[3];
-    zscal_(nZax, upConsts[0], &fUp ->point(xx  ,yy  ), stride);
-    zaxpy_(nZax, upConsts[1], &fIn1->point(xx  ,yy-1), stride, &fUp ->point(xx,yy), stride);
-    zaxpy_(nZax, upConsts[2], &fIn1->point(xx  ,yy  ), stride, &fUp ->point(xx,yy), stride);
-    zaxpy_(nZax, upConsts[3], &fIn2->point(xx-1,yy  ), stride, &fUp ->point(xx,yy), stride);
-    zaxpy_(nZax, upConsts[4], &fIn2->point(xx  ,yy  ), stride, &fUp ->point(xx,yy), stride);
-}
-
 void FDTDField::applyPBC(shared_ptr<Grid2D<complex<double>>> fUp, int nx, int ny)
 {
     vector<double> r = {0.0,0.0};
@@ -1235,7 +1224,6 @@ void FDTDField::step()
         int jj = srcArr_[kk].loc()[1];
         switch ( srcArr_[kk].pol() )
         {
-
             case EZ: //if(srcArr[kk].pol() == EZ)
                 if(abs(real(srcArr_[kk].prof().pulse(static_cast<double>(t_step_)))) > 1.0e-70)
                 {
