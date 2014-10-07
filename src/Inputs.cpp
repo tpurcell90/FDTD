@@ -18,14 +18,31 @@ programInputs::programInputs(std::string fn) : filename_(fn)
     boost::property_tree::ptree IP;
     boost::property_tree::json_parser::read_json(filename_,IP);
     // Basic FDTD params
-    procs_       = IP.get<int>("CompCell.Procs",1);
-    x_size_      = IP.get<double>("CompCell.x_size",10.1);
-    y_size_      = IP.get<double>("CompCell.y_size",10.1);
-    z_size_      = IP.get<double>("CompCell.z_size",10.1);
-    res_         = IP.get<int>("CompCell.res", 10);
+    invCell_     = false;
+    vector<string> pmlDirs ={};
+    for (auto& iter : IP.get_child("PML"))
+        pmlDirs.push_back(iter.second.get<string>("direction"));
+    if(pmlDirs.size()==1)
+        if(pmlDirs[0] == "X")
+            invCell_ = true;
+    res_         = IP.get<int>("CompCell.res", 20);
+    courant_     = IP.get<double>("CompCell.courant", 0.5);
     xPml_        = 0;
     yPml_        = 0;
-    courant_     = IP.get<double>("CompCell.courant", 0.5);
+    pol_         = IP.get<string>("CompCell.pol");
+    procs_       = IP.get<int>("CompCell.Procs",1);
+    if(invCell_)
+    {
+        y_size_      = IP.get<double>("CompCell.x_size",0);
+        x_size_      = IP.get<double>("CompCell.y_size",0);
+        z_size_      = IP.get<double>("CompCell.z_size",0);
+    }
+    else
+    {
+        x_size_      = IP.get<double>("CompCell.x_size",0);
+        y_size_      = IP.get<double>("CompCell.y_size",0);
+        z_size_      = IP.get<double>("CompCell.z_size",0);
+    }
     output_base_ = IP.get<string>("CompCell.output", "dtc_out");
     periodic_    = IP.get<bool>("CompCell.PBC", false);
     tMax_        = IP.get<double>("CompCell.tLim",100.0);
@@ -34,11 +51,33 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         k_point_.push_back(iter.second.get<double>("X"));
         k_point_.push_back(iter.second.get<double>("Y"));
     }
+    for (auto& iter : IP.get_child("PML"))
+    {
+        string dd = iter.second.get<string>("direction");
+        Direction d = string2dir(dd);
+        if(invCell_)
+            d=Y;
+        int thickness = iter.second.get<double>("thickness");
+        if (d == X)
+        {
+            xPml_ = find_pt(thickness);
+            pmlArr_.push_back(UPML<complex<double>>(xPml_,d, 4.0, 1e-50, find_pt(x_size_) + 1,find_pt(y_size_) + 1,1.0/res_,1.0/res_, courant_/res_, xPml_, yPml_,string2pol(pol_)));
+        }
+        else if(d == Y)
+        {
+            yPml_ = find_pt(thickness);
+            pmlArr_.push_back(UPML<complex<double>>(yPml_,d, 4.0, 1e-50, find_pt(x_size_) + 1,find_pt(y_size_) + 1,1.0/res_,1.0/res_, courant_/res_, xPml_, yPml_,string2pol(pol_)));
+        }
+        else if (d == Z)
+            throw logic_error("While yes we could have a thrid dimension to run, I have yet to be implimented to do such a thing. So please accept this error as my sincerest appology.");
+        else
+            throw logic_error("I would appricate it if you stick to the standard X,Y,Z directions. While it's fun to invent new ones, it is very hard to do calculations if I don't even understand what dimension I am in. Please try again!");
+    }
     for (auto& iter : IP.get_child("SourceList"))
     {
         string p = iter.second.get<string>("profile");
         plsShape prof = string2prof(p);
-        pol_ = iter.second.get<string>("pol");
+        string pol  = iter.second.get<string>("pol", pol_);
         Polarization pols = string2pol(pol_);
         vector<double> fxn ={};
         if(prof == gaussian)
@@ -60,10 +99,21 @@ programInputs::programInputs(std::string fn) : filename_(fn)
             fxn.push_back(iter.second.get<double>("cutoff"));
         }
         // Now I need to write the funciton class for the source to take in
-        double sz_x  = iter.second.get<double>("size_x");
-        double sz_y  = iter.second.get<double>("size_y");
-        double loc_x = iter.second.get<double>("loc_x");
-        double loc_y = iter.second.get<double>("loc_y");
+        double sz_x=0.0; double sz_y=0.0; double loc_x=0.0; double loc_y=0.0;
+        if(invCell_)
+        {
+            sz_y  = iter.second.get<double>("size_x");
+            sz_x  = iter.second.get<double>("size_y");
+            loc_y = iter.second.get<double>("loc_x");
+            loc_x = iter.second.get<double>("loc_y");
+        }
+        else
+        {
+            sz_x  = iter.second.get<double>("size_x");
+            sz_y  = iter.second.get<double>("size_y");
+            loc_x = iter.second.get<double>("loc_x");
+            loc_y = iter.second.get<double>("loc_y");
+        }
         // Make proper rounding function
         int x_min = find_pt(loc_x-sz_x/2.0+x_size_/2.0)+1;
         int x_max = find_pt(loc_x+sz_x/2.0+x_size_/2.0)+1;
@@ -76,29 +126,7 @@ programInputs::programInputs(std::string fn) : filename_(fn)
                 srcArr_.push_back(Source<complex<double>>(Pulse<complex<double>>(fxn,prof), pols, loc));
             }
     }
-    for (auto& iter : IP.get_child("PML"))
-    {
-        string dd = iter.second.get<string>("direction");
-        Direction d = string2dir(dd);
-        int thickness = iter.second.get<double>("thickness");
-        if (d == X)
-        {
-            xPml_ = find_pt(thickness);
-            //pmlArr_.push_back(UPML<double>(thickness,d, 4.0, exp(-16), find_pt(y_size_),1.0/res_,1.0/res_,string2pol(pol_)));
-            pmlArr_.push_back(UPML<complex<double>>(xPml_,d, 4.0, 1e-50, find_pt(x_size_) + 1,find_pt(y_size_) + 1,1.0/res_,1.0/res_, courant_/res_, xPml_, yPml_,string2pol(pol_)));
-        }
-        else if(d == Y)
-        {
-            yPml_ = find_pt(thickness);
-            //pmlArr_.push_back(UPML<double>(thickness,d, 4.0, exp(-16), find_pt(x_size_),1.0/res_,1.0/res_,string2pol(pol_)));
-            pmlArr_.push_back(UPML<complex<double>>(yPml_,d, 4.0, 1e-50, find_pt(x_size_) + 1,find_pt(y_size_) + 1,1.0/res_,1.0/res_, courant_/res_, xPml_, yPml_,string2pol(pol_)));
-        }
-        else if (d == Z)
-            throw logic_error("While yes we could have a thrid dimension to run, I have yet to be implimented to do such a thing. So please accept this error as my sincerest appology.");
-        else
-            throw logic_error("I would appricate it if you stick to the standard X,Y,Z directions. While it's fun to invent new ones, it is very hard to do calculations if I don't even understand what dimension I am in. Please try again!");
 
-    }
     vector<double> loc(2,0.0);
     vector<double> size = {x_size_,y_size_};
     vector<double> mat = {1.0};
@@ -111,14 +139,29 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         vector<double> size = {};
         if(s == block)
         {
-            size.push_back(iter.second.get<double>("size_x",0.0));
-            size.push_back(iter.second.get<double>("size_y",0.0));
+            if(invCell_)
+            {
+                size.push_back(iter.second.get<double>("size_y",0.0));
+                size.push_back(iter.second.get<double>("size_x",0.0));
+            }
+            else
+            {
+                size.push_back(iter.second.get<double>("size_x",0.0));
+                size.push_back(iter.second.get<double>("size_y",0.0));
+            }
         }
         else if(s == sphere)
             size.push_back(iter.second.get<double>("radius",0.0));
-
-        loc.push_back(iter.second.get<double>("loc_x",0.0));
-        loc.push_back(iter.second.get<double>("loc_y",0.0));
+        if(invCell_)
+        {
+            loc.push_back(iter.second.get<double>("loc_y",0.0));
+            loc.push_back(iter.second.get<double>("loc_x",0.0));
+        }
+        else
+        {
+            loc.push_back(iter.second.get<double>("loc_x",0.0));
+            loc.push_back(iter.second.get<double>("loc_y",0.0));
+        }
         std::vector<double> mater = {iter.second.get<double>("eps",1.00)};
 
         boost::property_tree::ptree& pols = iter.second.get_child("pols");
@@ -149,10 +192,22 @@ programInputs::programInputs(std::string fn) : filename_(fn)
             out_name = "output_data/" + output_base_ + "_flux_" + to_string(jj) + ".dat";
             jj++;
         }
-        double sz_x = iter.second.get<double>("size_x");
-        double sz_y = iter.second.get<double>("size_y");
-        double loc_x = iter.second.get<double>("loc_x");
-        double loc_y = iter.second.get<double>("loc_y");
+
+        double sz_x; double sz_y; double loc_x; double loc_y;
+        if(invCell_)
+        {
+            sz_x = iter.second.get<double>("size_y");
+            sz_y = iter.second.get<double>("size_x");
+            loc_x = iter.second.get<double>("loc_y");
+            loc_y = iter.second.get<double>("loc_x");
+        }
+        else
+        {
+            sz_x = iter.second.get<double>("size_x");
+            sz_y = iter.second.get<double>("size_y");
+            loc_x = iter.second.get<double>("loc_x");
+            loc_y = iter.second.get<double>("loc_y");
+        }
         // Make proper rounding function
         int x_min = find_pt(loc_x-sz_x/2.0+x_size_/2.0)+1;
         int x_max = find_pt(loc_x+sz_x/2.0+x_size_/2.0)+1;

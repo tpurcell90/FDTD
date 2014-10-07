@@ -1,13 +1,14 @@
 {
     "CompCell" : {
         "procs"         : 1,
-        "y_size"        : 20.0,
         "x_size"        : 20.0,
+        "y_size"        : 15.0,
         "z_size"        : 0.0,
         "res"           : 20,
         "courant"       : 0.5,
         "tLim"          : 200.0,
-        "PBC"           : "false"
+        "PBC"           : "false",
+        "pol"           : "Ez"
     },
     "k-point"           : [
         {
@@ -16,10 +17,6 @@
         }
     ],
     "PML" :  [
-        {
-            "thickness" : 5.0,
-            "direction" : "Y"
-        },
         {
             "thickness" : 5.0,
             "direction" : "X"
@@ -33,41 +30,42 @@
             "fwidth"    : 1.0,
             "cutoff"    : 10.00,
             "t_start"   : 0.00,
+            "size_y"    : 15.00,
             "size_x"    : 0.00,
-            "size_y"    : 10.00,
             "pol"       : "Ez",
-            "loc_x"     : -3.0,
-            "loc_y"     : 0.00
+            "loc_y"     : 0.0,
+            "loc_x"     : -4.00
         }
     ],
     "ObjectList": [
         {
             "shape"     : "block",
-            "size_x"    : 4.00,
-            "size_y"    : 4.00,
+            "size_y"    : 20.00,
+            "size_x"    : 8.00,
             "loc_y"     : 0.00,
-            "loc_x"     : 0.00,
-            "eps"       : 4.00,
+            "loc_x"     : 6.00,
+            "eps"       : 1.00,
             "pols"      : [
 
             ]
 
         }
+
     ],
     "DetectorList"  : [
         {
-            "loc_x"     : 0.00,
-            "loc_y"     : -4.00,
-            "size_x"    : 0.00,
+            "loc_y"     : 0.00,
+            "loc_x"     : 1.90,
             "size_y"    : 0.00,
+            "size_x"    : 0.00,
             "type"      : "field",
             "pol"       : "Ez"
         },
         {
-            "loc_x"     : 0.00,
-            "loc_y"     : 4.0,
-            "size_x"    : 0.00,
+            "loc_y"     : 0.00,
+            "loc_x"     : 2.2,
             "size_y"    : 0.00,
+            "size_x"    : 0.00,
             "type"      : "field",
             "pol"       : "Ez"
         }

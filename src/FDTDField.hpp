@@ -37,7 +37,7 @@ protected:
     std::vector<std::array<int,4>> zaxEy_, zaxHy_;
     int y0EdgeInd_, x0EdgeInd_, ynEdgeInd_, xnEdgeInd_;
     std::vector<double> k_point_;
-
+    int xDTC_, yDTC_;
 
 public:
     std::shared_ptr<Grid2D<complex<double>>> Ex_,Ey_,Ez_,Hx_,Hy_,Hz_;

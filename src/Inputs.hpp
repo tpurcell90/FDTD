@@ -30,6 +30,7 @@ public:
     std::string output_base_;
     string pol_;
     bool pmlCalc_;
+    bool invCell_;
     //vector<Source<double>> srcArr();
     vector<Obj> objArr_;
 	//Source Parameters Start with just Gaussian complicate later

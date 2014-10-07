@@ -51,6 +51,16 @@ FDTDField::FDTDField(programInputs &IP)
     x0EdgeInd_  = 0;
     xnEdgeInd_  = 0;
     k_point_    = IP.k_point_;
+    if(IP.invCell_)
+    {
+        xDTC_   = 1;
+        yDTC_   = 0;
+    }
+    else
+    {
+        xDTC_   = 0;
+        yDTC_   = 1;
+    }
 
     if(IP.pol_.compare("Hz") == 0 || IP.pol_.compare("Ey") == 0 || IP.pol_.compare("Ex") == 0)
     {
@@ -321,7 +331,6 @@ void FDTDField::initializeGrid()
                     while(ii < nx_-xPML_ && phys_Ex_ -> point(ii,jj) == phys_Ex_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ex_->point(iistore,jj)};
-                    // cout << tempArr[0] << "\t" << tempArr[1] << "\t" << tempArr[2] << "\t" << tempArr[3] << "\t" << endl;
                     zaxEx_.push_back(tempArr);
                     ii++;
                 }
@@ -335,7 +344,6 @@ void FDTDField::initializeGrid()
                     while(ii < nx_-xPML_ && phys_Ey_ -> point(ii,jj) == phys_Ey_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ey_->point(iistore,jj)};
-                    // cout << tempArr[0] << "\t" << tempArr[1] << "\t" << tempArr[2] << "\t" << tempArr[3] << "\t" << endl;
                     zaxEy_.push_back(tempArr);
                     ii++;
                 }
@@ -355,7 +363,6 @@ void FDTDField::initializeGrid()
                     while(ii < nx_-xPML_ && phys_Ex_ -> point(ii,jj) == phys_Ex_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ex_->point(iistore,jj)};
-                    // cout << tempArr[0] << "\t" << tempArr[1] << "\t" << tempArr[2] << "\t" << tempArr[3] << "\t" << endl;
                     zaxEx_.push_back(tempArr);
                     ii++;
                 }
@@ -464,28 +471,28 @@ void FDTDField::ouputField(Detector<complex<double>> d) //iostream as input para
     switch ( d.pol() )
     {
         case EZ:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Ez_,eps).real()<< "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Ez_,eps).real()<< "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Ez_,eps).real()<< "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Ez_,eps).real()<< "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
             break;
         case HX:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Hx_,eps).real()<< endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Hx_,eps).real()<< endl;
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Hx_,eps).real()<< endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Hx_,eps).real()<< endl;
             break;
         case HY:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Hy_,eps).real()<< endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Hy_,eps).real()<< endl;
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Hy_,eps).real()<< endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Hy_,eps).real()<< endl;
             break;
         case HZ:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Hz_,eps).real()<< endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Hz_,eps).real()<< endl;
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Hz_,eps).real()<< endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Hz_,eps).real()<< endl;
             break;
         case EX:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Ex_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Ex_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Ex_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Ex_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
             break;
         case EY:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Ey_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[0]-1 << "\t" << d.loc()[1]-1 << "\t" << setw(10) << d.output(Ey_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Ey_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Ey_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
             break;
         default:
             throw logic_error("reached a default case in a switch state that should never happen!");
