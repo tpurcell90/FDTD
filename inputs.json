@@ -2,9 +2,9 @@
     "CompCell" : {
         "procs"         : 1,
         "y_size"        : 20.0,
-        "x_size"        : 15.0,
+        "x_size"        : 20.0,
         "z_size"        : 0.0,
-        "res"           : 50,
+        "res"           : 20,
         "courant"       : 0.5,
         "tLim"          : 200.0,
         "PBC"           : "false"
@@ -34,31 +34,30 @@
             "cutoff"    : 10.00,
             "t_start"   : 0.00,
             "size_x"    : 0.00,
-            "size_y"    : 0.00,
+            "size_y"    : 10.00,
             "pol"       : "Ez",
-            "loc_x"     : 0.0,
-            "loc_y"     : -4.00
+            "loc_x"     : -3.0,
+            "loc_y"     : 0.00
         }
     ],
     "ObjectList": [
         {
             "shape"     : "block",
-            "size_x"    : 20.00,
-            "size_y"    : 8.00,
+            "size_x"    : 4.00,
+            "size_y"    : 4.00,
+            "loc_y"     : 0.00,
             "loc_x"     : 0.00,
-            "loc_y"     : 6.00,
-            "eps"       : 9.00,
+            "eps"       : 4.00,
             "pols"      : [
 
             ]
 
         }
-
     ],
     "DetectorList"  : [
         {
             "loc_x"     : 0.00,
-            "loc_y"     : 1.90,
+            "loc_y"     : -4.00,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",
@@ -66,7 +65,7 @@
         },
         {
             "loc_x"     : 0.00,
-            "loc_y"     : 2.2,
+            "loc_y"     : 4.0,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",

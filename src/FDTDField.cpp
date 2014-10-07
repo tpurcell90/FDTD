@@ -86,7 +86,7 @@ FDTDField::FDTDField(programInputs &IP)
  * @details Initializes the physical grid for materials look up, sets the object to the number in the object array will overwrite to the last one if multiple objects exist at the same point
  *
  */
- // cout
+
 void FDTDField::initializeGrid()
 {
     //Sotres the locations of the objects in the grid.
@@ -213,7 +213,7 @@ void FDTDField::initializeGrid()
             {
                 for(int ii = 1; ii < nx_+1;ii ++)
                 {
-                    for(int jj = 0; jj < ny_+1; jj ++)
+                    for(int jj = 1; jj < ny_+1; jj ++)
                     {
                         pt[0] = ((ii-1)-(nx_-1)/2.0)*dx_;
                         pt[1] = ((jj-1)-static_cast<double>(ny_-1)/2.0)*dy_;
@@ -449,7 +449,6 @@ void FDTDField::initializeGrid()
     }
     else if (pmlArr_.size() ==1)
         pmlArr_[0].initializeUPML(objArr_, nx_,ny_,dx_,dy_,dt_, yPML_, xPML_, nullptr);
-
 }
 /**
  * @brief Outputs the relevant field information to an output file specified by the detector
@@ -1311,7 +1310,6 @@ void FDTDField::step()
         fname = "fout/Ez/EzField_t" + to_string(static_cast<int>(t_step_))+".dat";
         Hz_->gridOut(fname);
     }
-
     tcur_ += dt_;
     t_step_ ++;
 }
