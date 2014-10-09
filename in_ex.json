@@ -28,7 +28,7 @@
             "loc_y"     : 0.00
         }
     ],
-    "ObjectList": [ 
+    "ObjectList": [
         {
             "shape"     : "sphere",
             "radius"    : 1.00,
@@ -39,15 +39,15 @@
                 {
                     "sigma" : 10.20,
                     "gamma" : 10.20,
-                    "kappa" : 10.20
+                    "omega" : 10.20
                 },
                 {
                     "sigma" : 2.00,
                     "gamma" : 2.00,
-                    "kappa" : 2.00
+                    "omega" : 2.00
                 }
             ]
-            
+
         }
     ],
     "DetectorList"  : [

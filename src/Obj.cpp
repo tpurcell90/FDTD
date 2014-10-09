@@ -4,7 +4,37 @@
 
 using namespace std;
 
-//Dielectric
+Obj::Obj(Shape s, std::vector<double> mater, std::vector<double> geo, std::vector<double> loc)
+{
+    part_ = s;
+    material_ = mater;
+    geoParam_ = geo;
+    location_ = loc;
+    alpha_ = {};
+    gamma_ = {};
+    zi_    = {};
+    upConsts_ = {};
+}
+
+void Obj::setUpConsts (double dt)
+{
+    double sumGam = 0.0;
+    for(int ii = 0; ii < (material_.size()-1)/3; ii++)
+    {
+        double sig = material_[3*ii+1];
+        double gam = material_[3*ii+2];
+        double omg = material_[3*ii+3];
+        alpha_.push_back((2-pow(omg*dt,2.0)) / (1+gam*dt));
+        zi_.push_back((gam*dt -1) / (gam*dt + 1));
+        gamma_.push_back(sig*pow(omg*dt,2.0) / (1+gam*dt));
+        sumGam += gamma_.back()/2.0;
+    }
+    upConsts_.push_back(sumGam/(2.0*material_[0] + sumGam + 0.0));
+    upConsts_.push_back((2*material_[0]-0.0) / (2.0*material_[0] + sumGam + 0.0));
+    upConsts_.push_back((2*dt)/(2.0*material_[0] + sumGam + 0.0));
+    upConsts_.push_back(-1.0*dt/(2.0*material_[0] + sumGam + 0.0));
+}
+
 /**
  * @brief Get the dielectric constant of the Object's Material
  * @details Calculates the complex dielectric function of the object's mateial at a given frequency
@@ -12,14 +42,14 @@ using namespace std;
  * @param freq Frequency of light
  * @return dielectric function at the frequncy
  */
-double Obj::dielectric(double freq) //, double material_[])
-{
-    //cplx eps(material_[0],0.0);
-    //cplx i(0,1);
-    //for(int ii = 0; ii < (material_.size()-1)/3; ii++)
-    //   eps += (pow(material_[3*ii+1],2.0) * material_[3*ii+2]) / (pow(material_[3*ii+1],2.0) - pow(freq,2.0) - i*freq*material_[3*ii+3]/(2*M_PI));
-    return material_[0];
-}
+// double Obj::dielectric(double freq) //, double material_[])
+// {
+//     //cplx eps(material_[0],0.0);
+//     //cplx i(0,1);
+//     //for(int ii = 0; ii < (material_.size()-1)/3; ii++)
+//     //   eps += (pow(material_[3*ii+1],2.0) * material_[3*ii+2]) / (pow(material_[3*ii+1],2.0) - pow(freq,2.0) - i*freq*material_[3*ii+3]/(2*M_PI));
+//     return material_[0];
+// }
 
 /**
  * @brief Determine if a point is in an object

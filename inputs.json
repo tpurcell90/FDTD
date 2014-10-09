@@ -4,11 +4,11 @@
         "y_size"        : 20.0,
         "x_size"        : 20.0,
         "z_size"        : 0.0,
-        "res"           : 50,
+        "res"           : 20,
         "courant"       : 0.5,
-        "tLim"          : 200.0,
+        "tLim"          : 50.0,
         "PBC"           : "true",
-        "pol"           : "Ex"
+        "pol"           : "Ez"
     },
     "k-point"           : [
         {
@@ -32,22 +32,79 @@
             "t_start"   : 0.00,
             "size_y"    : 0.00,
             "size_x"    : 20.00,
-            "pol"       : "Ex",
+            "pol"       : "Ez",
             "loc_x"     : 0.0,
-            "loc_y"     : 0.00
+            "loc_y"     : -4.00
         }
     ],
     "ObjectList": [
+        {
+            "shape"     : "block",
+            "size_x"    : 25.00,
+            "size_y"    : 6.00,
+            "loc_x"     : 0.00,
+            "loc_y"     : 0.00,
+            "eps"       : 1.00,
+            "pols"      : [
+                {
+                    "omega": 1e-20,
+                    "gamma": 0.0038715,
+                    "sigma": 4.4625e+39
+                },
+                {
+                    "omega": 0.065815,
+                    "gamma": 0.31343,
+                    "sigma": 7.9247
+                },
+                {
+                    "omega": 0.36142,
+                    "gamma": 0.036456,
+                    "sigma": 0.50133
+                },
 
+                {
+                    "omega": 0.66017,
+                    "gamma": 0.0052426,
+                    "sigma": 0.013329
+                },
+
+                {
+                    "omega": 0.73259,
+                    "gamma": 0.07388,
+                    "sigma": 0.82655
+                },
+                {
+                    "omega": 1.6365,
+                    "gamma": 0.19511,
+                    "sigma": 1.1133
+                }
+            ]
+        }
     ],
     "DetectorList"  : [
         {
-            "loc_y"     : 0.00,
-            "loc_x"     : 2.50,
+            "loc_x"     : 0.00,
+            "loc_y"     : 2.50,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",
-            "pol"       : "Ex"
+            "pol"       : "Ez"
+        },
+        {
+            "loc_x"     : 0.00,
+            "loc_y"     : -3.50,
+            "size_x"    : 0.00,
+            "size_y"    : 0.00,
+            "type"      : "field",
+            "pol"       : "Ez"
+        },
+        {
+            "loc_x"     : 0.00,
+            "loc_y"     : 3.50,
+            "size_x"    : 0.00,
+            "size_y"    : 0.00,
+            "type"      : "field",
+            "pol"       : "Ez"
         }
     ]
 }

@@ -46,11 +46,24 @@ FDTDField::FDTDField(programInputs &IP)
     zaxEz_      = {};
     zaxEx_      = {};
     zaxEy_      = {};
+    zaxHz_      = {};
+    zaxHx_      = {};
+    zaxHy_      = {};
+    zaxJz_      = {};
+    zaxJx_      = {};
+    zaxJy_      = {};
     y0EdgeInd_  = 0;
     ynEdgeInd_  = 0;
     x0EdgeInd_  = 0;
     xnEdgeInd_  = 0;
     k_point_    = IP.k_point_;
+        Jxp_ = {};
+    prevJxp_ = {};
+        Jyp_ = {};
+    prevJyp_ = {};
+        Jzp_ = {};
+    prevJzp_ = {};
+
     if(IP.invCell_)
     {
         xDTC_   = 1;
@@ -64,15 +77,18 @@ FDTDField::FDTDField(programInputs &IP)
 
     if(IP.pol_.compare("Hz") == 0 || IP.pol_.compare("Ey") == 0 || IP.pol_.compare("Ex") == 0)
     {
-        Ex_ = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
-        Ey_ = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
-        Hz_ = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
+        Ex_      = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
+        Ey_      = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
+        prevEx_  = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
+        prevEy_  = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
+        Hz_      = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
         phys_Ex_ = make_shared<Grid2D<int>>(nx_+2,ny_+2,dx_,dy_);
         phys_Ey_ = make_shared<Grid2D<int>>(nx_+2,ny_+2,dx_,dy_);
         //These are never used in the TE mode
-        Hx_ = nullptr;
-        Hy_ = nullptr;
-        Ez_ = nullptr;
+        Hx_      = nullptr;
+        Hy_      = nullptr;
+        Ez_      = nullptr;
+        prevEz_  = nullptr;
         phys_Ez_ = nullptr;
     }
     else
@@ -80,12 +96,15 @@ FDTDField::FDTDField(programInputs &IP)
         Hx_ = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
         Hy_ = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
         Ez_ = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
+        prevEz_ = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
 
         phys_Ez_ = make_shared<Grid2D<int>>(nx_+2,ny_+2,dx_,dy_);
         // These are never used in the TM mode
-        Ex_ = nullptr;
-        Ey_ = nullptr;
-        Hz_ = nullptr;
+        Ex_      = nullptr;
+        prevEx_  = nullptr;
+        Ey_      = nullptr;
+        prevEy_  = nullptr;
+        Hz_      = nullptr;
         phys_Ex_ = nullptr;
         phys_Ey_ = nullptr;
     }
@@ -233,7 +252,47 @@ void FDTDField::initializeGrid()
                 }
             }
         }
+        objArr_[kk].setUpConsts(dt_);
+        // for(int zz = 0; zz < objArr_[kk].alpha().size(); zz ++)
+        // {
+        //     cout << setw(12) << "Alpha is: " << objArr_[kk].alpha()[zz] << endl;
+        //     cout << setw(12) << "Zi is: "    << objArr_[kk].zi()[zz]    << endl;
+        //     cout << setw(12) << "Gamma is: " << objArr_[kk].gamma()[zz] << endl;
+        //     cout << endl;
+        // }
+        // cout << setw(12) << "C1 is : " << objArr_[kk].upConsts()[0] << endl;
+        // cout << setw(12) << "C2 is : " << objArr_[kk].upConsts()[1] << endl;
+        // cout << setw(12) << "C3 is : " << objArr_[kk].upConsts()[2] << endl;
+        // cout << setw(12) << "C4 is : " << objArr_[kk].upConsts()[3] << endl;
+
+        if(Hz_)
+        {
+            while((objArr_[kk].mat().size() - 1) / 3.0 > Jxp_.size())
+            {
+                    Jxp_.push_back(make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_));
+                prevJxp_.push_back(make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_));
+                    Jyp_.push_back(make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_));
+                prevJyp_.push_back(make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_));
+            }
+        }
+        else
+        {
+            while((objArr_[kk].mat().size() - 1) / 3.0 > Jzp_.size())
+            {
+                    Jzp_.push_back(make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_));
+                prevJzp_.push_back(make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_));
+            }
+        }
     }
+    if(Jxp_.size())
+    {
+        prevEx_ = nullptr;
+        prevEy_ = nullptr;
+    }
+    else if(Jzp_.size() ==0)
+        prevEz_ = nullptr;
+
+
     //Set up the parmeters for the MKL calls for the Electric fields, conditionals are because of edge cases.
     if(Ez_)
     {
@@ -248,7 +307,10 @@ void FDTDField::initializeGrid()
                     while(ii < nx_-xPML_ && phys_Ez_ -> point(ii,jj) == phys_Ez_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ez_->point(iistore,jj)};
-                    zaxEz_.push_back(tempArr);
+                    if(objArr_[tempArr[3]].mat().size() <= 1)
+                        zaxEz_.push_back(tempArr);
+                    else
+                        zaxJz_.push_back(tempArr);
                     ii++;
                 }
                 array<int,4> tempArr = {xPML_+1, jj, static_cast<int>(nx_)-2*xPML_,0};
@@ -267,7 +329,10 @@ void FDTDField::initializeGrid()
                     while(ii < nx_-xPML_ && phys_Ez_ -> point(ii,jj) == phys_Ez_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ez_->point(iistore,jj)};
-                    zaxEz_.push_back(tempArr);
+                    if(objArr_[tempArr[3]].mat().size() <= 1)
+                        zaxEz_.push_back(tempArr);
+                    else
+                        zaxJz_.push_back(tempArr);
                     ii++;
                 }
                 array<int,4> tempArr = {xPML_+1, jj, static_cast<int>(nx_)-2*xPML_,0};
@@ -287,7 +352,10 @@ void FDTDField::initializeGrid()
                     while(ii < nx_ && phys_Ez_ -> point(ii,jj) == phys_Ez_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ez_->point(iistore,jj)};
-                    zaxEz_.push_back(tempArr);
+                    if(objArr_[tempArr[3]].mat().size() <= 1)
+                        zaxEz_.push_back(tempArr);
+                    else
+                        zaxJz_.push_back(tempArr);
                     ii++;
                 }
                 array<int,4> tempArr = {1, jj, static_cast<int>(nx_),0};
@@ -307,7 +375,10 @@ void FDTDField::initializeGrid()
                     while(ii < nx_ && phys_Ez_ -> point(ii,jj) == phys_Ez_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ez_->point(iistore,jj)};
-                    zaxEz_.push_back(tempArr);
+                    if(objArr_[tempArr[3]].mat().size() <= 1)
+                        zaxEz_.push_back(tempArr);
+                    else
+                        zaxJz_.push_back(tempArr);
                     ii++;
                 }
                 array<int,4> tempArr = {1, jj, static_cast<int>(nx_),0};
@@ -331,7 +402,10 @@ void FDTDField::initializeGrid()
                     while(ii < nx_-xPML_ && phys_Ex_ -> point(ii,jj) == phys_Ex_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ex_->point(iistore,jj)};
-                    zaxEx_.push_back(tempArr);
+                    if(objArr_[tempArr[3]].mat().size() <= 1)
+                        zaxEx_.push_back(tempArr);
+                    else
+                        zaxJx_.push_back(tempArr);
                     ii++;
                 }
             }
@@ -344,7 +418,10 @@ void FDTDField::initializeGrid()
                     while(ii < nx_-xPML_ && phys_Ey_ -> point(ii,jj) == phys_Ey_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ey_->point(iistore,jj)};
-                    zaxEy_.push_back(tempArr);
+                    if(objArr_[tempArr[3]].mat().size() <= 1)
+                        zaxEy_.push_back(tempArr);
+                    else
+                        zaxJy_.push_back(tempArr);
                     ii++;
                 }
                 array<int,4> tempArr = {xPML_+1, jj, static_cast<int>(nx_)-2*xPML_,0};
@@ -363,7 +440,10 @@ void FDTDField::initializeGrid()
                     while(ii < nx_-xPML_ && phys_Ex_ -> point(ii,jj) == phys_Ex_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ex_->point(iistore,jj)};
-                    zaxEx_.push_back(tempArr);
+                    if(objArr_[tempArr[3]].mat().size() <= 1)
+                        zaxEx_.push_back(tempArr);
+                    else
+                        zaxJx_.push_back(tempArr);
                     ii++;
                 }
             }
@@ -376,7 +456,10 @@ void FDTDField::initializeGrid()
                     while(ii < nx_-xPML_ && phys_Ey_ -> point(ii,jj) == phys_Ey_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ey_->point(iistore,jj)};
-                    zaxEy_.push_back(tempArr);
+                    if(objArr_[tempArr[3]].mat().size() <= 1)
+                        zaxEy_.push_back(tempArr);
+                    else
+                        zaxJy_.push_back(tempArr);
                     ii++;
                 }
                 array<int,4> tempArr = {xPML_+1, jj, static_cast<int>(nx_)-2*xPML_,0};
@@ -394,7 +477,10 @@ void FDTDField::initializeGrid()
                     while(ii < nx_ && phys_Ex_ -> point(ii,jj) == phys_Ex_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ex_ -> point(iistore,jj)};
-                    zaxEx_.push_back(tempArr);
+                    if(objArr_[tempArr[3]].mat().size() <= 1)
+                        zaxEx_.push_back(tempArr);
+                    else
+                        zaxJx_.push_back(tempArr);
                     ii++;
                 }
             }
@@ -407,7 +493,10 @@ void FDTDField::initializeGrid()
                     while(ii < nx_-1 && phys_Ey_ -> point(ii,jj) == phys_Ey_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ey_ -> point(iistore,jj)};
-                    zaxEy_.push_back(tempArr);
+                    if(objArr_[tempArr[3]].mat().size() <= 1)
+                        zaxEy_.push_back(tempArr);
+                    else
+                        zaxJy_.push_back(tempArr);
                     ii++;
                 }
                 array<int,4> tempArr = {1, jj, static_cast<int>(nx_),0};
@@ -425,7 +514,10 @@ void FDTDField::initializeGrid()
                     while(ii < nx_ && phys_Ex_ -> point(ii,jj) == phys_Ex_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ex_ -> point(iistore,jj)};
-                    zaxEx_.push_back(tempArr);
+                    if(objArr_[tempArr[3]].mat().size() <= 1)
+                        zaxEx_.push_back(tempArr);
+                    else
+                        zaxJx_.push_back(tempArr);
                     ii++;
                 }
             }
@@ -438,7 +530,10 @@ void FDTDField::initializeGrid()
                     while(ii < nx_-1 && phys_Ey_ -> point(ii,jj) == phys_Ey_ -> point(ii+1,jj) )
                         ii ++;
                     array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ey_ -> point(iistore,jj)};
-                    zaxEy_.push_back(tempArr);
+                    if(objArr_[tempArr[3]].mat().size() <= 1)
+                        zaxEy_.push_back(tempArr);
+                    else
+                        zaxJy_.push_back(tempArr);
                     ii++;
                 }
                 array<int,4> tempArr = {1, jj, static_cast<int>(nx_),0};
@@ -876,7 +971,7 @@ void FDTDField::updateE()
         // Seperated out by PML because edge cases require special treatment
         for(int kk = 0; kk < zaxEz_.size(); kk++)
         {
-            eps = objArr_[zaxEz_[kk][3]].dielectric(1.0);
+            eps = objArr_[zaxEz_[kk][3]].dielectric();
             c_ezh = dt_/(eps*dx_);
             int xx = zaxEz_[kk][0]; int yy = zaxEz_[kk][1]; int nZax = zaxEz_[kk][2];
             zscal_(nZax,      c_eze, &Ez_->point(xx  ,yy  ), 1);
@@ -884,6 +979,7 @@ void FDTDField::updateE()
             zaxpy_(nZax, -1.0*c_ezh, &Hx_->point(xx  ,yy  ), 1, &Ez_ ->point(xx,yy), 1);
             zaxpy_(nZax, -1.0*c_ezh, &Hy_->point(xx-1,yy  ), 1, &Ez_ ->point(xx,yy), 1);
             zaxpy_(nZax,      c_ezh, &Hy_->point(xx  ,yy  ), 1, &Ez_ ->point(xx,yy), 1);
+
         }
          //PML
         for(int kk = 0; kk < pmlArr_.size(); kk++)
@@ -997,6 +1093,7 @@ void FDTDField::updateE()
                 }
             }
         }
+
     }
     else
     {
@@ -1007,21 +1104,25 @@ void FDTDField::updateE()
         double eps = 1.0;
         for(int kk = 0; kk < zaxEx_.size(); kk++)
         {
-            eps = objArr_[zaxEx_[kk][3]].dielectric(1.0);
+            eps = objArr_[zaxEx_[kk][3]].dielectric();
             c_exh = dt_/(eps*dy_);
             int xx = zaxEx_[kk][0]; int yy = zaxEx_[kk][1]; int nZax = zaxEx_[kk][2];
             zscal_(nZax,      c_exe, &Ex_->point(xx  ,yy  ), 1);
             zaxpy_(nZax,      c_exh, &Hz_->point(xx  ,yy+1), 1, &Ex_->point(xx,yy), 1);
             zaxpy_(nZax, -1.0*c_exh, &Hz_->point(xx  ,yy  ), 1, &Ex_->point(xx,yy), 1);
+            if(objArr_[zaxEx_[kk][3]].mat().size() > 1)
+                cout << "Visit here for the update eqs" << endl;
         }
         for(int kk = 0; kk < zaxEy_.size(); kk++)
         {
-            eps = objArr_[zaxEy_[kk][3]].dielectric(1.0);
+            eps = objArr_[zaxEy_[kk][3]].dielectric();
             c_eyh = dt_/(eps*dy_);
             int xx = zaxEy_[kk][0]; int yy = zaxEy_[kk][1]; int nZax = zaxEy_[kk][2];
             zscal_(nZax,      c_eye, &Ey_->point(xx  ,yy  ), 1);
             zaxpy_(nZax, -1.0*c_eyh, &Hz_->point(xx+1,yy  ), 1, &Ey_->point(xx,yy), 1);
             zaxpy_(nZax,      c_eyh, &Hz_->point(xx  ,yy  ), 1, &Ey_->point(xx,yy), 1);
+            if(objArr_[zaxEy_[kk][3]].mat().size() > 1)
+                cout << "Visit here for the update eqs" << endl;
         }
         //PML
         for(int kk =0; kk < pmlArr_.size(); kk++)
@@ -1192,6 +1293,51 @@ void FDTDField::updateE()
         }
     }
 }
+
+void FDTDField::updateDisp()
+{
+    if(Ez_)
+    {
+        for(int zz = 0; zz < zaxJz_.size(); zz++)
+        {
+            int xx = zaxJz_[zz][0]; int yy = zaxJz_[zz][1]; int nZax = zaxJz_[zz][2];
+            vector<complex<double>> ezstore(nZax, 0.0);
+            vector<double> upConst = objArr_[zaxJz_[zz][3]].upConsts();
+            vector<double> alpha = objArr_[zaxJz_[zz][3]].alpha();
+            vector<double> gamma = objArr_[zaxJz_[zz][3]].gamma();
+            vector<double> zi = objArr_[zaxJz_[zz][3]].zi();
+            zcopy_(nZax, &Ez_->point(xx,yy), 1, ezstore.data(), 1);
+
+            zscal_(nZax, upConst[1], &Ez_->point(xx,yy),1);
+            zaxpy_(nZax, upConst[0], &prevEz_->point(xx  ,yy), 1, &Ez_ ->point(xx,yy), 1);
+
+            zaxpy_(nZax,      upConst[2]/dy_, &Hx_->point(xx  ,yy-1), 1, &Ez_ ->point(xx,yy), 1);
+            zaxpy_(nZax, -1.0*upConst[2]/dy_, &Hx_->point(xx  ,yy  ), 1, &Ez_ ->point(xx,yy), 1);
+            zaxpy_(nZax, -1.0*upConst[2]/dx_, &Hy_->point(xx-1,yy  ), 1, &Ez_ ->point(xx,yy), 1);
+            zaxpy_(nZax,      upConst[2]/dx_, &Hy_->point(xx  ,yy  ), 1, &Ez_ ->point(xx,yy), 1);
+
+            for(int pp = 0; pp < Jzp_.size(); pp ++)
+            {
+                zaxpy_(nZax, upConst[3]*(1+alpha[pp]) ,     &Jzp_[pp]->point(xx,yy), 1, &Ez_ ->point(xx,yy), 1);
+                zaxpy_(nZax, upConst[3]*(1+   zi[pp]) , &prevJzp_[pp]->point(xx,yy), 1, &Ez_ ->point(xx,yy), 1);
+            }
+            for(int pp = 0; pp < Jzp_.size(); pp ++)
+            {
+                vector<complex<double>> jzstore(nZax, 0.0);
+                zcopy_(nZax, &Jzp_[pp]->point(xx,yy), 1, jzstore.data(), 1);
+
+                zscal_(nZax,              alpha[pp],     &Jzp_[pp]->point(xx,yy), 1);
+                zaxpy_(nZax,                 zi[pp], &prevJzp_[pp]->point(xx,yy), 1, &Jzp_[pp] ->point(xx,yy), 1);
+                zaxpy_(nZax,      gamma[pp]/(2*dt_),      &Ez_->point(xx,yy), 1, &Jzp_[pp] ->point(xx,yy), 1);
+                zaxpy_(nZax, -1.0*gamma[pp]/(2*dt_),  &prevEz_->point(xx,yy), 1, &Jzp_[pp] ->point(xx,yy), 1);
+
+                zcopy_(nZax, jzstore.data(),1, &prevJzp_[pp]->point(xx,yy),1);
+            }
+            zcopy_(nZax, ezstore.data(),1, &prevEz_->point(xx,yy),1);
+        }
+    }
+
+}
 void FDTDField::applyPBC(shared_ptr<Grid2D<complex<double>>> fUp, int nx, int ny)
 {
     vector<double> r = {0.0,0.0};
@@ -1227,7 +1373,7 @@ void FDTDField::step()
             case EZ: //if(srcArr[kk].pol() == EZ)
                 if(abs(real(srcArr_[kk].prof().pulse(static_cast<double>(t_step_)))) > 1.0e-70)
                 {
-                    double eps = objArr_[phys_Ez_->point(ii,jj)].dielectric(1.0);
+                    double eps = objArr_[phys_Ez_->point(ii,jj)].dielectric();
                     double c_ezj = dt_/(eps);
                     Ez_ -> point(ii,jj) += c_ezj * srcArr_[kk].prof().pulse(static_cast<double>(t_step_));
                 }
@@ -1253,7 +1399,7 @@ void FDTDField::step()
             case EX: //else if(srcArr[kk].pol() == EX)
                 if(abs(real(srcArr_[kk].prof().pulse(static_cast<double>(t_step_)))) > 1.0e-70)
                 {
-                    double eps = objArr_[phys_Ex_->point(ii,jj)].dielectric(1.0);
+                    double eps = objArr_[phys_Ex_->point(ii,jj)].dielectric();
                     double c_exj = dt_/(eps);
                     Ex_ -> point(ii,jj) += c_exj * srcArr_[kk].prof().pulse(static_cast<double>(t_step_));
                 }
@@ -1261,7 +1407,7 @@ void FDTDField::step()
             case EY: //else if(srcArr[kk].pol() == EY)
                 if(abs(real(srcArr_[kk].prof().pulse(static_cast<double>(t_step_)))) > 1.0e-70)
                 {
-                    double eps = objArr_[phys_Ey_->point(ii,jj)].dielectric(1.0);
+                    double eps = objArr_[phys_Ey_->point(ii,jj)].dielectric();
                     double c_eyj = dt_/(eps);
                     Ey_ -> point(ii,jj) += c_eyj * srcArr_[kk].prof().pulse(static_cast<double>(t_step_));
                 }
@@ -1283,6 +1429,7 @@ void FDTDField::step()
         }
     }
     updateE();
+    updateDisp();
     if(periodic_)
     {
         if (Hz_)

@@ -32,15 +32,16 @@ protected:
     std::vector<UPML<complex<double>>> pmlArr_;
     bool periodic_;
     bool precalcPML_;
-    std::vector<std::array<int,4>> zaxEz_, zaxHz_;
-    std::vector<std::array<int,4>> zaxEx_, zaxHx_;
-    std::vector<std::array<int,4>> zaxEy_, zaxHy_;
+    std::vector<std::array<int,4>> zaxEz_, zaxHz_, zaxJz_;
+    std::vector<std::array<int,4>> zaxEx_, zaxHx_, zaxJx_;
+    std::vector<std::array<int,4>> zaxEy_, zaxHy_, zaxJy_;
     int y0EdgeInd_, x0EdgeInd_, ynEdgeInd_, xnEdgeInd_;
     std::vector<double> k_point_;
     int xDTC_, yDTC_;
 
 public:
-    std::shared_ptr<Grid2D<complex<double>>> Ex_,Ey_,Ez_,Hx_,Hy_,Hz_;
+    std::shared_ptr<Grid2D<complex<double>>> Ex_,Ey_,Ez_,Hx_,Hy_,Hz_, prevEx_, prevEy_, prevEz_;
+    std::vector<std::shared_ptr<Grid2D<complex<double>>>> Jxp_, prevJxp_,Jyp_, prevJyp_,Jzp_, prevJzp_;
     FDTDField(programInputs &IP);
     void initializeGrid();
 
@@ -67,7 +68,7 @@ public:
     void step();
     void updateH();
     void updateE();
-
+    void updateDisp();
     // void xFieldUpdate (shared_ptr<Grid2D<complex<double>>> fUp, shared_ptr<Grid2D<complex<double>>> fIn1, array<int,4> axConsts, array<complex<double>,3> upConsts);
     // void yFieldUpdate (shared_ptr<Grid2D<complex<double>>> fUp, shared_ptr<Grid2D<complex<double>>> fIn1, array<int,4> axConsts, array<complex<double>,3> upConsts);
     // void zFieldUpdate (shared_ptr<Grid2D<complex<double>>> fUp, shared_ptr<Grid2D<complex<double>>> fIn1, shared_ptr<Grid2D<complex<double>>> fIn2, array<int,4> axConsts, array<complex<double>,5> upConsts);
