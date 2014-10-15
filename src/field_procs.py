@@ -23,7 +23,7 @@ for f in onlyfiles:
     for jj in range(len(x_val)):
         field[x_val[jj],y_val[jj]] = field_val[jj]
     field_slices.append(field)
-    plt.imshow(field,extent=[-25,25,-25,25], aspect='auto')
+    plt.imshow(field,extent=[-10,10,-10,10], aspect='auto')
     plt.colorbar()
     plt.savefig('fout/Ez/img/'+f[:-4] + ".png")
     plt.clf()

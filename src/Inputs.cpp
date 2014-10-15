@@ -167,9 +167,9 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         boost::property_tree::ptree& pols = iter.second.get_child("pols");
         for(auto& iter2 : pols)
         {
-            mater.push_back(iter2.second.get<double>("sigma"));
-            mater.push_back(iter2.second.get<double>("gamma"));
-            mater.push_back(iter2.second.get<double>("omega"));
+            mater.push_back(iter2.second.get<double>("sigma")*2*M_PI);
+            mater.push_back(iter2.second.get<double>("gamma")/2);
+            mater.push_back(iter2.second.get<double>("omega")*2*M_PI);
         }
         objArr_.push_back(Obj(s,mater,size,loc));
     }

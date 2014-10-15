@@ -40,7 +40,7 @@ protected:
     int xDTC_, yDTC_;
 
 public:
-    std::shared_ptr<Grid2D<complex<double>>> Ex_,Ey_,Ez_,Hx_,Hy_,Hz_, prevEx_, prevEy_, prevEz_;
+    std::shared_ptr<Grid2D<complex<double>>> Ex_,Ey_,Ez_,Hx_,Hy_,Hz_, prevEx_, prevEy_, prevEz_, Dz_;
     std::vector<std::shared_ptr<Grid2D<complex<double>>>> Jxp_, prevJxp_,Jyp_, prevJyp_,Jzp_, prevJzp_;
     FDTDField(programInputs &IP);
     void initializeGrid();

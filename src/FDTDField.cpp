@@ -43,27 +43,11 @@ FDTDField::FDTDField(programInputs &IP)
     yPML_       = IP.yPml_;
     precalcPML_ = IP.pmlCalc_;
     periodic_   = IP.periodic_;
-    zaxEz_      = {};
-    zaxEx_      = {};
-    zaxEy_      = {};
-    zaxHz_      = {};
-    zaxHx_      = {};
-    zaxHy_      = {};
-    zaxJz_      = {};
-    zaxJx_      = {};
-    zaxJy_      = {};
     y0EdgeInd_  = 0;
     ynEdgeInd_  = 0;
     x0EdgeInd_  = 0;
     xnEdgeInd_  = 0;
     k_point_    = IP.k_point_;
-        Jxp_ = {};
-    prevJxp_ = {};
-        Jyp_ = {};
-    prevJyp_ = {};
-        Jzp_ = {};
-    prevJzp_ = {};
-
     if(IP.invCell_)
     {
         xDTC_   = 1;
@@ -88,6 +72,7 @@ FDTDField::FDTDField(programInputs &IP)
         Hx_      = nullptr;
         Hy_      = nullptr;
         Ez_      = nullptr;
+        Dz_      = nullptr;
         prevEz_  = nullptr;
         phys_Ez_ = nullptr;
     }
@@ -96,6 +81,7 @@ FDTDField::FDTDField(programInputs &IP)
         Hx_ = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
         Hy_ = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
         Ez_ = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
+        Dz_ = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
         prevEz_ = make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_);
 
         phys_Ez_ = make_shared<Grid2D<int>>(nx_+2,ny_+2,dx_,dy_);
@@ -566,8 +552,8 @@ void FDTDField::ouputField(Detector<complex<double>> d) //iostream as input para
     switch ( d.pol() )
     {
         case EZ:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Ez_,eps).real()<< "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Ez_,eps).real()<< "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            outFile << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Ez_,eps).real() << "\t" << setw(10) << d.output(Ez_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            cout << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Ez_,eps).real() << "\t" << setw(10) << d.output(Ez_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
             break;
         case HX:
             outFile << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Hx_,eps).real()<< endl;
@@ -1301,42 +1287,71 @@ void FDTDField::updateDisp()
         for(int zz = 0; zz < zaxJz_.size(); zz++)
         {
             int xx = zaxJz_[zz][0]; int yy = zaxJz_[zz][1]; int nZax = zaxJz_[zz][2];
-            vector<complex<double>> ezstore(nZax, 0.0);
-            vector<double> upConst = objArr_[zaxJz_[zz][3]].upConsts();
+            double eps = objArr_[zaxJz_[zz][3]].dielectric();
             vector<double> alpha = objArr_[zaxJz_[zz][3]].alpha();
             vector<double> gamma = objArr_[zaxJz_[zz][3]].gamma();
-            vector<double> zi = objArr_[zaxJz_[zz][3]].zi();
-            zcopy_(nZax, &Ez_->point(xx,yy), 1, ezstore.data(), 1);
-
-            zscal_(nZax, upConst[1], &Ez_->point(xx,yy),1);
-            zaxpy_(nZax, upConst[0], &prevEz_->point(xx  ,yy), 1, &Ez_ ->point(xx,yy), 1);
-
-            zaxpy_(nZax,      upConst[2]/dy_, &Hx_->point(xx  ,yy-1), 1, &Ez_ ->point(xx,yy), 1);
-            zaxpy_(nZax, -1.0*upConst[2]/dy_, &Hx_->point(xx  ,yy  ), 1, &Ez_ ->point(xx,yy), 1);
-            zaxpy_(nZax, -1.0*upConst[2]/dx_, &Hy_->point(xx-1,yy  ), 1, &Ez_ ->point(xx,yy), 1);
-            zaxpy_(nZax,      upConst[2]/dx_, &Hy_->point(xx  ,yy  ), 1, &Ez_ ->point(xx,yy), 1);
-
-            for(int pp = 0; pp < Jzp_.size(); pp ++)
-            {
-                zaxpy_(nZax, upConst[3]*(1+alpha[pp]) ,     &Jzp_[pp]->point(xx,yy), 1, &Ez_ ->point(xx,yy), 1);
-                zaxpy_(nZax, upConst[3]*(1+   zi[pp]) , &prevJzp_[pp]->point(xx,yy), 1, &Ez_ ->point(xx,yy), 1);
-            }
+            vector<double> zi    = objArr_[zaxJz_[zz][3]].zi();
             for(int pp = 0; pp < Jzp_.size(); pp ++)
             {
                 vector<complex<double>> jzstore(nZax, 0.0);
                 zcopy_(nZax, &Jzp_[pp]->point(xx,yy), 1, jzstore.data(), 1);
 
-                zscal_(nZax,              alpha[pp],     &Jzp_[pp]->point(xx,yy), 1);
-                zaxpy_(nZax,                 zi[pp], &prevJzp_[pp]->point(xx,yy), 1, &Jzp_[pp] ->point(xx,yy), 1);
-                zaxpy_(nZax,      gamma[pp]/(2*dt_),      &Ez_->point(xx,yy), 1, &Jzp_[pp] ->point(xx,yy), 1);
-                zaxpy_(nZax, -1.0*gamma[pp]/(2*dt_),  &prevEz_->point(xx,yy), 1, &Jzp_[pp] ->point(xx,yy), 1);
+                zscal_(nZax, alpha[pp],     &Jzp_[pp]->point(xx,yy), 1);
+                zaxpy_(nZax,    zi[pp], &prevJzp_[pp]->point(xx,yy), 1, &Jzp_[pp] ->point(xx,yy), 1);
+                zaxpy_(nZax, gamma[pp],          &Ez_->point(xx,yy), 1, &Jzp_[pp] ->point(xx,yy), 1);
 
                 zcopy_(nZax, jzstore.data(),1, &prevJzp_[pp]->point(xx,yy),1);
             }
-            zcopy_(nZax, ezstore.data(),1, &prevEz_->point(xx,yy),1);
+
+            // zscal_(nZax,      c_eze, &Dz_->point(xx  ,yy  ), 1);
+            zaxpy_(nZax,      dt_/dy_, &Hx_->point(xx  ,yy-1), 1, &Dz_ ->point(xx,yy), 1);
+            zaxpy_(nZax, -1.0*dt_/dy_, &Hx_->point(xx  ,yy  ), 1, &Dz_ ->point(xx,yy), 1);
+            zaxpy_(nZax, -1.0*dt_/dx_, &Hy_->point(xx-1,yy  ), 1, &Dz_ ->point(xx,yy), 1);
+            zaxpy_(nZax,      dt_/dx_, &Hy_->point(xx  ,yy  ), 1, &Dz_ ->point(xx,yy), 1);
+
+            zcopy_(nZax, &Dz_->point(xx,yy), 1,&Ez_->point(xx,yy), 1);
+            zscal_(nZax, 1/eps, &Ez_->point(xx,yy), 1);
+            for(int pp =0; pp < Jzp_.size(); pp ++)
+            {
+                zaxpy_(nZax, -1.0/eps, &Jzp_[pp]->point(xx,yy), 1,&Ez_ ->point(xx,yy), 1);
+            }
+            // vector<complex<double>> ezstore(nZax, 0.0);
+            // vector<double> upConst = objArr_[zaxJz_[zz][3]].upConsts();
+            // vector<double> alpha = objArr_[zaxJz_[zz][3]].alpha();
+            // vector<double> gamma = objArr_[zaxJz_[zz][3]].gamma();
+            // vector<double> zi    = objArr_[zaxJz_[zz][3]].zi();
+
+            // zcopy_(nZax, &Ez_->point(xx,yy), 1, ezstore.data(), 1);
+
+            // zscal_(nZax, upConst[1],     &Ez_->point(xx,yy), 1);
+            // zaxpy_(nZax, upConst[0], &prevEz_->point(xx,yy), 1, &Ez_ ->point(xx,yy), 1);
+
+            // zaxpy_(nZax,      upConst[2]/dy_, &Hx_->point(xx  ,yy-1), 1, &Ez_ ->point(xx,yy), 1);
+            // zaxpy_(nZax, -1.0*upConst[2]/dy_, &Hx_->point(xx  ,yy  ), 1, &Ez_ ->point(xx,yy), 1);
+            // zaxpy_(nZax, -1.0*upConst[2]/dx_, &Hy_->point(xx-1,yy  ), 1, &Ez_ ->point(xx,yy), 1);
+            // zaxpy_(nZax,      upConst[2]/dx_, &Hy_->point(xx  ,yy  ), 1, &Ez_ ->point(xx,yy), 1);
+
+            // // for(int pp = 0; pp < Jzp_.size(); pp ++)
+            // // {
+            // //     zaxpy_(nZax, upConst[3]*(1+alpha[pp]),     &Jzp_[pp]->point(xx,yy), 1, &Ez_ ->point(xx,yy), 1);
+            // //     zaxpy_(nZax, upConst[3]*      zi[pp] , &prevJzp_[pp]->point(xx,yy), 1, &Ez_ ->point(xx,yy), 1);
+            // // }
+            // for(int pp = 0; pp < Jzp_.size(); pp ++)
+            // {
+            //     vector<complex<double>> jzstore(nZax, 0.0);
+            //     zcopy_(nZax, &Jzp_[pp]->point(xx,yy), 1, jzstore.data(), 1);
+
+            //     zscal_(nZax,              alpha[pp],     &Jzp_[pp]->point(xx,yy), 1);
+            //     zaxpy_(nZax,                 zi[pp], &prevJzp_[pp]->point(xx,yy), 1, &Jzp_[pp] ->point(xx,yy), 1);
+            //     zaxpy_(nZax,      gamma[pp]/(2*dt_),      &Ez_->point(xx,yy), 1, &Jzp_[pp] ->point(xx,yy), 1);
+            //     // zaxpy_(nZax, -1.0*gamma[pp]/(2*dt_),  &prevEz_->point(xx,yy), 1, &Jzp_[pp] ->point(xx,yy), 1);
+            //     zaxpy_(nZax, -1.0, &Jzp_[pp]->point(xx,yy), 1,&Ez_ ->point(xx,yy), 1);
+            //     zcopy_(nZax, jzstore.data(),1, &prevJzp_[pp]->point(xx,yy),1);
+            // }
+
+            // zcopy_(nZax, ezstore.data(),1, &prevEz_->point(xx,yy),1);
         }
     }
-
 }
 void FDTDField::applyPBC(shared_ptr<Grid2D<complex<double>>> fUp, int nx, int ny)
 {
@@ -1446,11 +1461,11 @@ void FDTDField::step()
     if(false)
     {
         string fname("fout/Hx/HxField_t" + to_string(static_cast<int>(t_step_))+".dat");
-        Ex_->gridOut(fname);
+        Hx_->gridOut(fname);
         fname = "fout/Hy/HyField_t" + to_string(static_cast<int>(t_step_))+".dat";
-        Ey_->gridOut(fname);
+        Hy_->gridOut(fname);
         fname = "fout/Ez/EzField_t" + to_string(static_cast<int>(t_step_))+".dat";
-        Hz_->gridOut(fname);
+        Ez_->gridOut(fname);
     }
     tcur_ += dt_;
     t_step_ ++;

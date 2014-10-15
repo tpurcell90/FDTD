@@ -24,15 +24,18 @@ void Obj::setUpConsts (double dt)
         double sig = material_[3*ii+1];
         double gam = material_[3*ii+2];
         double omg = material_[3*ii+3];
-        alpha_.push_back((2-pow(omg*dt,2.0)) / (1+gam*dt));
-        zi_.push_back((gam*dt -1) / (gam*dt + 1));
-        gamma_.push_back(sig*pow(omg*dt,2.0) / (1+gam*dt));
-        sumGam += gamma_.back()/2.0;
+        cout << "sig: " << sig << endl;
+        cout << "gam: " << gam << endl;
+        cout << "omg: " << omg << endl;
+        alpha_.push_back((2-pow(omg*dt,2.0))   / (1+gam*dt));
+           zi_.push_back((gam*dt -1)           / (1+gam*dt));
+        gamma_.push_back((sig*pow(omg*dt,2.0)) / (1+gam*dt));
+        sumGam += gamma_.back();
     }
-    upConsts_.push_back(sumGam/(2.0*material_[0] + sumGam + 0.0));
-    upConsts_.push_back((2*material_[0]-0.0) / (2.0*material_[0] + sumGam + 0.0));
-    upConsts_.push_back((2*dt)/(2.0*material_[0] + sumGam + 0.0));
-    upConsts_.push_back(-1.0*dt/(2.0*material_[0] + sumGam + 0.0));
+    upConsts_.push_back(sumGam/2.0/(2.0*material_[0] + sumGam/2.0 + 0.0));
+    upConsts_.push_back((2*material_[0]-0.0) / (2.0*material_[0] + sumGam/2.0 + 0.0));
+    upConsts_.push_back((2 *dt)/(2.0*material_[0] + sumGam/2.0 + 0.0));
+    upConsts_.push_back(-1.0*dt/(2.0*material_[0] + sumGam/2.0 + 0.0));
 }
 
 /**

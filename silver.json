@@ -6,8 +6,8 @@
         "z_size"        : 0.0,
         "res"           : 50,
         "courant"       : 0.5,
-        "tLim"          : 250.0,
-        "PBC"           : "false",
+        "tLim"          : 200.0,
+        "PBC"           : "true",
         "pol"           : "Ez"
     },
     "k-point"           : [
@@ -26,8 +26,8 @@
 
         {
             "profile"   : "gaussian",
-            "fcen"      : 0.5,
-            "fwidth"    : 0.90,
+            "fcen"      : 1.0,
+            "fwidth"    : 1.0,
             "cutoff"    : 20.00,
             "t_start"   : 0.00,
             "size_y"    : 0.00,
@@ -41,7 +41,7 @@
         {
             "shape"     : "block",
             "size_x"    : 25.00,
-            "size_y"    : 0.50,
+            "size_y"    : 1.00,
             "loc_x"     : 0.00,
             "loc_y"     : 2.50,
             "eps"       : 1,
@@ -92,7 +92,15 @@
         },
         {
             "loc_x"     : 0.00,
-            "loc_y"     : 3.75,
+            "loc_y"     : 2.50,
+            "size_x"    : 0.00,
+            "size_y"    : 0.00,
+            "type"      : "field",
+            "pol"       : "Ez"
+        },
+        {
+            "loc_x"     : 0.00,
+            "loc_y"     : 3.50,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",
