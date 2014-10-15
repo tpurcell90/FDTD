@@ -10,10 +10,6 @@ Obj::Obj(Shape s, std::vector<double> mater, std::vector<double> geo, std::vecto
     material_ = mater;
     geoParam_ = geo;
     location_ = loc;
-    alpha_ = {};
-    gamma_ = {};
-    zi_    = {};
-    upConsts_ = {};
 }
 
 void Obj::setUpConsts (double dt)
@@ -32,10 +28,6 @@ void Obj::setUpConsts (double dt)
         gamma_.push_back((sig*pow(omg*dt,2.0)) / (1+gam*dt));
         sumGam += gamma_.back();
     }
-    upConsts_.push_back(sumGam/2.0/(2.0*material_[0] + sumGam/2.0 + 0.0));
-    upConsts_.push_back((2*material_[0]-0.0) / (2.0*material_[0] + sumGam/2.0 + 0.0));
-    upConsts_.push_back((2 *dt)/(2.0*material_[0] + sumGam/2.0 + 0.0));
-    upConsts_.push_back(-1.0*dt/(2.0*material_[0] + sumGam/2.0 + 0.0));
 }
 
 /**

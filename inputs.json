@@ -6,7 +6,7 @@
         "z_size"        : 0.0,
         "res"           : 50,
         "courant"       : 0.5,
-        "tLim"          : 250.0,
+        "tLim"          : 200.0,
         "PBC"           : "false",
         "pol"           : "Ez"
     },
@@ -26,8 +26,8 @@
 
         {
             "profile"   : "gaussian",
-            "fcen"      : 0.5,
-            "fwidth"    : 0.90,
+            "fcen"      : 1.0,
+            "fwidth"    : 1.00,
             "cutoff"    : 20.00,
             "t_start"   : 0.00,
             "size_y"    : 0.00,
@@ -46,36 +46,10 @@
             "loc_y"     : 2.50,
             "eps"       : 1,
             "pols"      : [
-                {
-                    "omega": 8.06554724676e-22,
-                    "sigma": 6.85971845e+41,
-                    "gamma": 0.00387146267844
-                },
-                {
-                    "omega": 0.065815,
-                    "gamma": 0.31343,
-                    "sigma": 7.9247
-                },
-                {
-                    "omega": 0.36142,
-                    "gamma": 0.036456,
-                    "sigma": 0.50133
-                },
 
-                {
-                    "omega": 0.66017,
-                    "gamma": 0.0052426,
-                    "sigma": 0.013329
-                },
-
-                {
-                    "omega": 0.73259,
-                    "gamma": 0.07388,
-                    "sigma": 0.82655
-                },
                 {
                     "omega": 1.6365,
-                    "gamma": 0.19511,
+                    "gamma": 0.1951,
                     "sigma": 1.1133
                 }
             ]

@@ -22,7 +22,6 @@ protected:
     std::vector<double> geoParam_;
     std::vector<double> location_;
     std::vector<double> alpha_, zi_, gamma_;
-    std::vector<double> upConsts_;
 
 public:
 
@@ -41,7 +40,6 @@ public:
     std::vector<double> alpha() {return alpha_;}
     std::vector<double> zi() {return zi_;}
     std::vector<double> gamma() {return gamma_;}
-    std::vector<double> upConsts() {return upConsts_;}
     // Dielectric Access function
     double dielectric(){return material_[0];}
     bool isObj(std::vector<double> v);
