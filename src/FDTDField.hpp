@@ -35,7 +35,6 @@ protected:
     std::vector<std::array<int,4>> zaxEz_, zaxHz_, zaxDz_;
     std::vector<std::array<int,4>> zaxEx_, zaxHx_, zaxDx_;
     std::vector<std::array<int,4>> zaxEy_, zaxHy_, zaxDy_;
-    int y0EdgeInd_, x0EdgeInd_, ynEdgeInd_, xnEdgeInd_;
     std::vector<double> k_point_;
     int xDTC_, yDTC_;
 
@@ -46,18 +45,18 @@ public:
     void initializeGrid();
 
     // Access Functions
-    size_t nx(){return nx_;}
-    size_t ny(){return ny_;}
-    double dx(){return dx_;}
-    double dy(){return dy_;}
-    double dt(){return dt_;}
+    // size_t nx(){return nx_;}
+    // size_t ny(){return ny_;}
+    // double dx(){return dx_;}
+    // double dy(){return dy_;}
+    // double dt(){return dt_;}
     double getTime(){return tcur_;}
-    Obj getObj(int n){return objArr_[n];}
-    std::vector<Detector<complex<double>>> getDtcArr(){return dtcArr_;}
-    int getRes(){return res_;}
-    std::shared_ptr<Grid2D<int>> getPhysEz(){return phys_Ez_;}
-    std::shared_ptr<Grid2D<int>> getPhysEx(){return phys_Ex_;}
-    std::shared_ptr<Grid2D<int>> getPhysEy(){return phys_Ey_;}
+    // Obj getObj(int n){return objArr_[n];}
+    // std::vector<Detector<complex<double>>> getDtcArr(){return dtcArr_;}
+    // int getRes(){return res_;}
+    // std::shared_ptr<Grid2D<int>> getPhysEz(){return phys_Ez_;}
+    // std::shared_ptr<Grid2D<int>> getPhysEx(){return phys_Ex_;}
+    // std::shared_ptr<Grid2D<int>> getPhysEy(){return phys_Ey_;}
     //std::shared_ptr<Grid2D<int>> getPhysHy(){return phys_Hy_;}
     //std::shared_ptr<Grid2D<int>> getPhysHx(){return phys_Hx_;}
     //std::shared_ptr<Grid2D<int>> getPhysHz(){return phys_Hz_;}

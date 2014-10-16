@@ -20,9 +20,6 @@ void Obj::setUpConsts (double dt)
         double sig = material_[3*ii+1];
         double gam = material_[3*ii+2];
         double omg = material_[3*ii+3];
-        cout << "sig: " << sig << endl;
-        cout << "gam: " << gam << endl;
-        cout << "omg: " << omg << endl;
         alpha_.push_back((2-pow(omg*dt,2.0))   / (1+gam*dt));
            zi_.push_back((gam*dt -1)           / (1+gam*dt));
         gamma_.push_back((sig*pow(omg*dt,2.0)) / (1+gam*dt));

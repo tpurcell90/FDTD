@@ -106,7 +106,7 @@ plt.plot(freq_meep,-R_meep/R_incd_meep+T_meep/T_incd_meep, label='sum_meep')
 # plt.plot(freq,E_through_freq.real, label = 'E_through_freq Re')
 # plt.plot(freq,E_through_freq.imag, label = 'E_through_freq Im')
 
-plt.axis([0.5,1.5,0,1.2])
+plt.axis([0.05,1.05,0,1.2])
 plt.legend(loc=0)
 
 plt.show()

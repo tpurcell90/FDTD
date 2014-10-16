@@ -8,7 +8,7 @@
         "courant"       : 0.5,
         "tLim"          : 200.0,
         "PBC"           : "false",
-        "pol"           : "Ez"
+        "pol"           : "Ex"
     },
     "k-point"           : [
         {
@@ -26,13 +26,13 @@
 
         {
             "profile"   : "gaussian",
-            "fcen"      : 1.0,
+            "fcen"      : 0.55,
             "fwidth"    : 1.00,
             "cutoff"    : 20.00,
             "t_start"   : 0.00,
             "size_y"    : 0.00,
             "size_x"    : 20.00,
-            "pol"       : "Ez",
+            "pol"       : "Ex",
             "loc_x"     : 0.0,
             "loc_y"     : -4.00
         }
@@ -47,11 +47,6 @@
             "eps"       : 1,
             "pols"      : [
 
-                {
-                    "omega": 1.6365,
-                    "gamma": 0.1951,
-                    "sigma": 1.1133
-                }
             ]
         }
     ],
@@ -62,7 +57,7 @@
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",
-            "pol"       : "Ez"
+            "pol"       : "Ex"
         },
         {
             "loc_x"     : 0.00,
@@ -70,7 +65,7 @@
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",
-            "pol"       : "Ez"
+            "pol"       : "Ex"
         }
     ]
 }

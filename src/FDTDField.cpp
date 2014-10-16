@@ -20,9 +20,20 @@ typedef  double (UPML<complex<double>>::*PMLMemFn)(double x, double y);
 
 /**
  * @brief Constructs a FDTD field from a programInputs object
- * @details Constructs the FDTD field manger using the information from the inputs parameter. Sets dx, and dy to 1/res, dt_ is set to S/res, The unused fields are set to null, nx and ny are calculated by rouding the product of the physical cell size with the
+ * @details Creates the FDTD cell and related fields. The step sizes are set to 1/res, and the number of grid cells are calculated by multiplying the step size with the step sizes.
+ * All fields have a one cell border around them to model the correct boundary conditions
  *
  * @param IP Input object created from an input file
+ * @param dx_ and dy_: step size in the x and y direction respectively
+ * @param dt_ time step
+ * @param nx_ and ny_ number of steps in the x and y direction respectively
+ * @param srcArr_ list of all the sources in the cell
+ * @param objArr_ list of all the objects in the cell
+ * @param pmlArr_ list of all the PML's n the cell
+ * @param xPML_ and yPML_ thickness of the PML regions in number of grid points
+ * @param periodic_ switch for implementing PBC
+ * @param k_point_ the k vector for the PBC to correct the phase
+ *
  */
 FDTDField::FDTDField(programInputs &IP)
 {
@@ -33,8 +44,8 @@ FDTDField::FDTDField(programInputs &IP)
     dx_         = 1.0/res_;
     dy_         = 1.0/res_;
     dt_         = IP.courant_ * dx_;
-    nx_         = floor(static_cast<double>(res_) * static_cast<double>(IP.x_size_)+ 0.5) + 1; //Better way here; + 1 to include the 0 point
-    ny_         = floor(static_cast<double>(res_) * static_cast<double>(IP.y_size_)+ 0.5) + 1; //Better way here; + 1 to include the 0 point
+    nx_         = floor(static_cast<double>(res_) * static_cast<double>(IP.x_size_)+ 0.5) + 1;
+    ny_         = floor(static_cast<double>(res_) * static_cast<double>(IP.y_size_)+ 0.5) + 1;
     srcArr_     = IP.srcArr_;
     objArr_     = IP.objArr_;
     dtcArr_     = IP.dctArr_;
@@ -43,10 +54,6 @@ FDTDField::FDTDField(programInputs &IP)
     yPML_       = IP.yPml_;
     precalcPML_ = IP.pmlCalc_;
     periodic_   = IP.periodic_;
-    y0EdgeInd_  = 0;
-    ynEdgeInd_  = 0;
-    x0EdgeInd_  = 0;
-    xnEdgeInd_  = 0;
     k_point_    = IP.k_point_;
     if(IP.invCell_)
     {
@@ -96,146 +103,80 @@ FDTDField::FDTDField(programInputs &IP)
 
 /**
  * @brief Initializes the physical grid for materials look up
- * @details Initializes the physical grid for materials look up, sets the object to the number in the object array will overwrite to the last one if multiple objects exist at the same point
+ * @details Initializes the lists that will be used to run ?axpy from the MKL libraries. First maps out where all the materials are, then constructs lists to run them all.
+ * Ends by initializing the PMLs
  *
  */
 
 void FDTDField::initializeGrid()
 {
-    //Sotres the locations of the objects in the grid.
+    // determines the boundaries of what to initialize
+    int xmin = 0; int xmax = 0; int ymin =0; int ymax = 0;
+    if(yPML_ != 0 && xPML_ != 0)
+    {
+        xmin = xPML_+1;
+        xmax = nx_-xPML_+1;
+        ymin = yPML_+1;
+        ymax = ny_-yPML_+1;
+    }
+    else if(yPML_ != 0)
+    {
+        xmin = 1;
+        xmax = nx_+1;
+        ymin = yPML_+1;
+        ymax = ny_-yPML_+1;
+    }
+    else if(xPML_ != 0)
+    {
+        xmin = xPML_+1;
+        xmax = nx_-xPML_+1;
+        ymin = 1;
+        ymax = ny_+1;
+    }
+    else
+    {
+        xmin = 1;
+        xmax = nx_+1;
+        ymin = 1;
+        ymax = ny_+1;
+    }
     for(int kk = 0; kk < objArr_.size(); kk++)
     {
+        // maps out where the objects are in the grid; Since no magnetically active materials are being modeled H fields don't need to be updated
+        // Objects overwrite each other, last object listed gets modeled
         vector<double> pt(2,0.0);
         if(Hz_)
         {
-            if(yPML_ != 0 && xPML_ != 0)
+
+            for(int ii = xmin; ii < xmax;ii ++)
             {
-                for(int ii = xPML_+1; ii < nx_-xPML_+1;ii ++)
+                for(int jj = ymin; jj < ymax; jj ++)
                 {
-                    for(int jj = yPML_+1; jj < ny_-yPML_+1; jj ++)
-                    {
-                        pt[0] = ((ii-1) +0.5-(nx_-1)/2.0)*dx_;
-                        pt[1] = ((jj-1)-static_cast<double>(ny_-1)/2.0)*dy_;
-                        if(objArr_[kk].isObj(pt)==true)
-                            phys_Ey_->point(ii,jj) = kk;
-                        pt[0] -= 0.5*dx_;
-                        pt[1] += 0.5*dy_;
-                        if(objArr_[kk].isObj(pt)==true)
-                            phys_Ex_->point(ii,jj) = kk;
-                    }
-                }
-            }
-            else if(yPML_ != 0)
-            {
-                for(int ii = 1; ii < nx_+1;ii ++)
-                {
-                    for(int jj = yPML_+1; jj < ny_-yPML_+1; jj ++)
-                    {
-                        pt[0] = ((ii-1) +0.5-(nx_-1)/2.0)*dx_;
-                        pt[1] = ((jj-1)-static_cast<double>(ny_-1)/2.0)*dy_;
-                        if(objArr_[kk].isObj(pt)==true)
-                            phys_Ey_->point(ii,jj) = kk;
-                        pt[0] -= 0.5*dx_;
-                        pt[1] += 0.5*dy_;
-                        if(objArr_[kk].isObj(pt)==true)
-                            phys_Ex_->point(ii,jj) = kk;
-                    }
-                }
-            }
-            else if(xPML_ != 0)
-            {
-                for(int ii = xPML_+1; ii < nx_-xPML_+1;ii ++)
-                {
-                    for(int jj = 1; jj < ny_+1; jj ++)
-                    {
-                        pt[0] = ((ii-1) +0.5-(nx_-1)/2.0)*dx_;
-                        pt[1] = ((jj-1) -static_cast<double>(ny_-1)/2.0)*dy_;
-                        if(objArr_[kk].isObj(pt)==true)
-                            phys_Ey_->point(ii,jj) = kk;
-                        pt[0] -= 0.5*dx_;
-                        pt[1] += 0.5*dy_;
-                        if(objArr_[kk].isObj(pt)==true)
-                            phys_Ex_->point(ii,jj) = kk;
-                    }
-                }
-            }
-            else
-            {
-                for(int ii = 1; ii < nx_+1;ii ++)
-                {
-                    for(int jj = 1; jj < ny_+1; jj ++)
-                    {
-                        pt[0] = ((ii-1) +0.5-(nx_-1)/2.0)*dx_;
-                        pt[1] = ((jj-1)-static_cast<double>(ny_-1)/2.0)*dy_;
-                        if(objArr_[kk].isObj(pt)==true)
-                            phys_Ey_->point(ii,jj) = kk;
-                        pt[0] -= 0.5;
-                        pt[1] += 0.5;
-                        if(objArr_[kk].isObj(pt)==true)
-                            phys_Ex_->point(ii,jj) = kk;
-                    }
+                    pt[0] = ((ii-1) +0.5-(nx_-1)/2.0)*dx_;
+                    pt[1] = ((jj-1)-static_cast<double>(ny_-1)/2.0)*dy_;
+                    if(objArr_[kk].isObj(pt)==true)
+                        phys_Ey_->point(ii,jj) = kk;
+                    pt[0] -= 0.5*dx_;
+                    pt[1] += 0.5*dy_;
+                    if(objArr_[kk].isObj(pt)==true)
+                        phys_Ex_->point(ii,jj) = kk;
                 }
             }
         }
         else
         {
-            if(yPML_ != 0 && xPML_ != 0)
+            for(int ii = xmin; ii < xmax; ii ++)
             {
-                for(int ii = xPML_+1; ii < nx_-xPML_+1;ii ++)
+                for(int jj = ymin; jj < ymax; jj ++)
                 {
-                    for(int jj = yPML_+1; jj < ny_-yPML_+1; jj ++)
-                    {
-                        pt[0] = ((ii-1)-(nx_-1)/2.0)*dx_;
-                        pt[1] = ((jj-1)-static_cast<double>(ny_-1)/2.0)*dy_;
-                        if(objArr_[kk].isObj(pt)==true)
-                            phys_Ez_->point(ii,jj) = kk;
-                    }
-                }
-                pt[0]=(nx_-(nx_-1)/2.0)*dx_;
-                pt[1]=(ny_-(ny_-1)/2.0)*dy_;
-                if(objArr_[kk].isObj(pt)==true)
-                    phys_Ez_->point(nx_,ny_) = kk;
-            }
-            else if(yPML_ != 0)
-            {
-                for(int ii = 1; ii < nx_+1;ii ++)
-                {
-                    for(int jj = yPML_+1; jj < ny_-yPML_+1; jj ++)
-                    {
-                        pt[0] = ((ii-1)-(nx_-1)/2.0)*dx_;
-                        pt[1] = ((jj-1)-static_cast<double>(ny_-1)/2.0)*dy_;
-                        if(objArr_[kk].isObj(pt)==true)
-                            phys_Ez_->point(ii,jj) = kk;
-                    }
-                }
-            }
-            else if(xPML_ != 0)
-            {
-                for(int ii = xPML_+1; ii < nx_-xPML_+1;ii ++)
-                {
-                    for(int jj = 1; jj < ny_+1; jj ++)
-                    {
-                        pt[0] = ((ii-1)-(nx_-1)/2.0)*dx_;
-                        pt[1] = ((jj-1)-static_cast<double>(ny_-1)/2.0)*dy_;
-                        if(objArr_[kk].isObj(pt)==true)
-                            phys_Ez_->point(ii,jj) = kk;
-                    }
-                }
-            }
-            else
-            {
-                for(int ii = 1; ii < nx_+1;ii ++)
-                {
-                    for(int jj = 1; jj < ny_+1; jj ++)
-                    {
-                        pt[0] = ((ii-1)-(nx_-1)/2.0)*dx_;
-                        pt[1] = ((jj-1)-static_cast<double>(ny_-1)/2.0)*dy_;
-                        if(objArr_[kk].isObj(pt)==true)
-                            phys_Ez_->point(ii,jj) = kk;
-                    }
+                    pt[0] = ((ii-1)-(nx_-1)/2.0)*dx_;
+                    pt[1] = ((jj-1)-static_cast<double>(ny_-1)/2.0)*dy_;
+                    if(objArr_[kk].isObj(pt)==true)
+                        phys_Ez_->point(ii,jj) = kk;
                 }
             }
         }
+        // Sets up all constants and necessary fields
         objArr_[kk].setUpConsts(dt_);
 
         if(Hz_)
@@ -247,6 +188,7 @@ void FDTDField::initializeGrid()
                     lorPy_.push_back(make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_));
                 prevLorPy_.push_back(make_shared<Grid2D<complex<double>>>(nx_+2,ny_+2,dx_,dy_));
             }
+            cout << lorPx_.size() << endl;
         }
         else
         {
@@ -257,6 +199,7 @@ void FDTDField::initializeGrid()
             }
         }
     }
+    // D fields are for dispersion only, if no dispersive materials then no D-fields
     if(lorPx_.size() == 0)
     {
         Dx_ = nullptr;
@@ -265,255 +208,110 @@ void FDTDField::initializeGrid()
     else if(lorPz_.size() ==0)
         Dz_ = nullptr;
 
-
-    //Set up the parmeters for the MKL calls for the Electric fields, conditionals are because of edge cases.
+    //Set up the parameters for the MKL calls for the Electric fields, conditionals are because of edge cases.
     if(Ez_)
     {
-        if(xPML_ != 0 && yPML_ != 0)
+        for(int jj = ymin; jj < ymax; jj++)
         {
-            for(int jj = yPML_+1; jj < ny_ - yPML_+1; jj++)
+            int ii = xmin;
+            while(ii < xmax)
             {
-                int ii = xPML_+1;
-                while(ii < nx_-xPML_+1)
-                {
-                    int iistore = ii;
-                    while(ii < nx_-xPML_ && phys_Ez_ -> point(ii,jj) == phys_Ez_ -> point(ii+1,jj) )
-                        ii ++;
-                    array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ez_->point(iistore,jj)};
-                    if(objArr_[tempArr[3]].mat().size() <= 1)
-                        zaxEz_.push_back(tempArr);
-                    else
-                        zaxDz_.push_back(tempArr);
-                    ii++;
-                }
-                array<int,4> tempArr = {xPML_+1, jj, static_cast<int>(nx_)-2*xPML_,0};
-                zaxHx_.push_back(tempArr);
-                zaxHy_.push_back(tempArr);
+                int iistore = ii;
+                while(ii < xmax-1 && phys_Ez_ -> point(ii,jj) == phys_Ez_ -> point(ii+1,jj) )
+                    ii ++;
+                array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ez_->point(iistore,jj)};
+                if(objArr_[tempArr[3]].mat().size() <= 1)
+                    zaxEz_.push_back(tempArr);
+                else
+                    zaxDz_.push_back(tempArr);
+                ii++;
             }
         }
-        else if(xPML_ != 0)
+        // No magnetic Materials means H-Fields don't care about materials, cells have to account for difference in materials
+        if(xPML_ != 0)
         {
-            for(int jj = 1; jj < ny_ + 1; jj++)
+            for(int jj = ymin; jj < ymax; jj++)
             {
-                int ii = xPML_+1;
-                while(ii < nx_-xPML_+1)
-                {
-                    int iistore = ii;
-                    while(ii < nx_-xPML_ && phys_Ez_ -> point(ii,jj) == phys_Ez_ -> point(ii+1,jj) )
-                        ii ++;
-                    array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ez_->point(iistore,jj)};
-                    if(objArr_[tempArr[3]].mat().size() <= 1)
-                        zaxEz_.push_back(tempArr);
-                    else
-                        zaxDz_.push_back(tempArr);
-                    ii++;
-                }
                 array<int,4> tempArr = {xPML_+1, jj, static_cast<int>(nx_)-2*xPML_,0};
                 zaxHx_.push_back(tempArr);
-                zaxHy_.push_back(tempArr);
-            }
-            zaxHx_.pop_back();
-        }
-        else if(yPML_ != 0)
-        {
-            for(int jj = yPML_+1; jj < ny_ - yPML_+1; jj++)
-            {
-                int ii = 1;
-                while(ii < nx_+1)
-                {
-                    int iistore = ii;
-                    while(ii < nx_ && phys_Ez_ -> point(ii,jj) == phys_Ez_ -> point(ii+1,jj) )
-                        ii ++;
-                    array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ez_->point(iistore,jj)};
-                    if(objArr_[tempArr[3]].mat().size() <= 1)
-                        zaxEz_.push_back(tempArr);
-                    else
-                        zaxDz_.push_back(tempArr);
-                    ii++;
-                }
-                array<int,4> tempArr = {1, jj, static_cast<int>(nx_),0};
-                zaxHx_.push_back(tempArr);
-                tempArr = {1, jj, static_cast<int>(nx_-1),0};
                 zaxHy_.push_back(tempArr);
             }
         }
         else
         {
-            for(int jj = 1; jj < ny_ + 1; jj++)
+            for(int jj = ymin; jj < ymax; jj++)
             {
-                int ii = 1;
-                while(ii < nx_+1)
-                {
-                    int iistore = ii;
-                    while(ii < nx_ && phys_Ez_ -> point(ii,jj) == phys_Ez_ -> point(ii+1,jj) )
-                        ii ++;
-                    array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ez_->point(iistore,jj)};
-                    if(objArr_[tempArr[3]].mat().size() <= 1)
-                        zaxEz_.push_back(tempArr);
-                    else
-                        zaxDz_.push_back(tempArr);
-                    ii++;
-                }
                 array<int,4> tempArr = {1, jj, static_cast<int>(nx_),0};
                 zaxHx_.push_back(tempArr);
                 tempArr = {1, jj, static_cast<int>(nx_-1),0};
                 zaxHy_.push_back(tempArr);
             }
-            zaxHx_.pop_back();
         }
+        if(yPML_ == 0)
+            zaxHx_.pop_back();
     }
     else
     {
-        if(xPML_ != 0 && yPML_ != 0)
+        // sub is to account for field size differences
+
+        int x_sub = 0; int y_sub = 0;
+
+        if(yPML_ == 0)
+            x_sub = 1;
+        if(xPML_ == 0)
+            y_sub = 1;
+
+        for(int jj = ymin; jj < ymax-x_sub; jj++)
         {
-            for(int jj = yPML_+1; jj < ny_-yPML_+1; jj++)
+            int ii = xmin;
+            while(ii < xmax)
             {
-                int ii = xPML_+1;
-                while(ii < nx_-xPML_+1)
-                {
-                    int iistore = ii;
-                    while(ii < nx_-xPML_ && phys_Ex_ -> point(ii,jj) == phys_Ex_ -> point(ii+1,jj) )
-                        ii ++;
-                    array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ex_->point(iistore,jj)};
-                    if(objArr_[tempArr[3]].mat().size() <= 1)
-                        zaxEx_.push_back(tempArr);
-                    else
-                        zaxDx_.push_back(tempArr);
-                    ii++;
-                }
+                int iistore = ii;
+                while(ii < xmax-1 && phys_Ex_ -> point(ii,jj) == phys_Ex_ -> point(ii+1,jj) )
+                    ii ++;
+                array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ex_->point(iistore,jj)};
+                if(objArr_[tempArr[3]].mat().size() <= 1)
+                    zaxEx_.push_back(tempArr);
+                else
+                    zaxDx_.push_back(tempArr);
+                ii++;
             }
-            for(int jj = yPML_+1; jj < ny_-yPML_+1; jj++)
+        }
+        for(int jj = ymin; jj < ymax; jj++)
+        {
+            int ii = xmin;
+            while(ii < xmax-y_sub)
             {
-                int ii = xPML_+1;
-                while(ii < nx_-xPML_+1)
-                {
-                    int iistore = ii;
-                    while(ii < nx_-xPML_ && phys_Ey_ -> point(ii,jj) == phys_Ey_ -> point(ii+1,jj) )
-                        ii ++;
-                    array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ey_->point(iistore,jj)};
-                    if(objArr_[tempArr[3]].mat().size() <= 1)
-                        zaxEy_.push_back(tempArr);
-                    else
-                        zaxDy_.push_back(tempArr);
-                    ii++;
-                }
+                int iistore = ii;
+                while(ii < xmax-1-y_sub && phys_Ey_ -> point(ii,jj) == phys_Ey_ -> point(ii+1,jj) )
+                    ii ++;
+                array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ey_->point(iistore,jj)};
+                if(objArr_[tempArr[3]].mat().size() <= 1)
+                    zaxEy_.push_back(tempArr);
+                else
+                    zaxDy_.push_back(tempArr);
+                ii++;
+            }
+        }
+        if(xPML_ != 0)
+        {
+            for(int jj = ymin; jj < ymax; jj++)
+            {
                 array<int,4> tempArr = {xPML_+1, jj, static_cast<int>(nx_)-2*xPML_,0};
                 zaxHz_.push_back(tempArr);
             }
 
         }
-        else if(xPML_ != 0)
-        {
-            for(int jj = 1; jj < ny_; jj++)
-            {
-                int ii = xPML_+1;
-                while(ii < nx_-xPML_+1)
-                {
-                    int iistore = ii;
-                    while(ii < nx_-xPML_ && phys_Ex_ -> point(ii,jj) == phys_Ex_ -> point(ii+1,jj) )
-                        ii ++;
-                    array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ex_->point(iistore,jj)};
-                    if(objArr_[tempArr[3]].mat().size() <= 1)
-                        zaxEx_.push_back(tempArr);
-                    else
-                        zaxDx_.push_back(tempArr);
-                    ii++;
-                }
-            }
-            for(int jj = 1; jj < ny_+1; jj++)
-            {
-                int ii = xPML_+1;
-                while(ii < nx_-xPML_+1)
-                {
-                    int iistore = ii;
-                    while(ii < nx_-xPML_ && phys_Ey_ -> point(ii,jj) == phys_Ey_ -> point(ii+1,jj) )
-                        ii ++;
-                    array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ey_->point(iistore,jj)};
-                    if(objArr_[tempArr[3]].mat().size() <= 1)
-                        zaxEy_.push_back(tempArr);
-                    else
-                        zaxDy_.push_back(tempArr);
-                    ii++;
-                }
-                array<int,4> tempArr = {xPML_+1, jj, static_cast<int>(nx_)-2*xPML_,0};
-                zaxHz_.push_back(tempArr);
-            }
-        }
-        else if(yPML_ != 0)
-        {
-            for(int jj = yPML_+1; jj < ny_-yPML_+1; jj++)
-            {
-                int ii = 1;
-                while(ii < nx_+1)
-                {
-                    int iistore = ii;
-                    while(ii < nx_ && phys_Ex_ -> point(ii,jj) == phys_Ex_ -> point(ii+1,jj) )
-                        ii ++;
-                    array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ex_ -> point(iistore,jj)};
-                    if(objArr_[tempArr[3]].mat().size() <= 1)
-                        zaxEx_.push_back(tempArr);
-                    else
-                        zaxDx_.push_back(tempArr);
-                    ii++;
-                }
-            }
-            for(int jj = yPML_+1; jj < ny_-yPML_+1; jj++)
-            {
-                int ii = 1;
-                while(ii < nx_)
-                {
-                    int iistore = ii;
-                    while(ii < nx_-1 && phys_Ey_ -> point(ii,jj) == phys_Ey_ -> point(ii+1,jj) )
-                        ii ++;
-                    array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ey_ -> point(iistore,jj)};
-                    if(objArr_[tempArr[3]].mat().size() <= 1)
-                        zaxEy_.push_back(tempArr);
-                    else
-                        zaxDy_.push_back(tempArr);
-                    ii++;
-                }
-                array<int,4> tempArr = {1, jj, static_cast<int>(nx_),0};
-                zaxHz_.push_back(tempArr);
-            }
-        }
         else
         {
-            for(int jj = 1; jj < ny_; jj++)
+            for(int jj = ymin; jj < ymax; jj++)
             {
-                int ii = 1;
-                while(ii < nx_+1)
-                {
-                    int iistore = ii;
-                    while(ii < nx_ && phys_Ex_ -> point(ii,jj) == phys_Ex_ -> point(ii+1,jj) )
-                        ii ++;
-                    array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ex_ -> point(iistore,jj)};
-                    if(objArr_[tempArr[3]].mat().size() <= 1)
-                        zaxEx_.push_back(tempArr);
-                    else
-                        zaxDx_.push_back(tempArr);
-                    ii++;
-                }
-            }
-            for(int jj = 1; jj < ny_+1; jj++)
-            {
-                int ii = 1;
-                while(ii < nx_)
-                {
-                    int iistore = ii;
-                    while(ii < nx_-1 && phys_Ey_ -> point(ii,jj) == phys_Ey_ -> point(ii+1,jj) )
-                        ii ++;
-                    array<int,4> tempArr = { iistore,jj,ii-iistore+1,phys_Ey_ -> point(iistore,jj)};
-                    if(objArr_[tempArr[3]].mat().size() <= 1)
-                        zaxEy_.push_back(tempArr);
-                    else
-                        zaxDy_.push_back(tempArr);
-                    ii++;
-                }
                 array<int,4> tempArr = {1, jj, static_cast<int>(nx_),0};
                 zaxHz_.push_back(tempArr);
             }
         }
     }
+    //initialize PML's with or without an opposition sigma.
     if(pmlArr_.size() > 1)
     {
         for(int kk = 0; kk < pmlArr_.size(); kk++)
@@ -539,28 +337,28 @@ void FDTDField::ouputField(Detector<complex<double>> d) //iostream as input para
     switch ( d.pol() )
     {
         case EZ:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Ez_,eps).real() << "\t" << setw(10) << d.output(Ez_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Ez_,eps).real() << "\t" << setw(10) << d.output(Ez_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            outFile << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Ez_,eps).real() << "\t" << setw(10) << d.output(Ez_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            cout << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Ez_,eps).real() << "\t" << setw(10) << d.output(Ez_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
             break;
         case HX:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Hx_,eps).real()<< endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Hx_,eps).real()<< endl;
+            outFile << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Hx_,eps).real() << "\t" << setw(10) << d.output(Hx_,eps).imag() << endl;
+            cout << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Hx_,eps).real() << "\t" << setw(10) << d.output(Hx_,eps).imag() << endl;
             break;
         case HY:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Hy_,eps).real()<< endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Hy_,eps).real()<< endl;
+            outFile << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Hy_,eps).real() << "\t" << setw(10) << d.output(Hy_,eps).imag() << endl;
+            cout << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Hy_,eps).real() << "\t" << setw(10) << d.output(Hy_,eps).imag() << endl;
             break;
         case HZ:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Hz_,eps).real()<< endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Hz_,eps).real()<< endl;
+            outFile << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Hz_,eps).real() << "\t" << setw(10) << d.output(Hz_,eps).imag() << endl;
+            cout << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Hz_,eps).real() << "\t" << setw(10) << d.output(Hz_,eps).imag() << endl;
             break;
         case EX:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Ex_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Ex_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            outFile << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Ex_,eps).real() << "\t" << setw(10) << d.output(Ex_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            cout << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Ex_,eps).real() << "\t" << setw(10) << d.output(Ex_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
             break;
         case EY:
-            outFile << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Ey_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
-            cout << setw(9) << tcur_ << "\t" << d.loc()[xDTC_]-1 << "\t" << d.loc()[yDTC_]-1 << "\t" << setw(10) << d.output(Ey_,eps).real()<< "\t" << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            outFile << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Ey_,eps).real() << "\t" << setw(10) << d.output(Ey_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            cout << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Ey_,eps).real() << "\t" << setw(10) << d.output(Ey_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
             break;
         default:
             throw logic_error("reached a default case in a switch state that should never happen!");
@@ -604,6 +402,7 @@ void FDTDField::updateH()
 {
     if(Ez_)
     {
+        // c_hxh is set in case of Magnetic materials get used
         double c_hxh = 1.0;
         double c_hxe = 1.0 * dt_/dx_;
         double c_hyh = 1.0;
@@ -626,6 +425,11 @@ void FDTDField::updateH()
         // PML
         for(int kk =0; kk < pmlArr_.size(); kk++)
         {
+            // Set parameters for switches and general axpy stuff
+            // stride is because XPML are constant in the direction opposite of continuous memory
+            // d converts the direction of the PML into an int
+            // ni/nj are to calculate the relative direction for the opposite end.
+            // PML fields don't have the border which is why there is a xx-1 and yy-1 for all of them
             int stride = 1; int stride_rel = 1;
             int ni = 0; int nj = 0; int d = 0;
             if(pmlArr_[kk].d() == X)
@@ -720,21 +524,23 @@ void FDTDField::updateH()
                 zaxpy_(nZax, -1.0*zaxArr[8], bystore.data()                      , 1     , &Hy_ -> point(xx_rel,yy_rel), stride_rel);
             }
         }
+        //corners have to be done piecewise
         complex<double> bxstore(0.0,0.0); complex<double> bystore(0.0,0.0);
         if(pmlArr_.size() > 1)
         {
             // Setting everything such that the X-PML stores all the information for the corners
             int kx = 1;
+            // Since PML corners are identical in either PML only store the information in one.
             shared_ptr<vector<vector<array<double,5>>>> c_hx_0_n;
             shared_ptr<vector<vector<array<double,5>>>> c_hx_n_0;
             shared_ptr<vector<vector<array<double,5>>>> c_hy_0_n;
             shared_ptr<vector<vector<array<double,5>>>> c_hy_n_0;
-
+            // 0_0 and n_n corners will be the same
             shared_ptr<vector<vector<array<double,5>>>> c_hx_0_0 = pmlArr_[1].c_hx_0_0_;
             shared_ptr<vector<vector<array<double,5>>>> c_hx_n_n = pmlArr_[1].c_hx_n_n_;
             shared_ptr<vector<vector<array<double,5>>>> c_hy_0_0 = pmlArr_[1].c_hy_0_0_;
             shared_ptr<vector<vector<array<double,5>>>> c_hy_n_n = pmlArr_[1].c_hy_n_n_;
-            // Ensures corners are correct in all cases
+            // Ensures corners are correct in all cases 0_n and n_0 would be reversed depending on which direction the storing PML is in
             if(pmlArr_[1].d() == X)
             {
                 c_hx_0_n = pmlArr_[1].c_hx_0_n_;
@@ -751,6 +557,7 @@ void FDTDField::updateH()
                 c_hy_n_0 = pmlArr_[1].c_hy_0_n_;
             }
             complex<double> bxstore(0.0,0.0); complex<double> bystore(0.0,0.0);
+            // Storage is done in the x direction PML why it's ii,yy-1
             for(int ii = 0; ii < xPML_; ii++)
             {
                 for(int jj = 0; jj < yPML_; jj++)
@@ -796,6 +603,7 @@ void FDTDField::updateH()
     }
     else
     {
+        // c_hxh is set in case of Magnetic materials get used
         double c_hzh = 1.0;
         double c_hze = 1.0 * dt_/dx_;
         for(int kk = 0; kk < zaxHz_.size(); kk++)
@@ -812,7 +620,11 @@ void FDTDField::updateH()
         }
         for(int kk = 0; kk < pmlArr_.size(); kk++)
         {
-            int stride = 1; int stride_rel = 1;
+            // Set parameters for switches and general axpy stuff
+            // stride is because XPML are constant in the direction opposite of continuous memory
+            // d converts the direction of the PML into an int
+            // ni/nj are to calculate the relative direction for the opposite end.
+            // PML fields don't have the border which is why there is a xx-1 and yy-1 for all of themint stride = 1; int stride_rel = 1;
             int ni = 0; int nj = 0; int d = 0;
             if(pmlArr_[kk].d() == X)
             {
@@ -872,11 +684,14 @@ void FDTDField::updateH()
         if(pmlArr_.size() > 1)
         {
             int kx = 1;
+            // Setting everything such that the X-PML stores all the information for the corners
+            // Since PML corners are identical in either PML only store the information in one.
             shared_ptr<vector<vector<array<double,5>>>> c_hz_0_n;
             shared_ptr<vector<vector<array<double,5>>>> c_hz_n_0;
-
+            // 0_0 and n_n corners will be the same
             shared_ptr<vector<vector<array<double,5>>>> c_hz_0_0 = pmlArr_[1].c_hz_0_0_;
             shared_ptr<vector<vector<array<double,5>>>> c_hz_n_n = pmlArr_[1].c_hz_n_n_;
+            // Ensures corners are correct in all cases 0_n and n_0 would be reversed depending on which direction the storing PML is in
             if(pmlArr_[1].d() == X)
             {
                 c_hz_0_n = pmlArr_[1].c_hz_0_n_;
@@ -894,6 +709,7 @@ void FDTDField::updateH()
             {
                 for(int jj = 0; jj < yPML_; jj++)
                 {
+                    // Storage is done in the x direction PML why it's ii,yy-1
                     //Bot Left
                     xx = ii+1; yy = jj+1;
                     bzstore = pmlArr_[kx].Bz_->point(ii,yy-1);
@@ -1066,7 +882,6 @@ void FDTDField::updateE()
                 }
             }
         }
-
     }
     else
     {
@@ -1304,7 +1119,6 @@ void FDTDField::updateDisp()
     }
     else
     {
-        cout << "correct switch" << endl;
         for(int zz = 0; zz < zaxDx_.size(); zz++)
         {
             int xx = zaxDx_[zz][0]; int yy = zaxDx_[zz][1]; int nZax = zaxDx_[zz][2];
@@ -1314,25 +1128,25 @@ void FDTDField::updateDisp()
             vector<double> zi    = objArr_[zaxDx_[zz][3]].zi();
             for(int pp = 0; pp < lorPx_.size(); pp ++)
             {
-                vector<complex<double>> jxstore(nZax, 0.0);
-                zcopy_(nZax, &lorPx_[pp]->point(xx,yy), 1, jxstore.data(), 1);
+                vector<complex<double>> jzstore(nZax, 0.0);
+                zcopy_(nZax, &lorPx_[pp]->point(xx,yy), 1, jzstore.data(), 1);
 
                 zscal_(nZax, alpha[pp],     &lorPx_[pp]->point(xx,yy), 1);
                 zaxpy_(nZax,    zi[pp], &prevLorPx_[pp]->point(xx,yy), 1, &lorPx_[pp] ->point(xx,yy), 1);
-                zaxpy_(nZax, gamma[pp],            &Ex_->point(xx,yy), 1, &lorPx_[pp] ->point(xx,yy), 1);
+                zaxpy_(nZax, gamma[pp],          &Ex_->point(xx,yy), 1, &lorPx_[pp] ->point(xx,yy), 1);
 
-                zcopy_(nZax, jxstore.data(),1, &prevLorPx_[pp]->point(xx,yy),1);
+                zcopy_(nZax, jzstore.data(),1, &prevLorPx_[pp]->point(xx,yy),1);
             }
+
+            // zscal_(nZax,      1.0    , &Dx_->point(xx  ,yy  ), 1);
             zaxpy_(nZax,      dt_/dy_, &Hz_->point(xx  ,yy+1), 1, &Dx_->point(xx,yy), 1);
             zaxpy_(nZax, -1.0*dt_/dy_, &Hz_->point(xx  ,yy  ), 1, &Dx_->point(xx,yy), 1);
-
 
             zcopy_(nZax, &Dx_->point(xx,yy), 1,&Ex_->point(xx,yy), 1);
             zscal_(nZax, 1/eps, &Ex_->point(xx,yy), 1);
             for(int pp =0; pp < lorPx_.size(); pp ++)
                 zaxpy_(nZax, -1.0/eps, &lorPx_[pp]->point(xx,yy), 1,&Ex_ ->point(xx,yy), 1);
         }
-        cout << "here" << endl;
         for(int zz = 0; zz < zaxDy_.size(); zz++)
         {
             int xx = zaxDy_[zz][0]; int yy = zaxDy_[zz][1]; int nZax = zaxDy_[zz][2];
@@ -1351,8 +1165,8 @@ void FDTDField::updateDisp()
 
                 zcopy_(nZax, jystore.data(),1, &prevLorPy_[pp]->point(xx,yy),1);
             }
-            zaxpy_(nZax, -1.0*dt_/dy_, &Hz_->point(xx+1,yy  ), 1, &Dy_->point(xx,yy), 1);
-            zaxpy_(nZax,      dt_/dy_, &Hz_->point(xx  ,yy  ), 1, &Dy_->point(xx,yy), 1);
+            zaxpy_(nZax, -1.0*dt_/dx_, &Hz_->point(xx+1,yy  ), 1, &Dy_->point(xx,yy), 1);
+            zaxpy_(nZax,      dt_/dx_, &Hz_->point(xx  ,yy  ), 1, &Dy_->point(xx,yy), 1);
 
             zcopy_(nZax, &Dy_->point(xx,yy), 1,&Ey_->point(xx,yy), 1);
             zscal_(nZax, 1/eps, &Ey_->point(xx,yy), 1);
@@ -1465,7 +1279,6 @@ void FDTDField::step()
     }
     for(int ii = 0; ii < dtcArr_.size(); ii ++)
         ouputField(dtcArr_[ii]);
-    // if(abs(tcur_-floor(tcur_+0.5)) < 1e-7)
     if(false)
     {
         string fname("fout/Hx/HxField_t" + to_string(static_cast<int>(t_step_))+".dat");
