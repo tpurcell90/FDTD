@@ -61,9 +61,9 @@ pow_trans = E_trans_freq * E_trans_freq.conjugate() / 2.0
 
 
 R = pow_refl / pow_incd
-T = pow_trans / pow_incd
+T = 3*pow_trans / pow_incd
 I = pow_incd / pow_trans_incd
-freq = fftpack.fftfreq(len(R), d = 0.01)
+freq = fftpack.fftfreq(len(R), d = 0.025)
 
 outfile = open("RT.dat","w")
 for ii in range(len(R)):
@@ -73,34 +73,34 @@ for ii in range(len(R)):
 outfile.close()
 
 
-f_block = open('/home/tap620/meep_test/block.dat','r')
-f_incd = open('/home/tap620/meep_test/incd.dat', 'r')
+# f_block = open('/home/tap620/meep_test/block.dat','r')
+# f_incd = open('/home/tap620/meep_test/incd.dat', 'r')
 
-T_meep = []
-R_meep = []
-T_incd_meep = []
-R_incd_meep = []
-freq_meep = []
-for line in f_block:
-	T_meep.append(float(line.split(',')[2]))
-	R_meep.append(float(line.split(',')[3]))
-	freq_meep.append(float(line.split(',')[1]))
-for line in f_incd:
-	T_incd_meep.append(float(line.split(',')[2]))
-	R_incd_meep.append(float(line.split(',')[3]))
-T_meep = np.array(T_meep)
-T_incd_meep = np.array(T_incd_meep)
-R_meep = np.array(R_meep)
-R_incd_meep = np.array(R_incd_meep)
-freq_meep = np.array(freq_meep)
+# T_meep = []
+# R_meep = []
+# T_incd_meep = []
+# R_incd_meep = []
+# freq_meep = []
+# for line in f_block:
+# 	T_meep.append(float(line.split(',')[2]))
+# 	R_meep.append(float(line.split(',')[3]))
+# 	freq_meep.append(float(line.split(',')[1]))
+# for line in f_incd:
+# 	T_incd_meep.append(float(line.split(',')[2]))
+# 	R_incd_meep.append(float(line.split(',')[3]))
+# T_meep = np.array(T_meep)
+# T_incd_meep = np.array(T_incd_meep)
+# R_meep = np.array(R_meep)
+# R_incd_meep = np.array(R_incd_meep)
+# freq_meep = np.array(freq_meep)
 
 plt.plot(freq[0:len(freq)/2],R[0:len(R)/2], label = 'R')
 plt.plot(freq[0:len(freq)/2],T[0:len(T)/2], label = 'T')
 plt.plot(freq[0:len(freq)/2.0], (R+T)[0:len(freq)/2], label = 'sum')
 
-plt.plot(freq_meep,-R_meep/R_incd_meep, label='R_meep')
-plt.plot(freq_meep,T_meep/T_incd_meep, label='T_meep')
-plt.plot(freq_meep,-R_meep/R_incd_meep+T_meep/T_incd_meep, label='sum_meep')
+# plt.plot(freq_meep,-R_meep/R_incd_meep, label='R_meep')
+# plt.plot(freq_meep,T_meep/T_incd_meep, label='T_meep')
+# plt.plot(freq_meep,-R_meep/R_incd_meep+T_meep/T_incd_meep, label='sum_meep')
 # plt.plot(freq,E_through_incd_freq.real, label = 'E_through_incd_freq Re')
 # plt.plot(freq,E_through_incd_freq.imag, label = 'E_through_incd_freq Im')
 # plt.plot(freq,E_through_freq.real, label = 'E_through_freq Re')

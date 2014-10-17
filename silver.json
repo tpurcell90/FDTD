@@ -26,7 +26,7 @@
 
         {
             "profile"   : "gaussian",
-            "fcen"      : 1.0,
+            "fcen"      : 0.55,
             "fwidth"    : 1.0,
             "cutoff"    : 20.00,
             "t_start"   : 0.00,
@@ -92,15 +92,7 @@
         },
         {
             "loc_x"     : 0.00,
-            "loc_y"     : 2.50,
-            "size_x"    : 0.00,
-            "size_y"    : 0.00,
-            "type"      : "field",
-            "pol"       : "Ez"
-        },
-        {
-            "loc_x"     : 0.00,
-            "loc_y"     : 3.50,
+            "loc_y"     : 3.75,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",

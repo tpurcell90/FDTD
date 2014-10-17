@@ -45,8 +45,8 @@ public:
     void initializeGrid();
 
     // Access Functions
-    // size_t nx(){return nx_;}
-    // size_t ny(){return ny_;}
+    size_t nx(){return nx_;}
+    size_t ny(){return ny_;}
     // double dx(){return dx_;}
     // double dy(){return dy_;}
     // double dt(){return dt_;}
