@@ -82,8 +82,8 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         vector<double> fxn ={};
         if(prof == gaussian)
         {
-            fxn.push_back(iter.second.get<double>("fcen") * courant_/res_);
-            fxn.push_back(iter.second.get<double>("fwidth")*res_/courant_);
+            fxn.push_back(iter.second.get<double>("fcen"));
+            fxn.push_back(1.0/iter.second.get<double>("fwidth"));
             fxn.push_back(iter.second.get<double>("cutoff"));
         }
         else if(prof == continuous)
@@ -123,7 +123,7 @@ programInputs::programInputs(std::string fn) : filename_(fn)
             for(int y = y_min; y <= y_max; y++)
             {
                 vector<int> loc = {x,y};
-                srcArr_.push_back(Source<complex<double>>(Pulse<complex<double>>(fxn,prof), pols, loc));
+                srcArr_.push_back(Source<complex<double>>(Pulse<complex<double>>(fxn,prof,courant_/res_), pols, loc));
             }
     }
 

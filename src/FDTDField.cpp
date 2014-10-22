@@ -337,28 +337,28 @@ void FDTDField::ouputField(Detector<complex<double>> d) //iostream as input para
     switch ( d.pol() )
     {
         case EZ:
-            outFile << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Ez_,eps).real() << "\t" << setw(10) << d.output(Ez_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
-            cout << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Ez_,eps).real() << "\t" << setw(10) << d.output(Ez_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            outFile << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1-((nx_-1)/2))*dx_ << "\t" << (d.loc()[yDTC_]-1-((ny_-1)/2))*dy_ << "\t" << setw(10) << d.output(Ez_,eps).real() << "\t" << setw(10) << d.output(Ez_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            cout << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1-((nx_-1)/2))*dx_ << "\t" << (d.loc()[yDTC_]-1-((ny_-1)/2))*dy_ << "\t" << setw(10) << d.output(Ez_,eps).real() << "\t" << setw(10) << d.output(Ez_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
             break;
         case HX:
-            outFile << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Hx_,eps).real() << "\t" << setw(10) << d.output(Hx_,eps).imag() << endl;
-            cout << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Hx_,eps).real() << "\t" << setw(10) << d.output(Hx_,eps).imag() << endl;
+            outFile << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1-((nx_-1)/2))*dx_ << "\t" << (d.loc()[yDTC_]-1-((ny_-1)/2))*dy_ << "\t" << setw(10) << d.output(Hx_,eps).real() << "\t" << setw(10) << d.output(Hx_,eps).imag() << endl;
+            cout << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1-((nx_-1)/2))*dx_ << "\t" << (d.loc()[yDTC_]-1-((ny_-1)/2))*dy_ << "\t" << setw(10) << d.output(Hx_,eps).real() << "\t" << setw(10) << d.output(Hx_,eps).imag() << endl;
             break;
         case HY:
-            outFile << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Hy_,eps).real() << "\t" << setw(10) << d.output(Hy_,eps).imag() << endl;
-            cout << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Hy_,eps).real() << "\t" << setw(10) << d.output(Hy_,eps).imag() << endl;
+            outFile << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1-((nx_-1)/2))*dx_ << "\t" << (d.loc()[yDTC_]-1-((ny_-1)/2))*dy_ << "\t" << setw(10) << d.output(Hy_,eps).real() << "\t" << setw(10) << d.output(Hy_,eps).imag() << endl;
+            cout << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1-((nx_-1)/2))*dx_ << "\t" << (d.loc()[yDTC_]-1-((ny_-1)/2))*dy_ << "\t" << setw(10) << d.output(Hy_,eps).real() << "\t" << setw(10) << d.output(Hy_,eps).imag() << endl;
             break;
         case HZ:
-            outFile << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Hz_,eps).real() << "\t" << setw(10) << d.output(Hz_,eps).imag() << endl;
-            cout << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Hz_,eps).real() << "\t" << setw(10) << d.output(Hz_,eps).imag() << endl;
+            outFile << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1-((nx_-1)/2))*dx_ << "\t" << (d.loc()[yDTC_]-1-((ny_-1)/2))*dy_ << "\t" << setw(10) << d.output(Hz_,eps).real() << "\t" << setw(10) << d.output(Hz_,eps).imag() << endl;
+            cout << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1-((nx_-1)/2))*dx_ << "\t" << (d.loc()[yDTC_]-1-((ny_-1)/2))*dy_ << "\t" << setw(10) << d.output(Hz_,eps).real() << "\t" << setw(10) << d.output(Hz_,eps).imag() << endl;
             break;
         case EX:
-            outFile << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Ex_,eps).real() << "\t" << setw(10) << d.output(Ex_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
-            cout << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Ex_,eps).real() << "\t" << setw(10) << d.output(Ex_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            outFile << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1-((nx_-1)/2))*dx_ << "\t" << (d.loc()[yDTC_]-1-((ny_-1)/2))*dy_ << "\t" << setw(10) << d.output(Ex_,eps).real() << "\t" << setw(10) << d.output(Ex_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            cout << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1-((nx_-1)/2))*dx_ << "\t" << (d.loc()[yDTC_]-1-((ny_-1)/2))*dy_ << "\t" << setw(10) << d.output(Ex_,eps).real() << "\t" << setw(10) << d.output(Ex_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
             break;
         case EY:
-            outFile << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Ey_,eps).real() << "\t" << setw(10) << d.output(Ey_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
-            cout << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1)*dx_ << "\t" << (d.loc()[yDTC_]-1)*dy_ << "\t" << setw(10) << d.output(Ey_,eps).real() << "\t" << setw(10) << d.output(Ey_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            outFile << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1-((nx_-1)/2))*dx_ << "\t" << (d.loc()[yDTC_]-1-((ny_-1)/2))*dy_ << "\t" << setw(10) << d.output(Ey_,eps).real() << "\t" << setw(10) << d.output(Ey_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
+            cout << setw(9) << tcur_ << "\t" << (d.loc()[xDTC_]-1-((nx_-1)/2))*dx_ << "\t" << (d.loc()[yDTC_]-1-((ny_-1)/2))*dy_ << "\t" << setw(10) << d.output(Ey_,eps).real() << "\t" << setw(10) << d.output(Ey_,eps).imag() << "\t" << setw(10) << srcArr_[0].prof().pulse(t_step_).real() << endl;
             break;
         default:
             throw logic_error("reached a default case in a switch state that should never happen!");
@@ -706,9 +706,9 @@ void FDTDField::updateH()
             }
             complex<double> bzstore(0.0,0.0);
             int xx = 1; int yy = 1;
-            for(int ii = 0; ii< xPML_; ii++)
+            for(int ii = 1; ii< xPML_; ii++)
             {
-                for(int jj = 0; jj < yPML_; jj++)
+                for(int jj = 1; jj < yPML_; jj++)
                 {
                     // Storage is done in the x direction PML why it's ii,yy-1
                     //Bot Left
@@ -899,8 +899,6 @@ void FDTDField::updateE()
             zscal_(nZax,      c_exe, &Ex_->point(xx  ,yy  ), 1);
             zaxpy_(nZax,      c_exh, &Hz_->point(xx  ,yy  ), 1, &Ex_->point(xx,yy), 1);
             zaxpy_(nZax, -1.0*c_exh, &Hz_->point(xx  ,yy-1), 1, &Ex_->point(xx,yy), 1);
-            if(objArr_[zaxEx_[kk][3]].mat().size() > 1)
-                cout << "Visit here for the update eqs" << endl;
         }
         for(int kk = 0; kk < zaxEy_.size(); kk++)
         {
@@ -910,8 +908,6 @@ void FDTDField::updateE()
             zscal_(nZax,      c_eye, &Ey_->point(xx  ,yy  ), 1);
             zaxpy_(nZax, -1.0*c_eyh, &Hz_->point(xx  ,yy  ), 1, &Ey_->point(xx,yy), 1);
             zaxpy_(nZax,      c_eyh, &Hz_->point(xx-1,yy  ), 1, &Ey_->point(xx,yy), 1);
-            if(objArr_[zaxEy_[kk][3]].mat().size() > 1)
-                cout << "Visit here for the update eqs" << endl;
         }
         //PML
         for(int kk =0; kk < pmlArr_.size(); kk++)
@@ -1206,48 +1202,49 @@ void FDTDField::step()
     {
         int ii = srcArr_[kk].loc()[0];
         int jj = srcArr_[kk].loc()[1];
+        complex<double> pul = srcArr_[kk].prof().pulse(static_cast<double>(t_step_));
         switch ( srcArr_[kk].pol() )
         {
             case EZ: //if(srcArr[kk].pol() == EZ)
-                if(abs(real(srcArr_[kk].prof().pulse(static_cast<double>(t_step_)))) > 1.0e-70)
+                if(abs(real(pul)) > 1.0e-70)
                 {
                     double eps = objArr_[phys_Ez_->point(ii,jj)].dielectric();
                     double c_ezj = dt_/(eps);
-                    Ez_ -> point(ii,jj) += c_ezj * srcArr_[kk].prof().pulse(static_cast<double>(t_step_));
+                    Ez_ -> point(ii,jj) += c_ezj * pul;
                 }
                 break;
             case HX: //else if(srcArr[kk].pol() == HX)
-                if(abs(real(srcArr_[kk].prof().pulse(static_cast<double>(t_step_)))) > 1.0e-70)
+                if(abs(real(pul)) > 1.0e-70)
                 {
-                    Hx_ -> point(ii,jj) += dt_ * srcArr_[kk].prof().pulse(static_cast<double>(t_step_));
+                    Hx_ -> point(ii,jj) += dt_ * pul;
                 }
                 break;
             case HY: //else if(srcArr[kk].pol() == HY)
-                if(abs(real(srcArr_[kk].prof().pulse(static_cast<double>(t_step_)))) > 1.0e-70)
+                if(abs(real(pul)) > 1.0e-70)
                 {
-                    Hy_ -> point(ii,jj) += dt_ * srcArr_[kk].prof().pulse(static_cast<double>(t_step_));
+                    Hy_ -> point(ii,jj) += dt_ * pul;
                 }
                 break;
             case HZ: //else if(srcArr[kk].pol() == HZ)
-                if(abs(real(srcArr_[kk].prof().pulse(static_cast<double>(t_step_)))) > 1.0e-70)
+                if(abs(real(pul)) > 1.0e-70)
                 {
-                    Hz_ -> point(ii,jj) += dt_ * srcArr_[kk].prof().pulse(static_cast<double>(t_step_));
+                    Hz_ -> point(ii,jj) += dt_ * pul;
                 }
                 break;
             case EX: //else if(srcArr[kk].pol() == EX)
-                if(abs(real(srcArr_[kk].prof().pulse(static_cast<double>(t_step_)))) > 1.0e-70)
+                if(abs(real(pul)) > 1.0e-70)
                 {
                     double eps = objArr_[phys_Ex_->point(ii,jj)].dielectric();
                     double c_exj = dt_/(eps);
-                    Ex_ -> point(ii,jj) += c_exj * srcArr_[kk].prof().pulse(static_cast<double>(t_step_));
+                    Ex_ -> point(ii,jj) += c_exj * pul;
                 }
                 break;
             case EY: //else if(srcArr[kk].pol() == EY)
-                if(abs(real(srcArr_[kk].prof().pulse(static_cast<double>(t_step_)))) > 1.0e-70)
+                if(abs(real(pul)) > 1.0e-70)
                 {
                     double eps = objArr_[phys_Ey_->point(ii,jj)].dielectric();
                     double c_eyj = dt_/(eps);
-                    Ey_ -> point(ii,jj) += c_eyj * srcArr_[kk].prof().pulse(static_cast<double>(t_step_));
+                    Ey_ -> point(ii,jj) += c_eyj * pul;
                 }
                 break;
             default:
@@ -1281,27 +1278,26 @@ void FDTDField::step()
     for(int ii = 0; ii < dtcArr_.size(); ii ++)
         ouputField(dtcArr_[ii]);
     // if(abs(tcur_-floor(tcur_+0.5)) < 1e-7)
-    if(false)
-    {
-        if(Hx_)
-        {
-            string fname("fout/Hx/HxField_t" + to_string(static_cast<int>(t_step_))+".dat");
-            Hx_->gridOut(fname);
-            fname = "fout/Hy/HyField_t" + to_string(static_cast<int>(t_step_))+".dat";
-            Hy_->gridOut(fname);
-            fname = "fout/Ez/EzField_t" + to_string(static_cast<int>(t_step_))+".dat";
-            Ez_->gridOut(fname);
-        }
-        else
-        {
-            string fname("fout/Hx/HxField_t" + to_string(static_cast<int>(t_step_))+".dat");
-            Ex_->gridOut(fname);
-            fname = "fout/Hy/HyField_t" + to_string(static_cast<int>(t_step_))+".dat";
-            Ey_->gridOut(fname);
-            fname = "fout/Ez/EzField_t" + to_string(static_cast<int>(t_step_))+".dat";
-            Hz_->gridOut(fname);
-        }
-    }
+    // {
+    //     if(Ez_)
+    //     {
+    //         string fname("fout/Hx/HxField_t" + to_string(static_cast<int>(t_step_))+".dat");
+    //         Hx_->gridOut(fname);
+    //         fname = "fout/Hy/HyField_t" + to_string(static_cast<int>(t_step_))+".dat";
+    //         Hy_->gridOut(fname);
+    //         fname = "fout/Ez/EzField_t" + to_string(static_cast<int>(t_step_))+".dat";
+    //         Ez_->gridOut(fname);
+    //      }
+    //     else
+    //     {
+    //         string fname("fout/Hx/HxField_t" + to_string(static_cast<int>(t_step_))+".dat");
+    //         Ex_->gridOut(fname);
+    //         fname = "fout/Hy/HyField_t" + to_string(static_cast<int>(t_step_))+".dat";
+    //         Ey_->gridOut(fname);
+    //         fname = "fout/Ez/EzField_t" + to_string(static_cast<int>(t_step_))+".dat";
+    //         Hz_->gridOut(fname);
+    //     }
+    // }
     tcur_ += dt_;
     t_step_ ++;
 }

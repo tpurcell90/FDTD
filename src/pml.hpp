@@ -327,8 +327,8 @@ public:
                 {
                     for(jj = 1; jj < nj+1; jj++)
                     {
-                        pt[0] = ((*xx-1)+0.5-(nx-1)/2.0)*dx;
-                        pt[1] = ((*yy-1)-(ny-1)/2.0)*dy;
+                        pt[0] = ((*xx)+0.5-(nx-1)/2.0)*dx;
+                        pt[1] = ((*yy)-(ny-1)/2.0)*dy;
                         if(objArr[kk].isObj(pt)==true)
                             phys_Ex_->point(*xx,*yy) = kk;
 
@@ -340,8 +340,8 @@ public:
                         if(objArr[kk].isObj(pt)==true)
                             phys_Ey_->point(*xx,*yy) = kk;
 
-                        pt[pt_i] = ((ni-(ii-1))-(ni-1)/2.0)*di;
-                        pt[pt_j] = ((jj-1)-(nj-1)/2.0)*dj;
+                        pt[pt_i] = ((ni-ii)-(ni-1)/2.0)*di;
+                        pt[pt_j] = (jj-(nj-1)/2.0)*dj;
                         pt[0] += 0.5*dx;
                         if(objArr[kk].isObj(pt)==true)
                             phys_Ex_end_->point(*xx,*yy) = kk;
@@ -361,8 +361,8 @@ public:
                 {
                     for(jj = 1; jj < nj+1; jj++)
                     {
-                        pt[0] = ((*xx-1)+0.5-(nx-1)/2.0)*dx;
-                        pt[1] = ((*yy-1)-(ny-1)/2.0)*dy;
+                        pt[0] = ((*xx)+0.5-(nx-1)/2.0)*dx;
+                        pt[1] = ((*yy)-(ny-1)/2.0)*dy;
                         if(objArr[kk].isObj(pt)==true)
                             phys_Hy_->point(*xx,*yy) = kk;
 
@@ -374,8 +374,8 @@ public:
                         if(objArr[kk].isObj(pt)==true)
                             phys_Hx_->point(*xx,*yy) = kk;
 
-                        pt[pt_i] = ((ni-(ii-1))-(ni-1)/2.0)*di;
-                        pt[pt_j] = ((jj-1)-(nj-1)/2.0)*dj;
+                        pt[pt_i] = ((ni-ii)-(ni-1)/2.0)*di;
+                        pt[pt_j] = (jj-(nj-1)/2.0)*dj;
                         pt[0] += 0.5*dx;
                         if(objArr[kk].isObj(pt)==true)
                             phys_Hy_end_->point(*xx,*yy) = kk;

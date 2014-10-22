@@ -14,6 +14,7 @@ template <typename T> class Pulse
 protected:
     std::vector<double> param_;
     plsShape plsType_;
+    double dt_;
 
 public:
     /**
@@ -23,14 +24,14 @@ public:
      * @param param functional parameters of the pulse
      * @param type Shape of the pulse
      */
-    Pulse(std::vector<double> param, plsShape type) : param_(param), plsType_(type) {}
+    Pulse(std::vector<double> param, plsShape type, double dt) : param_(param), plsType_(type), dt_(dt) {}
     /**
      * @brief Copy Constructor
      * @details Constructs a Pulse from another Pulse
      *
      * @param o The pulseshpe to be copied
      */
-    Pulse(const Pulse& o) : param_(o.param_), plsType_(o.plsType_) {}
+    Pulse(const Pulse& o) : param_(o.param_), plsType_(o.plsType_), dt_(o.dt_) {}
     //Acessor Functions
     /**
      * @brief Returns the parameters of the pulse
@@ -82,11 +83,15 @@ public:
      */
     const T gauss_pulse(double n)
     {
+        double t = n*dt_;
         std::complex<double> i(0.0,1.0);
+        double omg = param_[0] * 2 * M_PI;
+        double t0 = param_[1] * param_[2];
         //if (t < param_[1]*param_[3])
    //return real(-1.0 / (imag*param_[0]) * (-1*param_[0]*imag + (param_[2]-t) / pow(2*param_[1],2)) * exp(-1*param_[0]*imag - pow(((param_[2]-t)/pow(2*param_[1],2.0)),2.0)));
-        if (n < param_[1] * param_[2])
-            return 100*exp(-1.0 * pow((n - param_[1]*param_[2]/2.0)/(sqrt(2.0)*param_[1]),2.0))*exp(i * 2.0*M_PI * param_[0] * (n- param_[1]*param_[2]/2.0));
+        if (t <= 2*param_[1] * param_[2] + dt_)
+            return -100.0/(omg*i*dt_) * (exp(-i*omg*t - pow((t-t0)/param_[1],2.0)/2.0) - exp(-i*omg*(t-dt_) - pow(((t-dt_)-t0)/param_[1],2.0)/2.0));
+            // return exp(-1.0 * pow((n - param_[1]*param_[2]/2.0)/(sqrt(2.0)*param_[1]),2.0))*exp(i * 2.0*M_PI * param_[0] * (n- param_[1]*param_[2]/2.0));
         else
             return T(0.0);
         // look for the best way to calculate gaussian pulse
