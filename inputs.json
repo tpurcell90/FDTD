@@ -1,9 +1,8 @@
-
 {
     "CompCell" : {
         "procs"         : 1,
-        "y_size"        : 20.0,
-        "x_size"        : 20.0,
+        "y_size"        : 50.0,
+        "x_size"        : 10.0,
         "z_size"        : 0.0,
         "res"           : 50,
         "courant"       : 0.5,
@@ -27,33 +26,75 @@
 
         {
             "profile"   : "gaussian",
-            "fcen"      : 1.50,
-            "fwidth"    : 2.0,
+            "fcen"      : 0.2,
+            "fwidth"    : 0.1,
             "cutoff"    : 8.00,
             "t_start"   : 0.00,
             "size_y"    : 0.00,
-            "size_x"    : 20.00,
+            "size_x"    : 10.00,
             "pol"       : "Ex",
             "loc_x"     : 0.0,
-            "loc_y"     : -4.00
+            "loc_y"     : -14.00
         }
     ],
     "ObjectList": [
         {
             "shape"     : "block",
-            "size_x"    : 25.00,
-            "size_y"    : 0.50,
+            "size_x"    : 10.00,
+            "size_y"    : 25.0,
             "loc_x"     : 0.00,
-            "loc_y"     : 2.50,
-            "eps"       : 1.0,
+            "loc_y"     : 12.50,
+            "eps"       : 9.0,
             "pols"      : [
 
             ]
+        },
+        {
+            "shape"     : "sphere",
+            "radius"    : 0.750,
+            "loc_x"     : 0.00,
+            "loc_y"     : -0.90,
+            "eps"       : 1.00,
+            "pols"      : [
+                {
+                    "omega": 8.06554724676e-22,
+                    "sigma": 6.85971845e+41,
+                    "gamma": 0.00387146267844
+                },
+                {
+                    "omega": 0.065815,
+                    "gamma": 0.31343,
+                    "sigma": 7.9247
+                },
+                {
+                    "omega": 0.36142,
+                    "gamma": 0.036456,
+                    "sigma": 0.50133
+                },
+
+                {
+                    "omega": 0.66017,
+                    "gamma": 0.0052426,
+                    "sigma": 0.013329
+                },
+
+                {
+                    "omega": 0.73259,
+                    "gamma": 0.07388,
+                    "sigma": 0.82655
+                },
+                {
+                    "omega": 1.6365,
+                    "gamma": 0.19511,
+                    "sigma": 1.1133
+                }
+            ]
+
         }
     ],
     "DetectorList"  : [
         {
-            "loc_x"     : -1.00,
+            "loc_x"     : 0.00,
             "loc_y"     : 3.50,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
@@ -61,8 +102,8 @@
             "pol"       : "Ex"
         },
         {
-            "loc_x"     : -1.00,
-            "loc_y"     : -3.50,
+            "loc_x"     : 0.00,
+            "loc_y"     : -13.50,
             "size_x"    : 0.00,
             "size_y"    : 0.00,
             "type"      : "field",

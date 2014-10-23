@@ -64,7 +64,7 @@ pow_trans = E_trans_freq * E_trans_freq.conjugate() / 2.0
 R = pow_refl / pow_incd
 T = pow_trans / pow_incd
 I = pow_incd / pow_trans_incd
-freq = -fftpack.fftfreq(len(R), d = 0.01)
+freq = -fftpack.fftfreq(len(R), d = 0.005)
 
 
 # plt.plot(freq,E_incd_freq)

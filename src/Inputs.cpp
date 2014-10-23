@@ -137,7 +137,7 @@ programInputs::programInputs(std::string fn) : filename_(fn)
         Shape s = string2shape(sStr);
         vector<double> loc = {};
         vector<double> size = {};
-        if(s == block)
+        if(s == block || s == ellipse)
         {
             if(invCell_)
             {

@@ -4,13 +4,13 @@ import os,sys
 from os import listdir
 from os.path import isfile, join
 
-mypath = "/home/tap620/git/FDTD/fout/Hx"
+mypath = "/home/tap620/git/FDTD/fout/Ez"
 onlyfiles = [ f for f in listdir(mypath) if isfile(join(mypath,f)) ]
 field_slices = []
 ii = 0
 for f in onlyfiles:
     print(ii)
-    field_file = open('fout/Hx/'+f)
+    field_file = open('fout/Ez/'+f)
     x_val = []
     y_val = []
     field_val = []
@@ -25,7 +25,7 @@ for f in onlyfiles:
     field_slices.append(field)
     plt.imshow(field,extent=[-10,10,-10,10], aspect='auto')
     plt.colorbar()
-    plt.savefig('fout/Hx/img/'+f[:-4] + ".png")
+    plt.savefig('fout/Ez/img/'+f[:-4] + ".png")
     plt.clf()
     ii +=1
     del field, field_val,x_val,y_val

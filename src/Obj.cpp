@@ -37,6 +37,7 @@ void Obj::setUpConsts (double dt)
 bool Obj::isObj(std::vector<double> v)
 {
     bool isIn = true;
+
     if(part_ == block)
     {
         for(int ii = 0; ii < v.size(); ii++)
@@ -45,8 +46,16 @@ bool Obj::isObj(std::vector<double> v)
                 isIn = false;
         }
     }
-    else if(part_ == sphere && dist(v,location_) > geoParam_[0])
-        isIn = false;
+    else if(part_ == sphere)
+    {
+        if(dist(v,location_) > geoParam_[0])
+            isIn = false;
+    }
+    else if(part_ == ellipse)
+    {
+        if(1 < pow((v[0]-location_[0])/(geoParam_[0]/2.0),2.0) + pow((v[1]-location_[1])/(geoParam_[1]/2.0),2.0))
+            isIn = false;
+    }
     else
         isIn = false;
     return isIn;

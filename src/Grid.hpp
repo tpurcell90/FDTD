@@ -141,7 +141,7 @@ public:
         outFile.open(filename,std::ios_base::app);
         for(int ii = 0; ii < nx_; ii++)
             for(int jj =0; jj < ny_; jj++)
-                outFile<< ii << "\t" << jj << "\t" << point(ii,jj).real() <<std::endl;
+                outFile<< ii << "\t" << jj << "\t" << point(ii,jj) <<std::endl;
     }
     void gridOutArr(std::string filename)
     {
