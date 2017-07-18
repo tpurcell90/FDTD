@@ -1,0 +1,434 @@
+{
+    "CompCell": {
+        "InputMaps_x" : [0.0],                          // YZ-Plane slices in the direction to map Input Values
+        "InputMaps_y" : [-0.15, 0.0, 0.15],             // XZ-Plane slices in the direction to map Input Values
+        "InputMaps_z" : [0.0],                          // XY-Plane slices in the direction to map Input Values
+        "a": 1e-07,                                     // unit length
+        "tLim": 500.0,                                  // Time limit in FDTD units
+        "courant": 0.5,                                 // Courant Factor
+        "PBC": false,                                   // true if using periodic boundary conditions
+        "res": 100,                                     // number of grid points per unit length, grid spacing set to 1/res
+        "E_max": 1.0,                                   // maximum E field value for normalization purposes
+        "pol": "Hz",                                    // Pol used to set TE or TM mode for 2D calculations
+        "size": [                                       // Size of the FDTD cell in terms of the unit length
+            1.15,
+            1.15,
+            0.75
+        ]
+    },
+    "FluxList": [
+        {
+            "load": false,                              // True if fields need to be imported for incident removal
+            "weight": -1.0,                             // sets the weight of the region (typically +/- 1 to make it positive)
+            "nfreq": 201,                               // number of frequencies to keep track of in the range
+            "lamL": 4.0,                                // Left end point for wavelength range (in unit lengths)
+            "lamR": 10.0,                               // Right end point for the wavelength range (in unit lengths)
+            "cross_sec": true,                          // true if outputting cross-sections
+            "size": [                                   // Size of the flux region in unit lengths (if 3 value shown the region is taken to be surfaces of a box surrounding the system)
+                0.56,
+                0.56,
+                0.16
+            ],
+            "loc": [                                    // Location of the center point of the flux region in unit lengths (if it is a box, defines the center of the volume)
+                0.00,
+                0.00,
+                0.0
+            ],
+            "Time_Interval" : 0.01,                     // Time interval for field inputting in FDTD units
+            "name": "output_data/QD/abs",               // relative file name for the final output
+            "SI": false,                                // True if outputting in SI units
+            "save": false                               // True if the fourier-transformed fields need to be saved
+        },
+        {
+            "load": false,                              // True if fields need to be imported for incident removal
+            "weight": -1.0,                             // sets the weight of the region (typically +/- 1 to make it positive)
+            "nfreq": 201,                               // number of frequencies to keep track of in the range
+            "fcen": 0.16,                               // center of the frequency range
+            "fwidth": 0.20,                             // frequency width
+            "cross_sec": true,                          // true if outputting cross-sections
+            "size": [                                   // Size of the flux region in unit lengths (if 3 value shown the region is taken to be surfaces of a box surrounding the system)
+                0.56,
+                0.56,
+                0.16
+            ],
+            "loc": [                                    // Location of the center point of the flux region in unit lengths (if it is a box, defines the center of the volume)
+                0.00,
+                0.00,
+                0.0
+            ],
+            "Time_Interval" : 0.01,                     // Time interval for field inputting in FDTD units
+            "name": "output_data/QD/abs",               // relative file name for the final output
+            "SI": false,                                // True if outputting in SI units
+            "save": false                               // True if the fourier-transformed fields need to be saved
+        }
+    ],
+    "SourceList": [
+        {
+            "loc": [
+                0.00,                                   // x location of the center of the current source region in unit lengths (assumed to be a plane)
+                0.00,                                   // y location of the center of the current source region in unit lengths (assumed to be a plane)
+                0.00                                    // z location of the center of the current source region in unit lengths (assumed to be a plane)
+            ],
+            "ellpiticalKRat" : 1.0,                     // Set the ratio of major and minor axis for elliptical polarized light, major axis is along the psi angle
+            "pol" :"Hz",                                // What field is the current source acting on? Filed component value or L/R for circular polarized
+            "phi": 45.0,                                // azimuthal angle of light propagation vector if k_vec is along the z axis this is not used
+            "psi" : 45.0,                               // angle describing the polarization of the plane wave from the vector \vec{k}\times e_{z} (if k is along z psi_ is the azimuthal angle)
+            "PulseList": [
+                {
+                    "profile": "gaussian",              // Pulse shape (possible vlaues are: gaussian, BH, rectangle, continuous, ricker, and ramped_cont)
+                    "cutoff": 10.0,                     // how many pulse widths are included before the pulse turns off (total is 2* cutoff pulse widths)
+                    "Field_Intensity": 1.0,             // peak intensity of the pulse
+                    "fcen": 0.16,                       // center frequency of the pulse
+                    "fwidth": 0.3,                      // frequency width of the pulse
+                    "t0"    : 33.333                    // Peak time of the pulse (if Gaussian default is cutoff/fwidth)
+                },
+                {
+                    "profile": "BH",                    // Pulse shape (possible vlaues are: gaussian, BH, rectangle, continuous, ricker, and ramped_cont)
+                    "cutoff": 10.0,                     // how many pulse widths are included before the pulse turns off (total is 2* cutoff pulse widths)
+                    "Field_Intensity": 1.0,             // peak intensity of the pulse
+                    "fcen": 0.16,                       // center frequency of the pulse
+                    "fwidth": 0.3,                      // frequency width of the pulse
+                    "t0"    : 33.333,                   // Peak time of the pulse (if Gaussian default is cutoff/fwidth)
+                    "tau"   : 3.333,                    // Width of the pulse in FDTD time units (1/fwidth)
+                    "BH1" : 0.0,                        // the first BH pulse parameter
+                    "BH2" : 0.0,                        // the second BH pulse parameter
+                    "BH3" : 0.0,                        // the third BH pulse parameter
+                    "BH4" : 0.0                         // the fourth BH pulse parameter
+                },
+                {
+                    "profile": "rectangle",             // Pulse shape (possible vlaues are: gaussian, BH, rectangle, continuous, ricker, and ramped_cont)
+                    "Field_Intensity": 1.0,             // peak intensity of the pulse
+                    "fcen": 0.16,                       // center frequency of the pulse
+                    "t0"    : 33.333,                   // Peak time of the pulse (if Gaussian default is cutoff/fwidth)
+                    "tau"   : 3.333,                    // Width of the pulse in FDTD time units (1/fwidth)
+                    "n"   : 100.0                       // used to set approximation to rectangle pulse as n->infity pulse is more rectangular
+                },
+                {
+                    "profile": "continuous",            // Pulse shape (possible vlaues are: gaussian, BH, rectangle, continuous, ricker, and ramped_cont)
+                    "Field_Intensity": 1.0,             // peak intensity of the pulse
+                    "fcen": 0.16                        // center frequency of the pulse
+                },
+                {
+                    "profile": "ricker",                // Pulse shape (possible vlaues are: gaussian, BH, rectangle, continuous, ricker, and ramped_cont)
+                    "cutoff": 10.0,                     // how many pulse widths are included before the pulse turns off (total is 2* cutoff pulse widths)
+                    "Field_Intensity": 1.0,             // peak intensity of the pulse
+                    "fcen": 0.16,                       // center frequency of the pulse
+                    "fwidth": 0.3                       // frequency width of the pulse
+                },
+                {
+                    "profile": "ramped_cont",           // Pulse shape (possible vlaues are: gaussian, BH, rectangle, continuous, ricker, and ramped_cont)
+                    "Field_Intensity": 1.0,             // peak intensity of the pulse
+                    "fcen": 0.16,                       // center frequency of the pulse
+                    "ramp_val" : 0.01                   // used for ramped_cont to define slope to max field values peak intensity will be hit at 1/ramp_val FDTD time units
+                }
+            ],
+            "size": [
+                0.60,                                   // size of the current source region in the x direction in unit lengths (one value must be 0)
+                0.60,                                   // size of the current source region in the y direction in unit lengths (one value must be 0)
+                0.00                                    // size of the current source region in the z direction in unit lengths (one value must be 0)
+            ]
+        }
+    ],
+    "PML": {
+        "m": 3.0,                                       // exponent for polynomial scaling (default 3.0)
+        "ma": 1.0,                                      // exponent for polynomial scaling of the a variable (default 1.0)
+        "aMax": 0.2,                                    // Max a value for the PMLs (default 0.2)
+        "thickness" : [
+                        0.25,                           // Thickness of the x direction pml
+                        0.25,                           // Thickness in the y direction pml
+                        0.25                            // Thickness in the z direction pml
+                    ]
+    },
+    "k-point": [ 0.00, 0.0, 0.0],                       // k-point vector for the wave vector of light (set to 0, 0, 0 in all cases)
+    "DetectorList": [
+        {
+            "loc"  : [
+                0.00,                                   // x location of the detector in unit lengths
+                0.00,                                   // y location of the detector in unit lengths
+                0.00                                    // z location of the detector in unit lengths
+            ],
+            "size" : [
+                0.0,                                    // size of the detector in the x direction in unit lengths
+                0.0,                                    // size of the detector in the y direction in unit lengths
+                0.0                                     // size of the detector in the z direction in unit lengths
+            ],
+            "dtc_class" : "txt",                        // Class of the detector (txt for text file, bin for binary file, cout for outputting to console, freq for Fourier transformed fields)
+            "type" : "Ex",                              // Type of detector (Ex, Ey, Ez, Hx, Hy, Hz, Px, Py, and Pz for their respective field components; E_pow or H_pow for respective power fields)
+            "fname" : "output_data/QD/Ex",              // Output file name
+            "Time_Interval" : 0.1,                      // Time interval to output fields in FDTD units
+            "SI" : false                                // True if outputting in SI units
+        },
+        {
+            "loc"  : [
+                0.00,                                   // x location of the detector in unit lengths
+                0.00,                                   // y location of the detector in unit lengths
+                0.00                                    // z location of the detector in unit lengths
+            ],
+            "size" : [
+                0.0,                                    // size of the detector in the x direction in unit lengths
+                0.0,                                    // size of the detector in the y direction in unit lengths
+                0.0                                     // size of the detector in the z direction in unit lengths
+            ],
+            "dtc_class" : "freq",                       // Class of the detector (txt for text file, bin for binary file, cout for outputting to console, freq for Fourier transformed fields)
+            "nfreq": 201,                               // number of frequencies to keep track of in the range
+            "fcen": 0.16,                               // center of the frequency range
+            "fwidth": 0.20,                             // frequency width
+            "type" : "Ex",                              // Type of detector (Ex, Ey, Ez, Hx, Hy, Hz, Px, Py, and Pz for their respective field components; E_pow or H_pow for respective power fields)
+            "fname" : "output_data/QD/Ex",              // Output file name
+            "Time_Interval" : 0.1,                      // Time interval to output fields in FDTD units
+            "SI" : false                                // True if outputting in SI units
+        },
+        {
+            "loc"  : [
+                0.00,                                   // x location of the detector in unit lengths
+                0.00,                                   // y location of the detector in unit lengths
+                0.00                                    // z location of the detector in unit lengths
+            ],
+            "size" : [
+                0.0,                                    // size of the detector in the x direction in unit lengths
+                0.0,                                    // size of the detector in the y direction in unit lengths
+                0.0                                     // size of the detector in the z direction in unit lengths
+            ],
+            "dtc_class" : "freq",                       // Class of the detector (txt for text file, bin for binary file, cout for outputting to console, freq for Fourier transformed fields)
+            "nfreq": 201,                               // number of frequencies to keep track of in the range
+            "lamL": 4.0,                                // Left end point for wavelength range (in unit lengths)
+            "lamR": 10.0,                               // Right end point for the wavelength range (in unit lengths)
+            "type" : "Ex",                              // Type of detector (Ex, Ey, Ez, Hx, Hy, Hz, Px, Py, and Pz for their respective field components; E_pow or H_pow for respective power fields)
+            "fname" : "output_data/QD/Ex",              // Output file name
+            "Time_Interval" : 0.1,                      // Time interval to output fields in FDTD units
+            "SI" : false                                // True if outputting in SI units
+        }
+    ],
+    "ObjectList": [
+        {
+            "shape" : "sphere",                         // Shape of the object
+            "material" : "custom",                      // Material of the object, (custom if material is not predefined) Predefined materials: Au, Ag, Al, Cu, Be, Cr, Ni, Pt, Pd, Ti, W, TiO2, SiO2, CdSe, CdSeQD, and vac
+            "eps" : 1.1,                                // High frequency dielectric constant of the material
+            "pols": [                                   // list of Lorentz poles in the dielectric function
+                        {
+                            "sigma" : 1.0,              // oscillator strength of the pole
+                            "gamma" : 3.0,              // width of the Lorentz pole in FDTD units
+                            "omega" : 2.6               // center frequency of the pole in FDTD units
+                        }
+            ],
+            "mu" : 1.0,                                 // High frequency dielectric constant of the material
+            "magPols": [                                // list of Lorentz poles in the dielectric function
+                        {
+                            "sigma" : 1.0,              // oscillator strength of the pole
+                            "gamma" : 3.0,              // width of the Lorentz pole in FDTD units
+                            "omega" : 2.6               // center frequency of the pole in FDTD units
+                        }
+            ],
+
+            "loc" : [
+                    0.00,                               // x location of the detector in unit lengths
+                    0.00,                               // y location of the detector in unit lengths
+                    0.00                                // z location of the detector in unit lengths
+                ],
+            "radius" : 0.026,                           // The sphere's radius
+            "unit_vectors" :[                           // A list of where the unit vectors are located for the object (used instead of rotation angles orTheta, orPhi)
+                        {
+                            "uvec" : [1, 0, 0]          // Unit vector of the object (ex for the object)
+                        },
+                        {
+                            "uvec" : [0, 1, 0]          // Unit vector of the object (ey for the object)
+                        },
+                        {
+                            "uvec" : [0, 0, 1]          // Unit vector of the object (ez for the object)
+                        }
+            ]
+        },
+        {
+            "shape" : "ellipsoid",                      // Shape of the object
+            "material" : "Au",                          // Material of the object, (custom if material is not predefined)
+            "loc" : [
+                    0.05,                               // x location of the detector in unit lengths
+                    0.15,                               // y location of the detector in unit lengths
+                    0.00                                // z location of the detector in unit lengths
+                ],
+            "size" :[
+                0.30,                                   // size of the object in the x direction in unit lengths
+                0.20,                                   // size of the object in the y direction in unit lengths
+                0.11                                    // size of the object in the z direction in unit lengths
+            ],
+            "orTheta" : 0.0,                            // What angle to rotate the object around the x axis
+            "orPhi" : 10.0,                             // What angle to rotate the object around the z axis
+            "unit_vectors" :[]                          // A list of where the unit vectors are located for the object (used instead of rotation angles orTheta, orPhi)
+        },
+        {
+            "shape" : "block",                      // Shape of the object
+            "material" : "Au",                          // Material of the object, (custom if material is not predefined)
+            "loc" : [
+                    -0.05,                              // x location of the detector in unit lengths
+                    -0.15,                              // y location of the detector in unit lengths
+                    0.00                                // z location of the detector in unit lengths
+                ],
+            "size" :[
+                0.30,                                   // size of the object in the x direction in unit lengths
+                0.20,                                   // size of the object in the y direction in unit lengths
+                0.11                                    // size of the object in the z direction in unit lengths
+            ],
+            "orTheta" : 0.0,                            // What angle to rotate the object around the x axis
+            "orPhi" : 0.0,                              // What angle to rotate the object around the z axis
+            "rad_curve" : 0.1,                           // Radius of curvature for the corners of the block
+            "unit_vectors" :[]                          // A list of where the unit vectors are located for the object (used instead of rotation angles orTheta, orPhi)
+        },
+        {
+            "shape" : "triangle_prism",                 // Shape of the object
+            "material" : "Au",                          // Material of the object, (custom if material is not predefined)
+            "loc" : [
+                    -0.05,                              // x location of the detector in unit lengths
+                    -0.15,                              // y location of the detector in unit lengths
+                    0.00                                // z location of the detector in unit lengths
+                ],
+            "base"     : 0.40,                          // size of the base of the triangle
+            "height" : 3.0,                             // height of the triangle
+            "length" : 3.0,                             // length of the prism
+            "orTheta" : 0.0,                            // What angle to rotate the object around the x axis
+            "orPhi" : 0.0,                              // What angle to rotate the object around the z axis
+            "unit_vectors" :[]                          // A list of where the unit vectors are located for the object (used instead of rotation angles orTheta, orPhi)
+        },
+        {
+            "shape" : "trapezoid_prism",                // Shape of the object
+            "material" : "Au",                          // Material of the object, (custom if material is not predefined)
+            "loc" : [
+                    -0.05,                              // x location of the detector in unit lengths
+                    -0.15,                              // y location of the detector in unit lengths
+                    0.00                                // z location of the detector in unit lengths
+                ],
+            "base1"    : 0.40,                          // size of the bottom base of the trapezoid
+            "base2"    : 0.10,                          // size of the top base of the trapezoid
+            "height" : 3.0,                             // height of the trapezoid
+            "length" : 3.0,                             // length of the prism
+            "orTheta" : 0.0,                            // What angle to rotate the object around the x axis
+            "orPhi" : 0.0,                              // What angle to rotate the object around the z axis
+            "unit_vectors" :[]                          // A list of where the unit vectors are located for the object (used instead of rotation angles orTheta, orPhi)
+        },
+        {
+            "shape" : "ters_tip" ,                      // Shape of the object
+            "material" : "Au",                          // Material of the object, (custom if material is not predefined)
+            "loc" : [
+                    -0.05,                              // x location of the detector in unit lengths
+                    -0.15,                              // y location of the detector in unit lengths
+                    0.00                                // z location of the detector in unit lengths
+                ],
+            "rad_curve" : 0.2,                          // radius of curvature of the tip in unit vectors
+            "base"    : 0.40,                           // radius of the base on the opposite side of the TERS tip (used to set raise angle)
+            "length" : 3.0,                             // length of the TERS tip in unit vectors
+            "orTheta" : 0.0,                            // What angle to rotate the object around the x axis
+            "orPhi" : 0.0,                              // What angle to rotate the object around the z axis
+            "unit_vectors" :[]                          // A list of where the unit vectors are located for the object (used instead of rotation angles orTheta, orPhi)
+        },
+        {
+            "shape" : "cylinder" ,                      // Shape of the object
+            "material" : "Au",                          // Material of the object, (custom if material is not predefined)
+            "loc" : [
+                    -0.05,                              // x location of the detector in unit lengths
+                    -0.15,                              // y location of the detector in unit lengths
+                    0.00                                // z location of the detector in unit lengths
+                ],
+            "radius" : 0.1,                             // radius of the cylinder in unit vectors
+            "length" : 1.0,                             // length of the cylinder in unit vectors
+            "orTheta" : 0.0,                            // What angle to rotate the object around the x axis
+            "orPhi" : 0.0,                              // What angle to rotate the object around the z axis
+            "unit_vectors" :[]                          // A list of where the unit vectors are located for the object (used instead of rotation angles orTheta, orPhi)
+        },
+        {
+            "shape" : "cone",                           // Shape of the object
+            "material" : "Au",                          // Material of the object, (custom if material is not predefined)
+            "loc" : [
+                    -0.05,                              // x location of the detector in unit lengths
+                    -0.15,                              // y location of the detector in unit lengths
+                    0.00                                // z location of the detector in unit lengths
+                ],
+            "radius1" : 0.1,                            // radius of the top circle in unit vectors
+            "radius2" : 0.1,                            // radius of the top bottom in unit vectors
+            "height" : 1.0,                             // height of the cone in unit vectors
+            "orTheta" : 0.0,                            // What angle to rotate the object around the x axis
+            "orPhi" : 0.0,                              // What angle to rotate the object around the z axis
+            "unit_vectors" :[]                          // A list of where the unit vectors are located for the object (used instead of rotation angles orTheta, orPhi)
+        },
+        {
+            "shape" : "parabolic_ters_tip",             // Shape of the object
+            "material" : "Au",                          // Material of the object, (custom if material is not predefined)
+            "loc" : [
+                    -0.05,                              // x location of the detector in unit lengths
+                    -0.15,                              // y location of the detector in unit lengths
+                    0.00                                // z location of the detector in unit lengths
+                ],
+            "rad_curve" : 0.2,                          // radius of curvature of the tip in unit vectors
+            "length" : 3.0,                             // length of the TERS tip in unit vectors
+            "orTheta" : 0.0,                            // What angle to rotate the object around the x axis
+            "orPhi" : 0.0,                              // What angle to rotate the object around the z axis
+            "unit_vectors" :[]                          // A list of where the unit vectors are located for the object (used instead of rotation angles orTheta, orPhi)
+        }
+    ],
+    "TFSF": [
+        {
+            "loc": [
+                0.00,                                   // x location of the center of the TFSF region in unit lengths (if a box the center of the volume)
+                0.00,                                   // y location of the center of the TFSF region in unit lengths (if a box the center of the volume)
+                0.00                                    // z location of the center of the TFSF region in unit lengths (if a box the center of the volume)
+            ],
+            "ellpiticalKRat" : 1.0,                     // Set the ratio of major and minor axis for elliptical polarized light, major axis is along the psi angle
+            "circPol" : "L" ,                           // Is the light L or R polarized, default linear polarized
+            "phi": 45.0,                                // azimuthal angle of light propagation vector if k_vec is along the z axis this is not used
+            "theta" : 180.0,                            // polar angle of light propagation
+            "psi" : 45.0,                               // angle describing the polarization of the plane wave from the vector \vec{k}\times e_{z} (if k is along z psi_ is the azimuthal angle)
+            "PulseList": [
+                {
+                    "profile": "gaussian",              // Pulse shape (possible vlaues are: gaussian, BH, rectangle, continuous, ricker, and ramped_cont)
+                    "cutoff": 10.0,                     // how many pulse widths are included before the pulse turns off (total is 2* cutoff pulse widths)
+                    "Field_Intensity": 1.0,             // peak intensity of the pulse
+                    "fcen": 0.16,                       // center frequency of the pulse
+                    "fwidth": 0.3,                      // frequency width of the pulse
+                    "t0"    : 33.333                    // Peak time of the pulse (if Gaussian default is cutoff/fwidth)
+                },
+                {
+                    "profile": "BH",                    // Pulse shape (possible vlaues are: gaussian, BH, rectangle, continuous, ricker, and ramped_cont)
+                    "cutoff": 10.0,                     // how many pulse widths are included before the pulse turns off (total is 2* cutoff pulse widths)
+                    "Field_Intensity": 1.0,             // peak intensity of the pulse
+                    "fcen": 0.16,                       // center frequency of the pulse
+                    "fwidth": 0.3,                      // frequency width of the pulse
+                    "t0"    : 33.333,                   // Peak time of the pulse (if Gaussian default is cutoff/fwidth)
+                    "tau"   : 3.333,                    // Width of the pulse in FDTD time units (1/fwidth)
+                    "BH1" : 0.0,                        // the first BH pulse parameter
+                    "BH2" : 0.0,                        // the second BH pulse parameter
+                    "BH3" : 0.0,                        // the third BH pulse parameter
+                    "BH4" : 0.0                         // the fourth BH pulse parameter
+                },
+                {
+                    "profile": "rectangle",             // Pulse shape (possible vlaues are: gaussian, BH, rectangle, continuous, ricker, and ramped_cont)
+                    "Field_Intensity": 1.0,             // peak intensity of the pulse
+                    "fcen": 0.16,                       // center frequency of the pulse
+                    "t0"    : 33.333,                   // Peak time of the pulse (if Gaussian default is cutoff/fwidth)
+                    "tau"   : 3.333,                    // Width of the pulse in FDTD time units (1/fwidth)
+                    "n"   : 100.0                       // used to set approximation to rectangle pulse as n->infity pulse is more rectangular
+                },
+                {
+                    "profile": "continuous",            // Pulse shape (possible vlaues are: gaussian, BH, rectangle, continuous, ricker, and ramped_cont)
+                    "Field_Intensity": 1.0,             // peak intensity of the pulse
+                    "fcen": 0.16                        // center frequency of the pulse
+                },
+                {
+                    "profile": "ricker",                // Pulse shape (possible vlaues are: gaussian, BH, rectangle, continuous, ricker, and ramped_cont)
+                    "cutoff": 10.0,                     // how many pulse widths are included before the pulse turns off (total is 2* cutoff pulse widths)
+                    "Field_Intensity": 1.0,             // peak intensity of the pulse
+                    "fcen": 0.16,                       // center frequency of the pulse
+                    "fwidth": 0.3                       // frequency width of the pulse
+                },
+                {
+                    "profile": "ramped_cont",           // Pulse shape (possible vlaues are: gaussian, BH, rectangle, continuous, ricker, and ramped_cont)
+                    "Field_Intensity": 1.0,             // peak intensity of the pulse
+                    "fcen": 0.16,                       // center frequency of the pulse
+                    "ramp_val" : 0.01                   // used for ramped_cont to define slope to max field values peak intensity will be hit at 1/ramp_val FDTD time units
+                }
+            ],
+            "size": [
+                0.60,                                   // size of the TFSF region in the x direction in unit lengths
+                0.60,                                   // size of the TFSF region in the y direction in unit lengths
+                0.20                                    // size of the TFSF region in the z direction in unit lengths
+            ]
+        }
+    ]
+}
