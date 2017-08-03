@@ -15,6 +15,7 @@ void parallelStorageFreqDTCReal::fieldIn(cplx* fftFact)
     {
         for(int ii = 0; ii < fieldInFreq_->sz_[1]; ++ii)
         {
+            // std::cout << fieldInFreq_->loc_[0]+ii*fieldInFreq_->addVec1_[0]+jj*fieldInFreq_->addVec2_[0] << '\t' << fieldInFreq_->loc_[1]+ii*fieldInFreq_->addVec1_[1]+jj*fieldInFreq_->addVec2_[1] << '\t' << fieldInFreq_->loc_[2]+ii*fieldInFreq_->addVec1_[2]+jj*fieldInFreq_->addVec2_[2] << std::endl;
             dcopy_(fieldInFreq_->sz_[0], &grid_->point(fieldInFreq_->loc_[0]+ii*fieldInFreq_->addVec1_[0]+jj*fieldInFreq_->addVec2_[0], fieldInFreq_->loc_[1]+ii*fieldInFreq_->addVec1_[1]+jj*fieldInFreq_->addVec2_[1], fieldInFreq_->loc_[2]+ii*fieldInFreq_->addVec1_[2]+jj*fieldInFreq_->addVec2_[2]), fieldInFreq_->stride_, reinterpret_cast<double*>( &fIn_[ (ii*fieldInFreq_->sz_[2] + jj)*fieldInFreq_->sz_[0] ] ) , 2 );
         }
     }

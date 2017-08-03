@@ -374,7 +374,9 @@ public:
     void toFile()
     {
         gridComm_.barrier();
+        gridComm_.barrier();
         collectFreqFields();
+        gridComm_.barrier();
         if(gridComm_.rank() != masterProc_)
             return;
 

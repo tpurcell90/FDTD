@@ -5,359 +5,31 @@ parallelFDTDFieldReal::parallelFDTDFieldReal(parallelProgramInputs &IP, mpiInter
     parallelFDTDFieldBase<double>(IP, gridComm)
 {
     std::shared_ptr<parallelGridInt> phys_Ex, phys_Ey, phys_Ez, phys_Hx, phys_Hy, phys_Hz;
-    // Set up the PMLs and axLists based on if in the TE or TM mode (Not in previous conditional to make going to optional 3D easier)
-    if(Hz_ && Ez_)
-    {
-        std::tuple <int,int,int,int, int, int> BCs;
-        phys_Ex = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(),n_vec_[2]+2*gridComm_.npZ() }} ), d_, false);
-        phys_Ey = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(),n_vec_[2]+2*gridComm_.npZ() }} ), d_, true);
-        phys_Ez = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(),n_vec_[2]+2*gridComm_.npZ() }} ), d_, false);
-
-        phys_Hx = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(),n_vec_[2]+2*gridComm_.npZ() }} ), d_, false);
-        phys_Hy = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(),n_vec_[2]+2*gridComm_.npZ() }} ), d_, true);
-        phys_Hz = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(),n_vec_[2]+2*gridComm_.npZ() }} ), d_, false);
-
-        BCs = std::make_tuple(1, Ez_->local_x()-1, 1, Ez_->local_y()-1, 1, Ez_->local_z() - 1);
-        int xmin, xmax, ymin, ymax, zmin, zmax;
-        std::tie(xmin,xmax,ymin,ymax, zmin, zmax) = BCs;
-
-        setupPhysFields(phys_Ex, std::array<double,3>( {{ 0.5, 0.0, 0.0}} ), std::array<int,3>( {{ xmin, ymin, zmin}} ), std::array<int, 3>( {{xmax, ymax, zmax }} ) );
-        setupPhysFields(phys_Ey, std::array<double,3>( {{ 0.0, 0.5, 0.0}} ), std::array<int,3>( {{ xmin, ymin, zmin}} ), std::array<int, 3>( {{xmax, ymax, zmax }} ) );
-        setupPhysFields(phys_Ez, std::array<double,3>( {{ 0.0, 0.0, 0.5}} ), std::array<int,3>( {{ xmin, ymin, zmin}} ), std::array<int, 3>( {{xmax, ymax, zmax }} ) );
-
-        setupPhysFields(phys_Hx, std::array<double,3>( {{ 0.0, 0.5, 0.5}} ), std::array<int,3>( {{ xmin, ymin, zmin}} ), std::array<int, 3>( {{xmax, ymax, zmax }} ) );
-        setupPhysFields(phys_Hy, std::array<double,3>( {{ 0.5, 0.0, 0.5}} ), std::array<int,3>( {{ xmin, ymin, zmin}} ), std::array<int, 3>( {{xmax, ymax, zmax }} ) );
-        setupPhysFields(phys_Hz, std::array<double,3>( {{ 0.5, 0.5, 0.0}} ), std::array<int,3>( {{ xmin, ymin, zmin}} ), std::array<int, 3>( {{xmax, ymax, zmax }} ) );
-        for(int pp = 0; pp < pmlThickness_.size(); ++pp)
-        {
-            int cor_ii = pp;
-            int cor_jj = (pp + 1) % 3;
-            int cor_kk = (pp + 2) % 3;
-
-            std::array<int,3> addVec_ii = {0, 0, 0};
-            std::array<int,3> addVec_jj = {0, 0, 0};
-            std::array<int,3> addVec_kk = {0, 0, 0};
-
-            addVec_ii[cor_ii] = 1;
-            addVec_jj[cor_jj] = 1;
-            addVec_kk[cor_kk] = 1;
-            int xx = 0, yy = 0 , zz = 0;
-            int max_ii = pmlThickness_[cor_ii];
-            if(phys_Ex->procLoc()[cor_ii] < pmlThickness_[cor_ii])
-                max_ii = pmlThickness_[cor_ii] - phys_Ex->procLoc()[cor_ii];
-            if(max_ii >= phys_Ex->ln_vec()[cor_ii])
-                max_ii = phys_Ex->ln_vec()[cor_ii]-1;
-            gridComm_.barrier();
-            // If an object i sin the PML D fields are used for that one, otherwise use the E-field
-            if(cor_jj != 1 || gridComm_.rank() == 0 || gridComm_.rank() == gridComm_.size()-1  )
-            {
-                for(int ii = 0; ii <= max_ii; ++ii)
-                {
-                    for(int jj = 0; jj < phys_Ex->ln_vec()[cor_jj]; ++jj)
-                    {
-                        for(int kk = 0; kk < phys_Ex->ln_vec()[cor_kk]; ++kk)
-                        {
-                            if(cor_ii != 1 || gridComm_.rank() == 0)
-                            {
-                                xx = ii*addVec_ii[0]+jj*addVec_jj[0]+kk*addVec_kk[0];
-                                yy = ii*addVec_ii[1]+jj*addVec_jj[1]+kk*addVec_kk[1];
-                                zz = ii*addVec_ii[2]+jj*addVec_jj[2]+kk*addVec_kk[2];
-                                if( phys_Ex->point(xx,yy,zz) > 0 )
-                                {
-                                    dielectricMatInPML_ = true;
-                                    break;
-                                }
-                                else if( phys_Ey->point(xx,yy,zz) > 0 )
-                                {
-                                    dielectricMatInPML_ = true;
-                                    break;
-                                }
-                                else if( phys_Ez->point(xx,yy,zz) > 0 )
-                                {
-                                    dielectricMatInPML_ = true;
-                                    break;
-                                }
-                            }
-                            if(cor_ii != 1 || gridComm_.rank() == gridComm_.size()-1)
-                            {
-                                xx = (phys_Ex->ln_vec()[cor_ii] - 1)*addVec_ii[0] - std::pow(-1, addVec_ii[0]-1 ) * (ii*addVec_ii[0]+jj*addVec_jj[0]+kk*addVec_kk[0]);
-                                yy = (phys_Ex->ln_vec()[cor_ii] - 1)*addVec_ii[1] - std::pow(-1, addVec_ii[1]-1 ) * (ii*addVec_ii[1]+jj*addVec_jj[1]+kk*addVec_kk[1]);
-                                zz = (phys_Ex->ln_vec()[cor_ii] - 1)*addVec_ii[2] - std::pow(-1, addVec_ii[2]-1 ) * (ii*addVec_ii[2]+jj*addVec_jj[2]+kk*addVec_kk[2]);
-                                if( phys_Ex->point(xx,yy,zz) > 0 )
-                                {
-                                    dielectricMatInPML_ = true;
-                                    break;
-                                }
-                                else if( phys_Ey->point(xx,yy,zz) > 0 )
-                                {
-                                    dielectricMatInPML_ = true;
-                                    break;
-                                }
-                                else if( phys_Ez->point(xx,yy,zz) > 0 )
-                                {
-                                    dielectricMatInPML_ = true;
-                                    break;
-                                }
-                            }
-                        }
-                        if(dielectricMatInPML_)
-                            break;
-                    }
-                    if(dielectricMatInPML_)
-                        break;
-                }
-            }
-            if( dielectricMatInPML_ )
-                break;
-        }
-        HxPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Hx_, Ey_, Ez_, POLARIZATION::HX, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez, phys_Ez, objArr_);
-        HyPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Hy_, Ez_, Ex_, POLARIZATION::HY, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez, phys_Ez, objArr_);
-        HzPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Hz_, Ex_, Ey_, POLARIZATION::HZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-        if(dielectricMatInPML_)
-        {
-            ExPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Dx_, Hy_, Hz_, POLARIZATION::EX, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-            EyPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Dy_, Hz_, Hx_, POLARIZATION::EY, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-            EzPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Dz_, Hx_, Hy_, POLARIZATION::EZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez, phys_Ez, objArr_);
-        }
-        else
-        {
-            ExPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Ex_, Hy_, Hz_, POLARIZATION::EX, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-            EyPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Ey_, Hz_, Hx_, POLARIZATION::EY, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-            EzPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Ez_, Hx_, Hy_, POLARIZATION::EZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez, phys_Ez, objArr_);
-        }
-        initializeLists(phys_Ex, phys_Ey, phys_Ez, phys_Hx, phys_Hy, phys_Hz);
-        for(auto & obj :objArr_)
-        {
-            obj->setUpConsts(dt_);
-            while((obj->mat().size() - 1) / 3.0 > lorPx_.size())
-            {
-                    lorPx_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-                prevLorPx_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-                    lorPy_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, true) );
-                prevLorPy_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, true) );
-                    lorPz_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-                prevLorPz_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-            }
-            while((obj->magMat().size() - 1) / 3.0 > lorMx_.size())
-            {
-                    lorMx_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-                prevLorMx_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-                    lorMy_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, true) );
-                prevLorMy_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, true) );
-                    lorMz_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-                prevLorMz_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-            }            {            }
-        }
-    }
-    else if(Hz_)
-    {
-        std::tuple <int,int,int,int> BCs;
-        phys_Ex = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false);
-        phys_Ey = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, true);
-        phys_Ez = nullptr;
-
-        phys_Hx = nullptr;
-        phys_Hy = nullptr;
-        phys_Hz = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(),n_vec_[2]+2*gridComm_.npZ() }} ), d_, false);
-
-        BCs = std::make_tuple(1, Ex_->local_x()-1, 1, Ex_->local_y()-1);
-        int xmin, xmax, ymin, ymax;
-        std::tie(xmin,xmax,ymin,ymax) = BCs;
-
-        setupPhysFields(phys_Ex, std::array<double,3>({{ 0.5, 0.0, 0.0}}), std::array<int,3>( {{ xmin, ymin, 0}} ), std::array<int,3>( {{xmax, ymax, 0 }} ) );
-        setupPhysFields(phys_Ey, std::array<double,3>({{ 0.0, 0.5, 0.0}}), std::array<int,3>( {{ xmin, ymin, 0}} ), std::array<int,3>( {{xmax, ymax, 0 }} ) );
-        setupPhysFields(phys_Hz, std::array<double,3>({{ 0.5, 0.5, 0.0}}), std::array<int,3>( {{ xmin, ymin, 0}} ), std::array<int,3>( {{xmax, ymax, 0 }} ) );
-
-        for(int pp = 0; pp < pmlThickness_.size(); ++pp)
-        {
-            int cor_ii = pp;
-            int cor_jj = (pp + 1) % 3;
-            int cor_kk = (pp + 2) % 3;
-
-            std::array<int,3> addVec_ii = {0, 0, 0};
-            std::array<int,3> addVec_jj = {0, 0, 0};
-            std::array<int,3> addVec_kk = {0, 0, 0};
-
-            addVec_ii[cor_ii] = 1;
-            addVec_jj[cor_jj] = 1;
-            addVec_kk[cor_kk] = 1;
-            int max_ii = pmlThickness_[cor_ii];
-            if(phys_Ex->procLoc()[cor_ii] < pmlThickness_[cor_ii])
-                max_ii = pmlThickness_[cor_ii] - phys_Ex->procLoc()[cor_ii];
-            if(max_ii > phys_Ex->ln_vec()[cor_ii])
-                max_ii = phys_Ex->ln_vec()[cor_ii]-1;
-            // If an object i sin the PML D fields are used for that one, otherwise use the E-field
-            for(int ii = 0; ii <= max_ii; ++ii)
-            {
-                for(int jj = 0; jj < phys_Ex->ln_vec()[cor_jj]; ++jj)
-                {
-                    for(int kk = 0; kk < phys_Ex->ln_vec()[cor_kk]; ++kk)
-                    {
-                        int xx = ii*addVec_ii[0]+jj*addVec_jj[0]+kk*addVec_kk[0];
-                        int yy = ii*addVec_ii[1]+jj*addVec_jj[1]+kk*addVec_kk[1];
-                        if( phys_Ex->point(xx,yy) > 0 )
-                        {
-                            dielectricMatInPML_ = true;
-                            break;
-                        }
-                        else if( phys_Ey->point(xx,yy) > 0 )
-                        {
-                            dielectricMatInPML_ = true;
-                            break;
-                        }
-                        xx = (phys_Ex->ln_vec()[cor_ii] - 1)*addVec_ii[0] - std::pow(-1, addVec_ii[0]-1 ) * (ii*addVec_ii[0]+jj*addVec_jj[0]+kk*addVec_kk[0]);
-                        yy = (phys_Ex->ln_vec()[cor_ii] - 1)*addVec_ii[1] - std::pow(-1, addVec_ii[1]-1 ) * (ii*addVec_ii[1]+jj*addVec_jj[1]+kk*addVec_kk[1]);
-                        if( phys_Ex->point(xx,yy) > 0 )
-                        {
-                            dielectricMatInPML_ = true;
-                            break;
-                        }
-                        else if( phys_Ey->point(xx,yy) > 0 )
-                        {
-                            dielectricMatInPML_ = true;
-                            break;
-                        }
-                    }
-                    if(dielectricMatInPML_)
-                        break;
-                }
-                if(dielectricMatInPML_)
-                    break;
-            }
-        }
-        EzPML_   = nullptr;
-        HxPML_   = nullptr;
-        HyPML_   = nullptr;
-        HzPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Hz_, Ex_, Ey_, POLARIZATION::HZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-        if(dielectricMatInPML_)
-        {
-            ExPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Dx_, Ey_, Hz_, POLARIZATION::EX, pmlThickness_ , IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-            EyPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Dy_, Hz_, Ex_, POLARIZATION::EY, pmlThickness_ , IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-        }
-        else
-        {
-            ExPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Ex_, Ey_, Hz_, POLARIZATION::EX, pmlThickness_ , IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-            EyPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Ey_, Hz_, Ex_, POLARIZATION::EY, pmlThickness_ , IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-        }
-        initializeLists(phys_Ex, phys_Ey, phys_Ez, phys_Hx, phys_Hy, phys_Hz);
-        for(auto & obj :objArr_)
-        {
-            obj->setUpConsts(dt_);
-            while((obj->mat().size() - 1) / 3.0 > lorPx_.size())
-            {
-                    lorPx_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false) );
-                prevLorPx_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false) );
-                    lorPy_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, true) );
-                prevLorPy_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, true) );
-            }
-            while((obj->magMat().size() - 1) / 3.0 > lorMz_.size())
-            {
-                    lorMz_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false) );
-                prevLorMz_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false) );
-            }
-        }
-    }
-    else if(Ez_)
-    {
-        std::tuple <int,int,int,int> BCs;
-        phys_Ex = nullptr;
-        phys_Ey = nullptr;
-        phys_Ez = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false);
-
-        phys_Hx = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(),n_vec_[2]+2*gridComm_.npZ() }} ), d_, false);
-        phys_Hy = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(),n_vec_[2]+2*gridComm_.npZ() }} ), d_, true);
-        phys_Hz = nullptr;
-
-        BCs = std::make_tuple(1, Ez_->local_x()-1, 1, Ez_->local_y()-1);
-        int xmin, xmax, ymin, ymax;
-        std::tie(xmin,xmax,ymin,ymax) = BCs;
-
-        setupPhysFields(phys_Hx, std::array<double,3>({{ 0.0, 0.5, 0.5}}), std::array<int,3>( {{ xmin, ymin, 0}} ), std::array<int,3>( {{xmax, ymax, 0 }} ) );
-        setupPhysFields(phys_Hy, std::array<double,3>({{ 0.5, 0.0, 0.5}}), std::array<int,3>( {{ xmin, ymin, 0}} ), std::array<int,3>( {{xmax, ymax, 0 }} ) );
-        setupPhysFields(phys_Ez, std::array<double,3>({{ 0.0, 0.0, 0.5}}), std::array<int,3>( {{ xmin, ymin, 0}} ), std::array<int,3>( {{xmax, ymax, 0 }} ) );
-        for(int pp = 0; pp < pmlThickness_.size(); ++pp)
-        {
-            int cor_ii = pp;
-            int cor_jj = (pp + 1) % 3;
-            int cor_kk = (pp + 2) % 3;
-
-            std::array<int,3> addVec_ii = {0, 0, 0};
-            std::array<int,3> addVec_jj = {0, 0, 0};
-            std::array<int,3> addVec_kk = {0, 0, 0};
-
-            addVec_ii[cor_ii] = 1;
-            addVec_jj[cor_jj] = 1;
-            addVec_kk[cor_kk] = 1;
-            int max_ii = pmlThickness_[cor_ii];
-            if(phys_Ez->procLoc()[cor_ii] < pmlThickness_[cor_ii])
-                max_ii = pmlThickness_[cor_ii] - phys_Ez->procLoc()[cor_ii];
-            if(max_ii > phys_Ez->ln_vec()[cor_ii])
-                max_ii = phys_Ez->ln_vec()[cor_ii]-1;
-            // If an object i sin the PML D fields are used for that one, otherwise use the E-field
-            for(int ii = 0; ii <= max_ii; ++ii)
-            {
-                for(int jj = 0; jj < phys_Ez->ln_vec()[cor_jj]; ++jj)
-                {
-                    for(int kk = 0; kk < phys_Ez->ln_vec()[cor_kk]; ++kk)
-                    {
-                        int xx = ii*addVec_ii[0]+jj*addVec_jj[0]+kk*addVec_kk[0];
-                        int yy = ii*addVec_ii[1]+jj*addVec_jj[1]+kk*addVec_kk[1];
-                        if( phys_Ez->point(xx,yy) > 0 )
-                        {
-                            dielectricMatInPML_ = true;
-                            break;
-                        }
-                        xx = (phys_Ez->ln_vec()[cor_ii] - 1)*addVec_ii[0] - std::pow(-1, addVec_ii[0]-1 ) * (ii*addVec_ii[0]+jj*addVec_jj[0]+kk*addVec_kk[0]);
-                        yy = (phys_Ez->ln_vec()[cor_ii] - 1)*addVec_ii[1] - std::pow(-1, addVec_ii[1]-1 ) * (ii*addVec_ii[1]+jj*addVec_jj[1]+kk*addVec_kk[1]);
-                        if( phys_Ez->point(xx,yy) > 0 )
-                        {
-                            dielectricMatInPML_ = true;
-                            break;
-                        }
-                    }
-                    if(dielectricMatInPML_)
-                        break;
-                }
-                if(dielectricMatInPML_)
-                    break;
-            }
-        }
-        HxPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Hx_, Hy_, Ez_, POLARIZATION::HX, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez, phys_Ez, objArr_);
-        HyPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Hy_, Ez_, Hx_, POLARIZATION::HY, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez, phys_Ez, objArr_);
-        HzPML_   = nullptr;
-
-        ExPML_   = nullptr;
-        EyPML_   = nullptr;
-        if(dielectricMatInPML_)
-        {
-            EzPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Dz_, Hx_, Hy_, POLARIZATION::EZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez, phys_Ez, objArr_);
-        }
-        else
-        {
-            EzPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Ez_, Hx_, Hy_, POLARIZATION::EZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez, phys_Ez, objArr_);
-        }
-
-        initializeLists(phys_Ex, phys_Ey, phys_Ez, phys_Hx, phys_Hy, phys_Hz);
-        for(auto & obj :objArr_)
-        {
-            obj->setUpConsts(dt_);
-            while((obj->mat().size() - 1) / 3.0 > lorPz_.size())
-            {
-                    lorPz_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false) );
-                prevLorPz_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false) );
-            }
-            while((obj->magMat().size() - 1) / 3.0 > lorMx_.size())
-            {
-                    lorMx_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false) );
-                prevLorMx_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false) );
-                    lorMy_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, true) );
-                prevLorMy_.push_back(std::make_shared<parallelGridReal>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, true) );
-            }
-        }
-    }
-    // If there is an Hz field set up all TE mode functions otherwise set them to do nothing
     if(Hz_)
     {
+        // Initialize the PMLs
+        if(magMatInPML_)
+        {
+            HzPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Bz_, Ex_, Ey_, POLARIZATION::HZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex_, phys_Ey_, objArr_);
+        }
+        else
+        {
+            HzPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Hz_, Ex_, Ey_, POLARIZATION::HZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex_, phys_Ey_, objArr_);
+        }
+        if(dielectricMatInPML_)
+        {
+            ExPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Dx_, Hy_, Hz_, POLARIZATION::EX, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex_, phys_Ey_, objArr_);
+            EyPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Dy_, Hz_, Hx_, POLARIZATION::EY, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex_, phys_Ey_, objArr_);
+        }
+        else
+        {
+            ExPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Ex_, Hy_, Hz_, POLARIZATION::EX, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex_, phys_Ey_, objArr_);
+            EyPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Ey_, Hz_, Hx_, POLARIZATION::EY, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex_, phys_Ey_, objArr_);
+        }
+        initializeList(phys_Hz_, HzPML_, false, std::array<int,3>( {{ 1,  0,  0 }} ), std::array<int,3>( {{n_vec_[0]  , n_vec_[1]  , n_vec_[2]+1 }} ), d_[0], axHz_, axHz_);
+        initializeList(phys_Ex_, ExPML_,  true, std::array<int,3>( {{ 0, -1,  0 }} ), std::array<int,3>( {{n_vec_[0]  , n_vec_[1]+1, n_vec_[2]+1 }} ), d_[1], axEx_, axDx_);
+        initializeList(phys_Ey_, EyPML_,  true, std::array<int,3>( {{ 0,  0, -1 }} ), std::array<int,3>( {{n_vec_[0]+1, n_vec_[1]  , n_vec_[2]+1 }} ), d_[0], axEy_, axDy_);
+
         if(!Ez_)
         {
             upExFxn_ = &FDTDCompUpdateFxnReal::OneCompCurlK;
@@ -381,6 +53,7 @@ parallelFDTDFieldReal::parallelFDTDFieldReal(parallelProgramInputs &IP, mpiInter
 
         D2ExFxn_ = &FDTDCompUpdateFxnReal::DtoE;
         D2EyFxn_ = &FDTDCompUpdateFxnReal::DtoE;
+
         B2HzFxn_ = &FDTDCompUpdateFxnReal::BtoH;
 
         if(IP.periodic_ && gridComm_.size() > 1)
@@ -460,6 +133,29 @@ parallelFDTDFieldReal::parallelFDTDFieldReal(parallelProgramInputs &IP, mpiInter
     // If there is an Ez field set up all TM functions otherwise set them to do nothing
     if(Ez_)
     {
+        //initialize the PMLs
+        if(magMatInPML_)
+        {
+            HxPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Bx_, Ey_, Ez_, POLARIZATION::HX, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez_, phys_Ez_, objArr_);
+            HyPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, By_, Ez_, Ex_, POLARIZATION::HY, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez_, phys_Ez_, objArr_);
+        }
+        else
+        {
+            HxPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Hx_, Ey_, Ez_, POLARIZATION::HX, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez_, phys_Ez_, objArr_);
+            HyPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Hy_, Ez_, Ex_, POLARIZATION::HY, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez_, phys_Ez_, objArr_);
+        }
+        if(dielectricMatInPML_)
+        {
+            EzPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Dz_, Hx_, Hy_, POLARIZATION::EZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez_, phys_Ez_, objArr_);
+        }
+        else
+        {
+            EzPML_   = std::make_shared<parallelCPMLReal>(gridComm_, weights_, Ez_, Hx_, Hy_, POLARIZATION::EZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez_, phys_Ez_, objArr_);
+        }
+        initializeList(phys_Ez_, EzPML_,  true, std::array<int,3>( {{-1,  0,  0 }} ), std::array<int,3>( {{n_vec_[0]+1, n_vec_[1]+1, n_vec_[2]   }} ), d_[0], axEz_, axDz_);
+        initializeList(phys_Hx_, HxPML_, false, std::array<int,3>( {{ 0,  1,  0 }} ), std::array<int,3>( {{n_vec_[0]+1, n_vec_[1]  , n_vec_[2]   }} ), d_[1], axHx_, axHx_);
+        initializeList(phys_Hy_, HyPML_, false, std::array<int,3>( {{ 0,  0,  1 }} ), std::array<int,3>( {{n_vec_[0]  , n_vec_[1]+1, n_vec_[2]   }} ), d_[0], axHy_, axHy_);
+
         if(!Hz_)
         {
             upHxFxn_ = &FDTDCompUpdateFxnReal::OneCompCurlK;
@@ -475,10 +171,12 @@ parallelFDTDFieldReal::parallelFDTDFieldReal(parallelProgramInputs &IP, mpiInter
 
         upLorMxFxn_ = &FDTDCompUpdateFxnReal::UpdateLorMag;
         upLorMyFxn_ = &FDTDCompUpdateFxnReal::UpdateLorMag;
+
         upLorPzFxn_ = &FDTDCompUpdateFxnReal::UpdateLorPol;
 
         B2HxFxn_ = &FDTDCompUpdateFxnReal::BtoH;
         B2HyFxn_ = &FDTDCompUpdateFxnReal::BtoH;
+
         D2EzFxn_ = &FDTDCompUpdateFxnReal::DtoE;
 
         updateHxPML_ = [](pml_ptr pml){pml->updateGrid();};
@@ -908,369 +606,32 @@ parallelFDTDFieldReal::parallelFDTDFieldReal(parallelProgramInputs &IP, mpiInter
 parallelFDTDFieldCplx::parallelFDTDFieldCplx(parallelProgramInputs &IP, mpiInterface & gridComm) :
     parallelFDTDFieldBase<cplx>(IP, gridComm)
 {
-    std::shared_ptr<parallelGridInt> phys_Ex, phys_Ey, phys_Ez, phys_Hx, phys_Hy, phys_Hz;
-    if(Hz_ && Ez_)
-    {
-        std::tuple <int,int,int,int, int, int> BCs;
-        phys_Ex = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(),n_vec_[2]+2*gridComm_.npZ() }} ), d_, false);
-        phys_Ey = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(),n_vec_[2]+2*gridComm_.npZ() }} ), d_, true);
-        phys_Ez = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(),n_vec_[2]+2*gridComm_.npZ() }} ), d_, false);
-
-        phys_Hx = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(),n_vec_[2]+2*gridComm_.npZ() }} ), d_, false);
-        phys_Hy = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(),n_vec_[2]+2*gridComm_.npZ() }} ), d_, true);
-        phys_Hz = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(),n_vec_[2]+2*gridComm_.npZ() }} ), d_, false);
-
-        BCs = std::make_tuple(1, Ez_->local_x()-1, 1, Ez_->local_y()-1, 1, Ez_->local_z() - 1);
-        int xmin, xmax, ymin, ymax, zmin, zmax;
-        std::tie(xmin,xmax,ymin,ymax, zmin, zmax) = BCs;
-
-        setupPhysFields(phys_Ex, std::array<double,3>( {{ 0.5, 0.0, 0.0}} ), std::array<int,3>( {{ xmin, ymin, zmin}} ), std::array<int, 3>( {{xmax, ymax, zmax }} ) );
-        setupPhysFields(phys_Ey, std::array<double,3>( {{ 0.0, 0.5, 0.0}} ), std::array<int,3>( {{ xmin, ymin, zmin}} ), std::array<int, 3>( {{xmax, ymax, zmax }} ) );
-        setupPhysFields(phys_Ez, std::array<double,3>( {{ 0.0, 0.0, 0.5}} ), std::array<int,3>( {{ xmin, ymin, zmin}} ), std::array<int, 3>( {{xmax, ymax, zmax }} ) );
-
-        setupPhysFields(phys_Hx, std::array<double,3>( {{ 0.0, 0.5, 0.5}} ), std::array<int,3>( {{ xmin, ymin, zmin}} ), std::array<int, 3>( {{xmax, ymax, zmax }} ) );
-        setupPhysFields(phys_Hy, std::array<double,3>( {{ 0.5, 0.0, 0.5}} ), std::array<int,3>( {{ xmin, ymin, zmin}} ), std::array<int, 3>( {{xmax, ymax, zmax }} ) );
-        setupPhysFields(phys_Hz, std::array<double,3>( {{ 0.5, 0.5, 0.0}} ), std::array<int,3>( {{ xmin, ymin, zmin}} ), std::array<int, 3>( {{xmax, ymax, zmax }} ) );
-        for(int pp = 0; pp < pmlThickness_.size(); ++pp)
-        {
-            int cor_ii = pp;
-            int cor_jj = (pp + 1) % 3;
-            int cor_kk = (pp + 2) % 3;
-
-            std::array<int,3> addVec_ii = {0, 0, 0};
-            std::array<int,3> addVec_jj = {0, 0, 0};
-            std::array<int,3> addVec_kk = {0, 0, 0};
-
-            addVec_ii[cor_ii] = 1;
-            addVec_jj[cor_jj] = 1;
-            addVec_kk[cor_kk] = 1;
-            int xx = 0, yy = 0 , zz = 0;
-            int max_ii = pmlThickness_[cor_ii];
-            if(phys_Ex->procLoc()[cor_ii] < pmlThickness_[cor_ii])
-                max_ii = pmlThickness_[cor_ii] - phys_Ex->procLoc()[cor_ii];
-            if(max_ii >= phys_Ex->ln_vec()[cor_ii])
-                max_ii = phys_Ex->ln_vec()[cor_ii]-1;
-            gridComm_.barrier();
-            // If an object i sin the PML D fields are used for that one, otherwise use the E-field
-            if(cor_jj != 1 || gridComm_.rank() == 0 || gridComm_.rank() == gridComm_.size()-1  )
-            {
-                for(int ii = 0; ii <= max_ii; ++ii)
-                {
-                    for(int jj = 0; jj < phys_Ex->ln_vec()[cor_jj]; ++jj)
-                    {
-                        for(int kk = 0; kk < phys_Ex->ln_vec()[cor_kk]; ++kk)
-                        {
-                            if(cor_ii != 1 || gridComm_.rank() == 0)
-                            {
-                                xx = ii*addVec_ii[0]+jj*addVec_jj[0]+kk*addVec_kk[0];
-                                yy = ii*addVec_ii[1]+jj*addVec_jj[1]+kk*addVec_kk[1];
-                                zz = ii*addVec_ii[2]+jj*addVec_jj[2]+kk*addVec_kk[2];
-                                if( phys_Ex->point(xx,yy,zz) > 0 )
-                                {
-                                    dielectricMatInPML_ = true;
-                                    break;
-                                }
-                                else if( phys_Ey->point(xx,yy,zz) > 0 )
-                                {
-                                    dielectricMatInPML_ = true;
-                                    break;
-                                }
-                                else if( phys_Ez->point(xx,yy,zz) > 0 )
-                                {
-                                    dielectricMatInPML_ = true;
-                                    break;
-                                }
-                            }
-                            if(cor_ii != 1 || gridComm_.rank() == gridComm_.size()-1)
-                            {
-                                xx = (phys_Ex->ln_vec()[cor_ii] - 1)*addVec_ii[0] - std::pow(-1, addVec_ii[0]-1 ) * (ii*addVec_ii[0]+jj*addVec_jj[0]+kk*addVec_kk[0]);
-                                yy = (phys_Ex->ln_vec()[cor_ii] - 1)*addVec_ii[1] - std::pow(-1, addVec_ii[1]-1 ) * (ii*addVec_ii[1]+jj*addVec_jj[1]+kk*addVec_kk[1]);
-                                zz = (phys_Ex->ln_vec()[cor_ii] - 1)*addVec_ii[2] - std::pow(-1, addVec_ii[2]-1 ) * (ii*addVec_ii[2]+jj*addVec_jj[2]+kk*addVec_kk[2]);
-                                if( phys_Ex->point(xx,yy,zz) > 0 )
-                                {
-                                    dielectricMatInPML_ = true;
-                                    break;
-                                }
-                                else if( phys_Ey->point(xx,yy,zz) > 0 )
-                                {
-                                    dielectricMatInPML_ = true;
-                                    break;
-                                }
-                                else if( phys_Ez->point(xx,yy,zz) > 0 )
-                                {
-                                    dielectricMatInPML_ = true;
-                                    break;
-                                }
-                            }
-                        }
-                        if(dielectricMatInPML_)
-                            break;
-                    }
-                    if(dielectricMatInPML_)
-                        break;
-                }
-            }
-            if( dielectricMatInPML_ )
-                break;
-        }
-        HxPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Hx_, Ey_, Ez_, POLARIZATION::HX, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez, phys_Ez, objArr_);
-        HyPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Hy_, Ez_, Ex_, POLARIZATION::HY, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez, phys_Ez, objArr_);
-        HzPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Hz_, Ex_, Ey_, POLARIZATION::HZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-        if(dielectricMatInPML_)
-        {
-            ExPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Dx_, Hy_, Hz_, POLARIZATION::EX, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-            EyPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Dy_, Hz_, Hx_, POLARIZATION::EY, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-            EzPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Dz_, Hx_, Hy_, POLARIZATION::EZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez, phys_Ez, objArr_);
-        }
-        else
-        {
-            ExPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Ex_, Hy_, Hz_, POLARIZATION::EX, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-            EyPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Ey_, Hz_, Hx_, POLARIZATION::EY, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-            EzPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Ez_, Hx_, Hy_, POLARIZATION::EZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez, phys_Ez, objArr_);
-        }
-        initializeLists(phys_Ex, phys_Ey, phys_Ez, phys_Hx, phys_Hy, phys_Hz);
-        for(auto & obj :objArr_)
-        {
-            obj->setUpConsts(dt_);
-            while( (obj->mat().size() - 1) / 3.0 > lorPx_.size() )
-            {
-                    lorPx_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-                prevLorPx_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-                    lorPy_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, true) );
-                prevLorPy_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, true) );
-                    lorPz_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-                prevLorPz_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-            }
-            while((obj->magMat().size() - 1) / 3.0 > lorMx_.size())
-            {
-                    lorMx_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-                prevLorMx_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-                    lorMy_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, true) );
-                prevLorMy_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, true) );
-                    lorMz_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-                prevLorMz_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-            }            {            }
-        }        {
-            Bx_ = nullptr;
-            By_ = nullptr;
-            Bz_ = nullptr;
-            if(!dielectricMatInPML_ && lorPx_.size() == 0)
-            {
-                Dx_ = nullptr;
-                Dy_ = nullptr;
-                Dz_ = nullptr;
-            }
-        }
-    }
-    else if(Hz_)
-    {
-        std::tuple <int,int,int,int> BCs;
-        phys_Ex = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false);
-        phys_Ey = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, true);
-        phys_Ez = nullptr;
-
-        phys_Hx = nullptr;
-        phys_Hy = nullptr;
-        phys_Hz = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(),n_vec_[2]+2*gridComm_.npZ() }} ), d_, false);
-
-        BCs = std::make_tuple(1, Ex_->local_x()-1, 1, Ex_->local_y()-1);
-        int xmin, xmax, ymin, ymax;
-        std::tie(xmin,xmax,ymin,ymax) = BCs;
-
-        setupPhysFields(phys_Ex, std::array<double,3>({{ 0.5, 0.0, 0.0}}), std::array<int,3>( {{ xmin, ymin, 0}} ), std::array<int,3>( {{xmax, ymax, 0 }} ) );
-        setupPhysFields(phys_Ey, std::array<double,3>({{ 0.0, 0.5, 0.0}}), std::array<int,3>( {{ xmin, ymin, 0}} ), std::array<int,3>( {{xmax, ymax, 0 }} ) );
-        setupPhysFields(phys_Hz, std::array<double,3>({{ 0.5, 0.5, 0.0}}), std::array<int,3>( {{ xmin, ymin, 0}} ), std::array<int,3>( {{xmax, ymax, 0 }} ) );
-
-        for(int pp = 0; pp < pmlThickness_.size(); ++pp)
-        {
-            int cor_ii = pp;
-            int cor_jj = (pp + 1) % 3;
-            int cor_kk = (pp + 2) % 3;
-
-            std::array<int,3> addVec_ii = {0, 0, 0};
-            std::array<int,3> addVec_jj = {0, 0, 0};
-            std::array<int,3> addVec_kk = {0, 0, 0};
-
-            addVec_ii[cor_ii] = 1;
-            addVec_jj[cor_jj] = 1;
-            addVec_kk[cor_kk] = 1;
-            int max_ii = pmlThickness_[cor_ii];
-            if(phys_Ex->procLoc()[cor_ii] < pmlThickness_[cor_ii])
-                max_ii = pmlThickness_[cor_ii] - phys_Ex->procLoc()[cor_ii];
-            if(max_ii > phys_Ex->ln_vec()[cor_ii])
-                max_ii = phys_Ex->ln_vec()[cor_ii]-1;
-            // If an object i sin the PML D fields are used for that one, otherwise use the E-field
-            for(int ii = 0; ii <= max_ii; ++ii)
-            {
-                for(int jj = 0; jj < phys_Ex->ln_vec()[cor_jj]; ++jj)
-                {
-                    for(int kk = 0; kk < phys_Ex->ln_vec()[cor_kk]; ++kk)
-                    {
-                        int xx = ii*addVec_ii[0]+jj*addVec_jj[0]+kk*addVec_kk[0];
-                        int yy = ii*addVec_ii[1]+jj*addVec_jj[1]+kk*addVec_kk[1];
-                        if( phys_Ex->point(xx,yy) > 0 )
-                        {
-                            dielectricMatInPML_ = true;
-                            break;
-                        }
-                        else if( phys_Ey->point(xx,yy) > 0 )
-                        {
-                            dielectricMatInPML_ = true;
-                            break;
-                        }
-                        xx = (phys_Ex->ln_vec()[cor_ii] - 1)*addVec_ii[0] - std::pow(-1, addVec_ii[0]-1 ) * (ii*addVec_ii[0]+jj*addVec_jj[0]+kk*addVec_kk[0]);
-                        yy = (phys_Ex->ln_vec()[cor_ii] - 1)*addVec_ii[1] - std::pow(-1, addVec_ii[1]-1 ) * (ii*addVec_ii[1]+jj*addVec_jj[1]+kk*addVec_kk[1]);
-                        if( phys_Ex->point(xx,yy) > 0 )
-                        {
-                            dielectricMatInPML_ = true;
-                            break;
-                        }
-                        else if( phys_Ey->point(xx,yy) > 0 )
-                        {
-                            dielectricMatInPML_ = true;
-                            break;
-                        }
-                    }
-                    if(dielectricMatInPML_)
-                        break;
-                }
-                if(dielectricMatInPML_)
-                    break;
-            }
-        }
-        EzPML_   = nullptr;
-        HxPML_   = nullptr;
-        HyPML_   = nullptr;
-        HzPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Hz_, Ex_, Ey_, POLARIZATION::HZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-        if(dielectricMatInPML_)
-        {
-            ExPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Dx_, Ey_, Hz_, POLARIZATION::EX, pmlThickness_ , IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-            EyPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Dy_, Hz_, Ex_, POLARIZATION::EY, pmlThickness_ , IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-        }
-        else
-        {
-            ExPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Ex_, Ey_, Hz_, POLARIZATION::EX, pmlThickness_ , IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-            EyPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Ey_, Hz_, Ex_, POLARIZATION::EY, pmlThickness_ , IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex, phys_Ey, objArr_);
-        }
-        initializeLists(phys_Ex, phys_Ey, phys_Ez, phys_Hx, phys_Hy, phys_Hz);
-        for(auto & obj :objArr_)
-        {
-            obj->setUpConsts(dt_);
-            while((obj->mat().size() - 1) / 3.0 > lorPx_.size())
-            {
-                    lorPx_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false) );
-                prevLorPx_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false) );
-                    lorPy_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, true) );
-                prevLorPy_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, true) );
-            }
-            while((obj->magMat().size() - 1) / 3.0 > lorMz_.size())
-            {
-                    lorMz_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false) );
-                prevLorMz_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false) );
-            }
-        }
-    }
-    else if(Ez_)
-    {
-        std::tuple <int,int,int,int> BCs;
-        phys_Ex = nullptr;
-        phys_Ey = nullptr;
-        phys_Ez = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false);
-
-        phys_Hx = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(),n_vec_[2]+2*gridComm_.npZ() }} ), d_, false);
-        phys_Hy = std::make_shared<parallelGridInt >(gridComm_, IP.periodic_, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(),n_vec_[2]+2*gridComm_.npZ() }} ), d_, true);
-        phys_Hz = nullptr;
-
-        BCs = std::make_tuple(1, Ez_->local_x()-1, 1, Ez_->local_y()-1);
-        int xmin, xmax, ymin, ymax;
-        std::tie(xmin,xmax,ymin,ymax) = BCs;
-
-        setupPhysFields(phys_Hx, std::array<double,3>({{ 0.0, 0.5, 0.5}}), std::array<int,3>( {{ xmin, ymin, 0}} ), std::array<int,3>( {{xmax, ymax, 0 }} ) );
-        setupPhysFields(phys_Hy, std::array<double,3>({{ 0.5, 0.0, 0.5}}), std::array<int,3>( {{ xmin, ymin, 0}} ), std::array<int,3>( {{xmax, ymax, 0 }} ) );
-        setupPhysFields(phys_Ez, std::array<double,3>({{ 0.0, 0.0, 0.5}}), std::array<int,3>( {{ xmin, ymin, 0}} ), std::array<int,3>( {{xmax, ymax, 0 }} ) );
-        for(int pp = 0; pp < pmlThickness_.size(); ++pp)
-        {
-            int cor_ii = pp;
-            int cor_jj = (pp + 1) % 3;
-            int cor_kk = (pp + 2) % 3;
-
-            std::array<int,3> addVec_ii = {0, 0, 0};
-            std::array<int,3> addVec_jj = {0, 0, 0};
-            std::array<int,3> addVec_kk = {0, 0, 0};
-
-            addVec_ii[cor_ii] = 1;
-            addVec_jj[cor_jj] = 1;
-            addVec_kk[cor_kk] = 1;
-            int max_ii = pmlThickness_[cor_ii];
-            if(phys_Ez->procLoc()[cor_ii] < pmlThickness_[cor_ii])
-                max_ii = pmlThickness_[cor_ii] - phys_Ez->procLoc()[cor_ii];
-            if(max_ii > phys_Ez->ln_vec()[cor_ii])
-                max_ii = phys_Ez->ln_vec()[cor_ii]-1;
-            // If an object i sin the PML D fields are used for that one, otherwise use the E-field
-            for(int ii = 0; ii <= max_ii; ++ii)
-            {
-                for(int jj = 0; jj < phys_Ez->ln_vec()[cor_jj]; ++jj)
-                {
-                    for(int kk = 0; kk < phys_Ez->ln_vec()[cor_kk]; ++kk)
-                    {
-                        int xx = ii*addVec_ii[0]+jj*addVec_jj[0]+kk*addVec_kk[0];
-                        int yy = ii*addVec_ii[1]+jj*addVec_jj[1]+kk*addVec_kk[1];
-                        if( phys_Ez->point(xx,yy) > 0 )
-                        {
-                            dielectricMatInPML_ = true;
-                            break;
-                        }
-                        xx = (phys_Ez->ln_vec()[cor_ii] - 1)*addVec_ii[0] - std::pow(-1, addVec_ii[0]-1 ) * (ii*addVec_ii[0]+jj*addVec_jj[0]+kk*addVec_kk[0]);
-                        yy = (phys_Ez->ln_vec()[cor_ii] - 1)*addVec_ii[1] - std::pow(-1, addVec_ii[1]-1 ) * (ii*addVec_ii[1]+jj*addVec_jj[1]+kk*addVec_kk[1]);
-                        if( phys_Ez->point(xx,yy) > 0 )
-                        {
-                            dielectricMatInPML_ = true;
-                            break;
-                        }
-                    }
-                    if(dielectricMatInPML_)
-                        break;
-                }
-                if(dielectricMatInPML_)
-                    break;
-            }
-        }
-        HxPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Hx_, Hy_, Ez_, POLARIZATION::HX, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez, phys_Ez, objArr_);
-        HyPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Hy_, Ez_, Hx_, POLARIZATION::HY, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez, phys_Ez, objArr_);
-        HzPML_   = nullptr;
-
-        ExPML_   = nullptr;
-        EyPML_   = nullptr;
-        if(dielectricMatInPML_)
-        {
-            EzPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Dz_, Hx_, Hy_, POLARIZATION::EZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez, phys_Ez, objArr_);
-        }
-        else
-        {
-            EzPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Ez_, Hx_, Hy_, POLARIZATION::EZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez, phys_Ez, objArr_);
-        }
-
-        initializeLists(phys_Ex, phys_Ey, phys_Ez, phys_Hx, phys_Hy, phys_Hz);
-        for(auto & obj :objArr_)
-        {
-            obj->setUpConsts(dt_);
-            while((obj->mat().size() - 1) / 3.0 > lorPz_.size())
-            {
-                    lorPz_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false) );
-                prevLorPz_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false) );
-            }
-            while((obj->magMat().size() - 1) / 3.0 > lorMx_.size())
-            {
-                    lorMx_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false) );
-                prevLorMx_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, false) );
-                    lorMy_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, true) );
-                prevLorMy_.push_back(std::make_shared<parallelGridCplx>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }} ), d_, true) );
-            }
-        }
-    }
     // If there is an Hz field set up all TE mode functions otherwise set them to do nothing
     if(Hz_)
     {
+        // initialize the PMLs
+        if(magMatInPML_)
+        {
+            HzPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Bz_, Ex_, Ey_, POLARIZATION::HZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex_, phys_Ey_, objArr_);
+        }
+        else
+        {
+            HzPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Hz_, Ex_, Ey_, POLARIZATION::HZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex_, phys_Ey_, objArr_);
+        }
+        if(dielectricMatInPML_)
+        {
+            ExPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Dx_, Hy_, Hz_, POLARIZATION::EX, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex_, phys_Ey_, objArr_);
+            EyPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Dy_, Hz_, Hx_, POLARIZATION::EY, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex_, phys_Ey_, objArr_);
+        }
+        else
+        {
+            ExPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Ex_, Hy_, Hz_, POLARIZATION::EX, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex_, phys_Ey_, objArr_);
+            EyPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Ey_, Hz_, Hx_, POLARIZATION::EY, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ex_, phys_Ey_, objArr_);
+        }
+        initializeList(phys_Ex_, ExPML_, true, std::array<int,3>( {{ 0, -1,  0 }} ), std::array<int,3>( {{n_vec_[0]  , n_vec_[1]+1, n_vec_[2]+1 }} ), d_[1], axEx_, axDx_);
+        initializeList(phys_Ey_, EyPML_, true, std::array<int,3>( {{ 0,  0, -1 }} ), std::array<int,3>( {{n_vec_[0]+1, n_vec_[1]  , n_vec_[2]+1 }} ), d_[0], axEy_, axDy_);
+        initializeList(phys_Hz_, HzPML_, false, std::array<int,3>( {{ 1,  0,  0 }} ), std::array<int,3>( {{n_vec_[0]  , n_vec_[1]  , n_vec_[2]   }} ), d_[0], axHz_, axHz_);
+
         if(!Ez_)
         {
             upExFxn_ = &FDTDCompUpdateFxnCplx::OneCompCurlK;
@@ -1294,6 +655,7 @@ parallelFDTDFieldCplx::parallelFDTDFieldCplx(parallelProgramInputs &IP, mpiInter
 
         D2ExFxn_ = &FDTDCompUpdateFxnCplx::DtoE;
         D2EyFxn_ = &FDTDCompUpdateFxnCplx::DtoE;
+
         B2HzFxn_ = &FDTDCompUpdateFxnCplx::BtoH;
 
         if(IP.periodic_ && gridComm_.size() > 1)
@@ -1373,6 +735,31 @@ parallelFDTDFieldCplx::parallelFDTDFieldCplx(parallelProgramInputs &IP, mpiInter
     // If there is an Ez field set up all TM functions otherwise set them to do nothing
     if(Ez_)
     {
+        // Initialize PMLs
+
+        if(magMatInPML_)
+        {
+            HxPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Bx_, Ey_, Ez_, POLARIZATION::HX, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez_, phys_Ez_, objArr_);
+            HyPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, By_, Ez_, Ex_, POLARIZATION::HY, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez_, phys_Ez_, objArr_);
+        }
+        else
+        {
+            HxPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Hx_, Ey_, Ez_, POLARIZATION::HX, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez_, phys_Ez_, objArr_);
+            HyPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Hy_, Ez_, Ex_, POLARIZATION::HY, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez_, phys_Ez_, objArr_);
+        }
+        if(dielectricMatInPML_)
+        {
+            EzPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Dz_, Hx_, Hy_, POLARIZATION::EZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez_, phys_Ez_, objArr_);
+        }
+        else
+        {
+            EzPML_   = std::make_shared<parallelCPMLCplx>(gridComm_, weights_, Ez_, Hx_, Hy_, POLARIZATION::EZ, pmlThickness_, IP.pmlM_, IP.pmlMa_, IP.pmlAMax_, d_, dt_, phys_Ez_, phys_Ez_, objArr_);
+        }
+
+        initializeList(phys_Ez_, EzPML_, true, std::array<int,3>( {{-1,  0,  0 }} ), std::array<int,3>( {{n_vec_[0]+1, n_vec_[1]+1, n_vec_[2]   }} ), d_[0], axEz_, axDz_);
+        initializeList(phys_Hx_, HxPML_, false, std::array<int,3>( {{ 0,  1,  0 }} ), std::array<int,3>( {{n_vec_[0]+1, n_vec_[1]  , n_vec_[2]   }} ), d_[1], axHx_, axHx_);
+        initializeList(phys_Hy_, HyPML_, false, std::array<int,3>( {{ 0,  0,  1 }} ), std::array<int,3>( {{n_vec_[0]  , n_vec_[1]+1, n_vec_[2]+1 }} ), d_[0], axHy_, axHy_);
+
         if(!Hz_)
         {
             upHxFxn_ = &FDTDCompUpdateFxnCplx::OneCompCurlK;
@@ -1388,10 +775,12 @@ parallelFDTDFieldCplx::parallelFDTDFieldCplx(parallelProgramInputs &IP, mpiInter
 
         upLorMxFxn_ = &FDTDCompUpdateFxnCplx::UpdateLorMag;
         upLorMyFxn_ = &FDTDCompUpdateFxnCplx::UpdateLorMag;
+
         upLorPzFxn_ = &FDTDCompUpdateFxnCplx::UpdateLorPol;
 
         B2HxFxn_ = &FDTDCompUpdateFxnCplx::BtoH;
         B2HyFxn_ = &FDTDCompUpdateFxnCplx::BtoH;
+
         D2EzFxn_ = &FDTDCompUpdateFxnCplx::DtoE;
 
         updateHxPML_ = [](pml_ptr pml){pml->updateGrid();};
@@ -1433,6 +822,7 @@ parallelFDTDFieldCplx::parallelFDTDFieldCplx(parallelProgramInputs &IP, mpiInter
             transferHx_ = [=](){Hx_->transferDat();};
             transferHy_ = [=](){Hy_->transferDat();};
             transferEz_ = [=](){Ez_->transferDat();};
+
         }
         else
         {

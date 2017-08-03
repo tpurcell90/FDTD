@@ -405,234 +405,11 @@ parallelFluxDTCCplx::FieldInputParamsFlux parallelFluxDTCCplx::makeParamIn(pgrid
         Hj_freq_.push_back(nullptr);
         Hk_freq_.push_back(nullptr);
     }
-    for(auto& dtc : to_return.Ej_dtc_)
-    {
-        if( Ej && Ek )
-        {
-            toMaster.szProcOffsetEj_.push_back( std::vector<std::array<int, 9> >(2) );
-            // If it does not need to send anything send a blank
-            if(dtc->outGrid() )
-            {
-                toMaster.szProcOffsetEj_.back()[0] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetEj_.back()[1] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-            }
-            else
-            {
-                toMaster.szProcOffsetEj_.back()[0] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetEj_.back()[1] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-            }
-            if(cor == corJ)
-            {
-                if(toMaster.addIndex_[1] == 0)
-                    toMaster.szProcOffsetEj_.back()[1][6] = 1;
-                else
-                    toMaster.szProcOffsetEj_.back()[0][8] = 1;
 
-                if( dtc->loc()[cor] + dtc->sz()[cor] < Ej->procLoc()[cor] + Ej->ln_vec()[cor] )
-                    toMaster.szProcOffsetEj_.back()[0][4] = 1;
-                if(toMaster.addIndex_[1] == 0)
-                    toMaster.szProcOffsetEj_.back()[1][4] = 1;
-            }
-            else if(transCor1 == corJ)
-            {
-                if(toMaster.addIndex_[0] == 0)
-                    toMaster.szProcOffsetEj_.back()[1][5] = 1;
-                else
-                    toMaster.szProcOffsetEj_.back()[0][7] = 1;
-
-                if( dtc->loc()[transCor1] + dtc->sz()[transCor1] < Ej->procLoc()[transCor1] + Ej->ln_vec()[transCor1] )
-                    toMaster.szProcOffsetEj_.back()[0][3] = 1;
-                if(toMaster.addIndex_[0] == 0)
-                    toMaster.szProcOffsetEj_.back()[1][3] = 1;
-            }
-        }
-        else
-        {
-            toMaster.szProcOffsetEj_.push_back( std::vector<std::array<int, 9> >(1) );
-            // If it does not need to send anything send a blank
-            if(dtc->outGrid() )
-            {
-                toMaster.szProcOffsetEj_.back()[0] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetEj_.back()[1] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-            }
-            else
-            {
-                toMaster.szProcOffsetEj_.back()[0] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetEj_.back()[1] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-            }
-        }
-    }
-    for(auto& dtc : to_return.Ek_dtc_)
-    {
-        if( Ej && Ek )
-        {
-            toMaster.szProcOffsetEk_.push_back( std::vector<std::array<int, 9> >(2) );
-            // If it does not need to send anything send a blank
-            if(dtc->outGrid() )
-            {
-                toMaster.szProcOffsetEk_.back()[0] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetEk_.back()[1] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-            }
-            else
-            {
-                toMaster.szProcOffsetEk_.back()[0] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetEk_.back()[1] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-            }
-            if(cor == corK)
-            {
-                if(toMaster.addIndex_[1] == 0)
-                    toMaster.szProcOffsetEk_.back()[1][6] = 1;
-                else
-                    toMaster.szProcOffsetEk_.back()[0][8] = 1;
-
-                if( dtc->loc()[cor] + dtc->sz()[cor] < Ek->procLoc()[cor] + Ek->ln_vec()[cor] )
-                    toMaster.szProcOffsetEk_.back()[0][4] = 1;
-                if(toMaster.addIndex_[1] == 0)
-                    toMaster.szProcOffsetEk_.back()[1][4] = 1;
-            }
-            else if(transCor1 == corK)
-            {
-                if(toMaster.addIndex_[0] == 0)
-                    toMaster.szProcOffsetEk_.back()[1][5] = 1;
-                else
-                    toMaster.szProcOffsetEk_.back()[0][7] = 1;
-
-                if( dtc->loc()[transCor1] + dtc->sz()[transCor1] < Ek->procLoc()[transCor1] + Ek->ln_vec()[transCor1] )
-                    toMaster.szProcOffsetEk_.back()[0][3] = 1;
-                if(toMaster.addIndex_[0] == 0)
-                    toMaster.szProcOffsetEk_.back()[1][3] = 1;
-            }
-        }
-        else
-        {
-            toMaster.szProcOffsetEk_.push_back( std::vector<std::array<int, 9> >(1) );
-            // If it does not need to send anything send a blank
-            if(dtc->outGrid() )
-            {
-                toMaster.szProcOffsetEk_.back()[0] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetEk_.back()[1] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-            }
-            else
-            {
-                toMaster.szProcOffsetEk_.back()[0] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetEk_.back()[1] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-            }
-        }
-    }
-    for(auto& dtc : to_return.Hj_dtc_)
-    {
-        if( Hj && Hk )
-        {
-            toMaster.szProcOffsetHj_.push_back( std::vector<std::array<int, 9> >(2) );
-            // If it does not need to send anything send a blank
-            if(dtc->outGrid() )
-            {
-                toMaster.szProcOffsetHj_.back()[0] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetHj_.back()[1] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-            }
-            else
-            {
-                toMaster.szProcOffsetHj_.back()[0] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetHj_.back()[1] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-            }
-            if(cor == corJ)
-            {
-                if(toMaster.addIndex_[1] == 0)
-                    toMaster.szProcOffsetHj_.back()[1][6] = 1;
-                else
-                    toMaster.szProcOffsetHj_.back()[0][8] = 1;
-
-                if( dtc->loc()[cor] + dtc->sz()[cor] < Hj->procLoc()[cor] + Hj->ln_vec()[cor] )
-                    toMaster.szProcOffsetHj_.back()[0][4] = 1;
-                if(toMaster.addIndex_[1] == 0)
-                    toMaster.szProcOffsetHj_.back()[1][4] = 1;
-            }
-            else if(transCor1 == corJ)
-            {
-                if(toMaster.addIndex_[0] == 0)
-                    toMaster.szProcOffsetHj_.back()[1][5] = 1;
-                else
-                    toMaster.szProcOffsetHj_.back()[0][7] = 1;
-
-                if( dtc->loc()[transCor1] + dtc->sz()[transCor1] < Hj->procLoc()[transCor1] + Hj->ln_vec()[transCor1] )
-                    toMaster.szProcOffsetHj_.back()[0][3] = 1;
-                if(toMaster.addIndex_[0] == 0)
-                    toMaster.szProcOffsetHj_.back()[1][3] = 1;
-            }
-        }
-        else
-        {
-            toMaster.szProcOffsetHj_.push_back( std::vector<std::array<int, 9> >(1) );
-            // If it does not need to send anything send a blank
-            if(dtc->outGrid() )
-            {
-                toMaster.szProcOffsetHj_.back()[0] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetHj_.back()[1] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-            }
-            else
-            {
-                toMaster.szProcOffsetHj_.back()[0] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetHj_.back()[1] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-            }
-        }
-    }
-    for(auto& dtc : to_return.Hk_dtc_)
-    {
-        if( Hj && Hk )
-        {
-            toMaster.szProcOffsetHk_.push_back( std::vector<std::array<int, 9> >(2) );
-            // If it does not need to send anything send a blank
-            if(dtc->outGrid() )
-            {
-                toMaster.szProcOffsetHk_.back()[0] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetHk_.back()[1] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-            }
-            else
-            {
-                toMaster.szProcOffsetHk_.back()[0] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetHk_.back()[1] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-            }
-            if(cor == corK)
-            {
-                if(toMaster.addIndex_[1] == 0)
-                    toMaster.szProcOffsetHk_.back()[1][6] = 1;
-                else
-                    toMaster.szProcOffsetHk_.back()[0][8] = 1;
-
-                if( dtc->loc()[cor] + dtc->sz()[cor] < Hk->procLoc()[cor] + Hk->ln_vec()[cor] )
-                    toMaster.szProcOffsetHk_.back()[0][4] = 1;
-                if(toMaster.addIndex_[1] == 0)
-                    toMaster.szProcOffsetHk_.back()[1][4] = 1;
-            }
-            else if(transCor1 == corK)
-            {
-                if(toMaster.addIndex_[0] == 0)
-                    toMaster.szProcOffsetHk_.back()[1][5] = 1;
-                else
-                    toMaster.szProcOffsetHk_.back()[0][7] = 1;
-
-                if( dtc->loc()[transCor1] + dtc->sz()[transCor1] < Hk->procLoc()[transCor1] + Hk->ln_vec()[transCor1] )
-                    toMaster.szProcOffsetHk_.back()[0][3] = 1;
-                if(toMaster.addIndex_[0] == 0)
-                    toMaster.szProcOffsetHk_.back()[1][3] = 1;
-            }
-        }
-        else
-        {
-            toMaster.szProcOffsetHk_.push_back( std::vector<std::array<int, 9> >(1) );
-            // If it does not need to send anything send a blank
-            if(dtc->outGrid() )
-            {
-                toMaster.szProcOffsetHk_.back()[0] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetHk_.back()[1] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-            }
-            else
-            {
-                toMaster.szProcOffsetHk_.back()[0] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetHk_.back()[1] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-            }
-        }
-    }
+    toMaster.szProcOffsetEj_ = constructSzProcOffsetLists( to_return.Ej_dtc_, toMaster.addIndex_, Ej, Ek, corJ, cor, transCor1 );
+    toMaster.szProcOffsetEk_ = constructSzProcOffsetLists( to_return.Ek_dtc_, toMaster.addIndex_, Ek, Ej, corK, cor, transCor1 );
+    toMaster.szProcOffsetHj_ = constructSzProcOffsetLists( to_return.Hj_dtc_, toMaster.addIndex_, Hj, Hk, corJ, cor, transCor1 );
+    toMaster.szProcOffsetHk_ = constructSzProcOffsetLists( to_return.Hk_dtc_, toMaster.addIndex_, Hk, Hj, corK, cor, transCor1 );
 
     if(gridComm_.rank() == outProc_)
     {
@@ -664,6 +441,7 @@ parallelFluxDTCCplx::FieldInputParamsFlux parallelFluxDTCCplx::makeParamIn(pgrid
     to_return.addIndex_ = toMaster.addIndex_;
     return to_return;
 }
+
 parallelFluxDTCReal::FieldInputParamsFlux parallelFluxDTCReal::makeParamIn(pgrid_ptr Ex, pgrid_ptr Ey, pgrid_ptr Ez, pgrid_ptr Hx, pgrid_ptr Hy, pgrid_ptr Hz, DIRECTION dir, bool pl)
 {
     FieldInputParamsFlux to_return;
@@ -734,7 +512,6 @@ parallelFluxDTCReal::FieldInputParamsFlux parallelFluxDTCReal::makeParamIn(pgrid
     else
         toMaster.addIndex_ = {{ Hz->procLoc()[transCor1] - loc_[transCor1], Hz->procLoc()[cor] - loc_[cor] }};
 
-
     if(toMaster.addIndex_[0] < 0)
         toMaster.addIndex_[0] = 0;
 
@@ -746,21 +523,41 @@ parallelFluxDTCReal::FieldInputParamsFlux parallelFluxDTCReal::makeParamIn(pgrid
         std::array<int,3> szOff(sz);
         // Make the fields all centered around the center point of the face that we are looking at
         locOff[corK] -= 1;
-         szOff[corK] += 1;
+        szOff[corK] += 1;
+
+        // gridComm_.barrier();
+        // std::cout << "EK" << std::endl;
+        // gridComm_.barrier();
+
         to_return.Ek_dtc_.push_back( std::make_shared<parallelStorageFreqDTCReal>(outProc_, Ek, dir, locOff, szOff, freqList_) );
+
+        // gridComm_.barrier();
+        // std::cout << "HK" << std::endl;
+        // gridComm_.barrier();
 
         to_return.Hk_dtc_.push_back( std::make_shared<parallelStorageFreqDTCReal>(outProc_, Hk, dir, locOff, szOff, freqList_) );
         locOff[corI] -= 1;
         to_return.Hk_dtc_.push_back( std::make_shared<parallelStorageFreqDTCReal>(outProc_, Hk, dir, locOff, szOff, freqList_) );
 
         locOff[corK] += 1;
-         szOff[corK] -= 1;
+        szOff[corK] -= 1;
+
         locOff[corJ] -= 1;
-         szOff[corJ] += 1;
+        szOff[corJ] += 1;
+
+        // std::cout << szOff[0] << '\t' << szOff[1] << '\t' << szOff[2] << '\t' << corJ << '\t' << corK << std::endl;
+
+        // gridComm_.barrier();
+        // std::cout << "HJ" << std::endl;
+        // gridComm_.barrier();
 
         to_return.Hj_dtc_.push_back( std::make_shared<parallelStorageFreqDTCReal>(outProc_, Hj, dir, locOff, szOff, freqList_) );
         locOff[corI] += 1;
         to_return.Hj_dtc_.push_back( std::make_shared<parallelStorageFreqDTCReal>(outProc_, Hj, dir, locOff, szOff, freqList_) );
+
+        // gridComm_.barrier();
+        // std::cout << "EJ" << std::endl;
+        // gridComm_.barrier();
 
         to_return.Ej_dtc_.push_back( std::make_shared<parallelStorageFreqDTCReal>(outProc_, Ej, dir, locOff, szOff, freqList_) );
     }
@@ -838,235 +635,10 @@ parallelFluxDTCReal::FieldInputParamsFlux parallelFluxDTCReal::makeParamIn(pgrid
         Hj_freq_.push_back(nullptr);
         Hk_freq_.push_back(nullptr);
     }
-    for(auto& dtc : to_return.Ej_dtc_)
-    {
-        if( Ej && Ek )
-        {
-            toMaster.szProcOffsetEj_.push_back( std::vector<std::array<int, 9> >(2) );
-            // If it does not need to send anything send a blank
-            if(dtc->outGrid() )
-            {
-                toMaster.szProcOffsetEj_.back()[0] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetEj_.back()[1] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-            }
-            else
-            {
-                toMaster.szProcOffsetEj_.back()[0] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetEj_.back()[1] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-            }
-            if(cor == corJ)
-            {
-                if(toMaster.addIndex_[1] == 0)
-                    toMaster.szProcOffsetEj_.back()[1][6] = 1;
-                else
-                    toMaster.szProcOffsetEj_.back()[0][8] = 1;
-
-                if( dtc->loc()[cor] + dtc->sz()[cor] < Ej->procLoc()[cor] + Ej->ln_vec()[cor] )
-                    toMaster.szProcOffsetEj_.back()[0][4] = 1;
-                if(toMaster.addIndex_[1] == 0)
-                    toMaster.szProcOffsetEj_.back()[1][4] = 1;
-            }
-            else if(transCor1 == corJ)
-            {
-                if(toMaster.addIndex_[0] == 0)
-                    toMaster.szProcOffsetEj_.back()[1][5] = 1;
-                else
-                    toMaster.szProcOffsetEj_.back()[0][7] = 1;
-
-                if( dtc->loc()[transCor1] + dtc->sz()[transCor1] < Ej->procLoc()[transCor1] + Ej->ln_vec()[transCor1] )
-                    toMaster.szProcOffsetEj_.back()[0][3] = 1;
-                if(toMaster.addIndex_[0] == 0)
-                    toMaster.szProcOffsetEj_.back()[1][3] = 1;
-            }
-        }
-        else
-        {
-            toMaster.szProcOffsetEj_.push_back( std::vector<std::array<int, 9> >(1) );
-            // If it does not need to send anything send a blank
-            if(dtc->outGrid() )
-            {
-                toMaster.szProcOffsetEj_.back()[0] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetEj_.back()[1] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-            }
-            else
-            {
-                toMaster.szProcOffsetEj_.back()[0] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetEj_.back()[1] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-            }
-        }
-    }
-    for(auto& dtc : to_return.Ek_dtc_)
-    {
-        if( Ej && Ek )
-        {
-            toMaster.szProcOffsetEk_.push_back( std::vector<std::array<int, 9> >(2) );
-            // If it does not need to send anything send a blank
-            if(dtc->outGrid() )
-            {
-                toMaster.szProcOffsetEk_.back()[0] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetEk_.back()[1] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-            }
-            else
-            {
-                toMaster.szProcOffsetEk_.back()[0] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetEk_.back()[1] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-            }
-            if(cor == corK)
-            {
-                if(toMaster.addIndex_[1] == 0)
-                    toMaster.szProcOffsetEk_.back()[1][6] = 1;
-                else
-                    toMaster.szProcOffsetEk_.back()[0][8] = 1;
-
-                if( dtc->loc()[cor] + dtc->sz()[cor] < Ek->procLoc()[cor] + Ek->ln_vec()[cor] )
-                    toMaster.szProcOffsetEk_.back()[0][4] = 1;
-                if(toMaster.addIndex_[1] == 0)
-                    toMaster.szProcOffsetEk_.back()[1][4] = 1;
-            }
-            else if(transCor1 == corK)
-            {
-                if(toMaster.addIndex_[0] == 0)
-                    toMaster.szProcOffsetEk_.back()[1][5] = 1;
-                else
-                    toMaster.szProcOffsetEk_.back()[0][7] = 1;
-
-                if( dtc->loc()[transCor1] + dtc->sz()[transCor1] < Ek->procLoc()[transCor1] + Ek->ln_vec()[transCor1] )
-                    toMaster.szProcOffsetEk_.back()[0][3] = 1;
-                if(toMaster.addIndex_[0] == 0)
-                    toMaster.szProcOffsetEk_.back()[1][3] = 1;
-            }
-        }
-        else
-        {
-            toMaster.szProcOffsetEk_.push_back( std::vector<std::array<int, 9> >(1) );
-            // If it does not need to send anything send a blank
-            if(dtc->outGrid() )
-            {
-                toMaster.szProcOffsetEk_.back()[0] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetEk_.back()[1] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-            }
-            else
-            {
-                toMaster.szProcOffsetEk_.back()[0] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetEk_.back()[1] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-            }
-        }
-    }
-    for(auto& dtc : to_return.Hj_dtc_)
-    {
-        if( Hj && Hk )
-        {
-            toMaster.szProcOffsetHj_.push_back( std::vector<std::array<int, 9> >(2) );
-            // If it does not need to send anything send a blank
-            if(dtc->outGrid() )
-            {
-                toMaster.szProcOffsetHj_.back()[0] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetHj_.back()[1] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-            }
-            else
-            {
-                toMaster.szProcOffsetHj_.back()[0] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetHj_.back()[1] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-            }
-            if(cor == corJ)
-            {
-                if(toMaster.addIndex_[1] == 0)
-                    toMaster.szProcOffsetHj_.back()[1][6] = 1;
-                else
-                    toMaster.szProcOffsetHj_.back()[0][8] = 1;
-
-                if( dtc->loc()[cor] + dtc->sz()[cor] < Hj->procLoc()[cor] + Hj->ln_vec()[cor] )
-                    toMaster.szProcOffsetHj_.back()[0][4] = 1;
-                if(toMaster.addIndex_[1] == 0)
-                    toMaster.szProcOffsetHj_.back()[1][4] = 1;
-            }
-            else if(transCor1 == corJ)
-            {
-                if(toMaster.addIndex_[0] == 0)
-                    toMaster.szProcOffsetHj_.back()[1][5] = 1;
-                else
-                    toMaster.szProcOffsetHj_.back()[0][7] = 1;
-
-                if( dtc->loc()[transCor1] + dtc->sz()[transCor1] < Hj->procLoc()[transCor1] + Hj->ln_vec()[transCor1] )
-                    toMaster.szProcOffsetHj_.back()[0][3] = 1;
-                if(toMaster.addIndex_[0] == 0)
-                    toMaster.szProcOffsetHj_.back()[1][3] = 1;
-            }
-        }
-        else
-        {
-            toMaster.szProcOffsetHj_.push_back( std::vector<std::array<int, 9> >(1) );
-            // If it does not need to send anything send a blank
-            if(dtc->outGrid() )
-            {
-                toMaster.szProcOffsetHj_.back()[0] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetHj_.back()[1] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-            }
-            else
-            {
-                toMaster.szProcOffsetHj_.back()[0] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetHj_.back()[1] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-            }
-        }
-    }
-    for(auto& dtc : to_return.Hk_dtc_)
-    {
-        if( Hj && Hk )
-        {
-            toMaster.szProcOffsetHk_.push_back( std::vector<std::array<int, 9> >(2) );
-            // If it does not need to send anything send a blank
-            if(dtc->outGrid() )
-            {
-                toMaster.szProcOffsetHk_.back()[0] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetHk_.back()[1] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-            }
-            else
-            {
-                toMaster.szProcOffsetHk_.back()[0] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetHk_.back()[1] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-            }
-            if(cor == corK)
-            {
-                if(toMaster.addIndex_[1] == 0)
-                    toMaster.szProcOffsetHk_.back()[1][6] = 1;
-                else
-                    toMaster.szProcOffsetHk_.back()[0][8] = 1;
-
-                if( dtc->loc()[cor] + dtc->sz()[cor] < Hk->procLoc()[cor] + Hk->ln_vec()[cor] )
-                    toMaster.szProcOffsetHk_.back()[0][4] = 1;
-                if(toMaster.addIndex_[1] == 0)
-                    toMaster.szProcOffsetHk_.back()[1][4] = 1;
-            }
-            else if(transCor1 == corK)
-            {
-                if(toMaster.addIndex_[0] == 0)
-                    toMaster.szProcOffsetHk_.back()[1][5] = 1;
-                else
-                    toMaster.szProcOffsetHk_.back()[0][7] = 1;
-
-                if( dtc->loc()[transCor1] + dtc->sz()[transCor1] < Hk->procLoc()[transCor1] + Hk->ln_vec()[transCor1] )
-                    toMaster.szProcOffsetHk_.back()[0][3] = 1;
-                if(toMaster.addIndex_[0] == 0)
-                    toMaster.szProcOffsetHk_.back()[1][3] = 1;
-            }
-        }
-        else
-        {
-            toMaster.szProcOffsetHk_.push_back( std::vector<std::array<int, 9> >(1) );
-            // If it does not need to send anything send a blank
-            if(dtc->outGrid() )
-            {
-                toMaster.szProcOffsetHk_.back()[0] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetHk_.back()[1] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
-            }
-            else
-            {
-                toMaster.szProcOffsetHk_.back()[0] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-                toMaster.szProcOffsetHk_.back()[1] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
-            }
-        }
-    }
-
+    toMaster.szProcOffsetEj_ = constructSzProcOffsetLists( to_return.Ej_dtc_, toMaster.addIndex_, Ej, Ek, corJ, cor, transCor1 );
+    toMaster.szProcOffsetEk_ = constructSzProcOffsetLists( to_return.Ek_dtc_, toMaster.addIndex_, Ek, Ej, corK, cor, transCor1 );
+    toMaster.szProcOffsetHj_ = constructSzProcOffsetLists( to_return.Hj_dtc_, toMaster.addIndex_, Hj, Hk, corJ, cor, transCor1 );
+    toMaster.szProcOffsetHk_ = constructSzProcOffsetLists( to_return.Hk_dtc_, toMaster.addIndex_, Hk, Hj, corK, cor, transCor1 );
     if(gridComm_.rank() == outProc_)
     {
         // Gather all the toMaster on the collection/output process and add them to the appropriate vectors

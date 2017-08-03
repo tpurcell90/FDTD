@@ -30,6 +30,7 @@ protected:
     mpiInterface & gridComm_; //!< mpi communicator for the propagator
 
     bool dielectricMatInPML_;
+    bool magMatInPML_;
 
     int res_; //!< number of grid points per unit length
     int t_step_; //!< the number of time steps that happened
@@ -141,6 +142,14 @@ protected:
 
     std::vector< std::shared_ptr< parallelDetectorFREQ_Base< T > > > dtcFreqArr_; //!< vector storing all dtcFREQ objects
     std::vector< std::shared_ptr< parallelFluxDTC< T > > > fluxArr_; //!< vector storing all flux objects
+
+    std::shared_ptr<parallelGridInt> phys_Ex_;
+    std::shared_ptr<parallelGridInt> phys_Ey_;
+    std::shared_ptr<parallelGridInt> phys_Ez_;
+
+    std::shared_ptr<parallelGridInt> phys_Hx_;
+    std::shared_ptr<parallelGridInt> phys_Hy_;
+    std::shared_ptr<parallelGridInt> phys_Hz_;
 public:
 
     pgrid_ptr Hx_; //!< parallel grid corresponding to the Hx field
@@ -190,6 +199,7 @@ public:
     pml_ptr HyPML_; //!< PML for the Hy field
     pml_ptr HzPML_; //!< PML for the Hz field
 
+
     /**
      * @brief Constructor
      * @details Takes in the parallelProgramInputs structure and generates an FDTDField
@@ -200,6 +210,7 @@ public:
     parallelFDTDFieldBase(parallelProgramInputs &IP, mpiInterface & gridComm) :
         gridComm_(gridComm),
         dielectricMatInPML_(false),
+        magMatInPML_(false),
         res_(IP.res_),
         t_step_(0),
         yExPBC_(0),
@@ -220,6 +231,7 @@ public:
         k_point_(IP.k_point_),
         weights_()
     {
+        // Reserve memory for all object vectors
         dtcArr_.reserve( IP.dtcLoc_.size() );
         srcArr_.reserve( IP.srcLoc_.size() );
         tfsfArr_.reserve( IP.tfsfLoc_.size() );
@@ -230,8 +242,125 @@ public:
         E_pl_incd_.reserve( ceil(IP.tMax_ / dt_ ) + 1 );
         H_incd_   .reserve( ceil(IP.tMax_ / dt_ ) + 1 );
         H_mn_incd_.reserve( ceil(IP.tMax_ / dt_ ) + 1 );
+
         setupWeightsGrid(IP);
 
+        int nz = IP.size_[2] == 0 ? 1 : n_vec_[2]+2*gridComm_.npZ();
+        setupPhysFields(phys_Ex_, IP.periodic_, std::array<double,3>( {{ 0.5, 0.0, 0.0}} ), nz );
+        setupPhysFields(phys_Ey_, IP.periodic_, std::array<double,3>( {{ 0.0, 0.5, 0.0}} ), nz );
+        setupPhysFields(phys_Ez_, IP.periodic_, std::array<double,3>( {{ 0.0, 0.0, 0.5}} ), nz );
+
+        setupPhysFields(phys_Hx_, IP.periodic_, std::array<double,3>( {{ 0.0, 0.5, 0.5}} ), nz );
+        setupPhysFields(phys_Hy_, IP.periodic_, std::array<double,3>( {{ 0.5, 0.0, 0.5}} ), nz );
+        setupPhysFields(phys_Hz_, IP.periodic_, std::array<double,3>( {{ 0.5, 0.5, 0.0}} ), nz );
+
+        // Determine if magnetic or electric dielectric material are in the PMLs
+        for(int pp = 0; pp < pmlThickness_.size(); ++pp)
+        {
+            // Determine what the i, j, k values for the PML are i is in the direction of the PML
+            int cor_ii = pp;
+            int cor_jj = (pp + 1) % 3;
+            int cor_kk = (pp + 2) % 3;
+
+            std::array<int,3> ptVec_ii = {0, 0, 0};
+            std::array<int,3> ptVec_jj = {0, 0, 0};
+            std::array<int,3> ptVec_kk = {0, 0, 0};
+
+            ptVec_ii[cor_ii] = 1;
+            ptVec_jj[cor_jj] = 1;
+            ptVec_kk[cor_kk] = 1;
+            int xx = 0, yy = 0 , zz = 0;
+            int max_ii = pmlThickness_[cor_ii];
+
+            // Max value for the left, bottom, or back PMLs
+            if(phys_Ex_->procLoc()[cor_ii] < pmlThickness_[cor_ii])
+                max_ii = pmlThickness_[cor_ii] - phys_Ex_->procLoc()[cor_ii];
+            else
+                max_ii = 0;
+
+            if(max_ii >= phys_Ex_->ln_vec()[cor_ii])
+                max_ii = phys_Ex_->ln_vec()[cor_ii]-1;
+
+            // Min value for the right, top, or right PMLs
+            int min_ii = n_vec_[cor_ii] - pmlThickness_[cor_ii] - 1;
+            if(phys_Ex_->procLoc()[cor_ii] >= n_vec_[cor_ii] - pmlThickness_[cor_ii])
+                min_ii = 1;
+            else if(phys_Ex_->procLoc()[cor_ii]+phys_Ex_->ln_vec()[cor_ii]-1 >= n_vec_[cor_ii] - pmlThickness_[cor_ii])
+                min_ii = phys_Ex_->ln_vec()[cor_ii] - 1 - pmlThickness_[cor_ii];
+            else
+                min_ii = phys_Ex_->ln_vec()[cor_ii];
+
+            // std::cout << gridComm_.rank() << '\t' << max_ii << '\t' << min_ii << std::endl;
+            // Loop over PML's area
+            for(int jj = 1; jj < phys_Ex_->ln_vec()[cor_jj]-1; ++jj)
+            {
+                for(int kk = 1; kk < phys_Ex_->ln_vec()[cor_kk]-1; ++kk)
+                {
+                    // Bottom, Left, Back PML
+                    for(int ii = 1; ii < max_ii; ++ii)
+                    {
+                        xx = ii*ptVec_ii[0]+jj*ptVec_jj[0]+kk*ptVec_kk[0];
+                        yy = ii*ptVec_ii[1]+jj*ptVec_jj[1]+kk*ptVec_kk[1];
+                        zz = ii*ptVec_ii[2]+jj*ptVec_jj[2]+kk*ptVec_kk[2];
+                        if( ( objArr_[ phys_Ex_->point(xx,yy,zz) ]->epsInfty() > 1.0 ) || ( objArr_[ phys_Ex_->point(xx,yy,zz) ]->mat().size() > 1 ) )
+                            dielectricMatInPML_ = true;
+                        else if( ( objArr_[ phys_Ey_->point(xx,yy,zz) ]->epsInfty() > 1.0 ) || ( objArr_[ phys_Ey_->point(xx,yy,zz) ]->mat().size() > 1 ) )
+                            dielectricMatInPML_ = true;
+                        else if( ( objArr_[ phys_Ez_->point(xx,yy,zz) ]->epsInfty() > 1.0 ) || ( objArr_[ phys_Ez_->point(xx,yy,zz) ]->mat().size() > 1 ) )
+                            dielectricMatInPML_ = true;
+
+                        if( ( objArr_[ phys_Hx_->point(xx,yy,zz)]->muInfty() > 1.0) || ( objArr_[ phys_Hx_->point(xx,yy,zz)]->magMat().size() > 1) )
+                            magMatInPML_ = true;
+                        else if( ( objArr_[ phys_Hy_->point(xx,yy,zz)]->muInfty() > 1.0) || ( objArr_[ phys_Hy_->point(xx,yy,zz)]->magMat().size() > 1) )
+                            magMatInPML_ = true;
+                        else if( ( objArr_[ phys_Hz_->point(xx,yy,zz)]->muInfty() > 1.0) || ( objArr_[ phys_Hz_->point(xx,yy,zz)]->magMat().size() > 1) )
+                            magMatInPML_ = true;
+                    }
+                    // Top, Right, Front PML
+                    for(int ii = phys_Ex_->ln_vec()[cor_ii]-2; ii >= min_ii; --ii)
+                    {
+                        xx = ii*ptVec_ii[0] + jj*ptVec_jj[0] + kk*ptVec_kk[0];
+                        yy = ii*ptVec_ii[1] + jj*ptVec_jj[1] + kk*ptVec_kk[1];
+                        zz = ii*ptVec_ii[2] + jj*ptVec_jj[2] + kk*ptVec_kk[2];
+
+                        if( ( objArr_[ phys_Ex_->point(xx,yy,zz) ]->epsInfty() > 1.0 ) || ( objArr_[ phys_Ex_->point(xx,yy,zz) ]->mat().size() > 1 ) )
+                            dielectricMatInPML_ = true;
+                        else if( ( objArr_[ phys_Ey_->point(xx,yy,zz) ]->epsInfty() > 1.0 ) || ( objArr_[ phys_Ey_->point(xx,yy,zz) ]->mat().size() > 1 ) )
+                            dielectricMatInPML_ = true;
+                        else if( ( objArr_[ phys_Ez_->point(xx,yy,zz) ]->epsInfty() > 1.0 ) || ( objArr_[ phys_Ez_->point(xx,yy,zz) ]->mat().size() > 1 ) )
+                            dielectricMatInPML_ = true;
+
+                        if( ( objArr_[ phys_Hx_->point(xx,yy,zz)]->muInfty() > 1.0) || ( objArr_[ phys_Hx_->point(xx,yy,zz)]->magMat().size() > 1) )
+                            magMatInPML_ = true;
+                        else if( ( objArr_[ phys_Hy_->point(xx,yy,zz)]->muInfty() > 1.0) || ( objArr_[ phys_Hy_->point(xx,yy,zz)]->magMat().size() > 1) )
+                            magMatInPML_ = true;
+                        else if( ( objArr_[ phys_Hz_->point(xx,yy,zz)]->muInfty() > 1.0) || ( objArr_[ phys_Hz_->point(xx,yy,zz)]->magMat().size() > 1) )
+                            magMatInPML_ = true;
+                    }
+                }
+            }
+        }
+        // // if(dielectricMatInPML_)
+        // //     std::cout << "DIELECTRIC" << std::endl;
+        // // if(magMatInPML_)
+        // //     std::cout << "MAG" << std::endl;
+        // mpi::all_reduce(gridComm_, dielectricMatInPML_, std::logical_or<bool>());
+        // mpi::all_reduce(gridComm_, magMatInPML_, std::logical_or<bool>());
+        // See if any objects would require chiral, electric dispersive, or magnetic dispersive materials
+        bool disp = false;
+        bool magnetic = false;
+        for(auto& obj : objArr_)
+        {
+            if(obj->magMat().size() > 1)
+                magnetic = true;
+            if(obj->mat().size() > 1 || obj->epsInfty() > 1.0)
+                disp = true;
+        }
+        if(dielectricMatInPML_)
+            disp = true;
+        if(magMatInPML_)
+            magnetic = true;
+        // Initialize all girds
         if(IP.size_[2] != 0)
         {
             Ex_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, false);
@@ -241,42 +370,18 @@ public:
             Ez_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, false);
             Hy_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, false);
 
-            bool disp = false;
-            bool magnetic = false;
-            for(auto& obj : objArr_)
-            {
-                if(obj->magMat().size() > 1)
-                {
-                    magnetic = true;
-                }
-                if(obj->mat().size() > 1)
-                {
-                    disp = true;
-                }
-            }
             if(disp)
             {
                 Dx_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, false);
                 Dy_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, true);
                 Dz_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, false);
             }
-            else
-            {
-                Dx_ = nullptr;
-                Dy_ = nullptr;
-                Dz_ = nullptr;
-            }
+
             if(magnetic)
             {
                 Bx_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, true);
                 By_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, false);
                 Bz_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, true);
-            }
-            else
-            {
-                Bx_ = nullptr;
-                By_ = nullptr;
-                Bz_ = nullptr;
             }
 
             ln_vec_[0] = Hz_->local_x()-2;
@@ -287,56 +392,20 @@ public:
         }
         else if(IP.pol_ == POLARIZATION::HZ || IP.pol_ == POLARIZATION::EX || IP.pol_ == POLARIZATION::EY)
         {
+            // Defined TEz mode
             Ex_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }}),d_, false);
-            Ey_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }}),d_, true);
-            Ez_ = nullptr;
-
-
-            Hx_ = nullptr;
-            Hy_ = nullptr;
             Hz_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }}),d_, true);
+            Ey_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }}),d_, true);
 
-            bool disp = false;
-            bool magnetic = false;
-            for(auto& obj : objArr_)
-            {
-                if(obj->magMat().size() > 1)
-                {
-                    magnetic = true;
-                }
-                if(obj->mat().size() > 1)
-                {
-                    disp = true;
-                }
-            }
             if(disp)
             {
                 Dx_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, false);
                 Dy_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, true);
             }
-            else
-            {
-                Dx_ = nullptr;
-                Dy_ = nullptr;
-            }
-            Dz_ = nullptr;
-            Bx_ = nullptr;
-            By_ = nullptr;
             if(magnetic)
-            {
                 Bz_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, true);
-            }
             else
-            {
                 Bz_ = nullptr;
-            }
-            prevEx_ = nullptr;
-            prevEy_ = nullptr;
-            prevEz_ = nullptr;
-
-            prevHx_ = nullptr;
-            prevHy_ = nullptr;
-            prevHz_ = nullptr;
 
             ln_vec_[0] = Hz_->local_x()-2;
             ln_vec_[1] = Hz_->local_y()-2;
@@ -344,61 +413,60 @@ public:
         }
         else
         {
-            Ex_ = nullptr;
-            Ey_ = nullptr;
-            Ez_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }}),d_,false);
-
+            // Define TMz mode
             Hx_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }}),d_, true);
+            Ez_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }}),d_,false);
             Hy_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }}),d_,false);
-            Hz_ = nullptr;
 
-            bool disp = false;
-            bool magnetic = false;
-            for(auto& obj : objArr_)
-            {
-                if(obj->magMat().size() > 1)
-                {
-                    magnetic = true;
-                }
-                if(obj->mat().size() > 1)
-                {
-                    disp = true;
-                }
-            }
-            Dx_ = nullptr;
-            Dy_ = nullptr;
             if(disp)
             {
                 Dz_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, false);
-            }
-            else
-            {
-                Dz_ = nullptr;
             }
             if(magnetic)
             {
                 Bx_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, true);
                 By_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, false);
             }
-            else
-            {
-                Bx_ = nullptr;
-                By_ = nullptr;
-            }
-            Bz_ = nullptr;
-
-            prevEx_ = nullptr;
-            prevEy_ = nullptr;
-            prevEz_ = nullptr;
-
-            prevHx_ = nullptr;
-            prevHy_ = nullptr;
-            prevHz_ = nullptr;
-
             ln_vec_[0] = Ez_->local_x()-2;
             ln_vec_[1] = Ez_->local_y()-2;
             ln_vec_[2] = 1;
         }
+        // Initialize object specific grids
+        for(auto & obj :objArr_)
+        {
+            obj->setUpConsts(dt_);
+            while((obj->mat().size() - 1) / 3.0 > lorPx_.size())
+            {
+                if(Dx_)
+                {
+                    prevLorPy_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, true) );
+                    prevLorPx_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
+                    lorPx_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
+                    lorPy_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, true) );
+                }
+                if(Dz_)
+                {
+                    lorPz_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
+                    prevLorPz_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
+                }
+            }
+            while((obj->magMat().size() - 1) / 3.0 > lorMx_.size())
+            {
+                if(Bx_)
+                {
+                    prevLorMy_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, true) );
+                    prevLorMx_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
+                    lorMx_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
+                    lorMy_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, true) );
+                }
+                if(Bz_)
+                {
+                    lorMz_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
+                    prevLorMz_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
+                }
+            }
+        }
+
         for(auto& xx : IP.inputMapSlicesX_)
             convertInputs2Map(IP, DIRECTION::X, xx);
         for(auto& yy : IP.inputMapSlicesY_)
@@ -406,168 +474,44 @@ public:
         for(auto& zz : IP.inputMapSlicesZ_)
             convertInputs2Map(IP, DIRECTION::Z, zz);
     }
+
     /**
-     * @brief Generates the the physical grids and then the parameter update lists
-     * @details Uses the objArr_ information to determine which objects are at each grid point, and uses that to generate the parameter lists from there
+     * @brief      Creates the update lists for a field
+     *
+     * @param[in]  physGrid  Map of all objects for the gird
+     * @param[in]  pml       The pml for the grid
+     * @param[in]  E         True if gird is an electric field
+     * @param[in]  derivOff  An array describing the offset for the j spatial derivative
+     * @param[in]  fieldEnd  The first grid point outside where the field is defined
+     * @param[in]  d         grid spacing
+     * @param      axU       axE/axH update list
+     * @param      axD       The axD/axB update list
      */
-    void initializeLists(std::shared_ptr<parallelGridInt> phys_Ex, std::shared_ptr<parallelGridInt> phys_Ey, std::shared_ptr<parallelGridInt> phys_Ez, std::shared_ptr<parallelGridInt> phys_Hx, std::shared_ptr<parallelGridInt> phys_Hy, std::shared_ptr<parallelGridInt> phys_Hz)
+    void initializeList(std::shared_ptr<parallelGridInt> physGrid, std::shared_ptr<parallelCPML<T>> pml, bool E, std::array<int,3> derivOff, std::array<int,3> fieldEnd, double d, upLists& axU, upLists& axD)
     {
-        std::tuple <int,int,int,int> BCs;
-        if(Ex_)
-            BCs = std::make_tuple(1, Ex_->local_x()-1, 1, Ex_->local_y()-1);
-        else
-            BCs = std::make_tuple(1, Ez_->local_x()-1, 1, Ez_->local_y()-1);
-        int xmin, xmax, ymin, ymax, zmin, zmax;
-        std::tie(xmin,xmax,ymin,ymax) = BCs;
-        if(Ez_ && Hz_)
+        int zmin = physGrid->z() == 1 ? 0 : 1;
+        int zmax = physGrid->z() == 1 ? 1 : physGrid->local_z()-1;
+        std::vector<std::array<int, 5>> tempU, tempD;
+        std::tie(tempU, tempD) = getAxLists(  E, {{ 1, 1, zmin }}, {{ physGrid->ln_vec()[0]-1, physGrid->ln_vec()[1]-1, zmax }}, physGrid, pml);
+        for(auto & ax : tempU)
         {
-            zmin = 1; zmax = Ex_->local_z()-1;
-        }
-        else
-        {
-            zmin = 0; zmax = 1;
-        }
-        if(Hz_)
-        {
-            // Get ax lists for the E and D fields via the functions
-            std::vector<std::array<int, 5>> tempEx, tempDx;
-            std::vector<std::array<int, 5>> tempEy, tempDy;
-            std::vector<std::array<int, 5>> tempHz, tempBz;
-
-            std::tie(tempEx, tempDx) = getAxLists(  true, {{ xmin, ymin, zmin }}, {{ xmax, ymax, zmax }}, phys_Ex);
-            std::tie(tempEy, tempDy) = getAxLists(  true, {{ xmin, ymin, zmin }}, {{ xmax, ymax, zmax }}, phys_Ey);
-            std::tie(tempHz, tempBz) = getAxLists( false, {{ xmin, ymin, zmin }}, {{ xmax, ymax, zmax }}, phys_Hz);
-
-            axEx_.reserve( tempEx.size() );
-            axEy_.reserve( tempEy.size() );
-            axHz_.reserve( tempHz.size() );
-
-            axDx_.reserve( tempDx.size() );
-            axDy_.reserve( tempDy.size() );
-            axBz_.reserve( tempBz.size() );
-
-            for(auto & ax : tempEx)
+            double ep_mu = E ? objArr_[ax[4]]->epsInfty() : objArr_[ax[4]]->muInfty();
+            if( ax[1] + physGrid->procLoc()[1] != fieldEnd[1] && ax[2] + physGrid->procLoc()[2] != fieldEnd[2] )
             {
-                double eps = objArr_[ax[4]]->epsInfty();
-                // Ex does not update at right edge, if it contains that then cut it out, also calculate all pref prefactors needed
-                if(ax[3] + ax[0] - 1 == n_vec_[0])
-                    axEx_.push_back(std::make_pair(std::array<int,8>({ax[3]-1, ax[0], ax[1], ax[2], 0, -1, 0, ax[4]}), std::array<double,2>({1.0, -1.0*dt_/(eps*d_[1])}) ) );
+                if(ax[3] + ax[0] - 1 == fieldEnd[0])
+                    axU.push_back(std::make_pair(std::array<int,8>({ax[3]-1, ax[0], ax[1], ax[2], derivOff[0], derivOff[1] , derivOff[2], ax[4]}), std::array<double,2>({1.0, -1.0*dt_/(ep_mu*d)}) ) );
                 else
-                    axEx_.push_back(std::make_pair(std::array<int,8>({ax[3]  , ax[0], ax[1], ax[2], 0, -1, 0, ax[4]}), std::array<double,2>({1.0, -1.0*dt_/(eps*d_[1])}) ) );
+                    axU.push_back(std::make_pair(std::array<int,8>({ax[3]  , ax[0], ax[1], ax[2], derivOff[0], derivOff[1] , derivOff[2], ax[4]}), std::array<double,2>({1.0, -1.0*dt_/(ep_mu*d)}) ) );
             }
-
-            for(auto & ax : tempEy)
-            {
-                double eps = objArr_[ax[4]]->epsInfty();
-                // Remove all top edge values for the y field/calculate all prefactors
-                if( ax[1] + Ey_->procLoc()[1] != n_vec_[1] )
-                    axEy_.push_back(std::make_pair(std::array<int,8>({ax[3], ax[0], ax[1], ax[2], 0, 0, -1, ax[4]}), std::array<double,2>({1.0, -1.0*dt_/(eps*d_[0])}) ) );
-            }
-
-            for(auto & ax : tempHz)
-            {
-                if( ax[1] + Hz_->procLoc()[1] != n_vec_[1] )
-                {
-                    double mu = objArr_[ax[4]]->muInfty();
-                    if(ax[3] + ax[0] - 1 == n_vec_[0])
-                        axHz_.push_back(std::make_pair(std::array<int,8>({ax[3]-1, ax[0], ax[1], ax[2], 1, 0, 0, ax[4]}) , std::array<double,2>({1.0, -1.0*dt_/(d_[0]*mu)}) ) );
-                    else
-                        axHz_.push_back(std::make_pair(std::array<int,8>({ax[3]  , ax[0], ax[1], ax[2], 1, 0, 0, ax[4]}) , std::array<double,2>({1.0, -1.0*dt_/(d_[0]*mu)}) ) );
-                }
-            }
-
-            for(auto & ax : tempDx)
-            {
-                // Ex does not update at right edge, if it contains that then cut it out, also calculate all pref prefactors needed
-                if(ax[3] + ax[0] - 1 == n_vec_[0])
-                    axDx_.push_back(std::make_pair(std::array<int,8>({ax[3]-1, ax[0], ax[1], ax[2], 0, -1, 0, ax[4]}), std::array<double,2>({1.0, -1.0*dt_/d_[1]}) ) );
-                else
-                    axDx_.push_back(std::make_pair(std::array<int,8>({ax[3]  , ax[0], ax[1], ax[2], 0, -1, 0, ax[4]}), std::array<double,2>({1.0, -1.0*dt_/d_[1]}) ) );
-            }
-            for(auto & ax : tempDy)
-            {
-                // Remove all top edge values for the y field/calculate all prefactors
-                if( ax[1] + Ey_->procLoc()[1] != n_vec_[1] )
-                    axDy_.push_back(std::make_pair(std::array<int,8>({ax[3], ax[0], ax[1], ax[2], 0, 0, -1, ax[4]}), std::array<double,2>({1.0, -1.0*dt_/(d_[0])}) ) );
-            }
-            for(auto & ax : tempBz)
-            {
-                if( ax[1] + Hz_->procLoc()[1] != n_vec_[1] )
-                {
-                    if(ax[3] + ax[0] - 1 == n_vec_[0])
-                        axBz_.push_back(std::make_pair(std::array<int,8>({ax[3]-1, ax[0], ax[1], ax[2], 1, 0, 0, ax[4]}) , std::array<double,2>({1.0, -1.0*dt_/(d_[0])}) ) );
-                    else
-                        axBz_.push_back(std::make_pair(std::array<int,8>({ax[3]  , ax[0], ax[1], ax[2], 1, 0, 0, ax[4]}) , std::array<double,2>({1.0, -1.0*dt_/(d_[0])}) ) );
-                }
-            }
-
         }
-        if(Ez_)
+        for(auto & ax : tempD)
         {
-            std::vector<std::array<int, 5>> tempHx, tempBx;
-            std::vector<std::array<int, 5>> tempHy, tempBy;
-            std::vector<std::array<int, 5>> tempEz, tempDz;
-
-            std::tie(tempHx, tempBx) = getAxLists( false, {{ xmin, ymin, zmin }}, {{ xmax, ymax, zmax }}, phys_Hx);
-            std::tie(tempHy, tempBy) = getAxLists( false, {{ xmin, ymin, zmin }}, {{ xmax, ymax, zmax }}, phys_Hy);
-            std::tie(tempEz, tempDz) = getAxLists(  true, {{ xmin, ymin, zmin }}, {{ xmax, ymax, zmax }}, phys_Ez);
-
-            axHx_.reserve( tempHx.size() );
-            axBx_.reserve( tempBx.size() );
-
-            axHy_.reserve( tempHy.size() );
-            axBy_.reserve( tempBy.size() );
-
-            axEz_.reserve( tempEz.size() );
-            axDz_.reserve( tempDz.size() );
-            for(auto& ax : tempHx)
+            if( ax[1] + physGrid->procLoc()[1] != fieldEnd[1] && ax[2] + physGrid->procLoc()[2] != fieldEnd[2] )
             {
-                double mu = objArr_[ax[4]]->muInfty();
-                if( ax[2] + Hy_->procLoc()[2] != n_vec_[2] && ax[1] + Ez_->procLoc()[1] != n_vec_[1] )
-                    axHx_.push_back(std::make_pair(std::array<int,8>({ax[3], ax[0], ax[1], ax[2], 0, 1, 0, ax[4]} ), std::array<double,2>( { 1.0, -1.0*dt_/(mu*d_[0]) } ) ) );
-            }
-            // Hy has no right edge
-            for(auto& ax : tempHy)
-            {
-                if( ax[2] + Hy_->procLoc()[2] != n_vec_[2] )
-                {
-                    double mu = objArr_[ax[4]]->muInfty();
-                    if(ax[3] + ax[0] - 1 == n_vec_[0])
-                        axHy_.push_back(std::make_pair(std::array<int,8>({ax[3]-1, ax[0], ax[1], ax[2], 0, 0, 1, ax[4]}) , std::array<double,2>( {1.0, -1.0*dt_/(mu*d_[0]) } ) ) );
-                    else
-                        axHy_.push_back(std::make_pair(std::array<int,8>({ax[3]  , ax[0], ax[1], ax[2], 0, 0, 1, ax[4]}) , std::array<double,2>( {1.0, -1.0*dt_/(mu*d_[0]) } ) ) );
-                }
-            }
-            for(auto & ax : tempEz)
-            {
-                if( ax[2] + Ez_->procLoc()[2] != n_vec_[2] )
-                {
-                    double eps = objArr_[ax[4]]->epsInfty();
-                    axEz_.push_back(std::make_pair(std::array<int,8>({ax[3], ax[0], ax[1], ax[2], -1, 0, 0, ax[4]}), std::array<double,2>({1.0, -1.0*dt_/(eps*d_[1])}) ) );
-                }
-            }
-
-            for(auto& ax : tempBx)
-            {
-                if( ax[2] + Hx_->procLoc()[2] != n_vec_[2] && ax[1] + Hx_->procLoc()[1] != n_vec_[1] )
-                    axBx_.push_back(std::make_pair(std::array<int,8>({ax[3], ax[0], ax[1], ax[2], 0, 1, 0, ax[4]}) , std::array<double,2>({1.0, -1.0*dt_/d_[0]}) ) );
-            }
-            // Hy has no right edge
-            for(auto& ax : tempBy)
-            {
-                if( ax[2] + Hy_->procLoc()[2] != n_vec_[2] )
-                {
-                    if(ax[3] + ax[0] - 1 == n_vec_[0])
-                        axBy_.push_back(std::make_pair(std::array<int,8>({ax[3]-1, ax[0], ax[1], ax[2], 0, 0, 1, ax[4]}) , std::array<double,2>({1.0, -1.0*dt_/d_[0]}) ) );
-                    else
-                        axBy_.push_back(std::make_pair(std::array<int,8>({ax[3]  , ax[0], ax[1], ax[2], 0, 0, 1, ax[4]}) , std::array<double,2>({1.0, -1.0*dt_/d_[0]}) ) );
-                }
-            }
-
-            for(auto & ax : tempDz)
-            {
-                if( ax[2] + Ez_->procLoc()[2] != n_vec_[2] )
-                    axDz_.push_back(std::make_pair(std::array<int,8>({ax[3], ax[0], ax[1], ax[2], -1, 0, 0, ax[4]}), std::array<double,2>({1.0, -1.0*dt_/(d_[1])}) ) );
+                if(ax[3] + ax[0] - 1 == fieldEnd[0])
+                    axD.push_back(std::make_pair(std::array<int,8>({ax[3]-1, ax[0], ax[1], ax[2], derivOff[0], derivOff[1] , derivOff[2], ax[4]}), std::array<double,2>({1.0, -1.0*dt_/d}) ) );
+                else
+                    axD.push_back(std::make_pair(std::array<int,8>({ax[3]  , ax[0], ax[1], ax[2], derivOff[0], derivOff[1] , derivOff[2], ax[4]}), std::array<double,2>({1.0, -1.0*dt_/d}) ) );
             }
         }
     }
@@ -637,7 +581,7 @@ public:
      * @param physGrid physical grid for the particular field
      * @return a pair of update preurser lists for the D and E fields
      */
-    std::tuple< std::vector<std::array<int,5>>, std::vector<std::array<int,5>> > getAxLists(bool E, std::array<int,3> min, std::array<int,3> max, std::shared_ptr<parallelGridInt> physGrid)
+    std::tuple< std::vector<std::array<int,5>>, std::vector<std::array<int,5>> > getAxLists(bool E, std::array<int,3> min, std::array<int,3> max, std::shared_ptr<parallelGridInt> physGrid, std::shared_ptr<parallelCPML<T>> pml)
     {
         std::vector<std::array<int,5>> axULists = {};
         std::vector<std::array<int,5>> axDLists = {};
@@ -752,103 +696,75 @@ public:
         // std::cout << axULists.size() << '\t' << axDLists.size() << '\t' << axChiDLists.size() << std::endl;
         return std::make_tuple(axULists, axDLists);
     }
+
     /**
      * @brief Uses the objArr to generate the physical grids
      * @details goes through all the grid points and determines if there is an object is at the grid point and if so sets the point to that value
      *
      * @param physGrid physGrid to be set
      * @param offPt offset for all the coordinate
-     * @param min minimum for all the coordinates
-     * @param max maximum for all the coordinates
+     * @param nz the number of points in the z direction (3D or 2D)
      */
-    void setupPhysFields(std::shared_ptr<parallelGridInt> physGrid, std::array<double,3> offPt, std::array<int,3> min, std::array<int,3> max)
+    void setupPhysFields(std::shared_ptr<parallelGridInt>& physGrid, bool PBC, std::array<double,3> offPt, int nz)
     {
-        if( Ez_ && Hz_ )
+        physGrid = std::make_shared<parallelGridInt >(gridComm_, PBC, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), nz }} ), d_, false);
+        // Test point used
+        std::array<double,3> pt = {{ 0,0,0}};
+        // Objects on the same points over write each other (last object made wins)
+        int zmin = (nz == 1) ? 0 : 1;
+        int zmax = (nz == 1) ? 1 : physGrid->ln_vec()[2]-1;
+        for(int oo = 0; oo < objArr_.size(); ++oo)
         {
-            // Test point used
-            std::array<double,3> pt = {{ 0,0,0}};
-            // Objects on the same points over write each other (last object made wins)
-            for(int oo = 0; oo < objArr_.size(); ++oo)
+            // look at all local points only
+            if(oo == 0 || objArr_[oo]->mat().size() > 1 || objArr_[oo]->epsInfty() != 1.0 || objArr_[oo]->magMat().size() > 1 || objArr_[oo]->muInfty() != 1.0 )
             {
-                // look at all local points only
-                if(oo == 0 || objArr_[oo]->mat().size() > 2 || objArr_[oo]->epsInfty() != 1.0 || objArr_[oo]->magMat().size() > 2 || objArr_[oo]->muInfty() != 1.0 )
+                for(int ii = 1; ii < physGrid->ln_vec()[0]-1; ++ii)
                 {
-                    for(int ii = min[0]; ii < max[0]; ++ii)
+                    for(int jj = 1; jj < physGrid->ln_vec()[1]-1; ++jj)
                     {
-                        for(int jj = min[1]; jj < max[1]; ++jj)
+                        for(int kk = zmin; kk < zmax; ++kk)
                         {
-                            for(int kk = min[2]; kk < max[2]; ++kk)
+                            pt[0] = ( (ii-1) + offPt[0] + physGrid->procLoc()[0] - (n_vec_[0]-n_vec_[0] % 2)/2.0 )*d_[0];
+                            pt[1] = ( (jj-1) + offPt[1] + physGrid->procLoc()[1] - (n_vec_[1]-n_vec_[1] % 2)/2.0 )*d_[1];
+                            pt[2] = ( (kk-1) + offPt[2] + physGrid->procLoc()[2] - (n_vec_[2]-n_vec_[2] % 2)/2.0 )*d_[2];
+                            if(objArr_[oo]->isObj(pt,d_[0])==true)
                             {
-                                pt[0] = ( (ii-1) + offPt[0] + physGrid->procLoc()[0] - (n_vec_[0]-n_vec_[0] % 2)/2.0 )*d_[0];
-                                pt[1] = ( (jj-1) + offPt[1] + physGrid->procLoc()[1] - (n_vec_[1]-n_vec_[1] % 2)/2.0 )*d_[1];
-                                pt[2] = ( (kk-1) + offPt[2] + physGrid->procLoc()[2] - (n_vec_[2]-n_vec_[2] % 2)/2.0 )*d_[2];
-                                if(objArr_[oo]->isObj(pt,d_[0])==true)
-                                {
-                                    physGrid->point(ii,jj, kk) = oo;
-                                }
+                                physGrid->point(ii,jj, kk) = oo;
                             }
                         }
                     }
                 }
             }
-            // All borders of between the processors have a -1 to indicate they are borders
-            for(int ii = min[0]-1; ii < max[0] + 1; ++ii)
+        }
+        // All borders of between the processors have a -1 to indicate they are borders
+        zmin = 0;
+        zmax = (nz == 1) ? 1 : physGrid->ln_vec()[2];
+        if(nz != 1)
+        {
+            for(int ii = 0; ii < physGrid->ln_vec()[0]; ++ii)
             {
-                for(int jj = min[1]-1; jj < max[1] + 1; ++jj)
+                for(int jj = 0; jj < physGrid->ln_vec()[1]; ++jj)
                 {
-                    physGrid->point(ii, jj, 0     ) = -1;
-                    physGrid->point(ii, jj, max[2]) = -1;
-                }
-            }
-            for(int ii = min[0]-1; ii < max[0] + 1; ++ii)
-            {
-                for(int kk = min[2]-1; kk < max[2] + 1; ++kk)
-                {
-                    physGrid->point(ii, 0     , kk) = -1;
-                    physGrid->point(ii, max[1], kk) = -1;
-                }
-            }
-            for(int kk = min[2]-1; kk < max[2] + 1; ++kk)
-            {
-                for(int jj = min[1]-1; jj < max[1] + 1; ++jj)
-                {
-                    physGrid->point(0     , jj, kk) = -1;
-                    physGrid->point(max[0], jj, kk) = -1;
+                    physGrid->point(ii, jj, 0   ) = -1;
+                    physGrid->point(ii, jj, zmax-1) = -1;
                 }
             }
         }
-        else
+
+        for(int ii = 0; ii < physGrid->ln_vec()[0]; ++ii)
         {
-            // Test point used
-            std::array<double,3> pt = {{(0.0, 0.0, 0.0)}};
-            // Objects on the same points over write each other (last object made wins)
-            for(int oo = 0; oo < objArr_.size(); ++oo)
+            for(int kk = zmin; kk < zmax; ++kk)
             {
-                // look at all local points only
-                if(oo == 0 || objArr_[oo]->mat().size() > 2 || objArr_[oo]->epsInfty() != 1.0  || objArr_[oo]->magMat().size() > 2 || objArr_[oo]->muInfty() != 1.0)
-                {
-                    for(int ii = min[0]; ii < max[0]; ++ii)
-                    {
-                        for(int jj = min[1]; jj < max[1]; ++jj)
-                        {
-                            pt[0] = ((ii-1)+offPt[0]+physGrid->procLoc()[0]-(n_vec_[0]-1)/2.0)*d_[0];
-                            pt[1] = ((jj-1)+offPt[1]+physGrid->procLoc()[1]-(n_vec_[1]-1)/2.0)*d_[1];
-                            if(objArr_[oo]->isObj(pt,d_[0])==true)
-                                physGrid->point(ii,jj) = oo;
-                        }
-                    }
-                }
+                physGrid->point(ii, 0, kk) = -1;
+                physGrid->point(ii, physGrid->ln_vec()[1]-1, kk) = -1;
             }
-            // All borders of between the processors have a -1 to indicate they are borders
-            for(int ii = min[0]-1; ii < max[0] + 1; ii++)
+        }
+        for(int kk = zmin; kk < zmax; ++kk)
+        {
+            for(int jj = 0; jj < physGrid->ln_vec()[1]; ++jj)
             {
-                physGrid->point(ii, 0)    = -1;
-                physGrid->point(ii, max[1]) = -1;
-            }
-            for(int jj = min[1]-1; jj < max[1] + 1; ++jj)
-            {
-                physGrid->point(0, jj)    = -1;
-                physGrid->point(max[0], jj) = -1;
+                physGrid->point(0, jj, kk) = -1;
+                physGrid->point(physGrid->ln_vec()[0]-1, jj, kk) = -1;
             }
         }
     }
@@ -1101,12 +1017,12 @@ public:
 
         // Update E fields
         updateE();
-        // Add dispersive materials and update E field PML's during upD function calls (done to include dispersive materials more easily)
-        updateDispE();
 
         updateExPML_(ExPML_);
         updateEyPML_(EyPML_);
         updateEzPML_(EzPML_);
+        // Add dispersive materials and update E field PML's during upD function calls (done to include dispersive materials more easily)
+        updateDispE();
 
         // All E-field Updates should now be completed transfer border values for the E-fields
         pbcEx_(Ex_, k_point_, ln_vec_[0]+1, ln_vec_[1]+1, pbcZMax_+1, ln_vec_[0]  , yExPBC_, pbcZMin_, pbcZMax_+1, d_[0], d_[1], d_[2]);

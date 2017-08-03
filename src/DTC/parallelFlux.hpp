@@ -338,6 +338,7 @@ public:
         {
             incd_prefactor_Ej_ = cos(psi)*sin(phi) - sin(psi)*cos(theta)*cos(phi);
             incd_prefactor_Ek_ = -1.0 * ( cos(psi)*cos(phi) + sin(psi)*cos(theta)*sin(phi) ) * std::exp( cplx(0, alpha) );
+
             incd_prefactor_Hj_ = ( sin(psi)*sin(phi) + cos(psi)*cos(theta)*cos(phi) ) * std::exp( cplx(0, alpha) );
             incd_prefactor_Hk_ = -1.0 * ( sin(psi)*cos(phi) - cos(psi)*cos(theta)*sin(phi) );
         }
@@ -346,6 +347,77 @@ public:
 
         if(load)
             loadFields(-1.0);
+    }
+
+    std::vector< std::vector< std::array<int,9> > > constructSzProcOffsetLists( std::vector<std::shared_ptr<parallelStorageFreqDTC<T>>> dtcArr, std::vector<int> addIndex, pgrid_ptr act_field, pgrid_ptr trans_field, int corJK, int cor, int transCor1 )
+    {
+        std::vector< std::vector< std::array<int,9> > > szProcOffset;
+        for(auto& dtc : dtcArr)
+        {
+            if( act_field && trans_field )
+            {
+                szProcOffset.push_back( std::vector<std::array<int, 9> >(2) );
+                // If it does not need to send anything send a blank
+                if(dtc->outGrid() )
+                {
+                    szProcOffset.back()[0] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
+                    szProcOffset.back()[1] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
+                }
+                else
+                {
+                    szProcOffset.back()[0] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
+                    szProcOffset.back()[1] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
+                }
+                if(cor == corJK)
+                {
+                    if(addIndex[1] == 0)
+                    {
+                        szProcOffset.back()[1][6] = 1;
+                        szProcOffset.back()[1][4] = 1;
+                    }
+                    else
+                    {
+                        szProcOffset.back()[0][8] = 1;
+                    }
+                    // if( (dtc->loc()[corJK] >= act_field->procLoc()[corJK]) && (dtc->loc()[corJK] + dtc->sz()[corJK]-1 < act_field->procLoc()[corJK] + act_field->ln_vec()[corJK]) )
+                    if( (act_field->procLoc()[corJK] <= dtc->loc()[corJK] + dtc->sz()[corJK]-1 ) && (dtc->loc()[corJK] + dtc->sz()[corJK]-1 < act_field->procLoc()[corJK] + act_field->ln_vec()[corJK] - 2) )
+                        szProcOffset.back()[0][4] = 1;
+
+                }
+                else if(transCor1 == corJK)
+                {
+                    if(addIndex[0] == 0)
+                    {
+                        szProcOffset.back()[1][5] = 1;
+                        szProcOffset.back()[1][3] = 1;
+                    }
+                    else
+                    {
+                        szProcOffset.back()[0][7] = 1;
+                    }
+                    // if( (dtc->loc()[corJK] >= act_field->procLoc()[corJK]) && (dtc->loc()[corJK] + dtc->sz()[corJK]-1 < act_field->procLoc()[corJK] + act_field->ln_vec()[corJK]) )
+                    if( (act_field->procLoc()[corJK] <= dtc->loc()[corJK] + dtc->sz()[corJK]-1 ) && (dtc->loc()[corJK] + dtc->sz()[corJK]-1 < act_field->procLoc()[corJK] + act_field->ln_vec()[corJK] - 2) )
+                        szProcOffset.back()[0][3] = 1;
+                }
+            }
+            else
+            {
+                szProcOffset.push_back( std::vector<std::array<int, 9> >(1) );
+                // If it does not need to send anything send a blank
+                if(dtc->outGrid() )
+                {
+                    szProcOffset.back()[0] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
+                    szProcOffset.back()[1] = {{ gridComm_.rank(), dtc->outGrid()->y(), dtc->outGrid()->z(), 0, 0, 0, 0, 0, 0 }} ;
+                }
+                else
+                {
+                    szProcOffset.back()[0] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
+                    szProcOffset.back()[1] = {{ -1, 0, 0, 0, 0, 0, 0, 0, 0 }} ;
+                }
+            }
+
+        }
+        return szProcOffset;
     }
 
     /**
@@ -412,6 +484,76 @@ public:
         ++t_step_;
     }
 
+    void combineField(std::string fieldID, cplx_grid_ptr freqField, std::vector<std::shared_ptr<parallelStorageFreqDTC<T>>> dtcArr, std::vector<std::shared_ptr<masterImportDat>> combFieldVec, std::vector<int> fInAddInd)
+    {
+        for(int dd = 0; dd < dtcArr.size(); ++dd)
+        {
+            if(outProc_ == gridComm_.rank())
+            {
+                // Receive data from other processes and place it into the freq fields
+                for(auto& getFields : combFieldVec)
+                {
+                    std::vector< std::vector< std::array<int,9> > > szProcOffset;
+                    if(fieldID == "EJ")
+                        szProcOffset = getFields->szProcOffsetEj_;
+                    if(fieldID == "EK")
+                        szProcOffset = getFields->szProcOffsetEk_;
+                    if(fieldID == "HJ")
+                        szProcOffset = getFields->szProcOffsetHj_;
+                    if(fieldID == "HK")
+                        szProcOffset = getFields->szProcOffsetHk_;
+                    // Copy data from detectors to freq fields
+                    if(szProcOffset[dd][0][0] == gridComm_.rank() )
+                    {
+                        for(auto& szOffProc : szProcOffset[dd])
+                        {
+                            for(int jj = 0; jj < szOffProc[2]-szOffProc[4]; ++jj)
+                            {
+                                for(int ii = 0; ii < szOffProc[1]-szOffProc[3]; ++ii)
+                                {
+                                    zaxpy_(nfreq_, 1.0/(static_cast<double>(dtcArr.size() * szProcOffset[dd].size() ) ), &dtcArr[dd]->outGrid()->point(0, ii+szOffProc[5], jj+szOffProc[6]), 1,   &freqField->point(0, ii + fInAddInd[0]+szOffProc[7], jj + fInAddInd[1]+szOffProc[8]), 1);
+                                }
+                            }
+                        }
+                    }
+                    else if(szProcOffset[dd][0][0] != -1)
+                    {
+                        std::vector<cplx> temp_store(szProcOffset[dd][0][1] * szProcOffset[dd][0][2] * nfreq_,0.0);
+                        gridComm_.recv(szProcOffset[dd][0][0], gridComm_.cantorTagGen(szProcOffset[dd][0][0], gridComm_.rank(), 3, 0), temp_store);
+                        // Iterate over last index first since that 1 in 2D
+                        for(auto& szOffProc : szProcOffset[dd])
+                        {
+                            for(int jj = 0; jj < szOffProc[2]-szOffProc[4]; ++jj)
+                            {
+                                for(int ii = 0; ii < szOffProc[1]-szOffProc[3]; ++ii)
+                                {
+                                    // Copy from vector that matches the way things are stored in the grid
+                                    zaxpy_(nfreq_, 1.0/(static_cast<double>(dtcArr.size() * szProcOffset[dd].size() ) ), &temp_store[( (ii+szOffProc[5]) + (jj+szOffProc[6])*szOffProc[1])*nfreq_] , 1,   &freqField->point(0, ii + getFields->addIndex_[0]+szOffProc[7], jj + getFields->addIndex_[1]+szOffProc[8]), 1);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else if(dtcArr[dd]->outGrid())
+            {
+                // Send data to master
+                std::vector<cplx> sendVec(dtcArr[dd]->outGrid()->size(), 0.0);
+                // Iterate over last index first since that 1 in 2D
+                for(int jj = 0; jj < dtcArr[dd]->outGrid()->z(); ++jj)
+                {
+                    for(int ii = 0; ii < dtcArr[dd]->outGrid()->y(); ++ii)
+                    {
+                        // Copy into vector matching the way things are stored in the grid
+                        zcopy_(nfreq_, &dtcArr[dd]->outGrid()->point(0,ii,jj), 1, &sendVec[(ii + jj*dtcArr[dd]->outGrid()->y()) * nfreq_], 1);
+                    }
+                }
+                // Send the grid data to the output/collector process
+                gridComm_.send(outProc_, gridComm_.cantorTagGen(gridComm_.rank(), outProc_, 3, 0), sendVec);
+            }
+        }
+    }
+
     /**
      * @brief calculates the flux at the end of the calculation
      * @details uses the stored field infomration to fourier transform the fileds and cacluate the flux
@@ -425,235 +567,10 @@ public:
     {
         for(int vv = 0; vv < fInParam_.size(); ++vv)
         {
-            // Input all the data from all the various processes
-            for(int dd = 0; dd < fInParam_[vv].Ej_dtc_.size(); ++dd)
-            {
-                if(outProc_ == gridComm_.rank())
-                {
-                    // Receive data from other processes and place it into the freq fields
-                    for(auto& getFields : fInParam_[vv].combineEjFields_)
-                    {
-                        // Copy data from detectors to freq fields
-                        if(getFields->szProcOffsetEj_[dd][0][0] == gridComm_.rank() )
-                        {
-                            for(auto& szProc : getFields->szProcOffsetEj_[dd])
-                            {
-                                for(int jj = 0; jj < szProc[2]-szProc[4]; ++jj)
-                                {
-                                    for(int ii = 0; ii < szProc[1]-szProc[3]; ++ii)
-                                    {
-                                        zaxpy_(nfreq_, 1.0/(static_cast<double>(fInParam_[vv].Ej_dtc_.size() * getFields->szProcOffsetEj_[dd].size() ) ), &fInParam_[vv].Ej_dtc_[dd]->outGrid()->point(0, ii+szProc[5], jj+szProc[6]), 1,   &Ej_freq_[vv]->point(0, ii + fInParam_[vv].addIndex_[0]+szProc[7], jj + fInParam_[vv].addIndex_[1]+szProc[8]), 1);
-                                    }
-                                }
-                            }
-                        }
-                        else if(getFields->szProcOffsetEj_[dd][0][0] != -1)
-                        {
-                            std::vector<cplx> temp_store(getFields->szProcOffsetEj_[dd][0][1] * getFields->szProcOffsetEj_[dd][0][2] * nfreq_,0.0);
-                            gridComm_.recv(getFields->szProcOffsetEj_[dd][0][0], gridComm_.cantorTagGen(getFields->szProcOffsetEj_[dd][0][0], gridComm_.rank(), 3, 0), temp_store);
-                            // Iterate over last index first since that 1 in 2D
-                            for(auto& szProc : getFields->szProcOffsetEj_[dd])
-                            {
-                                for(int jj = 0; jj < szProc[2]-szProc[4]; ++jj)
-                                {
-                                    for(int ii = 0; ii < szProc[1]-szProc[3]; ++ii)
-                                    {
-                                        // Copy from vector that matches the way things are stored in the grid
-                                        zaxpy_(nfreq_, 1.0/(static_cast<double>(fInParam_[vv].Ej_dtc_.size() * getFields->szProcOffsetEj_[dd].size() ) ), &temp_store[( (ii+szProc[5]) + (jj+szProc[6])*szProc[1])*nfreq_] , 1,   &Ej_freq_[vv]->point(0, ii + getFields->addIndex_[0]+szProc[7], jj + getFields->addIndex_[1]+szProc[8]), 1);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                else if(fInParam_[vv].Ej_dtc_[dd]->outGrid())
-                {
-                    // Send data to master
-                    std::vector<cplx> Ej_send(fInParam_[vv].Ej_dtc_[dd]->outGrid()->size(), 0.0);
-                    // Iterate over last index first since that 1 in 2D
-                    for(int jj = 0; jj < fInParam_[vv].Ej_dtc_[dd]->outGrid()->z(); ++jj)
-                    {
-                        for(int ii = 0; ii < fInParam_[vv].Ej_dtc_[dd]->outGrid()->y(); ++ii)
-                        {
-                            // Copy into vector matching the way things are stored in the grid
-                            zcopy_(nfreq_, &fInParam_[vv].Ej_dtc_[dd]->outGrid()->point(0,ii,jj), 1, &Ej_send[(ii + jj*fInParam_[vv].Ej_dtc_[dd]->outGrid()->y()) * nfreq_], 1);
-                        }
-                    }
-                    // Send the grid data to the output/collector process
-                    gridComm_.send(outProc_, gridComm_.cantorTagGen(gridComm_.rank(), outProc_, 3, 0), Ej_send);
-                }
-            }
-            for(int dd = 0; dd < fInParam_[vv].Ek_dtc_.size(); ++dd)
-            {
-                if(outProc_ == gridComm_.rank())
-                {
-                    // Receive data from other processes and place it into the freq fields
-                    for(auto& getFields : fInParam_[vv].combineEkFields_)
-                    {
-                        // Copy data from detectors to freq fields
-                        if(getFields->szProcOffsetEk_[dd][0][0] == gridComm_.rank() )
-                        {
-                            for(auto& szProc : getFields->szProcOffsetEk_[dd])
-                            {
-                                for(int jj = 0; jj < szProc[2]-szProc[4]; ++jj)
-                                {
-                                    for(int ii = 0; ii < szProc[1]-szProc[3]; ++ii)
-                                    {
-                                        zaxpy_(nfreq_, 1.0/(static_cast<double>(fInParam_[vv].Ek_dtc_.size() * getFields->szProcOffsetEk_[dd].size() ) ), &fInParam_[vv].Ek_dtc_[dd]->outGrid()->point(0, ii+szProc[5], jj+szProc[6]), 1,   &Ek_freq_[vv]->point(0, ii + fInParam_[vv].addIndex_[0]+szProc[7], jj + fInParam_[vv].addIndex_[1]+szProc[8]), 1);
-                                    }
-                                }
-                            }
-                        }
-                        else if(getFields->szProcOffsetEk_[dd][0][0] != -1)
-                        {
-                            std::vector<cplx> temp_store(getFields->szProcOffsetEk_[dd][0][1] * getFields->szProcOffsetEk_[dd][0][2] * nfreq_,0.0);
-                            gridComm_.recv(getFields->szProcOffsetEk_[dd][0][0], gridComm_.cantorTagGen(getFields->szProcOffsetEk_[dd][0][0], gridComm_.rank(), 3, 0), temp_store);
-                            // Iterate over last index first since that 1 in 2D
-                            for(auto& szProc : getFields->szProcOffsetEk_[dd])
-                            {
-                                for(int jj = 0; jj < szProc[2]-szProc[4]; ++jj)
-                                {
-                                    for(int ii = 0; ii < szProc[1]-szProc[3]; ++ii)
-                                    {
-                                        // Copy from vector that matches the way things are stored in the grid
-                                        zaxpy_(nfreq_, 1.0/(static_cast<double>(fInParam_[vv].Ek_dtc_.size() * getFields->szProcOffsetEk_[dd].size() ) ), &temp_store[( (ii+szProc[5]) + (jj+szProc[6])*szProc[1])*nfreq_] , 1,   &Ek_freq_[vv]->point(0, ii + getFields->addIndex_[0]+szProc[7], jj + getFields->addIndex_[1]+szProc[8]), 1);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                else if(fInParam_[vv].Ek_dtc_[dd]->outGrid())
-                {
-                    // Send data to master
-                    std::vector<cplx> Ek_send(fInParam_[vv].Ek_dtc_[dd]->outGrid()->size(), 0.0);
-                    // Iterate over last index first since that 1 in 2D
-                    for(int jj = 0; jj < fInParam_[vv].Ek_dtc_[dd]->outGrid()->z(); ++jj)
-                    {
-                        for(int ii = 0; ii < fInParam_[vv].Ek_dtc_[dd]->outGrid()->y(); ++ii)
-                        {
-                            // Copy into vector matching the way things are stored in the grid
-                            zcopy_(nfreq_, &fInParam_[vv].Ek_dtc_[dd]->outGrid()->point(0,ii,jj), 1, &Ek_send[(ii + jj*fInParam_[vv].Ek_dtc_[dd]->outGrid()->y()) * nfreq_], 1);
-                        }
-                    }
-                    // Send the grid data to the output/collector process
-                    gridComm_.send(outProc_, gridComm_.cantorTagGen(gridComm_.rank(), outProc_, 3, 0), Ek_send);
-                }
-            }
-            for(int dd = 0; dd < fInParam_[vv].Hj_dtc_.size(); ++dd)
-            {
-                if(outProc_ == gridComm_.rank())
-                {
-                    // Receive data from other processes and place it into the freq fields
-                    for(auto& getFields : fInParam_[vv].combineHjFields_)
-                    {
-                        // Copy data from detectors to freq fields
-                        if(getFields->szProcOffsetHj_[dd][0][0] == gridComm_.rank() )
-                        {
-                            for(auto& szProc : getFields->szProcOffsetHj_[dd])
-                            {
-                                for(int jj = 0; jj < szProc[2]-szProc[4]; ++jj)
-                                {
-                                    for(int ii = 0; ii < szProc[1]-szProc[3]; ++ii)
-                                    {
-                                        zaxpy_(nfreq_, 1.0/(static_cast<double>(fInParam_[vv].Hj_dtc_.size() * getFields->szProcOffsetHj_[dd].size() ) ), &fInParam_[vv].Hj_dtc_[dd]->outGrid()->point(0, ii+szProc[5], jj+szProc[6]), 1,   &Hj_freq_[vv]->point(0, ii + fInParam_[vv].addIndex_[0]+szProc[7], jj + fInParam_[vv].addIndex_[1]+szProc[8]), 1);
-                                    }
-                                }
-                            }
-                        }
-                        else if(getFields->szProcOffsetHj_[dd][0][0] != -1)
-                        {
-                            std::vector<cplx> temp_store(getFields->szProcOffsetHj_[dd][0][1] * getFields->szProcOffsetHj_[dd][0][2] * nfreq_,0.0);
-                            gridComm_.recv(getFields->szProcOffsetHj_[dd][0][0], gridComm_.cantorTagGen(getFields->szProcOffsetHj_[dd][0][0], gridComm_.rank(), 3, 0), temp_store);
-                            // Iterate over last index first since that 1 in 2D
-                            for(auto& szProc : getFields->szProcOffsetHj_[dd])
-                            {
-                                for(int jj = 0; jj < szProc[2]-szProc[4]; ++jj)
-                                {
-                                    for(int ii = 0; ii < szProc[1]-szProc[3]; ++ii)
-                                    {
-                                        // Copy from vector that matches the way things are stored in the grid
-                                        zaxpy_(nfreq_, 1.0/(static_cast<double>(fInParam_[vv].Hj_dtc_.size() * getFields->szProcOffsetHj_[dd].size() ) ), &temp_store[( (ii+szProc[5]) + (jj+szProc[6])*szProc[1])*nfreq_] , 1,   &Hj_freq_[vv]->point(0, ii + getFields->addIndex_[0]+szProc[7], jj + getFields->addIndex_[1]+szProc[8]), 1);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                else if(fInParam_[vv].Hj_dtc_[dd]->outGrid())
-                {
-                    // Send data to master
-                    std::vector<cplx> Hj_send(fInParam_[vv].Hj_dtc_[dd]->outGrid()->size(), 0.0);
-                    // Iterate over last index first since that 1 in 2D
-                    for(int jj = 0; jj < fInParam_[vv].Hj_dtc_[dd]->outGrid()->z(); ++jj)
-                    {
-                        for(int ii = 0; ii < fInParam_[vv].Hj_dtc_[dd]->outGrid()->y(); ++ii)
-                        {
-                            // Copy into vector matching the way things are stored in the grid
-                            zcopy_(nfreq_, &fInParam_[vv].Hj_dtc_[dd]->outGrid()->point(0,ii,jj), 1, &Hj_send[(ii + jj*fInParam_[vv].Hj_dtc_[dd]->outGrid()->y()) * nfreq_], 1);
-                        }
-                    }
-                    // Send the grid data to the output/collector process
-                    gridComm_.send(outProc_, gridComm_.cantorTagGen(gridComm_.rank(), outProc_, 3, 0), Hj_send);
-                }
-            }
-            for(int dd = 0; dd < fInParam_[vv].Hk_dtc_.size(); ++dd)
-            {
-                if(outProc_ == gridComm_.rank())
-                {
-                    // Receive data from other processes and place it into the freq fields
-                    for(auto& getFields : fInParam_[vv].combineHkFields_)
-                    {
-                        // Copy data from detectors to freq fields
-                        if(getFields->szProcOffsetHk_[dd][0][0] == gridComm_.rank() )
-                        {
-                            for(auto& szProc : getFields->szProcOffsetHk_[dd])
-                            {
-                                for(int jj = 0; jj < szProc[2]-szProc[4]; ++jj)
-                                {
-                                    for(int ii = 0; ii < szProc[1]-szProc[3]; ++ii)
-                                    {
-                                        zaxpy_(nfreq_, 1.0/(static_cast<double>(fInParam_[vv].Hk_dtc_.size() * getFields->szProcOffsetHk_[dd].size() ) ), &fInParam_[vv].Hk_dtc_[dd]->outGrid()->point(0, ii+szProc[5], jj+szProc[6]), 1,   &Hk_freq_[vv]->point(0, ii + fInParam_[vv].addIndex_[0]+szProc[7], jj + fInParam_[vv].addIndex_[1]+szProc[8]), 1);
-                                    }
-                                }
-                            }
-                        }
-                        else if(getFields->szProcOffsetHk_[dd][0][0] != -1)
-                        {
-                            std::vector<cplx> temp_store(getFields->szProcOffsetHk_[dd][0][1] * getFields->szProcOffsetHk_[dd][0][2] * nfreq_,0.0);
-                            gridComm_.recv(getFields->szProcOffsetHk_[dd][0][0], gridComm_.cantorTagGen(getFields->szProcOffsetHk_[dd][0][0], gridComm_.rank(), 3, 0), temp_store);
-                            // Iterate over last index first since that 1 in 2D
-                            for(auto& szProc : getFields->szProcOffsetHk_[dd])
-                            {
-                                for(int jj = 0; jj < szProc[2]-szProc[4]; ++jj)
-                                {
-                                    for(int ii = 0; ii < szProc[1]-szProc[3]; ++ii)
-                                    {
-                                        // Copy from vector that matches the way things are stored in the grid
-                                        zaxpy_(nfreq_, 1.0/(static_cast<double>(fInParam_[vv].Hk_dtc_.size() * getFields->szProcOffsetHk_[dd].size() ) ), &temp_store[( (ii+szProc[5]) + (jj+szProc[6])*szProc[1])*nfreq_] , 1,   &Hk_freq_[vv]->point(0, ii + getFields->addIndex_[0]+szProc[7], jj + getFields->addIndex_[1]+szProc[8]), 1);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                else if(fInParam_[vv].Hk_dtc_[dd]->outGrid())
-                {
-                    // Send data to master
-                    std::vector<cplx> Hk_send(fInParam_[vv].Hk_dtc_[dd]->outGrid()->size(), 0.0);
-                    // Iterate over last index first since that 1 in 2D
-                    for(int jj = 0; jj < fInParam_[vv].Hk_dtc_[dd]->outGrid()->z(); ++jj)
-                    {
-                        for(int ii = 0; ii < fInParam_[vv].Hk_dtc_[dd]->outGrid()->y(); ++ii)
-                        {
-                            // Copy into vector matching the way things are stored in the grid
-                            zcopy_(nfreq_, &fInParam_[vv].Hk_dtc_[dd]->outGrid()->point(0,ii,jj), 1, &Hk_send[(ii + jj*fInParam_[vv].Hk_dtc_[dd]->outGrid()->y()) * nfreq_], 1);
-                        }
-                    }
-                    // Send the grid data to the output/collector process
-                    gridComm_.send(outProc_, gridComm_.cantorTagGen(gridComm_.rank(), outProc_, 3, 0), Hk_send);
-                }
-            }
+            combineField("EJ", Ej_freq_[vv], fInParam_[vv].Ej_dtc_, fInParam_[vv].combineEjFields_, fInParam_[vv].addIndex_);
+            combineField("EK", Ek_freq_[vv], fInParam_[vv].Ek_dtc_, fInParam_[vv].combineEkFields_, fInParam_[vv].addIndex_);
+            combineField("HJ", Hj_freq_[vv], fInParam_[vv].Hj_dtc_, fInParam_[vv].combineHjFields_, fInParam_[vv].addIndex_);
+            combineField("HK", Hk_freq_[vv], fInParam_[vv].Hk_dtc_, fInParam_[vv].combineHkFields_, fInParam_[vv].addIndex_);
         }
         if(outProc_ != gridComm_.rank())
             return;
@@ -702,6 +619,7 @@ public:
                     offj_inc += getIncdField_( incd_prefactor_Hj_ * off_incd[tt] ) * std::exp(cplx(0.0,freqList_.at(ff)*tt*(dt_ / static_cast<double>(timeInt_) ) ) );
                     offk_inc += getIncdField_( incd_prefactor_Hk_ * off_incd[tt] ) * std::exp(cplx(0.0,freqList_.at(ff)*tt*(dt_ / static_cast<double>(timeInt_) ) ) );
                 }
+
                 flux_incd  = fluxIncdConv_ * ( Ej_inc * std::conj(Hk_inc) + Ej_inc * std::conj(offk_inc) ) / (2.0*std::pow(static_cast<double>(nt * timeInt_), 2.0) );
                 flux_incd -= fluxIncdConv_ * ( Ek_inc * std::conj(Hj_inc) + Ek_inc * std::conj(offj_inc) ) / (2.0*std::pow(static_cast<double>(nt * timeInt_), 2.0) );
             }
@@ -714,8 +632,8 @@ public:
                     Ek_inc   += getIncdField_( incd_prefactor_Ek_ *   E_incd[tt] ) * std::exp(cplx(0.0,freqList_.at(ff)*tt*(dt_ / static_cast<double>(timeInt_) ) ) );
                     Hj_inc   += getIncdField_( incd_prefactor_Hj_ *   H_incd[tt] ) * std::exp(cplx(0.0,freqList_.at(ff)*tt*(dt_ / static_cast<double>(timeInt_) ) ) );
                     Hk_inc   += getIncdField_( incd_prefactor_Hk_ *   H_incd[tt] ) * std::exp(cplx(0.0,freqList_.at(ff)*tt*(dt_ / static_cast<double>(timeInt_) ) ) );
-                    offj_inc += getIncdField_( incd_prefactor_Hj_ * off_incd[tt] ) * std::exp(cplx(0.0,freqList_.at(ff)*tt*(dt_ / static_cast<double>(timeInt_) ) ) );
-                    offk_inc += getIncdField_( incd_prefactor_Hk_ * off_incd[tt] ) * std::exp(cplx(0.0,freqList_.at(ff)*tt*(dt_ / static_cast<double>(timeInt_) ) ) );
+                    offj_inc += getIncdField_( incd_prefactor_Ej_ * off_incd[tt] ) * std::exp(cplx(0.0,freqList_.at(ff)*tt*(dt_ / static_cast<double>(timeInt_) ) ) );
+                    offk_inc += getIncdField_( incd_prefactor_Ek_ * off_incd[tt] ) * std::exp(cplx(0.0,freqList_.at(ff)*tt*(dt_ / static_cast<double>(timeInt_) ) ) );
                 }
 
                 flux_incd  = fluxIncdConv_ * ( Ej_inc * std::conj(Hk_inc) + offj_inc * std::conj(Hk_inc) ) / (2.0*std::pow(static_cast<double>(nt * timeInt_), 2.0) );

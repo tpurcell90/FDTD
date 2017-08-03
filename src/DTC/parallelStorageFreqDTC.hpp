@@ -115,62 +115,122 @@ public:
         fieldInFreq.loc_ = {-2, -2, -2};
         fieldInFreq.sz_ = {0,0,0};
         fieldInFreq.stride_ = 0;
-        if(loc_[0] >= grid_->procLoc()[0]-1 && loc_[0] < grid_->procLoc()[0] + grid_->local_x() -2) //!< Is the process in the process col that contains the left boundary of the detector region?
+
+        if(loc_[0] >= grid_->procLoc()[0] && loc_[0] < grid_->procLoc()[0] + grid_->local_x() -2) //!< Is the process in the process col that contains the left boundary of the detector region?
         {
             fieldInFreq.loc_[0] = loc_[0] - grid_->procLoc()[0] + 1;
-            if(loc_[1] >= grid_->procLoc()[1]-1 && loc_[1] < grid_->procLoc()[1] + grid_->local_y() -2) //!< Is the process in the process row that contains the lower boundary of the detector region?
+
+            if(loc_[1] >= grid_->procLoc()[1] && loc_[1] < grid_->procLoc()[1] + grid_->local_y() -2) //!< Is the process in the process row that contains the lower boundary of the detector region?
             {
                 fieldInFreq.loc_[1] = loc_[1] - grid_->procLoc()[1] + 1;
-                if(loc_[2] >= grid_->procLoc()[2]-1 && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
+                if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
                 {
                     fieldInFreq.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
                 }
-                else if(loc_[2] < grid_->procLoc()[2]-1 && loc_[2] + sz_[2] > grid_->procLoc()[2])
+                else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
                 {
                     fieldInFreq.loc_[2] = 1;
                 }
             }
-            else if(loc_[1] < grid_->procLoc()[1]-1 && loc_[1] + sz_[1] > grid_->procLoc()[1]) //!< Is the process in a process row that the detector region covers?
+            else if(loc_[1] < grid_->procLoc()[1] && loc_[1] + sz_[1] > grid_->procLoc()[1]) //!< Is the process in a process row that the detector region covers?
             {
                 fieldInFreq.loc_[1] = 1;
-                if(loc_[2] >= grid_->procLoc()[2]-1 && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
+                if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
                 {
                     fieldInFreq.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
                 }
-                else if(loc_[2] < grid_->procLoc()[2]-1 && loc_[2] + sz_[2] > grid_->procLoc()[2])
+                else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
                 {
                     fieldInFreq.loc_[2] = 1;
                 }
             }
         }
-        else if(loc_[0] < grid_->procLoc()[0]-1 && loc_[0] + sz_[0] > grid_->procLoc()[0]) //!< Is the process in a process col that the detector covers?
+        else if(loc_[0] < grid_->procLoc()[0] && loc_[0] + sz_[0] > grid_->procLoc()[0]) //!< Is the process in a process col that the detector covers?
         {
             fieldInFreq.loc_[0] = 1;
-            if(loc_[1] >= grid_->procLoc()[1]-1 && loc_[1] < grid_->procLoc()[1] + grid_->local_y() -2)
+
+            if(loc_[1] >= grid_->procLoc()[1] && loc_[1] < grid_->procLoc()[1] + grid_->local_y() -2)
             {
                 fieldInFreq.loc_[1] = loc_[1] - grid_->procLoc()[1] + 1;
-                if(loc_[2] >= grid_->procLoc()[2]-1 && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
+                if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
                 {
                     fieldInFreq.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
                 }
-                else if(loc_[2] < grid_->procLoc()[2]-1 && loc_[2] + sz_[2] > grid_->procLoc()[2])
+                else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
                 {
                     fieldInFreq.loc_[2] = 1;
                 }
             }
-            else if(loc_[1] < grid_->procLoc()[1]-1 && loc_[1] + sz_[1] > grid_->procLoc()[1])
+            else if(loc_[1] < grid_->procLoc()[1] && loc_[1] + sz_[1] > grid_->procLoc()[1])
             {
                 fieldInFreq.loc_[1] = 1;
-                if(loc_[2] >= grid_->procLoc()[2]-1 && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
+                if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
                 {
                     fieldInFreq.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
                 }
-                else if(loc_[2] < grid_->procLoc()[2]-1 && loc_[2] + sz_[2] > grid_->procLoc()[2])
+                else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
                 {
                     fieldInFreq.loc_[2] = 1;
                 }
             }
         }
+
+        // if(loc_[0] >= grid_->procLoc()[0] && loc_[0] < grid_->procLoc()[0] + grid_->local_x() -2) //!< Is the process in the process col that contains the left boundary of the detector region?
+        // {
+        //     fieldInFreq.loc_[0] = loc_[0] - grid_->procLoc()[0] + 1;
+        //     if(loc_[1] >= grid_->procLoc()[1] && loc_[1] < grid_->procLoc()[1] + grid_->local_y() -2) //!< Is the process in the process row that contains the lower boundary of the detector region?
+        //     {
+        //         fieldInFreq.loc_[1] = loc_[1] - grid_->procLoc()[1] + 1;
+        //         if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
+        //         {
+        //             fieldInFreq.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
+        //         }
+        //         else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
+        //         {
+        //             fieldInFreq.loc_[2] = 1;
+        //         }
+        //     }
+        //     else if(loc_[1] < grid_->procLoc()[1] && loc_[1] + sz_[1] > grid_->procLoc()[1]) //!< Is the process in a process row that the detector region covers?
+        //     {
+        //         fieldInFreq.loc_[1] = 1;
+        //         if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
+        //         {
+        //             fieldInFreq.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
+        //         }
+        //         else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
+        //         {
+        //             fieldInFreq.loc_[2] = 1;
+        //         }
+        //     }
+        // }
+        // else if(loc_[0] < grid_->procLoc()[0] && loc_[0] + sz_[0] > grid_->procLoc()[0]) //!< Is the process in a process col that the detector covers?
+        // {
+        //     fieldInFreq.loc_[0] = 1;
+        //     if(loc_[1] >= grid_->procLoc()[1] && loc_[1] < grid_->procLoc()[1] + grid_->local_y() -2)
+        //     {
+        //         fieldInFreq.loc_[1] = loc_[1] - grid_->procLoc()[1] + 1;
+        //         if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
+        //         {
+        //             fieldInFreq.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
+        //         }
+        //         else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
+        //         {
+        //             fieldInFreq.loc_[2] = 1;
+        //         }
+        //     }
+        //     else if(loc_[1] < grid_->procLoc()[1] && loc_[1] + sz_[1] > grid_->procLoc()[1])
+        //     {
+        //         fieldInFreq.loc_[1] = 1;
+        //         if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
+        //         {
+        //             fieldInFreq.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
+        //         }
+        //         else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
+        //         {
+        //             fieldInFreq.loc_[2] = 1;
+        //         }
+        //     }
+        // }
         if(grid_->local_z() == 1)
         {
             fieldInFreq.loc_[2] = 0;
@@ -286,11 +346,17 @@ public:
                     fieldInFreq.sz_[1] = grid_->local_y() - fieldInFreq.loc_[1] - 1;
                 else
                     fieldInFreq.sz_[1] = loc_[1] + sz_[1] - (grid_->procLoc()[1] + fieldInFreq.loc_[1] - 1);
-
                 if(sz_[2] + loc_[2] > grid_->procLoc()[2] + grid_->local_z() - 2)
                     fieldInFreq.sz_[2] = grid_->local_z() - fieldInFreq.loc_[2] - 1;
                 else
                     fieldInFreq.sz_[2] = loc_[2] + sz_[2] - (grid_->procLoc()[2] + fieldInFreq.loc_[2] - 1);
+                // gridComm_.barrier();
+                // if(gridComm_.rank() == 0)
+                //     std::cout << gridComm_.rank() << '\t' << fieldInFreq.loc_[0] << '\t' << fieldInFreq.loc_[1] << '\t' << fieldInFreq.loc_[2] << '\t' << fieldInFreq.sz_[0] << '\t' << fieldInFreq.sz_[1] << '\t' << fieldInFreq.sz_[2] << std::endl;
+                // gridComm_.barrier();
+                // if(gridComm_.rank() == 1)
+                //     std::cout << gridComm_.rank() << '\t' << fieldInFreq.loc_[0] << '\t' << fieldInFreq.loc_[1] << '\t' << fieldInFreq.loc_[2] << '\t' << fieldInFreq.sz_[0] << '\t' << fieldInFreq.sz_[1] << '\t' << fieldInFreq.sz_[2] << std::endl;
+                // gridComm_.barrier();
             }
             fieldInFreq_ = std::make_shared<fInParam>(fieldInFreq); //!< only make slave active if necessary
         }
