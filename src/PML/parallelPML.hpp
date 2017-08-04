@@ -91,7 +91,7 @@ public:
      * @param[in]  phys_Ey   The physical ey grid
      * @param[in]  objArr    The object arr
      */
-    parallelCPML(mpiInterface gridComm, std::vector<real_grid_ptr> weights, pgrid_ptr grid_i, pgrid_ptr grid_j, pgrid_ptr grid_k, POLARIZATION pol_i, std::array<int,3> n_vec, double m, double ma, double aMax, std::array<double,3> d, double dt, int_pgrid_ptr phys_Ex, int_pgrid_ptr phys_Ey, std::vector<std::shared_ptr<Obj>> objArr) :
+    parallelCPML(mpiInterface gridComm, std::vector<real_grid_ptr> weights, pgrid_ptr grid_i, pgrid_ptr grid_j, pgrid_ptr grid_k, POLARIZATION pol_i, std::array<int,3> n_vec, double m, double ma, double aMax, std::array<double,3> d, double dt, int_pgrid_ptr physGrid, std::vector<std::shared_ptr<Obj>> objArr) :
         gridComm_(gridComm),
         pol_i_(pol_i),
         n_vec_(n_vec),
@@ -146,10 +146,34 @@ public:
 
         if(!psi_k_ && ! psi_j_)
             throw std::logic_error("Well now this is awkward, you apperently are telling the parallelCPML that you only have one field, light needs at least 2 so FAIL!!!!");
+
         genDatStruct();
-        genEtaEff(phys_Ex,phys_Ey, objArr);
-        initalizeGrid(phys_Ex, phys_Ey, objArr);
+
+        genEtaEff(physGrid, DIRECTION::X, false, objArr, eta_eff_left_);
+        genEtaEff(physGrid, DIRECTION::X,  true, objArr, eta_eff_right_);
+
+        genEtaEff(physGrid, DIRECTION::Y, false, objArr, eta_eff_bot_);
+        genEtaEff(physGrid, DIRECTION::Y,  true, objArr, eta_eff_top_);
+
+
+        if(grid_i_->z() != 1)
+        {
+            genEtaEff(physGrid, DIRECTION::Z, false, objArr, eta_eff_back_);
+            genEtaEff(physGrid, DIRECTION::Z,  true, objArr, eta_eff_front_);
+        }
+        initalizeGrid(physGrid, objArr);
         gridComm_.barrier();
+    }
+
+    double genEtaEffVal(const std::vector<int>& physVals, std::vector<std::shared_ptr<Obj>> objArr, double normEtaSumDiff)
+    {
+        double eta_sum = 0.0;
+        // Sum up all the dielectric constants in the plane, if it is a boundary region don't add it
+        for(auto& val : physVals)
+            if(val != -1)
+                eta_sum += objArr[val]->epsInfty()*objArr[val]->muInfty();
+        // Find the average dielectric constant if outside the boundary regions
+        return eta_sum / (physVals.size() - normEtaSumDiff);
     }
 
     /**
@@ -160,102 +184,45 @@ public:
      * @param[in]  phys_Ey  physical grid for the x direction
      * @param[in]  objArr   vector of all objects in the cell
      */
-    void genEtaEff(int_pgrid_ptr phys_Ex, int_pgrid_ptr phys_Ey, std::vector<std::shared_ptr<Obj>> objArr)
+    void genEtaEff(int_pgrid_ptr physGrid, DIRECTION planeNormDir, bool pl, std::vector<std::shared_ptr<Obj>> objArr, std::vector<double>& eta_eff)
     {
-        gridComm_.barrier();
-        for(int ii = 0; ii < n_vec_[0] + gridComm_.npX()*2; ii ++)
+        int cor_ii = 0, cor_jj = 0,  cor_kk = 0, npII = 0;
+        double normEtaSumDiff = 0.0;
+        if(planeNormDir == DIRECTION::X)
         {
-            std::vector<int> physEyVals = phys_Ey->getPlaneYZ(ii);
-
-            double eps_sum = 0.0;
-            // Sum up all the dielectric constants in the plane, if it is a boundary region don't add it
-            for(int vv = 0; vv < physEyVals.size(); vv++)
-                if(physEyVals[vv] != -1)
-                    eps_sum += objArr[physEyVals[vv]]->epsInfty();
-            // Find the average dielectric constant if outside the boundary regions
-            double normEpsSum = phys_Ex->local_z() != 1 ? physEyVals.size() - 2*(gridComm_.npY()*phys_Ex->z() + gridComm_.npZ()*phys_Ex->y() ) + 2*(gridComm_.npY() + 1) : physEyVals.size() - 2*gridComm_.npY();
-            if(eta_eff_left_.size() < n_vec_[0] && eps_sum != 0.0)
-            {
-                eta_eff_left_.push_back( eps_sum/normEpsSum );
-            }
+            cor_ii = 0, cor_jj = 1, cor_kk = 2;
+            npII = gridComm_.npX();
+            normEtaSumDiff = physGrid->local_z() != 1 ? 2*(gridComm_.npY()*physGrid->z() + gridComm_.npZ()*physGrid->y() ) - 4*(gridComm_.npY() * gridComm_.npZ()) : 2*gridComm_.npY();
         }
-        for(int ii = phys_Ey->x() - 2; ii >= phys_Ey->x() - (n_vec_[0] + gridComm_.npX()*2); ii --)
+        else if(planeNormDir == DIRECTION::Y)
         {
-            std::vector<int> physEyVals = phys_Ey->getPlaneYZ(ii);
-
-            double eps_sum = 0.0;
-            // Sum up all the dielectric constants in the plane, if it is a boundary region don't add it
-            for(int vv = 0; vv < physEyVals.size(); vv++)
-                if(physEyVals[vv] != -1)
-                    eps_sum += objArr[physEyVals[vv]]->epsInfty();
-            // Find the average dielectric constant if outside the boundary regions
-            double normEpsSum = phys_Ex->local_z() != 1 ? physEyVals.size() - 2*(gridComm_.npY()*phys_Ex->z() + gridComm_.npZ()*phys_Ex->y() ) + 2*(gridComm_.npY() + 1) : physEyVals.size() - 2*gridComm_.npY();
-            if(eta_eff_right_.size() < n_vec_[0] && eps_sum != 0.0)
-            {
-                eta_eff_right_.push_back( eps_sum/normEpsSum );
-            }
+            cor_ii = 1, cor_jj = 2, cor_kk = 0;
+            npII = gridComm_.npY();
+            normEtaSumDiff = physGrid->local_z() != 1 ? 2*(gridComm_.npZ()*physGrid->x() + gridComm_.npX()*physGrid->z() ) - 4*(gridComm_.npZ() * gridComm_.npX()) : (2*( gridComm_.npX() ) );
         }
-        for(int ii = 0; ii < n_vec_[1] + gridComm_.npY()*2; ii ++)
+        else if(planeNormDir == DIRECTION::Z)
         {
-            std::vector<int> physExVals = phys_Ex->getPlaneXZ(ii);
-            double eps_sum = 0.0;
-            // Sum up all the dielectric constants in the plane, if it is a boundary region don't add it
-            for(int vv = 0; vv < physExVals.size(); vv++)
-                if(physExVals[vv] != -1)
-                    eps_sum += objArr[physExVals[vv]]->epsInfty();
-
-            // Find the average dielectric constant if outside the boundary regions
-            double normEpsSum = phys_Ex->local_z() != 1 ? (physExVals.size() - 2*(gridComm_.npZ()*phys_Ex->x() + gridComm_.npX()*phys_Ex->z() ) + 4) : (physExVals.size() - 2*( gridComm_.npX() ) );
-            if(eta_eff_bot_.size() < n_vec_[1] && eps_sum != 0)
-            {
-                eta_eff_bot_.push_back(eps_sum/normEpsSum ); //Not based on numProcs since in xz planes only 1 proc just corners
-            }
+            cor_ii = 2, cor_jj = 0, cor_kk = 1;
+            npII = gridComm_.npZ();
+            normEtaSumDiff = 2*(gridComm_.npY()*physGrid->x() + gridComm_.npX()*physGrid->y() ) - 4*(gridComm_.npY() * gridComm_.npX());
         }
-        for(int ii = phys_Ex->y() - 2; ii >= phys_Ex->y() - (n_vec_[1] + gridComm_.npY()*2); ii --)
-        {
-            std::vector<int> physExVals = phys_Ex->getPlaneXZ(ii);
-            double eps_sum = 0.0;
-            // Sum up all the dielectric constants in the plane, if it is a boundary region don't add it
-            for(int vv = 0; vv < physExVals.size(); vv++)
-                if(physExVals[vv] != -1)
-                    eps_sum += objArr[physExVals[vv]]->epsInfty();
+        int min = pl ? physGrid->n_vec()[cor_ii] - (n_vec_[cor_ii] + npII*2) : 0;
+        int max = pl ? physGrid->n_vec()[cor_ii] - 1 : n_vec_[cor_ii] + npII*2;
 
+        for(int ii = min; ii < max; ++ii)
+        {
+            double etaVal = 0.0;
+            if(planeNormDir == DIRECTION::X)
+                etaVal = genEtaEffVal( physGrid->getPlaneYZ(ii), objArr, normEtaSumDiff);
+            else if(planeNormDir == DIRECTION::Y)
+                etaVal = genEtaEffVal( physGrid->getPlaneXZ(ii), objArr, normEtaSumDiff);
+            else if(planeNormDir == DIRECTION::Z)
+            {
+                etaVal = genEtaEffVal( physGrid->getPlaneXY(ii), objArr, normEtaSumDiff);
+            }
             // Find the average dielectric constant if outside the boundary regions
-            double normEpsSum = phys_Ex->local_z() != 1 ? (physExVals.size() - 2*(gridComm_.npZ()*phys_Ex->x() + gridComm_.npX()*phys_Ex->z() ) + 4) : (physExVals.size() - 2*( gridComm_.npX() ) );
-            if(eta_eff_top_.size() < n_vec_[1] && eps_sum != 0)
-            {
-                eta_eff_top_.push_back( eps_sum/normEpsSum ); //Not based on numProcs since in xz planes only 1 proc just corners
-            }
-        }
-
-        if(grid_i_->local_z() != 1)
-        {
-            for(int ii = 0; ii < n_vec_[2] + gridComm_.npZ()*2; ii ++)
-            {
-                std::vector<int> physExVals = phys_Ex->getPlaneXY(ii);
-                double eps_sum = 0.0;
-                // Sum up all the dielectric constants in the plane, if it is a boundary region don't add it
-                for(int vv = 0; vv < physExVals.size(); vv++)
-                    if(physExVals[vv] != -1)
-                        eps_sum += objArr[physExVals[vv]]->epsInfty();
-
-                // Find the average dielectric constant if outside the boundary regions
-                if(eta_eff_back_.size() < n_vec_[2] && eps_sum != 0)
-                    eta_eff_back_.push_back(eps_sum/(physExVals.size() - 2*(gridComm_.npY()*phys_Ex->x() + gridComm_.npX()*phys_Ex->y() ) + 2*(gridComm_.npY() + 1) ) );
-            }
-            for(int ii = phys_Ex->z() - 2; ii >= phys_Ex->z() - (n_vec_[2] + gridComm_.npZ()*2); ii --)
-            {
-                std::vector<int> physExVals = phys_Ex->getPlaneXY(ii);
-                double eps_sum = 0.0;
-                // Sum up all the dielectric constants in the plane, if it is a boundary region don't add it
-                for(int vv = 0; vv < physExVals.size(); vv++)
-                    if(physExVals[vv] != -1)
-                        eps_sum += objArr[physExVals[vv]]->epsInfty();
-
-                // Find the average dielectric constant if outside the boundary regions
-                if(eta_eff_front_.size() < n_vec_[2] && eps_sum != 0)
-                    eta_eff_front_.push_back(eps_sum/(physExVals.size() - 2*(gridComm_.npY()*phys_Ex->x() + gridComm_.npX()*phys_Ex->y() ) + 2*(gridComm_.npY() + 1) ) );
-            }
+            if(eta_eff.size() < n_vec_[cor_ii] && etaVal != 0.0)
+                eta_eff.push_back( etaVal );
         }
     }
 
@@ -523,7 +490,7 @@ public:
      *
      * @return     The grid up list.
      */
-    std::vector<updateGridParams> getGridUpList(DIRECTION dir, bool pl,  int_pgrid_ptr phys_Ex, int_pgrid_ptr phys_Ey, std::vector<std::shared_ptr<Obj>> objArr)
+    std::vector<updateGridParams> getGridUpList(DIRECTION dir, bool pl,  int_pgrid_ptr physGrid, std::vector<std::shared_ptr<Obj>> objArr)
     {
         std::vector<updateGridParams> paramList;
         updateGridParams param;
@@ -564,7 +531,7 @@ public:
                 if(pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::EZ)
                     zmax -= 1;
             }
-            std::vector<std::array<int,5>> axParams = getAxLists(xmin, xmax, ymin, ymax, zmin, zmax, param.stride_, phys_Ey);
+            std::vector<std::array<int,5>> axParams = getAxLists(xmin, xmax, ymin, ymax, zmin, zmax, param.stride_, physGrid);
             for(auto & axList : axParams)
             {
                 param.loc_ = {axList[0], axList[1], axList[2]};
@@ -609,7 +576,7 @@ public:
                 if(pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::EZ)
                     zmax -= 1;
             }
-            std::vector<std::array<int,5>> axParams = getAxLists(xmin, xmax, ymin, ymax, zmin , zmax, param.stride_, phys_Ex);
+            std::vector<std::array<int,5>> axParams = getAxLists(xmin, xmax, ymin, ymax, zmin , zmax, param.stride_, physGrid);
             for(auto & axList : axParams)
             {
                 param.loc_ = {axList[0], axList[1], axList[2]};
@@ -646,7 +613,7 @@ public:
             xmax = grid_i_->local_x() - 1;
             if(pol_i_ == POLARIZATION::EX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::HZ)
                 xmax -= 1;
-            std::vector<std::array<int,5>> axParams = getAxLists(xmin, xmax, ymin, ymax, zmin, zmax, param.stride_, phys_Ey);
+            std::vector<std::array<int,5>> axParams = getAxLists(xmin, xmax, ymin, ymax, zmin, zmax, param.stride_, physGrid);
             for(auto & axList : axParams)
             {
                 param.loc_ = {axList[0], axList[1], axList[2]};
@@ -671,7 +638,7 @@ public:
      * @param[in]  phys_Ey  The physical ey grids
      * @param[in]  objArr   The lists of objects in the grid
      */
-    void initalizeGrid(int_pgrid_ptr phys_Ex, int_pgrid_ptr phys_Ey, std::vector<std::shared_ptr<Obj>> objArr)
+    void initalizeGrid(int_pgrid_ptr physGrid, std::vector<std::shared_ptr<Obj>> objArr)
     {
         std::vector<updatePsiParams> psiTemp;
         std::vector<updateGridParams> gridTemp;
@@ -681,7 +648,7 @@ public:
             if(grid_k_ && j_ == DIRECTION::Y)
             {
                 psiTemp  = getPsiUpList (DIRECTION::Y, true, grid_i_->procLoc()[1] + grid_i_->local_y()-2,  grid_i_->y()-2*gridComm_.npY(), n_vec_[1], ln_vec_pl_[1]);
-                gridTemp = getGridUpList(DIRECTION::Y, true, phys_Ex, phys_Ey, objArr);
+                gridTemp = getGridUpList(DIRECTION::Y, true, physGrid, objArr);
                 updateListPsi_j_.reserve(updateListPsi_j_.size() + psiTemp.size());
                 updateListPsi_j_.insert(updateListPsi_j_.end(), psiTemp.begin(), psiTemp.end());
                 updateListGrid_j_.reserve(updateListGrid_j_.size() + gridTemp.size());
@@ -690,7 +657,7 @@ public:
             else if(grid_j_ && k_ == DIRECTION::Y)
             {
                 psiTemp  = getPsiUpList (DIRECTION::Y, true, grid_i_->procLoc()[1] + grid_i_->local_y()-2,  grid_i_->y()-2*gridComm_.npY(), n_vec_[1], ln_vec_pl_[1]);
-                gridTemp = getGridUpList(DIRECTION::Y, true, phys_Ex, phys_Ey, objArr);
+                gridTemp = getGridUpList(DIRECTION::Y, true, physGrid, objArr);
                 updateListPsi_k_.reserve(updateListPsi_k_.size() + psiTemp.size());
                 updateListPsi_k_.insert(updateListPsi_k_.end(), psiTemp.begin(), psiTemp.end());
                 updateListGrid_k_.reserve(updateListGrid_k_.size() + gridTemp.size());
@@ -702,7 +669,7 @@ public:
             if(grid_k_ && j_ == DIRECTION::Y)
             {
                 psiTemp  = getPsiUpList (DIRECTION::Y, false, grid_i_->procLoc()[1], n_vec_[1], n_vec_[1], ln_vec_mn_[1]);
-                gridTemp = getGridUpList(DIRECTION::Y, false, phys_Ex, phys_Ey, objArr);
+                gridTemp = getGridUpList(DIRECTION::Y, false, physGrid, objArr);
 
                 updateListPsi_j_.reserve(updateListPsi_j_.size() + psiTemp.size());
                 updateListPsi_j_.insert(updateListPsi_j_.end(), psiTemp.begin(), psiTemp.end());
@@ -712,7 +679,7 @@ public:
             else if(grid_j_ && k_ == DIRECTION::Y)
             {
                 psiTemp  = getPsiUpList (DIRECTION::Y, false, grid_i_->procLoc()[1], n_vec_[1], n_vec_[1], ln_vec_mn_[1]);
-                gridTemp = getGridUpList(DIRECTION::Y, false, phys_Ex, phys_Ey, objArr);
+                gridTemp = getGridUpList(DIRECTION::Y, false, physGrid, objArr);
 
                 updateListPsi_k_.reserve(updateListPsi_k_.size() + psiTemp.size());
                 updateListPsi_k_.insert(updateListPsi_k_.end(), psiTemp.begin(), psiTemp.end());
@@ -726,7 +693,7 @@ public:
             if(grid_k_ && j_ == DIRECTION::X)
             {
                 psiTemp  = getPsiUpList (DIRECTION::X, false, grid_i_->procLoc()[0], n_vec_[0], n_vec_[0], ln_vec_mn_[0]);
-                gridTemp = getGridUpList(DIRECTION::X, false, phys_Ex, phys_Ey, objArr);
+                gridTemp = getGridUpList(DIRECTION::X, false, physGrid, objArr);
 
                 updateListPsi_j_.reserve(updateListPsi_j_.size() + psiTemp.size());
                 updateListPsi_j_.insert(updateListPsi_j_.end(), psiTemp.begin(), psiTemp.end());
@@ -736,7 +703,7 @@ public:
             else if(grid_j_ && k_ == DIRECTION::X)
             {
                 psiTemp  = getPsiUpList (DIRECTION::X, false, grid_i_->procLoc()[0], n_vec_[0], n_vec_[0], ln_vec_mn_[0]);
-                gridTemp = getGridUpList(DIRECTION::X, false, phys_Ex, phys_Ey, objArr);
+                gridTemp = getGridUpList(DIRECTION::X, false, physGrid, objArr);
 
                 updateListPsi_k_.reserve(updateListPsi_k_.size() + psiTemp.size());
                 updateListPsi_k_.insert(updateListPsi_k_.end(), psiTemp.begin(), psiTemp.end());
@@ -749,7 +716,7 @@ public:
             if(grid_k_ && j_ == DIRECTION::X)
             {
                 psiTemp  = getPsiUpList (DIRECTION::X, true, grid_i_->procLoc()[0] + grid_i_->local_x()-2,  grid_i_->x()-2*gridComm_.npX(), n_vec_[0], ln_vec_pl_[0]);
-                gridTemp = getGridUpList(DIRECTION::X, true, phys_Ex, phys_Ey, objArr);
+                gridTemp = getGridUpList(DIRECTION::X, true, physGrid, objArr);
 
                 updateListPsi_j_.reserve(updateListPsi_j_.size() + psiTemp.size());
                 updateListPsi_j_.insert(updateListPsi_j_.end(), psiTemp.begin(), psiTemp.end());
@@ -759,7 +726,7 @@ public:
             else if(grid_j_ && k_ == DIRECTION::X)
             {
                 psiTemp  = getPsiUpList (DIRECTION::X, true, grid_i_->procLoc()[0] + grid_i_->local_x()-2,  grid_i_->x()-2*gridComm_.npX(), n_vec_[0], ln_vec_pl_[0]);
-                gridTemp = getGridUpList(DIRECTION::X, true, phys_Ex, phys_Ey, objArr);
+                gridTemp = getGridUpList(DIRECTION::X, true, physGrid, objArr);
 
                 updateListPsi_k_.reserve(updateListPsi_k_.size() + psiTemp.size());
                 updateListPsi_k_.insert(updateListPsi_k_.end(), psiTemp.begin(), psiTemp.end());
@@ -774,7 +741,7 @@ public:
             if(grid_k_ && j_ == DIRECTION::Z)
             {
                 psiTemp  = getPsiUpList (DIRECTION::Z, false, grid_i_->procLoc()[2], n_vec_[2], n_vec_[2], ln_vec_mn_[2]);
-                gridTemp = getGridUpList(DIRECTION::Z, false, phys_Ex, phys_Ey, objArr);
+                gridTemp = getGridUpList(DIRECTION::Z, false, physGrid, objArr);
 
                 updateListPsi_j_.reserve(updateListPsi_j_.size() + psiTemp.size());
                 updateListPsi_j_.insert(updateListPsi_j_.end(), psiTemp.begin(), psiTemp.end());
@@ -784,7 +751,7 @@ public:
             else if(grid_j_ && k_ == DIRECTION::Z)
             {
                 psiTemp  = getPsiUpList (DIRECTION::Z, false, grid_i_->procLoc()[2], n_vec_[2], n_vec_[2], ln_vec_mn_[2]);
-                gridTemp = getGridUpList(DIRECTION::Z, false, phys_Ex, phys_Ey, objArr);
+                gridTemp = getGridUpList(DIRECTION::Z, false, physGrid, objArr);
 
                 updateListPsi_k_.reserve(updateListPsi_k_.size() + psiTemp.size());
                 updateListPsi_k_.insert(updateListPsi_k_.end(), psiTemp.begin(), psiTemp.end());
@@ -797,7 +764,7 @@ public:
             if(grid_k_ && j_ == DIRECTION::Z)
             {
                 psiTemp  = getPsiUpList (DIRECTION::Z, true, grid_i_->procLoc()[2] + grid_i_->local_z()-2,  grid_i_->z()-2*gridComm_.npZ(), n_vec_[2], ln_vec_pl_[2]);
-                gridTemp = getGridUpList(DIRECTION::Z, true, phys_Ex, phys_Ey, objArr);
+                gridTemp = getGridUpList(DIRECTION::Z, true, physGrid, objArr);
 
                 updateListPsi_j_.reserve(updateListPsi_j_.size() + psiTemp.size());
                 updateListPsi_j_.insert(updateListPsi_j_.end(), psiTemp.begin(), psiTemp.end());
@@ -807,7 +774,7 @@ public:
             else if(grid_j_ && k_ == DIRECTION::Z)
             {
                 psiTemp  = getPsiUpList (DIRECTION::Z, true, grid_i_->procLoc()[0] + grid_i_->local_z()-2,  grid_i_->z()-2*gridComm_.npZ(), n_vec_[2], ln_vec_pl_[2]);
-                gridTemp = getGridUpList(DIRECTION::Z, true, phys_Ex, phys_Ey, objArr);
+                gridTemp = getGridUpList(DIRECTION::Z, true, physGrid, objArr);
 
                 updateListPsi_k_.reserve(updateListPsi_k_.size() + psiTemp.size());
                 updateListPsi_k_.insert(updateListPsi_k_.end(), psiTemp.begin(), psiTemp.end());
@@ -1001,7 +968,7 @@ public:
      * @param[in]  phys_Ey   The physical ey grid
      * @param[in]  objArr    The object arr
      */
-    parallelCPMLReal(mpiInterface gridComm, std::vector<real_grid_ptr> weights, real_pgrid_ptr grid_i, real_pgrid_ptr grid_j, real_pgrid_ptr grid_k, POLARIZATION pol_i, std::array<int,3> n_vec, double m, double ma, double aMax, std::array<double,3> d, double dt, int_pgrid_ptr phys_Ex, int_pgrid_ptr phys_Ey, std::vector<std::shared_ptr<Obj>> objArr);
+    parallelCPMLReal(mpiInterface gridComm, std::vector<real_grid_ptr> weights, real_pgrid_ptr grid_i, real_pgrid_ptr grid_j, real_pgrid_ptr grid_k, POLARIZATION pol_i, std::array<int,3> n_vec, double m, double ma, double aMax, std::array<double,3> d, double dt, int_pgrid_ptr physGrid, std::vector<std::shared_ptr<Obj>> objArr);
 };
 
 class parallelCPMLCplx : public parallelCPML<cplx>
@@ -1026,6 +993,6 @@ public:
      * @param[in]  phys_Ey   The physical ey grid
      * @param[in]  objArr    The object arr
      */
-    parallelCPMLCplx(mpiInterface gridComm, std::vector<real_grid_ptr> weights, std::shared_ptr<parallelGrid<cplx > > grid_i, std::shared_ptr<parallelGrid<cplx > > grid_j, std::shared_ptr<parallelGrid<cplx > > grid_k, POLARIZATION pol_i, std::array<int,3> n_vec, double m, double ma, double aMax, std::array<double,3> d, double dt, int_pgrid_ptr phys_Ex, int_pgrid_ptr phys_Ey, std::vector<std::shared_ptr<Obj>> objArr);
+    parallelCPMLCplx(mpiInterface gridComm, std::vector<real_grid_ptr> weights, std::shared_ptr<parallelGrid<cplx > > grid_i, std::shared_ptr<parallelGrid<cplx > > grid_j, std::shared_ptr<parallelGrid<cplx > > grid_k, POLARIZATION pol_i, std::array<int,3> n_vec, double m, double ma, double aMax, std::array<double,3> d, double dt, int_pgrid_ptr physGrid, std::vector<std::shared_ptr<Obj>> objArr);
 };
 #endif
