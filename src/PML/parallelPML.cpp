@@ -34,7 +34,7 @@ void pmlUpdateFxnCplx::updatePsiField(std::vector<updatePsiParams> &paramList, c
     }
 }
 
-parallelCPMLReal::parallelCPMLReal(mpiInterface gridComm, std::vector<real_grid_ptr> weights, real_pgrid_ptr grid_i, real_pgrid_ptr grid_j, real_pgrid_ptr grid_k, POLARIZATION pol_i, std::array<int,3> n_vec, double m, double ma, double aMax, std::array<double,3> d, double dt, int_pgrid_ptr physGrid, std::vector<std::shared_ptr<Obj>> objArr) :
+parallelCPMLReal::parallelCPMLReal(std::shared_ptr<mpiInterface> gridComm, std::vector<real_grid_ptr> weights, real_pgrid_ptr grid_i, real_pgrid_ptr grid_j, real_pgrid_ptr grid_k, POLARIZATION pol_i, std::array<int,3> n_vec, double m, double ma, double aMax, std::array<double,3> d, double dt, int_pgrid_ptr physGrid, std::vector<std::shared_ptr<Obj>> objArr) :
     parallelCPML<double>(gridComm, weights, grid_i, grid_j, grid_k, pol_i, n_vec, m, ma, aMax, d, dt, physGrid, objArr)
 {
     if(psi_j_)
@@ -50,7 +50,7 @@ parallelCPMLReal::parallelCPMLReal(mpiInterface gridComm, std::vector<real_grid_
         upPsi_k_ = [](std::vector<updateGridParams>&, std::vector<updatePsiParams>&, real_pgrid_ptr, real_pgrid_ptr, real_pgrid_ptr){return;};
     }
 }
-parallelCPMLCplx::parallelCPMLCplx(mpiInterface gridComm, std::vector<real_grid_ptr> weights, std::shared_ptr<parallelGrid<cplx > > grid_i, std::shared_ptr<parallelGrid<cplx > > grid_j, std::shared_ptr<parallelGrid<cplx > > grid_k, POLARIZATION pol_i, std::array<int,3> n_vec, double m, double ma, double aMax, std::array<double,3> d, double dt, int_pgrid_ptr physGrid, std::vector<std::shared_ptr<Obj>> objArr) :
+parallelCPMLCplx::parallelCPMLCplx(std::shared_ptr<mpiInterface> gridComm, std::vector<real_grid_ptr> weights, std::shared_ptr<parallelGrid<cplx > > grid_i, std::shared_ptr<parallelGrid<cplx > > grid_j, std::shared_ptr<parallelGrid<cplx > > grid_k, POLARIZATION pol_i, std::array<int,3> n_vec, double m, double ma, double aMax, std::array<double,3> d, double dt, int_pgrid_ptr physGrid, std::vector<std::shared_ptr<Obj>> objArr) :
     parallelCPML<cplx>(gridComm, weights, grid_i, grid_j, grid_k, pol_i, n_vec, m, ma, aMax, d, dt, physGrid, objArr)
 {
     if(psi_j_)

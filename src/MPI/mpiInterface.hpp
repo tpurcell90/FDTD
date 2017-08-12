@@ -30,12 +30,8 @@ static std::tuple<int,int,int> numgrid(int);
 class mpiInterface : public boost::mpi::communicator
 {
 protected:
-    int npX_; //!< number of process in the X direction
-    int npY_; //!< number of process in the Y direction
-    int npZ_; //!< number of process in the Z direction
-    int mypX_; //!< the local process' process X
-    int mypY_; //!< the local Process' process Y
-    int mypZ_; //!< the local Process' process Z
+    std::array<int,3> npArr_; //!< array of number of processes in each direction
+    std::array<int,3> mypArr_; //!< The local process's process in each direction
 
 public:
     /**
@@ -44,48 +40,63 @@ public:
     mpiInterface();
 
     /**
-     * @brief Accessors to npX_
-     * @return npX_
+     * @brief Accessors to npX
+     * @return npX
      */
-    inline int npX() {return npX_;}
+    inline int npX() {return npArr_[0];}
 
     /**
-     * @brief Accessors to npY_
-     * @return npY_
+     * @brief Accessors to npY
+     * @return npY
      */
-    inline int npY() {return npY_;}
+    inline int npY() {return npArr_[1];}
 
     /**
-     * @brief Accessors to npZ_
-     * @return npZ_
+     * @brief Accessors to npZ
+     * @return npZ
      */
-    inline int npZ() {return npZ_;}
+    inline int npZ() {return npArr_[2];}
 
     /**
-     * @brief Accessors to mypX_
-     * @return mypX_
+     * @brief Accessors to mypX
+     * @return mypX
      */
-    inline int mypX() {return mypX_;}
+    inline int mypX() {return mypArr_[0];}
 
     /**
-     * @brief Accessors to mypY_
-     * @return mypY_
+     * @brief Accessors to mypY
+     * @return mypY
      */
-    inline int mypY() {return mypY_;}
+    inline int mypY() {return mypArr_[1];}
     /**
-     * @brief Accessors to mypZ_
-     * @return mypZ_
+     * @brief Accessors to mypZ
+     * @return mypZ
      */
-    inline int mypZ() {return mypZ_;}
+    inline int mypZ() {return mypArr_[2];}
+
     /**
-     * @brief numroc caller
-     * @details runs numroc with some of the local parameters
+     * @brief      Accessor to npArr_
      *
-     * @param nx number of grid points in the x direction
-     * @param ny number of grid points in the y direction
-     * @param nz number of grid points in the z direction
+     * @return     npArr_
+     */
+    inline std::array<int,3> npArr() {return npArr_;}
+
+    /**
+     * @brief      Acessor to mypArr_
      *
-     * @return numroc
+     * @return     mypArr_
+     */
+    inline std::array<int,3> mypArr() {return mypArr_;}
+
+
+    /**
+     * @brief      runs numroc with some of the local parameters
+     *
+     * @param[in]  nx    number of grid points in the x direction
+     * @param[in]  ny    number of grid points in the y direction
+     * @param[in]  nz    number of grid points in the z direction
+     *
+     * @return     numroc values for each direction
      */
     std::tuple<int,int, int> numroc(const int nx, const int ny, const int nz) const;
 
@@ -100,14 +111,14 @@ public:
     std::tuple<int,int, int> getLocxLocyLocz(std::vector<real_grid_ptr> weights) const;
 
     /**
-     * @brief Unique int tag generator
-     * @details uses a modified cantor function to get a unique int tag for each communication, based on process number and what type it is
+     * @brief      Unique int tag generator
      *
-     * @param procSend sending process
-     * @param procRecv receiving process
-     * @param maxOffset number of different communication processes possible between two processes within the same operation
-     * @param offset the assigned offset corresponding to a single communication within the same operation
-     * @return [description]
+     * @param[in]  procSend   sending process
+     * @param[in]  procRecv   receiving process
+     * @param[in]  maxOffest  number of different communication processes possible between two processes within the same operation
+     * @param[in]  offest     the assigned offset corresponding to a single communication within the same operation
+     *
+     * @return     A unique tag to send information between two processes
      */
     int cantorTagGen(unsigned int procSend, unsigned int procRecv, unsigned int maxOffest, unsigned int offest) { return (int((procSend + procRecv) * (procSend + procSend +1) / 2) + procRecv) * maxOffest + offest; }
 
@@ -122,6 +133,6 @@ public:
  */
 static std::tuple<int, int, int> numgrid(int numproc);
 
-extern mpiInterface world;
+// extern mpiInterface world;
 
 #endif

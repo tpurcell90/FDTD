@@ -38,7 +38,7 @@ public:
     /**
      * @brief Constructor for the parallel source
      *
-     * @param[in]  comm       mpiInterface for the caclutlation
+     * @param[in]  gridComm    mpiInterface for the caclutlation
      * @param[in]  srcNum     index of the source in srcArr_
      * @param[in]  pulse      pulse of the calculation
      * @param[in]  grid       grid the source adds the pulse to
@@ -46,8 +46,8 @@ public:
      * @param[in]  loc        location of the lower left corner of source
      * @param[in]  sz         size of the soft source
      */
-    parallelSourceObliqueBase(mpiInterface comm, std::vector<std::shared_ptr<PulseBase>> pulse, std::shared_ptr<parallelGrid<T>> grid, POLARIZATION pol, double dt, std::array<int,3> loc, std::array<int,3> sz, double phi, double theta) :
-        parallelSourceBase<T>(comm, pulse, grid, dt, loc, sz),
+    parallelSourceObliqueBase(std::shared_ptr<mpiInterface> gridComm, std::vector<std::shared_ptr<PulseBase>> pulse, std::shared_ptr<parallelGrid<T>> grid, POLARIZATION pol, double dt, std::array<int,3> loc, std::array<int,3> sz, double phi, double theta) :
+        parallelSourceBase<T>(gridComm, pulse, grid, dt, loc, sz),
         phi_( fmod(phi,360.0) * M_PI/180.0 ),
         theta_( fmod(theta,360.0) * M_PI/180.0 - M_PI / 2.0 ),
         pol_(pol)
@@ -128,7 +128,7 @@ public:
                     if( fabs( ddot_(3, pt.data(), 1, normVec.data(), 1 ) ) <= dx/sqrt(2.0) )
                     {
                         std::vector<int> gridPt =  {{xx, yy, zz}};
-                        if(grid_->getLocsProc_no_boundaries(gridPt[0], gridPt[1], gridPt[2]) == gridComm_.rank())
+                        if(grid_->getLocsProc_no_boundaries(gridPt[0], gridPt[1], gridPt[2]) == gridComm_->rank())
                         {
                             PulseAddParams srcEl;
                             if(grid_->local_z() == 1)
@@ -166,7 +166,7 @@ public:
     /**
      * @brief Constructor for the parallel source
      *
-     * @param[in]  comm       mpiInterface for the caclutlation
+     * @param[in]  gridComm       mpiInterface for the caclutlation
      * @param[in]  srcNum     index of the source in srcArr_
      * @param[in]  pulse      pulse of the calculation
      * @param[in]  grid       grid the source adds the pulse to
@@ -174,7 +174,7 @@ public:
      * @param[in]  loc        location of the lower left corner of source
      * @param[in]  sz         size of the soft source
      */
-    parallelSourceObliqueReal(mpiInterface comm,  std::vector<std::shared_ptr<PulseBase>> pulse, real_pgrid_ptr grid, POLARIZATION pol, double dt, std::array<int,3> loc, std::array<int,3> sz, double phi, double theta);
+    parallelSourceObliqueReal(std::shared_ptr<mpiInterface> gridComm,  std::vector<std::shared_ptr<PulseBase>> pulse, real_pgrid_ptr grid, POLARIZATION pol, double dt, std::array<int,3> loc, std::array<int,3> sz, double phi, double theta);
     /**
      * @brief      adds the pulse to the grid
      *
@@ -189,7 +189,7 @@ public:
     /**
      * @brief Constructor for the parallel source
      *
-     * @param[in]  comm       mpiInterface for the caclutlation
+     * @param[in]  gridComm       mpiInterface for the caclutlation
      * @param[in]  srcNum     index of the source in srcArr_
      * @param[in]  pulse      pulse of the calculation
      * @param[in]  grid       grid the source adds the pulse to
@@ -197,7 +197,7 @@ public:
      * @param[in]  loc        location of the lower left corner of source
      * @param[in]  sz         size of the soft source
      */
-    parallelSourceObliqueCplx(mpiInterface comm,  std::vector<std::shared_ptr<PulseBase>> pulse, cplx_pgrid_ptr grid, POLARIZATION pol, double dt, std::array<int,3> loc, std::array<int,3> sz, double phi, double theta);
+    parallelSourceObliqueCplx(std::shared_ptr<mpiInterface> gridComm,  std::vector<std::shared_ptr<PulseBase>> pulse, cplx_pgrid_ptr grid, POLARIZATION pol, double dt, std::array<int,3> loc, std::array<int,3> sz, double phi, double theta);
     /**
      * @brief      adds the pulse to the grid
      *

@@ -2,7 +2,7 @@
 #define PARALLEL_FDTD_UPEQ
 
 #include <PML/parallelPML.hpp>
-#include <UTIL/ml_consts.hpp>
+#include <UTIL/FDTD_consts.hpp>
 
 namespace FDTDCompUpdateFxnReal
 {

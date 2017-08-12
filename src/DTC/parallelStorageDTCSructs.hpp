@@ -46,7 +46,6 @@ struct copyProcDtc
     std::array<int,3> addVec1_; //!< vector to determine what component to iterate over for the first copy loop
     std::array<int,3> addVec2_; //!< vector to determine what component to iterate over for the second copy loop
     std::array<int,3> locOutGrid_; //!< loction of lower, left, back corner in the output grid
-    std::array<int,3> szOutGrid_; //!< size in the output grid
 };
 
 struct fInParam

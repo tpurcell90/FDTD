@@ -2,7 +2,6 @@
 #define FDTD_TFSF
 
 #include <SOURCE/Pulse.hpp>
-#include <GRID/parallelGrid.hpp>
 #include <unordered_map>
 
 struct paramStoreTFSF
@@ -26,7 +25,7 @@ struct paramStoreTFSF
 template <typename T> class parallelTFSFBase
 {
 protected:
-    mpiInterface gridComm_;
+    std::shared_ptr<mpiInterface> gridComm_; //!< Communicator for MPI calls in the grid
     int gridLen_; //!< Length of the 1D auxiliary grid for the incident fields
     double phi_; //!< angle of plane wave's k-vector in the xy plane
     double theta_; //!< polar angle of the plane wave's k-vector
@@ -118,7 +117,7 @@ public:
      * @param[in]  Hy        grid_ptr to the Hy field
      * @param[in]  Hz        grid_ptr to the Hz field
      */
-    parallelTFSFBase(mpiInterface gridComm, std::array<int,3> locO, std::array<int,3> sz, double theta, double phi, double psi, POLARIZATION circPol, double kLenRelJ, double dx, double dt, std::vector<std::shared_ptr<PulseBase>> pul, std::shared_ptr<parallelGrid<T>> Ex, std::shared_ptr<parallelGrid<T>> Ey, std::shared_ptr<parallelGrid<T>> Ez, std::shared_ptr<parallelGrid<T>> Hx, std::shared_ptr<parallelGrid<T>> Hy, std::shared_ptr<parallelGrid<T>> Hz) :
+    parallelTFSFBase(std::shared_ptr<mpiInterface> gridComm, std::array<int,3> locO, std::array<int,3> sz, double theta, double phi, double psi, POLARIZATION circPol, double kLenRelJ, double dx, double dt, std::vector<std::shared_ptr<PulseBase>> pul, std::shared_ptr<parallelGrid<T>> Ex, std::shared_ptr<parallelGrid<T>> Ey, std::shared_ptr<parallelGrid<T>> Ez, std::shared_ptr<parallelGrid<T>> Hx, std::shared_ptr<parallelGrid<T>> Hy, std::shared_ptr<parallelGrid<T>> Hz) :
         gridComm_(gridComm),
         gridLen_(0),
         phi_(phi),
@@ -169,6 +168,8 @@ public:
             chb0_[ii] = (2*1.0 + 0.0*dt_) / (2*1.0 + sigH*dt_);
             chb1_[ii] = (2*1.0 - 0.0*dt_) / (2*1.0 + sigH*dt_);
         }
+
+        // Determine the origin quadrant
         if(phi_ <= M_PI/2.0 && phi_ > 0)
             originQuadrent_ = 1;
         else if(phi_ <= M_PI && phi_ > M_PI/2.0)
@@ -178,191 +179,93 @@ public:
         else if((phi_ <= 3*M_PI/2.0 && phi_ >= 2.0*M_PI) || phi_ == 0)
             originQuadrent_ = 4;
 
+        // Flip which side the corner is in
         if(theta > M_PI/2.0 || theta_ < 0.0)
             originQuadrent_ *= -1;
 
-        if(Hz_ && Ez)
+        // Phi does not matter when along z-axis set it to make it easier to calculate the field
+        if(theta_ == 0 || theta_ == M_PI)
+            phiPrefactCalc_ = M_PI/2.0;
+        // Determine the psi_/phi_ and alpha_ to match the elliptical shape of the light
+        if(circPol == POLARIZATION::R || circPol == POLARIZATION::L )
         {
-            if(sz_[0] > 1 && sz_[1] >  1 && sz_[2] > 1)
+            // Get alpha parameters
+            double c = pow(kLenRelJ, 2.0);
+            // phi/psi control the light polarization angle
+            psiPrefactCalc_ = 0.5 * asin( sqrt( ( pow(cos(2*psi_),2)*4*c + pow( (1+c)*sin(2*psi_), 2.0) ) / pow(1.0+c, 2.0) ) );
+            alpha_ = acos( ( (c - 1.0)*sin(2*psi_) ) / sqrt( pow(cos(2.0*psi_),2.0)*4.0*c + pow( (1.0+c)*sin(2.0*psi_), 2.0) ) );
+            if(std::abs( std::tan(psi_) ) > 1)
+                psiPrefactCalc_ = M_PI/2.0 - psiPrefactCalc_;
+            if(circPol == POLARIZATION::R)
+                alpha_ *= -1.0;
+        }
+        std::shared_ptr<parallelGrid<T>> zField = Ez_ ? Ez_ : Hz_;
+        bool twoDim = (Ez_ && Hz_) ? false : true;
+        // If TFSF is only a point in 2D and the calc is not a 1D replacement or a line in 3D throw an error since TFSF acts on a plane
+        if( ( !twoDim && (sz_[0] <= 1 && sz_[1] <= 1) || (sz_[0] <= 1 && sz_[2] <= 1) || (sz_[1] <= 1 && sz_[2] <= 1) ) || ( twoDim && sz_[0] <=1 && sz_[1] <=1 && zField->local_x() != 3 && zField->local_y() != 3) )
+            throw std::logic_error("TFSF sources are not point sources");
+        // If an xy-plane, and not 2D (would be a box) make z-normal planes
+        if(sz_[0] > 1 && sz_[1] > 1 && !twoDim)
+        {
+            // Make sure the cell is not a box and then check direction of propagation
+            if( sz_[2] <= 1 && ( theta_ != 0.0 && theta_ != M_PI && Ez && Hz) )
             {
-                botSurE_   = genSurface(Ez_, DIRECTION::Y, false, true, circPol, kLenRelJ);
-                botSurH_   = genSurface(Ez_, DIRECTION::Y, false, false, circPol, kLenRelJ);
-                topSurE_   = genSurface(Ez_, DIRECTION::Y, true, true, circPol, kLenRelJ);
-                topSurH_   = genSurface(Ez_, DIRECTION::Y, true, false, circPol, kLenRelJ);
-
-                leftSurE_  = genSurface(Ez_, DIRECTION::X, false, true, circPol, kLenRelJ);
-                leftSurH_  = genSurface(Ez_, DIRECTION::X, false, false, circPol, kLenRelJ);
-                rightSurE_ = genSurface(Ez_, DIRECTION::X, true, true, circPol, kLenRelJ);
-                rightSurH_ = genSurface(Ez_, DIRECTION::X, true, false, circPol, kLenRelJ);
-
-                backSurE_  = genSurface(Ez_, DIRECTION::Z, false, true, circPol, kLenRelJ);
-                backSurH_  = genSurface(Ez_, DIRECTION::Z, false, false, circPol, kLenRelJ);
-                frontSurE_ = genSurface(Ez_, DIRECTION::Z, true, true, circPol, kLenRelJ);
-                frontSurH_ = genSurface(Ez_, DIRECTION::Z, true, false, circPol, kLenRelJ);
+                throw std::logic_error("Direction of propagation of TFSF surface is parallel to the main surface.");
             }
-            else if(sz_[0] > 1 && sz_[1] > 1 )
+            // If a box or a wave traveling in the +z direction
+            if( theta_ == 0.0 || sz_[2] > 1)
             {
-                if( theta_ != 0.0 && theta_ != M_PI && Ez && Hz)
-                {
-                    throw std::logic_error("Direction of propagation of TFSF surface is parallel to the main surface.");
-                }
-                else if( theta_ == 0.0 )
-                {
-                    backSurE_   = genSurface(Ez_, DIRECTION::Z, false, true, circPol, kLenRelJ);
-                    backSurH_   = genSurface(Ez_, DIRECTION::Z, false, false, circPol, kLenRelJ);
-                }
-                else
-                {
-                    frontSurE_   = genSurface(Ez_, DIRECTION::Z, true, true, circPol, kLenRelJ);
-                    frontSurH_   = genSurface(Ez_, DIRECTION::Z, true, false, circPol, kLenRelJ);
-                }
+                backSurE_   = genSurface(zField, DIRECTION::Z, false, true, circPol, kLenRelJ);
+                backSurH_   = genSurface(zField, DIRECTION::Z, false, false, circPol, kLenRelJ);
             }
-            else if(sz_[1] > 1 && sz_[2] > 1 )
+            // If a box or a wave traveling in the -z direction
+            if( theta_ == M_PI || sz_[2] > 1)
             {
-                if( std::abs(originQuadrent_) == 1 ||  std::abs(originQuadrent_) == 3 || theta_ == 0.0 || theta_ == M_PI)
-                {
-                    throw std::logic_error("Direction of propagation of TFSF surface is parallel to the main surface.");
-                }
-                else if( std::abs(originQuadrent_) == 2)
-                {
-                    rightSurE_ = genSurface(Ez_, DIRECTION::X, true, true, circPol, kLenRelJ);
-                    rightSurH_ = genSurface(Ez_, DIRECTION::X, true, false, circPol, kLenRelJ);
-                }
-                else
-                {
-                    leftSurE_  = genSurface(Ez_, DIRECTION::X, false, true, circPol, kLenRelJ);
-                    leftSurH_  = genSurface(Ez_, DIRECTION::X, false, false, circPol, kLenRelJ);
-                }
-            }
-            else if(sz_[0] > 1 && sz_[2] > 1 )
-            {
-                if(std::abs(originQuadrent_) == 2 || std::abs(originQuadrent_) == 4  || theta_ == 0.0 || theta_ == M_PI)
-                {
-                    throw std::logic_error("Direction of propagation of TFSF surface is parallel to the main surface.");
-                }
-                else if(std::abs( originQuadrent_ ) == 1)
-                {
-                    botSurE_ = genSurface(Ez_, DIRECTION::Y, true, true, circPol, kLenRelJ);
-                    botSurH_ = genSurface(Ez_, DIRECTION::Y, true, false, circPol, kLenRelJ);
-                }
-                else
-                {
-                    topSurE_  = genSurface(Ez_, DIRECTION::Y, false, true, circPol, kLenRelJ);
-                    topSurH_  = genSurface(Ez_, DIRECTION::Y, false, false, circPol, kLenRelJ);
-                }
-            }
-            else
-            {
-                throw std::logic_error("TFSF is a plane source not a point source");
+                frontSurE_   = genSurface(zField, DIRECTION::Z, true, true, circPol, kLenRelJ);
+                frontSurH_   = genSurface(zField, DIRECTION::Z, true, false, circPol, kLenRelJ);
             }
         }
-        else if(Ez_)
+        // If in 3D both sz[1] and sz[2] need to be greater than 1; 2D calcs need to have only sz[1] > 1 or be 1D along y
+        if( ( sz_[1] > 1 && (sz_[2] > 1 || twoDim ) ) || (twoDim && (zField->local_y() == 3) ) )
         {
-            if(sz_[0] > 1 && sz_[1] >  1)
+            // Make sure the cell is not a box and then check direction of propagation
+            if( sz_[1] <= 1 && ( std::abs(originQuadrent_) == 1 ||  std::abs(originQuadrent_) == 3 || theta_ == 0.0 || theta_ == M_PI) )
             {
-                botSurE_   = genSurface(Ez_, DIRECTION::Y, false, true, circPol, kLenRelJ);
-                botSurH_   = genSurface(Ez_, DIRECTION::Y, false, false, circPol, kLenRelJ);
-                topSurE_   = genSurface(Ez_, DIRECTION::Y, true, true, circPol, kLenRelJ);
-                topSurH_   = genSurface(Ez_, DIRECTION::Y, true, false, circPol, kLenRelJ);
-                leftSurE_  = genSurface(Ez_, DIRECTION::X, false, true, circPol, kLenRelJ);
-                leftSurH_  = genSurface(Ez_, DIRECTION::X, false, false, circPol, kLenRelJ);
-                rightSurE_ = genSurface(Ez_, DIRECTION::X, true, true, circPol, kLenRelJ);
-                rightSurH_ = genSurface(Ez_, DIRECTION::X, true, false, circPol, kLenRelJ);
+                throw std::logic_error("Direction of propagation of TFSF surface is parallel to the main surface.");
             }
-            else if(sz_[0] > 1 || (Ex_ && Ex_->local_x() == 3) || ((Ez_ && Ez_->local_x() == 3)) )
+            // If a box or a wave traveling in the +x direction
+            if( std::abs(originQuadrent_) == 2 || sz_[0] > 1)
             {
-                if(originQuadrent_ == 2 || originQuadrent_ == 4)
-                {
-                    throw std::logic_error("Direction of propagation of TFSF surface is parallel to the main surface.");
-                }
-                else if(originQuadrent_ == 1)
-                {
-                    botSurE_   = genSurface(Ez_, DIRECTION::Y, false, true, circPol, kLenRelJ);
-                    botSurH_   = genSurface(Ez_, DIRECTION::Y, false, false, circPol, kLenRelJ);
-                }
-                else
-                {
-                    topSurE_   = genSurface(Ez_, DIRECTION::Y, true, true, circPol, kLenRelJ);
-                    topSurH_   = genSurface(Ez_, DIRECTION::Y, true, false, circPol, kLenRelJ);
-                }
+                rightSurE_ = genSurface(zField, DIRECTION::X, true, true, circPol, kLenRelJ);
+                rightSurH_ = genSurface(zField, DIRECTION::X, true, false, circPol, kLenRelJ);
             }
-            else if(sz_[1] > 1 || (Ex_ && Ex_->local_y() == 3) || ((Ez_ && Ez_->local_y() == 3)) )
+            // If a box or a wave traveling in the -x direction
+            if( std::abs(originQuadrent_) == 4 || sz_[0] > 1)
             {
-                if(originQuadrent_ == 1 || originQuadrent_ == 3)
-                {
-                    throw std::logic_error("Direction of propagation of TFSF surface is parallel to the main surface.");
-                }
-                else if(originQuadrent_ == 2)
-                {
-                    rightSurE_ = genSurface(Ez_, DIRECTION::X, true, true, circPol, kLenRelJ);
-                    rightSurH_ = genSurface(Ez_, DIRECTION::X, true, false, circPol, kLenRelJ);
-                }
-                else
-                {
-                    leftSurE_  = genSurface(Ez_, DIRECTION::X, false, true, circPol, kLenRelJ);
-                    leftSurH_  = genSurface(Ez_, DIRECTION::X, false, false, circPol, kLenRelJ);
-                }
-            }
-            else
-            {
-                throw std::logic_error("TFSF is a plane source not a point source");
+                leftSurE_  = genSurface(zField, DIRECTION::X, false, true, circPol, kLenRelJ);
+                leftSurH_  = genSurface(zField, DIRECTION::X, false, false, circPol, kLenRelJ);
             }
         }
-        else if(Hz_)
+        // If in 3D both sz[0] and sz[2] need to be greater than 1; 2D calcs need to have only sz[0] > 1 or be 1D along x
+        if( (sz_[0] > 1 && ( sz_[2] > 1 || twoDim ) ) || (twoDim && (zField->local_x() == 3) ) )
         {
-            if(sz_[0] > 1 && sz_[1] >  1)
+            // Make sure the cell is not a box and then check direction of propagation
+            if( sz_[0] <= 1 && ( std::abs(originQuadrent_) == 2 || std::abs(originQuadrent_) == 4  || theta_ == 0.0 || theta_ == M_PI) )
             {
-                botSurE_   = genSurface(Hz_, DIRECTION::Y, false, true, circPol, kLenRelJ);
-                botSurH_   = genSurface(Hz_, DIRECTION::Y, false, false, circPol, kLenRelJ);
-                topSurE_   = genSurface(Hz_, DIRECTION::Y, true, true, circPol, kLenRelJ);
-                topSurH_   = genSurface(Hz_, DIRECTION::Y, true, false, circPol, kLenRelJ);
-                leftSurE_  = genSurface(Hz_, DIRECTION::X, false, true, circPol, kLenRelJ);
-                leftSurH_  = genSurface(Hz_, DIRECTION::X, false, false, circPol, kLenRelJ);
-                rightSurE_ = genSurface(Hz_, DIRECTION::X, true, true, circPol, kLenRelJ);
-                rightSurH_ = genSurface(Hz_, DIRECTION::X, true, false, circPol, kLenRelJ);
+                throw std::logic_error("Direction of propagation of TFSF surface is parallel to the main surface.");
             }
-            else if(sz_[0] > 1)
+            // If a box or a wave traveling in the +y direction
+            if(std::abs( originQuadrent_ ) == 1 || sz_[1] > 1 )
             {
-                if(originQuadrent_ == 2 || originQuadrent_ == 4)
-                {
-                    throw std::logic_error("Direction of propagation of TFSF surface is parallel to the main surface.");
-                }
-                else if(originQuadrent_ == 1)
-                {
-                    botSurE_   = genSurface(Hz_, DIRECTION::Y, false, true, circPol, kLenRelJ);
-                    botSurH_   = genSurface(Hz_, DIRECTION::Y, false, false, circPol, kLenRelJ);
-                }
-                else
-                {
-                    topSurE_   = genSurface(Hz_, DIRECTION::Y, true, true, circPol, kLenRelJ);
-                    topSurH_   = genSurface(Hz_, DIRECTION::Y, true, false, circPol, kLenRelJ);
-                }
+                botSurE_ = genSurface(zField, DIRECTION::Y, false, true, circPol, kLenRelJ);
+                botSurH_ = genSurface(zField, DIRECTION::Y, false, false, circPol, kLenRelJ);
             }
-            else if(sz_[1] > 1)
+            // If a box or a wave traveling in the -y direction
+            if(std::abs( originQuadrent_ ) == 3 || sz_[1] > 1 )
             {
-                if(originQuadrent_ == 1 || originQuadrent_ == 3)
-                {
-                    throw std::logic_error("Direction of propagation of TFSF surface is parallel to the main surface.");
-                }
-                else if(originQuadrent_ == 2)
-                {
-                    rightSurE_ = genSurface(Hz_, DIRECTION::X, true, true, circPol, kLenRelJ);
-                    rightSurH_ = genSurface(Hz_, DIRECTION::X, true, false, circPol, kLenRelJ);
-                }
-                else
-                {
-                    leftSurE_  = genSurface(Hz_, DIRECTION::X, false, true, circPol, kLenRelJ);
-                    leftSurH_  = genSurface(Hz_, DIRECTION::X, false, false, circPol, kLenRelJ);
-                }
+                topSurE_  = genSurface(zField, DIRECTION::Y, true, true, circPol, kLenRelJ);
+                topSurH_  = genSurface(zField, DIRECTION::Y, true, false, circPol, kLenRelJ);
             }
-            else
-            {
-                throw std::logic_error("TFSF is a plane source not a point source");
-            }
-        }
-        else
-        {
-            throw std::logic_error("Well you need either an Ez or Hz field for a parallelTFSF object so something is wrong here....");
         }
     }
     /**
@@ -390,84 +293,40 @@ public:
         int local_add = -1; // local size of the field in the i direction
         int trans1_local_add = -1; // local size of the gird in the trans1 direction
         int trans2_local_add = -1; // local size of the gird in the trans2 direction
-        // Set prefactors for updating H field (used on E_inc)
-
+        // Set prefactors for updating H field (used on E_inc) use of XOR since sign flips for E/H and pl/mn
+        sur.prefactor_j_ = ( E ^ pl ) ?      dt_/dx_ : -1.0*dt_/dx_;
+        sur.prefactor_k_ = ( E ^ pl ) ? -1.0*dt_/dx_ :      dt_/dx_;
         if(dir ==DIRECTION::X)
         {
-            if(pl)
-            {
-                sur.prefactor_j_ = E ? -1.0*dt_/dx_ :      dt_/dx_;
-                sur.prefactor_k_ = E ?      dt_/dx_ : -1.0*dt_/dx_;
-            }
-            else
-            {
-                sur.prefactor_j_ = E ?      dt_/dx_ : -1.0*dt_/dx_;
-                sur.prefactor_k_ = E ? -1.0*dt_/dx_ :      dt_/dx_;
-            }
             sur.addVec_ = {{ 0, 0, 1 }};
             cor = 0;
             transCor1 = 1;
             transCor2 = 2;
             sur.strideField_ = zField->local_x()*zField->local_z();
-            local_add = zField->local_x() - 2;
-            trans1_local_add = zField->local_y() - 2;
-            trans2_local_add = zField->local_z() - 2;
         }
         else if( dir == DIRECTION::Y)
         {
-            if(pl)
-            {
-                sur.prefactor_j_ = E ? -1.0*dt_/dx_ :     dt_/dx_;
-                sur.prefactor_k_ = E ?     dt_/dx_ : -1.0*dt_/dx_;
-            }
-            else
-            {
-                sur.prefactor_j_ = E ?      dt_/dx_ : -1.0*dt_/dx_;
-                sur.prefactor_k_ = E ? -1.0*dt_/dx_ :      dt_/dx_;
-            }
             sur.addVec_ = {{ 0, 0, 1 }};
             cor = 1;
             transCor1 = 0;
             transCor2 = 2;
             sur.strideField_ = 1;
-            local_add = zField->local_y() - 2;
-            trans1_local_add = zField->local_x() - 2;
-            trans2_local_add = zField->local_z() - 2;
         }
         else if( dir == DIRECTION::Z)
         {
-            if(pl)
-            {
-                sur.prefactor_j_ = E ? -1.0*dt_/dx_ :      dt_/dx_;
-                sur.prefactor_k_ = E ?      dt_/dx_ : -1.0*dt_/dx_;
-            }
-            else
-            {
-                sur.prefactor_j_ = E ?      dt_/dx_ : -1.0*dt_/dx_;
-                sur.prefactor_k_ = E ? -1.0*dt_/dx_ :      dt_/dx_;
-            }
             sur.addVec_ = {{ 0, 1, 0 }};
             cor = 2;
             transCor1 = 0;
             transCor2 = 1;
             sur.strideField_ = 1;
-            local_add = zField->local_z() - 2;
-            trans1_local_add = zField->local_x() - 2;
-            trans2_local_add = zField->local_y() - 2;
         }
-        if(theta_ == 0 || theta_ == M_PI)
-            phiPrefactCalc_ = M_PI/2.0;
+        local_add = zField->ln_vec()[cor] - 2;
+        trans1_local_add = zField->ln_vec()[transCor1] - 2;
+        trans2_local_add = zField->ln_vec()[transCor2] - 2;
         // Determine the psi_/phi_ and alpha_ to match the elliptical shape of the light
         if(circPol == POLARIZATION::R || circPol == POLARIZATION::L )
         {
-            double c = pow(kLenRelJ, 2.0);
-            // phi/psi control the light polarization angle
-            psiPrefactCalc_ = 0.5 * asin( sqrt( ( pow(cos(2*psi_),2)*4*c + pow( (1+c)*sin(2*psi_), 2.0) ) / pow(1.0+c, 2.0) ) );
-            alpha_ = acos( ( (c - 1.0)*sin(2*psi_) ) / sqrt( pow(cos(2.0*psi_),2.0)*4.0*c + pow( (1.0+c)*sin(2.0*psi_), 2.0) ) );
-            if(std::abs( std::tan(psi_) ) > 1)
-                psiPrefactCalc_ = M_PI/2.0 - psiPrefactCalc_;
-            if(circPol == POLARIZATION::R)
-                alpha_ *= -1.0;
+            // If circularly polarized do checks to see which fields get the complex $e^{i\alpha}$ prefactor multiplied to it
             if(theta_ == 0 || theta_ == M_PI)
             {
                 if(dir == DIRECTION::X && !E)
@@ -496,20 +355,7 @@ public:
                     sur.prefactor_j_ *= exp( cplx( 0, alpha_ ) );
             }
         }
-        // if(std::abs(std::imag(sur.prefactor_j_) ) <= 1e-15)
-        //     sur.prefactor_j_ = cplx(std::real(sur.prefactor_j_), 0.0 );
-
-        // if(std::abs(std::imag(sur.prefactor_k_) ) <= 1e-15)
-        //     sur.prefactor_k_ = cplx(std::real(sur.prefactor_k_), 0.0 );
-
-        // if(std::abs(std::real(sur.prefactor_j_) ) <= 1e-15)
-        //     sur.prefactor_j_ = cplx(0.0, std::imag(sur.prefactor_j_) );
-
-        // if(std::abs(std::real(sur.prefactor_k_) ) <= 1e-15)
-        //     sur.prefactor_k_ = cplx(0.0, std::imag(sur.prefactor_k_) );
-
-
-        // If for an E filed then mult by -1.0
+        // Angle of incidence modifications
         if(Hz_ && Ez_)
         {
             if( dir == DIRECTION::X)
@@ -547,12 +393,12 @@ public:
                 dir==DIRECTION::X ? sur.prefactor_k_ *= -1.0*std::cos(phi_) : sur.prefactor_j_ *= std::sin(phi_);
         }
 
-
-
+        // Where does the plane start?
         if(!pl)
             E ? planeStartCor = loc_[cor] : planeStartCor = loc_[cor] - 1;
         else
             planeStartCor = loc_[cor] + sz_[cor]-1;
+
         // Does the process contain the plane?
         if(planeStartCor >= zField->procLoc()[cor] && planeStartCor < zField->procLoc()[cor] + local_add)
         {
@@ -577,304 +423,135 @@ public:
             {
                 sur.loc_[2] = 0;
             }
-
+            // Does the process actually have the plane?
             if(sur.loc_[transCor1] != -1 && (!Hz_ || !Ez_ || sur.loc_[transCor2] != -1 ) )
             {
                 // Does the plane go out of the process?
                 if(sz_[transCor1] + loc_[transCor1] > zField->procLoc()[transCor1] + trans1_local_add)
                 {
+                    // Yes? then set size to be size of process - loc
                     sur.szTrans_j_[0] = trans1_local_add - sur.loc_[transCor1] + 1;
                     sur.szTrans_k_[0] = trans1_local_add - sur.loc_[transCor1] + 1;
                 }
                 else
                 {
-                    if( dir == DIRECTION::X)
-                    {
-                        // For the Ey field update from j0+1/2 to j1-1/2; Hy j0 to j1
-                        !E ? sur.szTrans_j_[0] = loc_[transCor1] + sz_[transCor1] - (zField->procLoc()[transCor1] + sur.loc_[transCor1] - 1) : sur.szTrans_j_[0] = loc_[transCor1] + sz_[transCor1] - (zField->procLoc()[transCor1] + sur.loc_[transCor1] - 1) - 1;
-                        // For the Hz field update from j0+1/2 to j1-1/2; Ez j0 to j1
-                        E ? sur.szTrans_k_[0] = loc_[transCor1] + sz_[transCor1] - (zField->procLoc()[transCor1] + sur.loc_[transCor1] - 1) : sur.szTrans_k_[0] = loc_[transCor1] + sz_[transCor1] - (zField->procLoc()[transCor1] + sur.loc_[transCor1] - 1) - 1;
-                    }
-                    else if(dir == DIRECTION::Y)
-                    {
-                        // For the Ez field update from i0 to i1; Hz i0+1/2 to i1-1/2
-                        E ? sur.szTrans_j_[0] = loc_[transCor1] + sz_[transCor1] - (zField->procLoc()[transCor1] + sur.loc_[transCor1] - 1) : sur.szTrans_j_[0] = loc_[transCor1] + sz_[transCor1] - (zField->procLoc()[transCor1] + sur.loc_[transCor1] - 1) - 1;
-                        // For the Hx field update from i0 to i1; Ex i0+1/2 to i1-1/2
-                        !E ? sur.szTrans_k_[0] = loc_[transCor1] + sz_[transCor1] - (zField->procLoc()[transCor1] + sur.loc_[transCor1] - 1) : sur.szTrans_k_[0] = loc_[transCor1] + sz_[transCor1] - (zField->procLoc()[transCor1] + sur.loc_[transCor1] - 1) - 1;
-                    }
-                    else if(dir == DIRECTION::Z)
-                    {
-                        // For the Ex field update from i0+1/2 to i1-1/2; Hz i0 to i1
-                        !E ? sur.szTrans_j_[0] = loc_[transCor1] + sz_[transCor1] - (zField->procLoc()[transCor1] + sur.loc_[transCor1] - 1) : sur.szTrans_j_[0] = loc_[transCor1] + sz_[transCor1] - (zField->procLoc()[transCor1] + sur.loc_[transCor1] - 1) - 1;
-                        // For the Hy field update from i0+1/2 to i1-1/2; Ey i0 to i1
-                        E ? sur.szTrans_k_[0] = loc_[transCor1] + sz_[transCor1] - (zField->procLoc()[transCor1] + sur.loc_[transCor1] - 1) : sur.szTrans_k_[0] = loc_[transCor1] + sz_[transCor1] - (zField->procLoc()[transCor1] + sur.loc_[transCor1] - 1) - 1;
-                    }
+                    // No? Set based on the size inside the process
+
+                    // For the Ey field update from j0+1/2 to j1-1/2; Hy j0 to j1; Ex field update from i0+1/2 to i1-1/2; Hz i0 to i1; Ez field update from i0 to i1; Hz i0+1/2 to i1-1/2
+                    sur.szTrans_j_[0] = ( !E ^ DIRECTION::Y == dir ) ? loc_[transCor1] + sz_[transCor1] - (zField->procLoc()[transCor1] + sur.loc_[transCor1] - 1) : loc_[transCor1] + sz_[transCor1] - (zField->procLoc()[transCor1] + sur.loc_[transCor1] - 1) - 1;
+                    // For the Hz field update from j0+1/2 to j1-1/2; Ez j0 to j1; Hy field update from i0+1/2 to i1-1/2; Ey i0 to i1; Hx field update from i0 to i1; Ex i0+1/2 to i1-1/2
+                    sur.szTrans_k_[0] = (  E ^ DIRECTION::Y == dir ) ? loc_[transCor1] + sz_[transCor1] - (zField->procLoc()[transCor1] + sur.loc_[transCor1] - 1) : loc_[transCor1] + sz_[transCor1] - (zField->procLoc()[transCor1] + sur.loc_[transCor1] - 1) - 1;
                 }
                 if(Hz_ && Ez_)
                 {
-                    // Does the plane go out of the process?
+                    // Does the plane go out of the process in the trans2 Direction?
                     if(sz_[transCor2] + loc_[transCor2] > zField->procLoc()[transCor2] + trans2_local_add)
                     {
+                        // Yes? then set size to be size of process - loc
                         sur.szTrans_j_[1] = trans2_local_add - sur.loc_[transCor2] + 1;
                         sur.szTrans_k_[1] = trans2_local_add - sur.loc_[transCor2] + 1;
                     }
                     else
                     {
-                        if( dir == DIRECTION::X)
-                        {
-                            // For the Hy field update from k0+1/2 to k1-1/2; Ey k0 to k1
-                            E ? sur.szTrans_j_[1] = loc_[transCor2] + sz_[transCor2] - (zField->procLoc()[transCor2] + sur.loc_[transCor2] - 1) : sur.szTrans_j_[1] = loc_[transCor2] + sz_[transCor2] - (zField->procLoc()[transCor2] + sur.loc_[transCor2] - 1) - 1;
-                            // For the Ez field update from k0+1/2 to k1-1/2; Hz k0 to k1
-                            !E ? sur.szTrans_k_[1] = loc_[transCor2] + sz_[transCor2] - (zField->procLoc()[transCor2] + sur.loc_[transCor2] - 1) : sur.szTrans_k_[1] = loc_[transCor2] + sz_[transCor2] - (zField->procLoc()[transCor2] + sur.loc_[transCor2] - 1) - 1;
-                        }
-                        else if(dir == DIRECTION::Y)
-                        {
-                            // For the Hz field update from k0 to i1; Ez k0+1/2 to k1-1/2
-                            !E ? sur.szTrans_j_[1] = loc_[transCor2] + sz_[transCor2] - (zField->procLoc()[transCor2] + sur.loc_[transCor2] - 1) : sur.szTrans_j_[1] = loc_[transCor2] + sz_[transCor2] - (zField->procLoc()[transCor2] + sur.loc_[transCor2] - 1) - 1;
-                            // For the Ex field update from k0 to i1; Hx k0+1/2 to k1-1/2
-                            E ? sur.szTrans_k_[1] = loc_[transCor2] + sz_[transCor2] - (zField->procLoc()[transCor2] + sur.loc_[transCor2] - 1) : sur.szTrans_k_[1] = loc_[transCor2] + sz_[transCor2] - (zField->procLoc()[transCor2] + sur.loc_[transCor2] - 1) - 1;
-                        }
-                        else if(dir == DIRECTION::Z)
-                        {
-                            // For the Hx field update from j0+1/2 to j1-1/2; Ez i0 to j1
-                            E ? sur.szTrans_j_[1] = loc_[transCor2] + sz_[transCor2] - (zField->procLoc()[transCor2] + sur.loc_[transCor2] - 1) : sur.szTrans_j_[1] = loc_[transCor2] + sz_[transCor2] - (zField->procLoc()[transCor2] + sur.loc_[transCor2] - 1) - 1;
-                            // For the Ey field update from j0+1/2 to j1-1/2; Hy i0 to j1
-                            !E ? sur.szTrans_k_[1] = loc_[transCor2] + sz_[transCor2] - (zField->procLoc()[transCor2] + sur.loc_[transCor2] - 1) : sur.szTrans_k_[1] = loc_[transCor2] + sz_[transCor2] - (zField->procLoc()[transCor2] + sur.loc_[transCor2] - 1) - 1;
-                        }
+                        // No? Set based on the size inside the process
+
+                        // For the Hy field update from k0+1/2 to k1-1/2; Ey k0 to k1; Hz field update from k0 to i1; Ez k0+1/2 to k1-1/2; the Hx field update from j0+1/2 to j1-1/2; Ez i0 to j1
+                        sur.szTrans_j_[1] = (  E ^ DIRECTION::Y == dir )? loc_[transCor2] + sz_[transCor2] - (zField->procLoc()[transCor2] + sur.loc_[transCor2] - 1) : loc_[transCor2] + sz_[transCor2] - (zField->procLoc()[transCor2] + sur.loc_[transCor2] - 1) - 1;
+                        // For the Ez field update from k0+1/2 to k1-1/2; Hz k0 to k1; Ex field update from k0 to i1; Hx k0+1/2 to k1-1/2; the Ey field update from j0+1/2 to j1-1/2; Hy i0 to j1
+                        sur.szTrans_k_[1] = ( !E ^ DIRECTION::Y == dir )? loc_[transCor2] + sz_[transCor2] - (zField->procLoc()[transCor2] + sur.loc_[transCor2] - 1) : loc_[transCor2] + sz_[transCor2] - (zField->procLoc()[transCor2] + sur.loc_[transCor2] - 1) - 1;
                     }
                 }
                 else
                 {
+                    // If 2D szTrans[1] = 1 by default
                     sur.szTrans_j_[1] = 1;
                     sur.szTrans_k_[1] = 1;
                 }
-                if(theta_ == 0)
+                bool pl_prop = (theta_ == 0 || (std::fmod(theta_, M_PI) != 0 && abs(originQuadrent_) == 1) || (std::fmod(theta_, M_PI) != 0 && abs(originQuadrent_) == 4) ) ? true : false;
+                // Default to assume that the dir == direction of propagation
+                if( pl ^ pl_prop )
                 {
-                    if(dir == DIRECTION::X)
-                    {
-                        // along YZ Plane the incident field changes only with z and stride is along y direction
-                        sur.strideIncd_ = 0;
-                        sur.addIncdProp_ = 1;
-                        // The start for both the Ez, Hz, Hy, and Ey incident fields will be the same
-                        sur.incdStart_j_  = 2 + (zField->procLoc()[2] - loc_[2]) + (sur.loc_[2] - 1);
-                        sur.incdStart_k_  = 2 + (zField->procLoc()[2] - loc_[2]) + (sur.loc_[2] - 1);
-                    }
-                    if(dir == DIRECTION::Y)
-                    {
-                        // along XZ Plane the incident field changes only with z and stride is along x direction
-                        sur.strideIncd_ = 0;
-                        sur.addIncdProp_ = 1;
-                        // The start for both the Ez, Hz, Hx, and Ex incident fields will be the same
-                        sur.incdStart_j_  = 2 + (zField->procLoc()[2] - loc_[2]) + (sur.loc_[2] - 1);
-                        sur.incdStart_k_  = 2 + (zField->procLoc()[2] - loc_[2]) + (sur.loc_[2] - 1);
-                    }
-                    else if(dir == DIRECTION::Z)
-                    {
-                        // Along the XY plane the incident never changes
-                        sur.strideIncd_ = 0;
-                        sur.addIncdProp_ = 0;
-                        // The start for all fields will be determined by E/H update
-                        if(!pl)
-                        {
-                            !E ? sur.incdStart_j_ = 2 : sur.incdStart_j_ = 1;
-                            !E ? sur.incdStart_k_ = 2 : sur.incdStart_k_ = 1;
-                        }
-                        else
-                        {
-                            sur.incdStart_j_ = sz_[2] + 1;
-                            sur.incdStart_k_ = sz_[2] + 1;
-                        }
-                    }
+                    !E ? sur.incdStart_j_ = 2 : sur.incdStart_j_ = 1;
+                    !E ? sur.incdStart_k_ = 2 : sur.incdStart_k_ = 1;
                 }
-                else if(theta_ == M_PI)
+                else
                 {
-                    if(dir == DIRECTION::X )
-                    {
-                        // along YZ Plane the incident field changes only with z and stride is along y direction
-                        sur.strideIncd_  = 0;
-                        sur.addIncdProp_ = -1;
-                        // The start for both the Ez and Hy are the same, and starts for the Hz and Ey incident fields will be the same
-                         E ? sur.incdStart_j_  = 2 + sz_[2] - (zField->procLoc()[2] - loc_[2] + (sur.loc_[2] ) ) : sur.incdStart_j_ = 2 + sz_[2] - 1 - (zField->procLoc()[2] - loc_[2] + (sur.loc_[2] ) );
-                        !E ? sur.incdStart_k_  = 2 + sz_[2] - (zField->procLoc()[2] - loc_[2] + (sur.loc_[2] ) ) : sur.incdStart_k_ = 2 + sz_[2] - 1 - (zField->procLoc()[2] - loc_[2] + (sur.loc_[2] ) );
-                    }
-                    else if( dir == DIRECTION:: Y )
-                    {
-                        // along XZ Plane the incident field changes only with z and stride is along x direction
-                        sur.strideIncd_  = 0;
-                        sur.addIncdProp_ = -1;
-                        // The start for both the Ez and Hz are the same, and starts for the Hz and Ez incident fields will be the same
-                        !E ? sur.incdStart_j_  = 2 + sz_[2] - (zField->procLoc()[2] - loc_[2] + (sur.loc_[2] ) ) : sur.incdStart_j_ = 2 + sz_[2] - 1 - (zField->procLoc()[2] - loc_[2] + (sur.loc_[2] ) );
-                         E ? sur.incdStart_k_  = 2 + sz_[2] - (zField->procLoc()[2] - loc_[2] + (sur.loc_[2] ) ) : sur.incdStart_k_ = 2 + sz_[2] - 1 - (zField->procLoc()[2] - loc_[2] + (sur.loc_[2] ) );
-                    }
-                    else if(dir == DIRECTION::Z)
-                    {
-                        // Along the XY plane the incident never changes
-                        sur.strideIncd_ = 0;
-                        sur.addIncdProp_ = 0;
-                        // The start for all fields will be determined by E/H update
-                        if(pl)
-                        {
-                            !E ? sur.incdStart_j_ = 2 : sur.incdStart_j_ = 1;
-                            !E ? sur.incdStart_k_ = 2 : sur.incdStart_k_ = 1;
-                        }
-                        else
-                        {
-                            sur.incdStart_j_ = sz_[2] + 1;
-                            sur.incdStart_k_ = sz_[2] + 1;
-                        }
-                    }
+                    sur.incdStart_j_ = sz_[cor] + 1;
+                    sur.incdStart_k_ = sz_[cor] + 1;
                 }
-                else if(abs(originQuadrent_) == 1)
-                {
-                    if(dir == DIRECTION::X )
-                    {
-                        // In the YZ Plane the stride is along the y direction and so is the change in incident
-                        sur.strideIncd_ = 1;
-                        sur.addIncdProp_ = 0;
-                        // The start location for incd fields is the same for Hy, Ey, Ez, Hz
-                        sur.incdStart_j_  = 2 + (zField->procLoc()[1] - loc_[1]) + (sur.loc_[1] - 1);
-                        sur.incdStart_k_  = 2 + (zField->procLoc()[1] - loc_[1]) + (sur.loc_[1] - 1);
-                    }
-                    else if(dir == DIRECTION::Y)
-                    {
-                        // In the XZ plane there is no change in incident
-                        sur.strideIncd_ = 0;
-                        sur.addIncdProp_ = 0;
-                        // The position of the incident light is determined by E/H
-                        if(!pl)
-                        {
-                            !E ? sur.incdStart_j_ = 2 : sur.incdStart_j_ = 1;
-                            !E ? sur.incdStart_k_ = 2 : sur.incdStart_k_ = 1;
-                        }
-                        else
-                        {
-                            sur.incdStart_j_ = sz_[1] + 1;
-                            sur.incdStart_k_ = sz_[1] + 1;
-                        }
-                    }
-                    else if( dir == DIRECTION::Z)
-                    {
-                        // In the XY Plane the stride is along the x direction and the change in incident is along the y
-                        sur.strideIncd_ = 0;
-                        sur.addIncdProp_ = 1;
-                        // The start location for incd fields is the same for Hy, Ey, Ex, Hx
-                        sur.incdStart_j_  = 2 + (zField->procLoc()[1] - loc_[1]) + (sur.loc_[1] - 1);
-                        sur.incdStart_k_  = 2 + (zField->procLoc()[1] - loc_[1]) + (sur.loc_[1] - 1);
-                    }
-                }
-                else if(abs(originQuadrent_) == 4)
-                {
-                    if(dir == DIRECTION::X)
-                    {
-                        // In the YZ plane the incident fields are all the same
-                        sur.strideIncd_ = 0;
-                        sur.addIncdProp_ = 0;
-                        // Incident field values determined by E/H
-                        if(!pl)
-                        {
-                            !E ? sur.incdStart_j_ = 2 : sur.incdStart_j_ = 1;
-                            !E ? sur.incdStart_k_ = 2 : sur.incdStart_k_ = 1;
-                        }
-                        else
-                        {
-                            sur.incdStart_j_ = sz_[0] + 1;
-                            sur.incdStart_k_ = sz_[0] + 1;
-                        }
-                    }
-                    else if(dir == DIRECTION::Y)
-                    {
-                        // In the XZ plane the incident field changes along the x direction, and the stride of the field updates is along the x direction
-                        sur.strideIncd_ = 1;
-                        sur.addIncdProp_ = 0;
-                        // The Ex, Hx, Ez, Hz incident field starts are all the same
-                        sur.incdStart_j_  = 2 + (zField->procLoc()[0] - loc_[0]) + (sur.loc_[0] - 1);
-                        sur.incdStart_k_  = 2 + (zField->procLoc()[0] - loc_[0]) + (sur.loc_[0] - 1);
-                    }
-                    else if(dir == DIRECTION::Z)
-                    {
-                        // In the XY plane the incident field changes along the x direction, and the stride of the field updates is along the x direction
-                        sur.strideIncd_ = 1;
-                        sur.addIncdProp_ = 0;
-                        // The Ex, Hx, Ey, Hy incident field starts are all the same
-                        sur.incdStart_j_  = 2 + (zField->procLoc()[0] - loc_[0]) + (sur.loc_[0] - 1);
-                        sur.incdStart_k_  = 2 + (zField->procLoc()[0] - loc_[0]) + (sur.loc_[0] - 1);
-                    }
-                }
-                else if(abs(originQuadrent_) == 3)
-                {
-                    if(dir == DIRECTION::X )
-                    {
-                        // In the YZ plane the stride is in the y direction and so is the change in the incident field
-                        sur.strideIncd_ = -1;
-                        sur.addIncdProp_ = 0;
-                        // The Ez, Hx and Hy incident fields have the same start but the Hz, Ex, Ey fields have the same but different value
-                        !E ? sur.incdStart_j_  = 2 + sz_[1] - (zField->procLoc()[1] - loc_[1] + (sur.loc_[1] - 1) + sur.szTrans_j_[0] ) : sur.incdStart_j_ = 2 + sz_[1] - 1 - (zField->procLoc()[1] - loc_[1] + (sur.loc_[1] - 1) + sur.szTrans_j_[0] );
-                         E ? sur.incdStart_k_  = 2 + sz_[1] - (zField->procLoc()[1] - loc_[1] + (sur.loc_[1] - 1) + sur.szTrans_k_[0] ) : sur.incdStart_k_ = 2 + sz_[1] - 1 - (zField->procLoc()[1] - loc_[1] + (sur.loc_[1] - 1) + sur.szTrans_k_[0] );
-                    }
-                    else if( dir == DIRECTION::Y )
-                    {
-                        //In the XZ plane the incident light does not change
-                        sur.strideIncd_ = 0;
-                        sur.addIncdProp_ = 0;
-                        // The value of the incident field values depends on whether it is E/H
-                        if(pl)
-                        {
-                            !E ? sur.incdStart_j_ = 2 : sur.incdStart_j_ = 1;
-                            !E ? sur.incdStart_k_ = 2 : sur.incdStart_k_ = 1;
-                        }
-                        else
-                        {
-                            sur.incdStart_j_ = sz_[1] + 1;
-                            sur.incdStart_k_ = sz_[1] + 1;
-                        }
-                    }
-                    else if(dir == DIRECTION::Z)
-                    {
-                        // In the XY plane the stride is in the x direction, but the incident changes in the y direction
-                        sur.strideIncd_ = 0;
-                        sur.addIncdProp_ = -1;
-                        // The Ez, Hx and Hy incident fields have the same start but the Hz, Ex, Ey fields have the same but different value
-                         E ? sur.incdStart_j_  = 2 + sz_[1] - (zField->procLoc()[1] - loc_[1] + (sur.loc_[1] ) ) : sur.incdStart_j_ = 2 + sz_[1] - 1 - (zField->procLoc()[1] - loc_[1] + (sur.loc_[1] ) );
-                        !E ? sur.incdStart_k_  = 2 + sz_[1] - (zField->procLoc()[1] - loc_[1] + (sur.loc_[1] ) ) : sur.incdStart_k_ = 2 + sz_[1] - 1 - (zField->procLoc()[1] - loc_[1] + (sur.loc_[1] ) );
+                // Assume that the direction used is in a direction that does not change
+                sur.strideIncd_ = 0;
+                sur.addIncdProp_ = 0;
 
-                    }
-                }
-                else if(abs(originQuadrent_) == 2)
+                // Correct the assumptions here
+                if(theta_ == 0 || theta_ == M_PI)
                 {
-                    if( dir == DIRECTION::X )
+                    if(dir != DIRECTION::Z)
                     {
-                        //In the YZ plane the incident light does not change
-                        sur.strideIncd_ = 0;
-                        sur.addIncdProp_ = 0;
-                        // The value of the incident field values depends on whether it is E/H
-                        if(pl)
+                        sur.addIncdProp_ = (theta_ == 0) ? 1 : -1;
+                        if(theta_ == 0)
                         {
-                            !E ? sur.incdStart_j_ = 2 : sur.incdStart_j_ = 1;
-                            !E ? sur.incdStart_k_ = 2 : sur.incdStart_k_ = 1;
+                            // The start for the Ez, Hz, Ey, Hy, Hx, and Ex incident fields will be the same
+                            sur.incdStart_j_  = 2 + (zField->procLoc()[2] - loc_[2]) + (sur.loc_[2] - 1);
+                            sur.incdStart_k_  = 2 + (zField->procLoc()[2] - loc_[2]) + (sur.loc_[2] - 1);
                         }
                         else
                         {
-                            sur.incdStart_j_ = sz_[0] + 1;
-                            sur.incdStart_k_ = sz_[0] + 1;
+                            // The start for both the Ez, Hy, and Ex are the same, and starts for the Hz, Hx, and Ey incident fields will be the same
+                            sur.incdStart_j_  = ( E ^ (dir == DIRECTION::Y) ) ? 2 + sz_[2] - (zField->procLoc()[2] - loc_[2] + (sur.loc_[2] ) ) : 2 + sz_[2] - 1 - (zField->procLoc()[2] - loc_[2] + (sur.loc_[2] ) );
+                            sur.incdStart_k_  = (!E ^ (dir == DIRECTION::Y) ) ? 2 + sz_[2] - (zField->procLoc()[2] - loc_[2] + (sur.loc_[2] ) ) : 2 + sz_[2] - 1 - (zField->procLoc()[2] - loc_[2] + (sur.loc_[2] ) );
                         }
                     }
-                    else if(dir == DIRECTION::Y )
+                }
+                else if(abs(originQuadrent_) == 1 || abs(originQuadrent_) == 3)
+                {
+                    if(dir != DIRECTION::Y)
                     {
-                        // In the XZ plane the stride is in the x direction and so is the change in the incident field
-                        sur.strideIncd_ = -1;
-                        sur.addIncdProp_ = 0;
-                        // The Ez, Hx and Hy incident fields have the same start but the Hz, Ex, Ey fields have the same but different value
-                         E ? sur.incdStart_j_  = 2 + sz_[0] - (zField->procLoc()[0] - loc_[0] + (sur.loc_[0] - 1) + sur.szTrans_j_[0] ) : sur.incdStart_j_ = 2 + sz_[0] - 1 - (zField->procLoc()[0] - loc_[0] + (sur.loc_[0] - 1) + sur.szTrans_j_[0] );
-                        !E ? sur.incdStart_k_  = 2 + sz_[0] - (zField->procLoc()[0] - loc_[0] + (sur.loc_[0] - 1) + sur.szTrans_k_[0] ) : sur.incdStart_k_ = 2 + sz_[0] - 1 - (zField->procLoc()[0] - loc_[0] + (sur.loc_[0] - 1) + sur.szTrans_k_[0] );
+                        if(dir == DIRECTION::X)
+                            sur.strideIncd_ = (abs(originQuadrent_) == 1) ? 1 : -1;
+                        else if(dir == DIRECTION::Z)
+                            sur.addIncdProp_ = (abs(originQuadrent_) == 1) ? 1 : -1;
+
+                        if( abs(originQuadrent_) == 1 )
+                        {
+                            // The start location for incd fields is the same for Ex, Ey, Ez, Hx, Hy, and Hz
+                            sur.incdStart_j_  = 2 + (zField->procLoc()[1] - loc_[1]) + (sur.loc_[1] - 1);
+                            sur.incdStart_k_  = 2 + (zField->procLoc()[1] - loc_[1]) + (sur.loc_[1] - 1);
+                        }
+                        else
+                        {
+                            if(dir == DIRECTION::X )
+                            {
+                                // The Ez, Hx and Hy incident fields have the same start but the Hz, Ex, Ey fields have the same but different value
+                                sur.incdStart_j_  = !E ? 2 + sz_[1] - (zField->procLoc()[1] - loc_[1] + (sur.loc_[1] - 1) + sur.szTrans_j_[0] ) : 2 + sz_[1] - 1 - (zField->procLoc()[1] - loc_[1] + (sur.loc_[1] - 1) + sur.szTrans_j_[0] );
+                                sur.incdStart_k_  =  E ? 2 + sz_[1] - (zField->procLoc()[1] - loc_[1] + (sur.loc_[1] - 1) + sur.szTrans_k_[0] ) : 2 + sz_[1] - 1 - (zField->procLoc()[1] - loc_[1] + (sur.loc_[1] - 1) + sur.szTrans_k_[0] );
+                            }
+                            else if(dir == DIRECTION::Z)
+                            {
+                                // The Ez, Hx and Hy incident fields have the same start but the Hz, Ex, Ey fields have the same but different value
+                                sur.incdStart_j_  =  E ? 2 + sz_[1] - (zField->procLoc()[1] - loc_[1] + (sur.loc_[1] ) ) : 2 + sz_[1] - 1 - (zField->procLoc()[1] - loc_[1] + (sur.loc_[1] ) );
+                                sur.incdStart_k_  = !E ? 2 + sz_[1] - (zField->procLoc()[1] - loc_[1] + (sur.loc_[1] ) ) : 2 + sz_[1] - 1 - (zField->procLoc()[1] - loc_[1] + (sur.loc_[1] ) );
+                            }
+                        }
                     }
-                    else if(dir == DIRECTION::Z)
+                }
+                else if(abs(originQuadrent_) == 4 || abs(originQuadrent_) == 2)
+                {
+                    if(dir != DIRECTION::X)
                     {
-                        // In the XY plane the stride is in the x direction and so is the change in the incident field
-                        sur.strideIncd_ = -1;
-                        sur.addIncdProp_ = 0;
-                        // The Ez, Hx and Hy incident fields have the same start but the Hz, Ex, Ey fields have the same but different value
-                        !E ? sur.incdStart_j_  = 2 + sz_[0] - (zField->procLoc()[0] - loc_[0] + (sur.loc_[0] - 1) + sur.szTrans_j_[0] ) : sur.incdStart_j_ = 2 + sz_[0] - 1 - (zField->procLoc()[0] - loc_[0] + (sur.loc_[0] - 1) + sur.szTrans_j_[0] );
-                         E ? sur.incdStart_k_  = 2 + sz_[0] - (zField->procLoc()[0] - loc_[0] + (sur.loc_[0] - 1) + sur.szTrans_k_[0] ) : sur.incdStart_k_ = 2 + sz_[0] - 1 - (zField->procLoc()[0] - loc_[0] + (sur.loc_[0] - 1) + sur.szTrans_k_[0] );
+                        sur.strideIncd_ = (std::abs(originQuadrent_) == 4) ? 1 : -1;
+                        if(abs(originQuadrent_) == 4 )
+                        {
+                            // The Ex, Hx, Ey, Hy, Ez, and Hz incident field starts are all the same
+                            sur.incdStart_j_  = 2 + (zField->procLoc()[0] - loc_[0]) + (sur.loc_[0] - 1);
+                            sur.incdStart_k_  = 2 + (zField->procLoc()[0] - loc_[0]) + (sur.loc_[0] - 1);
+                        }
+                        else
+                        {
+                            // The incident Ex, Ey, and Hz incident fields have the same start, while Hx, Hy and Ez incident fields have the same start point
+                            sur.incdStart_j_  = ( E ^ ( dir == DIRECTION::Z) ) ? 2 + sz_[0] - (zField->procLoc()[0] - loc_[0] + (sur.loc_[0] - 1) + sur.szTrans_j_[0] ) : 2 + sz_[0] - 1 - (zField->procLoc()[0] - loc_[0] + (sur.loc_[0] - 1) + sur.szTrans_j_[0] );
+                            sur.incdStart_k_  = (!E ^ ( dir == DIRECTION::Z) ) ? 2 + sz_[0] - (zField->procLoc()[0] - loc_[0] + (sur.loc_[0] - 1) + sur.szTrans_k_[0] ) : 2 + sz_[0] - 1 - (zField->procLoc()[0] - loc_[0] + (sur.loc_[0] - 1) + sur.szTrans_k_[0] );
+                        }
                     }
                 }
             }
@@ -986,24 +663,30 @@ public:
      */
     void step()
     {
+        // Update incident H field
         zaxpy_(gridLen_+4,      dt_/dx_, &E_incd_->point(0,0), 1, &H_incd_->point(0,0), 1);
         zaxpy_(gridLen_+4, -1.0*dt_/dx_, &E_incd_->point(1,0), 1, &H_incd_->point(0,0), 1);
 
+        // Copy the auxiliary fields to incident fields
         zcopy_(20, &B_incd_->point(0,0), 1, B_old_.data(), 1);
         zcopy_(20, &D_incd_->point(0,0), 1, D_old_.data(), 1);
 
+        // Do the H PMLs
         zaxpy_(20,      dt_/dx_, &E_incd_->point(gridLen_+4,0), 1, &B_incd_->point(0,0), 1);
         zaxpy_(20, -1.0*dt_/dx_, &E_incd_->point(gridLen_+5,0), 1, &B_incd_->point(0,0), 1);
         for(int ii = 0; ii < 20; ii ++)
             H_incd_->point(gridLen_+4+ii,0) = chh_[ii] * H_incd_->point(gridLen_+4+ii,0) + chb0_[ii] * B_incd_->point(ii,0) - chb1_[ii]*B_old_[ii];
 
+        // Add the pulses
         E_incd_ -> point(0,0) = 0.0;
         for(auto& pul : pul_)
             E_incd_ -> point(0,0) += pul->pulse(static_cast<double>(t_step_)*dt_);
 
+        // Update H incident fields
         zaxpy_(gridLen_+3,      dt_/dx_, &H_incd_->point(0,0), 1, &E_incd_->point(1,0), 1);
         zaxpy_(gridLen_+3, -1.0*dt_/dx_, &H_incd_->point(1,0), 1, &E_incd_->point(1,0), 1);
 
+        // PMLs for E
         for(int ii = 0; ii < 20; ii++)
             D_incd_->point(ii,0) = cdd_[ii] * D_incd_->point(ii,0) + cdh_[ii] * (H_incd_->point(gridLen_+3+ii,0) - H_incd_->point(gridLen_+4+ii,0));
         zaxpy_(20,  1.0, &D_incd_->point(0,0), 1, &E_incd_->point(gridLen_+4,0), 1);
@@ -1119,7 +802,7 @@ public:
      * @param[in]  Hy        grid_ptr to the Hy field
      * @param[in]  Hz        grid_ptr to the Hz field
      */
-    parallelTFSFReal(mpiInterface gridComm, std::array<int,3> locO, std::array<int,3> sz, double theta, double phi, double psi, POLARIZATION circPol, double kLenRelJ, double dx, double dt,  std::vector<std::shared_ptr<PulseBase>> pul, real_pgrid_ptr Ex, real_pgrid_ptr Ey, real_pgrid_ptr Ez, real_pgrid_ptr Hx, real_pgrid_ptr Hy, real_pgrid_ptr Hz);
+    parallelTFSFReal(std::shared_ptr<mpiInterface> gridComm, std::array<int,3> locO, std::array<int,3> sz, double theta, double phi, double psi, POLARIZATION circPol, double kLenRelJ, double dx, double dt,  std::vector<std::shared_ptr<PulseBase>> pul, real_pgrid_ptr Ex, real_pgrid_ptr Ey, real_pgrid_ptr Ez, real_pgrid_ptr Hx, real_pgrid_ptr Hy, real_pgrid_ptr Hz);
 };
 class parallelTFSFCplx : public parallelTFSFBase<cplx>
 {
@@ -1146,7 +829,7 @@ public:
      * @param[in]  Hy        grid_ptr to the Hy field
      * @param[in]  Hz        grid_ptr to the Hz field
      */
-    parallelTFSFCplx(mpiInterface gridComm, std::array<int,3> locO, std::array<int,3> sz, double theta, double phi, double psi, POLARIZATION circPl, double kLenRelJ, double dx, double dt,  std::vector<std::shared_ptr<PulseBase>> pul, cplx_pgrid_ptr Ex, cplx_pgrid_ptr Ey, cplx_pgrid_ptr Ez, cplx_pgrid_ptr Hx, cplx_pgrid_ptr Hy, cplx_pgrid_ptr Hz);
+    parallelTFSFCplx(std::shared_ptr<mpiInterface> gridComm, std::array<int,3> locO, std::array<int,3> sz, double theta, double phi, double psi, POLARIZATION circPl, double kLenRelJ, double dx, double dt,  std::vector<std::shared_ptr<PulseBase>> pul, cplx_pgrid_ptr Ex, cplx_pgrid_ptr Ey, cplx_pgrid_ptr Ez, cplx_pgrid_ptr Hx, cplx_pgrid_ptr Hy, cplx_pgrid_ptr Hz);
 };
 
 #endif

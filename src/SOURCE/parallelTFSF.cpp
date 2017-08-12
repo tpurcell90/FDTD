@@ -70,7 +70,7 @@ void tfsfUpdateFxnCplx::transferDat(cplx_pgrid_ptr grid)
 }
 
 
-parallelTFSFReal::parallelTFSFReal(mpiInterface gridComm, std::array<int,3> loc, std::array<int,3> sz, double theta, double phi, double psi, POLARIZATION circPol, double kLenRelJ, double dx, double dt, std::vector<std::shared_ptr<PulseBase>> pul, real_pgrid_ptr Ex, real_pgrid_ptr Ey, real_pgrid_ptr Ez, real_pgrid_ptr Hx, real_pgrid_ptr Hy, real_pgrid_ptr Hz) :
+parallelTFSFReal::parallelTFSFReal(std::shared_ptr<mpiInterface> gridComm, std::array<int,3> loc, std::array<int,3> sz, double theta, double phi, double psi, POLARIZATION circPol, double kLenRelJ, double dx, double dt, std::vector<std::shared_ptr<PulseBase>> pul, real_pgrid_ptr Ex, real_pgrid_ptr Ey, real_pgrid_ptr Ez, real_pgrid_ptr Hx, real_pgrid_ptr Hy, real_pgrid_ptr Hz) :
     parallelTFSFBase<double>(gridComm, loc, sz, theta, phi, psi, circPol, kLenRelJ, dx, dt, pul, Ex, Ey, Ez, Hx, Hy,  Hz)
 {
     if(Ez_ && Hz_)
@@ -293,7 +293,7 @@ parallelTFSFReal::parallelTFSFReal(mpiInterface gridComm, std::array<int,3> loc,
         addHFront_ = [](real_pgrid_ptr grid_j, real_pgrid_ptr grid_k, cplx_grid_ptr incd, cplx* incdTransfer, std::shared_ptr<paramStoreTFSF> sur){return;};
     }
 }
-parallelTFSFCplx::parallelTFSFCplx(mpiInterface gridComm, std::array<int,3> loc, std::array<int,3> sz, double theta, double phi, double psi, POLARIZATION circPol, double kLenRelJ, double dx, double dt, std::vector<std::shared_ptr<PulseBase>> pul, cplx_pgrid_ptr Ex, cplx_pgrid_ptr Ey, cplx_pgrid_ptr Ez, cplx_pgrid_ptr Hx, cplx_pgrid_ptr Hy, cplx_pgrid_ptr Hz) :
+parallelTFSFCplx::parallelTFSFCplx(std::shared_ptr<mpiInterface> gridComm, std::array<int,3> loc, std::array<int,3> sz, double theta, double phi, double psi, POLARIZATION circPol, double kLenRelJ, double dx, double dt, std::vector<std::shared_ptr<PulseBase>> pul, cplx_pgrid_ptr Ex, cplx_pgrid_ptr Ey, cplx_pgrid_ptr Ez, cplx_pgrid_ptr Hx, cplx_pgrid_ptr Hy, cplx_pgrid_ptr Hz) :
     parallelTFSFBase<cplx>(gridComm, loc, sz, theta, phi, psi, circPol, kLenRelJ, dx, dt, pul, Ex, Ey, Ez, Hx, Hy, Hz)
 {
     if(Ez_ && Hz_)
@@ -357,7 +357,7 @@ parallelTFSFCplx::parallelTFSFCplx(mpiInterface gridComm, std::array<int,3> loc,
         else
             addHFront_ = [](cplx_pgrid_ptr grid_j, cplx_pgrid_ptr grid_k, cplx_grid_ptr incd, cplx* incdTransfer, std::shared_ptr<paramStoreTFSF> sur){return;};
     }
-    else
+    else if(Hz)
     {
         if(botSurH_)
         {
@@ -370,7 +370,7 @@ parallelTFSFCplx::parallelTFSFCplx(mpiInterface gridComm, std::array<int,3> loc,
 
         if(botSurE_)
         {
-            addEBot_ = tfsfUpdateFxnCplx::addTFSFOneCompJ;
+            addEBot_ = tfsfUpdateFxnCplx::addTFSFOneCompK;
         }
         else
         {
@@ -388,7 +388,7 @@ parallelTFSFCplx::parallelTFSFCplx(mpiInterface gridComm, std::array<int,3> loc,
 
         if(topSurE_)
         {
-            addETop_ = tfsfUpdateFxnCplx::addTFSFOneCompJ;
+            addETop_ = tfsfUpdateFxnCplx::addTFSFOneCompK;
         }
         else
         {
@@ -406,7 +406,7 @@ parallelTFSFCplx::parallelTFSFCplx(mpiInterface gridComm, std::array<int,3> loc,
 
         if(leftSurE_)
         {
-            addELeft_ = tfsfUpdateFxnCplx::addTFSFOneCompK;
+            addELeft_ = tfsfUpdateFxnCplx::addTFSFOneCompJ;
         }
         else
         {
@@ -416,6 +416,85 @@ parallelTFSFCplx::parallelTFSFCplx(mpiInterface gridComm, std::array<int,3> loc,
         if(rightSurH_)
         {
             addHRight_ = tfsfUpdateFxnCplx::addTFSFOneCompK;
+        }
+        else
+        {
+            addHRight_ = [](cplx_pgrid_ptr grid_j, cplx_pgrid_ptr grid_k, cplx_grid_ptr incd, cplx* incdTransfer, std::shared_ptr<paramStoreTFSF> sur){return;};
+        }
+
+        if(rightSurE_)
+        {
+            addERight_ = tfsfUpdateFxnCplx::addTFSFOneCompJ;
+        }
+        else
+        {
+            addERight_ = [](cplx_pgrid_ptr grid_j, cplx_pgrid_ptr grid_k, cplx_grid_ptr incd, cplx* incdTransfer, std::shared_ptr<paramStoreTFSF> sur){return;};
+        }
+
+        addEBack_ = [](cplx_pgrid_ptr grid_j, cplx_pgrid_ptr grid_k, cplx_grid_ptr incd, cplx* incdTransfer, std::shared_ptr<paramStoreTFSF> sur){return;};
+        addHBack_ = [](cplx_pgrid_ptr grid_j, cplx_pgrid_ptr grid_k, cplx_grid_ptr incd, cplx* incdTransfer, std::shared_ptr<paramStoreTFSF> sur){return;};
+        addEFront_ = [](cplx_pgrid_ptr grid_j, cplx_pgrid_ptr grid_k, cplx_grid_ptr incd, cplx* incdTransfer, std::shared_ptr<paramStoreTFSF> sur){return;};
+        addHFront_ = [](cplx_pgrid_ptr grid_j, cplx_pgrid_ptr grid_k, cplx_grid_ptr incd, cplx* incdTransfer, std::shared_ptr<paramStoreTFSF> sur){return;};
+    }
+    else if(Ez)
+    {
+        if(botSurH_)
+        {
+            addHBot_ = tfsfUpdateFxnCplx::addTFSFOneCompK;
+        }
+        else
+        {
+            addHBot_ = [](cplx_pgrid_ptr grid_j, cplx_pgrid_ptr grid_k, cplx_grid_ptr incd, cplx* incdTransfer, std::shared_ptr<paramStoreTFSF> sur){return;};
+        }
+
+        if(botSurE_)
+        {
+            addEBot_ = tfsfUpdateFxnCplx::addTFSFOneCompJ;
+        }
+        else
+        {
+            addEBot_ = [](cplx_pgrid_ptr grid_j, cplx_pgrid_ptr grid_k, cplx_grid_ptr incd, cplx* incdTransfer, std::shared_ptr<paramStoreTFSF> sur){return;};
+        }
+
+        if(topSurH_)
+        {
+            addHTop_ = tfsfUpdateFxnCplx::addTFSFOneCompK;
+        }
+        else
+        {
+            addHTop_ = [](cplx_pgrid_ptr grid_j, cplx_pgrid_ptr grid_k, cplx_grid_ptr incd, cplx* incdTransfer, std::shared_ptr<paramStoreTFSF> sur){return;};
+        }
+
+        if(topSurE_)
+        {
+            addETop_ = tfsfUpdateFxnCplx::addTFSFOneCompJ;
+        }
+        else
+        {
+            addETop_ = [](cplx_pgrid_ptr grid_j, cplx_pgrid_ptr grid_k, cplx_grid_ptr incd, cplx* incdTransfer, std::shared_ptr<paramStoreTFSF> sur){return;};
+        }
+
+        if(leftSurH_)
+        {
+            addHLeft_ = tfsfUpdateFxnCplx::addTFSFOneCompJ;
+        }
+        else
+        {
+            addHLeft_ = [](cplx_pgrid_ptr grid_j, cplx_pgrid_ptr grid_k, cplx_grid_ptr incd, cplx* incdTransfer, std::shared_ptr<paramStoreTFSF> sur){return;};
+        }
+
+        if(leftSurE_)
+        {
+            addELeft_ = tfsfUpdateFxnCplx::addTFSFOneCompK;
+        }
+        else
+        {
+            addELeft_ = [](cplx_pgrid_ptr grid_j, cplx_pgrid_ptr grid_k, cplx_grid_ptr incd, cplx* incdTransfer, std::shared_ptr<paramStoreTFSF> sur){return;};
+        }
+
+        if(rightSurH_)
+        {
+            addHRight_ = tfsfUpdateFxnCplx::addTFSFOneCompJ;
         }
         else
         {
@@ -437,57 +516,3 @@ parallelTFSFCplx::parallelTFSFCplx(mpiInterface gridComm, std::array<int,3> loc,
         addHFront_ = [](cplx_pgrid_ptr grid_j, cplx_pgrid_ptr grid_k, cplx_grid_ptr incd, cplx* incdTransfer, std::shared_ptr<paramStoreTFSF> sur){return;};
     }
 }
-
-// void parallelTFSFReal::step()
-// {
-//     daxpy_(gridLen_+4,      dt_/dx_, &E_incd_->point(0,0), 1, &H_incd_->point(0,0), 1);
-//     daxpy_(gridLen_+4, -1.0*dt_/dx_, &E_incd_->point(1,0), 1, &H_incd_->point(0,0), 1);
-
-//     dcopy_(20, &B_incd_->point(0,0), 1, B_old_.data(), 1);
-//     dcopy_(20, &D_incd_->point(0,0), 1, D_old_.data(), 1);
-
-//     daxpy_(20,      dt_/dx_, &E_incd_->point(gridLen_+4,0), 1, &B_incd_->point(0,0), 1);
-//     daxpy_(20, -1.0*dt_/dx_, &E_incd_->point(gridLen_+5,0), 1, &B_incd_->point(0,0), 1);
-//     for(int ii = 0; ii < 20; ii ++)
-//         H_incd_->point(gridLen_+4+ii,0) = chh_[ii] * H_incd_->point(gridLen_+4+ii,0) + chb0_[ii] * B_incd_->point(ii,0) - chb1_[ii]*B_old_[ii];
-
-//     E_incd_ -> point(0,0) = 0.0;
-//     for(auto& pul : pul_)
-//         E_incd_ -> point(0,0) += std::real(pul->pulse(static_cast<double>(t_step_)*dt_));
-
-//     daxpy_(gridLen_+3,      dt_/dx_, &H_incd_->point(0,0), 1, &E_incd_->point(1,0), 1);
-//     daxpy_(gridLen_+3, -1.0*dt_/dx_, &H_incd_->point(1,0), 1, &E_incd_->point(1,0), 1);
-
-//     for(int ii = 0; ii < 20; ii++)
-//         D_incd_->point(ii,0) = cdd_[ii] * D_incd_->point(ii,0) + cdh_[ii] * (H_incd_->point(gridLen_+3+ii,0) - H_incd_->point(gridLen_+4+ii,0));
-//     daxpy_(20,  1.0, &D_incd_->point(0,0), 1, &E_incd_->point(gridLen_+4,0), 1);
-//     daxpy_(20, -1.0, D_old_.data()       , 1, &E_incd_->point(gridLen_+4,0), 1);
-//     t_step_++;
-// }
-
-// void parallelTFSFCplx::step()
-// {
-//     zaxpy_(gridLen_+4,      dt_/dx_, &E_incd_->point(0,0), 1, &H_incd_->point(0,0), 1);
-//     zaxpy_(gridLen_+4, -1.0*dt_/dx_, &E_incd_->point(1,0), 1, &H_incd_->point(0,0), 1);
-
-//     zcopy_(20, &B_incd_->point(0,0), 1, B_old_.data(), 1);
-//     zcopy_(20, &D_incd_->point(0,0), 1, D_old_.data(), 1);
-
-//     zaxpy_(20,      dt_/dx_, &E_incd_->point(gridLen_+4,0), 1, &B_incd_->point(0,0), 1);
-//     zaxpy_(20, -1.0*dt_/dx_, &E_incd_->point(gridLen_+5,0), 1, &B_incd_->point(0,0), 1);
-//     for(int ii = 0; ii < 20; ii ++)
-//         H_incd_->point(gridLen_+4+ii,0) = chh_[ii] * H_incd_->point(gridLen_+4+ii,0) + chb0_[ii] * B_incd_->point(ii,0) - chb1_[ii]*B_old_[ii];
-
-//     E_incd_ -> point(0,0) = 0.0;
-//     for(auto& pul : pul_)
-//         E_incd_ -> point(0,0) += pul->pulse(static_cast<double>(t_step_)*dt_);
-
-//     zaxpy_(gridLen_+3,      dt_/dx_, &H_incd_->point(0,0), 1, &E_incd_->point(1,0), 1);
-//     zaxpy_(gridLen_+3, -1.0*dt_/dx_, &H_incd_->point(1,0), 1, &E_incd_->point(1,0), 1);
-
-//     for(int ii = 0; ii < 20; ii++)
-//         D_incd_->point(ii,0) = cdd_[ii] * D_incd_->point(ii,0) + cdh_[ii] * (H_incd_->point(gridLen_+3+ii,0) - H_incd_->point(gridLen_+4+ii,0));
-//     zaxpy_(20,  1.0, &D_incd_->point(0,0), 1, &E_incd_->point(gridLen_+4,0), 1);
-//     zaxpy_(20, -1.0, D_old_.data()       , 1, &E_incd_->point(gridLen_+4,0), 1);
-//     t_step_++;
-// }

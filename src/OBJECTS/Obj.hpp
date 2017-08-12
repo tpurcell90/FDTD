@@ -2,25 +2,17 @@
 #define FDTD_OBJECT
 
 #include <math.h>
-#include <UTIL/enum.hpp>
 #include <UTIL/typedefs.hpp>
-#ifdef MKL
-#include <UTIL/utilities_MKL.hpp>
-#elif defined ACML
-#include <UTIL/utilities_acml.hpp>
-#else
-#include <UTIL/utilities_MKL.hpp>
-#endif
 
 // #include <iostream>
 
 class Obj
 {
 protected:
+    std::array<std::array<double,3>,3> unitVec_; //!< vectors describing object's coordinate sys relative to main grids
     std::vector<double> geoParam_; //!< parameters describing the geometry of the objects
     std::vector<double> material_; //!< parameters for storing the material properties of the system
     std::vector<double> magMaterial_; //!< parameters for storing the material properties of the system
-    std::vector<double> chiMaterial_; //!< parameters describing the chiral response of the material
     std::vector<double> alpha_; //!<Lorentz model pole parameter (see Taflove 2005 book ch 9)
     std::vector<double> xi_; //!<Lorentz model pole parameter (see Taflove 2005 book ch 9)
     std::vector<double> gamma_; //!<Lorentz model pole parameter (see Taflove 2005 book ch 9)
@@ -29,22 +21,26 @@ protected:
     std::vector<double> magXi_; //!<Lorentz model pole parameter for magnetic materials (equivlant model for normal dispersive material)
     std::vector<double> magGamma_; //!<Lorentz model pole parameter for magnetic materials (equivlant model for normal dispersive material)
 
+
     std::array<double,3> location_; //!< location of the center point of the object
     std::array<double,9> coordTransform_; //!< Coordinate Transform Matrix
 public:
 
     /**
-     * @brief Constructor
+     * @brief      Constructor
      *
-     * @param s Shape of the object
-     * @param geo size (or other geometric parameters of the object)
-     * @param loc location of the object
+     * @param[in]  mater     Vector containing all electric field dispersive material parameters
+     * @param[in]  magMater  Vector containing all magnetic field dispersive material parameters
+     * @param[in]  geo       List of parameters describing the object geometry
+     * @param[in]  loc       The location of the center of the object
+     * @param[in]  unitVec   An array of vectors describing the coordinate transform to make the objects orientation in the grids along the x,y,z axises
      */
-    Obj(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc,std::array<std::array<double,3>,3> unitVec);
+    Obj(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc, std::array<std::array<double,3>,3> unitVec);
+
     /**
-     * @brief Copy Constructor
+     * @brief      Copy Constructor
      *
-     * @param o object to be copied
+     * @param[in]  o     Object to be copied
      */
     Obj(const Obj &o);
     /**
@@ -55,10 +51,6 @@ public:
      */
     void setUpConsts (double dt);
 
-    /**
-     * @return the shape of the object
-     */
-    // Shape s() {return part_;}
     /**
      * @return the shape of the object
      */
@@ -106,29 +98,39 @@ public:
      */
     inline double epsInfty(){return material_[0];}
 
-    inline double muInfty(){return magMaterial_[0];}
     /**
-     * @return     return the $\eps_{\infty}$
+     * @return     returns $\mu_{\infty}$
      */
-    inline double tellegen(){return chiMaterial_[0];}
+    inline double muInfty(){return magMaterial_[0];}
 
     /**
-     * @brief Determine if a point is in an object
-     * @details Deterimes a point in vector form is inside the object or not
-     *
-     * @param v point to test if it's in an object
-     * @return True if inside the object false if not
+     * @return     the unit vectors of the object's coordinate system
      */
-    virtual bool isObj(std::array<double,3> &v, double dx) = 0;
+    inline std::array<std::array<double,3>,3> unitVec() {return unitVec_;}
+
     /**
-     * @brief Determines teh distance between two points
+     * @brief      Determines if a point is inside the object
      *
-     * @param pt1 The Second point
-     * @param pt2 The Second point
-     * @return The distance between points
+     * @param[in]  v     real space point
+     * @param[in]  dx    grid spacing
+     *
+     * @return     True if point is in the object, False otherwise.
+     */
+    virtual bool isObj(std::array<double,3> v, double dx) = 0;
+
+    /**
+     * @brief      Returns the distance between two points
+     *
+     * @param[in]  pt1   The point 1
+     * @param[in]  pt2   The point 2
+     *
+     * @return     The distance between the points
      */
     double dist(std::array<double,3> pt1, std::array<double,3> pt2);
-    // void mvLoc(std::array<double,3> locOff);
+
+    /**
+     * @return     the shape of the object
+     */
     virtual SHAPE shape() = 0;
 };
 
@@ -136,74 +138,112 @@ class sphere : public Obj
 {
 public:
     /**
-     * @brief Constructs a sphere
-     * @details Constructs a sphere using the Obj constructor
+     * @brief      Constructor
      *
-     * @param mater A vector with all the material descriptors in it
-     * @param geo A vector containing all the geometric properties of the sphere
-     * @param loc A vector for the center point location of the sphere
-     * @param ang orientation angle of the sphere
+     * @param[in]  mater     Vector containing all electric field dispersive material parameters
+     * @param[in]  magMater  Vector containing all magnetic field dispersive material parameters
+     * @param[in]  geo       Vector containing {radius}
+     * @param[in]  loc       The location of the center of the object
+     * @param[in]  unitVec   An array of vectors describing the coordinate transform to make the objects orientation in the grids along the x,y,z axises
      */
     sphere(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc,std::array<std::array<double,3>,3> unitVec);
+
     /**
-     * @brief Copy Constructor
+     * @brief      Copy Constructor
      *
-     * @param o sphere to be copied
+     * @param[in]  o     sphere to be copied
      */
     sphere(const sphere &o);
+
     /**
-     * @brief Determines if a point is inside the object
-     * @details Determines if a real space point is within the sphere
+     * @brief      Determines if a point is inside the object
      *
-     * @param v Point to check
-     * @param dx spatial step of the Cell
+     * @param[in]  v     real space point
+     * @param[in]  dx    grid spacing
      *
-     * @return Returns true if v is in the object
+     * @return     True if point is in the object, False otherwise.
      */
-    bool isObj(std::array<double,3> &v, double dx);
+    bool isObj(std::array<double,3> v, double dx);
+
     /**
-     * @brief returns the Shape parameter of the sphere
-     * @details Returns the type of object it is by mapping the object name to a enum Shape
-     * @return SHAPE::SPHERE
+     * @return     SHAPE::SPHERE
      */
     SHAPE shape() {return SHAPE::SPHERE;}
+};
+
+class hemisphere : public Obj
+{
+public:
+    /**
+     * @brief      Constructor
+     *
+     * @param[in]  mater     Vector containing all electric field dispersive material parameters
+     * @param[in]  magMater  Vector containing all magnetic field dispersive material parameters
+     * @param[in]  geo       Vector containing {radius}
+     * @param[in]  loc       The location of the center of the object
+     * @param[in]  unitVec   An array of vectors describing the coordinate transform to make the objects orientation in the grids along the x,y,z axises; The first vector determines the direction of the normal vector of the symmetry plane
+     */
+    hemisphere(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc,std::array<std::array<double,3>,3> unitVec);
+
+    /**
+     * @brief      Copy Constructor
+     *
+     * @param[in]  o     hemisphere to be copied
+     */
+    hemisphere(const hemisphere &o);
+
+    /**
+     * @brief      Determines if a point is inside the object
+     *
+     * @param[in]  v     real space point
+     * @param[in]  dx    grid spacing
+     *
+     * @return     True if point is in the object, False otherwise.
+     */
+    bool isObj(std::array<double,3> v, double dx);
+
+    /**
+     * @return     SHAPE::HEMISPHERE
+     */
+    SHAPE shape() {return SHAPE::HEMISPHERE;}
 };
 
 class block : public Obj
 {
 public:
     /**
-     * @brief Constructs a block
-     * @details Constructs a block using the Obj constructor
+     * @brief      Constructor
      *
-     * @param mater A vector with all the material descriptors in it
-     * @param geo A vector containing all the geometric properties of the block
-     * @param loc A vector for the center point location of the block
-     * @param ang orientation angle of the block
+     * @param[in]  mater     Vector containing all electric field dispersive material parameters
+     * @param[in]  magMater  Vector containing all magnetic field dispersive material parameters
+     * @param[in]  geo       Vector Containing {edge size in direction of unit vec 0, edge size in direction of unit vec 1, edge size in direction of unit vec 2}
+     * @param[in]  loc       The location of the center of the object
+     * @param[in]  unitVec   An array of vectors describing the coordinate transform to make the objects orientation in the grids along the x,y,z axises
      */
     block(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc,std::array<std::array<double,3>,3> unitVec);
+
     /**
-     * @brief Copy Constructor
+     * @brief      Copy Constructor
      *
-     * @param o block to be copied
+     * @param[in]  o     Block to be copied
      */
     block(const block &o);
+
     /**
-     * @brief Determines if a point is inside the object
-     * @details Determines if a real space point is within the block
+     * @brief      Determines if a point is inside the object
      *
-     * @param v Point to check
-     * @param dx spatial step of the Cell
+     * @param[in]  v     real space point
+     * @param[in]  dx    grid spacing
      *
-     * @return Returns true if v is in the object
+     * @return     True if point is in the object, False otherwise.
      */
-    bool isObj(std::array<double,3> &v, double dx);
+    bool isObj(std::array<double,3> v, double dx);
+
     /**
-     * @brief returns the Shape parameter of the block
-     * @details Returns the type of object it is by mapping the object name to a enum Shape
-     * @return SHAPE::BLOCK
+     * @return     SHAPE::BLOCK
      */
     SHAPE shape() {return SHAPE::BLOCK;}
+
 };
 class rounded_block : public Obj
 {
@@ -211,98 +251,184 @@ protected:
     std::array<std::array<double,3>,8> curveCens_;
 public:
     /**
-     * @brief Constructs a block
-     * @details Constructs a block using the Obj constructor
+     * @brief      Constructor
      *
-     * @param mater A vector with all the material descriptors in it
-     * @param geo A vector containing all the geometric properties of the block
-     * @param loc A vector for the center point location of the block
-     * @param ang orientation angle of the block
+     * @param[in]  mater     Vector containing all electric field dispersive material parameters
+     * @param[in]  magMater  Vector containing all magnetic field dispersive material parameters
+     * @param[in]  geo       Vector Containing {edge size in direction of unit vec 0, edge size in direction of unit vec 1, edge size in direction of unit vec 2, radius of curvature of the corners}
+     * @param[in]  loc       The location of the center of the object
+     * @param[in]  unitVec   An array of vectors describing the coordinate transform to make the objects orientation in the grids along the x,y,z axises
      */
     rounded_block(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc,std::array<std::array<double,3>,3> unitVec);
+
     /**
-     * @brief Copy Constructor
+     * @brief      Copy Constructor
      *
-     * @param o block to be copied
+     * @param[in]  o     rounded_block to be copied
      */
     rounded_block(const rounded_block &o);
+
     /**
-     * @brief Determines if a point is inside the object
-     * @details Determines if a real space point is within the block
+     * @brief      Determines if a point is inside the object
      *
-     * @param v Point to check
-     * @param dx spatial step of the Cell
+     * @param[in]  v     real space point
+     * @param[in]  dx    grid spacing
      *
-     * @return Returns true if v is in the object
+     * @return     True if point is in the object, False otherwise.
      */
-    bool isObj(std::array<double,3> &v, double dx);
+    bool isObj(std::array<double,3> v, double dx);
+
     /**
-     * @brief returns the Shape parameter of the block
-     * @details Returns the type of object it is by mapping the object name to a enum Shape
-     * @return SHAPE::BLOCK
+     * @return     SHAPE::ROUNDED_BLOCK
      */
     SHAPE shape() {return SHAPE::ROUNDED_BLOCK;}
+
 };
 class ellipsoid : public Obj
 {
 public:
     /**
-     * @brief Constructs a ellipsoid
-     * @details Constructs a ellipsoid using the Obj constructor
+     * @brief      Constructor
      *
-     * @param mater A vector with all the material descriptors in it
-     * @param geo A vector containing all the geometric properties of the ellipsoid
-     * @param loc A vector for the center point location of the ellipsoid
-     * @param ang orientation angle of the ellipsoid
+     * @param[in]  mater     Vector containing all electric field dispersive material parameters
+     * @param[in]  magMater  Vector containing all magnetic field dispersive material parameters
+     * @param[in]  geo       Vector Containing {axis length in direction of unit vec 0, axis length in direction of unit vec 1, axis length in direction of unit vec 2}
+     * @param[in]  loc       The location of the center of the object
+     * @param[in]  unitVec   An array of vectors describing the coordinate transform to make the objects orientation in the grids along the x,y,z axises
      */
     ellipsoid(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc,std::array<std::array<double,3>,3> unitVec);
+
     /**
-     * @brief Copy Constructor
+     * @brief      Copy Constructor
      *
-     * @param o ellipsoid to be copied
+     * @param[in]  o     ellipsoid to be copied
      */
     ellipsoid(const ellipsoid &o);
     /**
-     * @brief Determines if a point is inside the object
-     * @details Determines if a real space point is within the ellipsoid
+     * @brief      Determines if a point is inside the object
      *
-     * @param v Point to check
-     * @param dx spatial step of the Cell
+     * @param[in]  v     real space point
+     * @param[in]  dx    grid spacing
      *
-     * @return Returns true if v is in the object
+     * @return     True if point is in the object, False otherwise.
      */
-    bool isObj(std::array<double,3> &v, double dx);
+    bool isObj(std::array<double,3> v, double dx);
+
     /**
-     * @brief returns the Shape parameter of the ellipsoid
-     * @details Returns the type of object it is by mapping the object name to a enum Shape
-     * @return SHAPE::ELLIPSE
+     * @return     SHAPE::ELLIPSOID
      */
     SHAPE shape() {return SHAPE::ELLIPSOID;}
+
 };
 
+class hemiellipsoid : public Obj
+{
+public:
+    /**
+     * @brief      Constructor
+     *
+     * @param[in]  mater     Vector containing all electric field dispersive material parameters
+     * @param[in]  magMater  Vector containing all magnetic field dispersive material parameters
+     * @param[in]  geo       Vector Containing {axis length in direction of unit vec 0, axis length in direction of unit vec 1, axis length in direction of unit vec 2}
+     * @param[in]  loc       The location of the center of the object
+     * @param[in]  unitVec   An array of vectors describing the coordinate transform to make the objects orientation in the grids along the x,y,z axises; The first axis is the direction of the normal vector to the symmetry plane of the hemiellipsoid
+     */
+    hemiellipsoid(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc,std::array<std::array<double,3>,3> unitVec);
+
+    /**
+     * @brief      Copy Constructor
+     *
+     * @param[in]  o     hemiellipsoid to be copied
+     */
+    hemiellipsoid(const hemiellipsoid &o);
+    /**
+     * @brief      Determines if a point is inside the object
+     *
+     * @param[in]  v     real space point
+     * @param[in]  dx    grid spacing
+     *
+     * @return     True if point is in the object, False otherwise.
+     */
+    bool isObj(std::array<double,3> v, double dx);
+
+    /**
+     * @return     SHAPE::HEMIELLIPSOID
+     */
+    SHAPE shape() {return SHAPE::HEMIELLIPSOID;}
+
+};
 class cone : public Obj
 {
 public:
 
+    /**
+     * @brief      Constructor
+     *
+     * @param[in]  mater     Vector containing all electric field dispersive material parameters
+     * @param[in]  magMater  Vector containing all magnetic field dispersive material parameters
+     * @param[in]  geo       Vector Containing {radius of base 1, radius of base 2, length of the cone}
+     * @param[in]  loc       The location of the center of the object
+     * @param[in]  unitVec   An array of vectors describing the coordinate transform to make the objects orientation in the grids along the x,y,z axises
+     */
     cone(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc,std::array<std::array<double,3>,3> unitVec);
 
+    /**
+     * @brief      Copy Constructor
+     *
+     * @param[in]  o     Cone to be copied
+     */
     cone(const cone &o);
 
-    bool isObj(std::array<double,3> &v, double dx);
+    /**
+     * @brief      Determines if a point is inside the object
+     *
+     * @param[in]  v     real space point
+     * @param[in]  dx    grid spacing
+     *
+     * @return     True if point is in the object, False otherwise.
+     */
+    bool isObj(std::array<double,3> v, double dx);
 
+    /**
+     * @return     SHAPE::CONE
+     */
     SHAPE shape() {return SHAPE::CONE;}
 };
 
 class cylinder : public Obj
 {
 public:
-
+    /**
+     * @brief      Constructor
+     *
+     * @param[in]  mater     Vector containing all electric field dispersive material parameters
+     * @param[in]  magMater  Vector containing all magnetic field dispersive material parameters
+     * @param[in]  geo       Vector Containing {radius of the cylinder, length of the cylinder}
+     * @param[in]  loc       The location of the center of the object
+     * @param[in]  unitVec   An array of vectors describing the coordinate transform to make the objects orientation in the grids along the x,y,z axises
+     */
     cylinder(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc,std::array<std::array<double,3>,3> unitVec);
 
+    /**
+     * @brief      Copy Constructor
+     *
+     * @param[in]  o     Cylinder to be copied
+     */
     cylinder(const cylinder &o);
 
-    bool isObj(std::array<double,3> &v, double dx);
+    /**
+     * @brief      Determines if a point is inside the object
+     *
+     * @param[in]  v     real space point
+     * @param[in]  dx    grid spacing
+     *
+     * @return     True if point is in the object, False otherwise.
+     */
+    bool isObj(std::array<double,3> v, double dx);
 
+    /**
+     * @return     SHAPE::CYLINDER
+     */
     SHAPE shape() {return SHAPE::CYLINDER;}
 };
 
@@ -310,35 +436,35 @@ class isosceles_tri_prism : public Obj
 {
 public:
     /**
-     * @brief Constructs a isosceles_tri_prism
-     * @details Constructs a isosceles_tri_prism using the Obj constructor
+     * @brief      Constructor
      *
-     * @param mater A vector with all the material descriptors in it
-     * @param geo A vector containing all the geometric properties of the isosceles_tri_prism
-     * @param loc A vector for the center point location of the isosceles_tri_prism
-     * @param ang orientation angle of the isosceles_tri_prism
+     * @param[in]  mater     Vector containing all electric field dispersive material parameters
+     * @param[in]  magMater  Vector containing all magnetic field dispersive material parameters
+     * @param[in]  geo       Vector Containing { base of the triangle base, height of the triangle base, length of the prism}
+     * @param[in]  loc       The location of the center of the object
+     * @param[in]  unitVec   An array of vectors describing the coordinate transform to make the objects orientation in the grids along the x,y,z axises
      */
     isosceles_tri_prism(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc,std::array<std::array<double,3>,3> unitVec);
+
     /**
-     * @brief Copy Constructor
+     * @brief      Copy Constructor
      *
-     * @param o isosceles_tri_prism to be copied
+     * @param[in]  o     isosceles triangular prism to be copied
      */
     isosceles_tri_prism(const isosceles_tri_prism &o);
+
     /**
-     * @brief Determines if a point is inside the object
-     * @details Determines if a real space point is within the isosceles_tri_prism
+     * @brief      Determines if a point is inside the object
      *
-     * @param v Point to check
-     * @param dx spatial step of the Cell
+     * @param[in]  v     real space point
+     * @param[in]  dx    grid spacing
      *
-     * @return Returns true if v is in the object
+     * @return     True if point is in the object, False otherwise.
      */
-    bool isObj(std::array<double,3> &v, double dx);
+    bool isObj(std::array<double,3> v, double dx);
+
     /**
-     * @brief returns the Shape parameter of the isosceles_tri_prism
-     * @details Returns the type of object it is by mapping the object name to a enum Shape
-     * @return SHAPE::CONE
+     * @return     SHAPE::TRIANGLE_PRISM
      */
     SHAPE shape() {return SHAPE::TRIANGLE_PRISM;}
 };
@@ -348,35 +474,35 @@ class trapezoid_prism : public Obj
 {
 public:
     /**
-     * @brief Constructs a isosceles_tri_prism
-     * @details Constructs a isosceles_tri_prism using the Obj constructor
+     * @brief      Constructor
      *
-     * @param mater A vector with all the material descriptors in it
-     * @param geo A vector containing all the geometric properties of the isosceles_tri_prism
-     * @param loc A vector for the center point location of the isosceles_tri_prism
-     * @param ang orientation angle of the isosceles_tri_prism
+     * @param[in]  mater     Vector containing all electric field dispersive material parameters
+     * @param[in]  magMater  Vector containing all magnetic field dispersive material parameters
+     * @param[in]  geo       Vector Containing { base1 of the trapezoid base, base2 of the trapezoid base, height of the trapezoid base, length of the prism}
+     * @param[in]  loc       The location of the center of the object
+     * @param[in]  unitVec   An array of vectors describing the coordinate transform to make the objects orientation in the grids along the x,y,z axises
      */
     trapezoid_prism(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc,std::array<std::array<double,3>,3> unitVec);
+
     /**
-     * @brief Copy Constructor
+     * @brief      Copy Constructor
      *
-     * @param o trapezoid_prism to be copied
+     * @param[in]  o     trapezoidal prism to be copied
      */
     trapezoid_prism(const trapezoid_prism &o);
+
     /**
-     * @brief Determines if a point is inside the object
-     * @details Determines if a real space point is within the trapezoid_prism
+     * @brief      Determines if a point is inside the object
      *
-     * @param v Point to check
-     * @param dx spatial step of the Cell
+     * @param[in]  v     real space point
+     * @param[in]  dx    grid spacing
      *
-     * @return Returns true if v is in the object
+     * @return     True if point is in the object, False otherwise.
      */
-    bool isObj(std::array<double,3> &v, double dx);
+    bool isObj(std::array<double,3> v, double dx);
+
     /**
-     * @brief returns the Shape parameter of the trapezoid_prism
-     * @details Returns the type of object it is by mapping the object name to a enum Shape
-     * @return SHAPE::CONE
+     * @return     SHAPE::TRAPEZOIDAL_PRISM
      */
     inline SHAPE shape() {return SHAPE::TRAPEZOIDAL_PRISM;}
 };
@@ -388,35 +514,35 @@ protected:
     std::array<double,3> radCen_; //!< location of the center point of the circle
 public:
     /**
-     * @brief Constructs a isosceles_tri_prism
-     * @details Constructs a isosceles_tri_prism using the Obj constructor
+     * @brief      Constructor
      *
-     * @param mater A vector with all the material descriptors in it
-     * @param geo A vector containing all the geometric properties of the isosceles_tri_prism
-     * @param loc A vector for the center point location of the isosceles_tri_prism
-     * @param ang orientation angle of the isosceles_tri_prism
+     * @param[in]  mater     Vector containing all electric field dispersive material parameters
+     * @param[in]  magMater  Vector containing all magnetic field dispersive material parameters
+     * @param[in]  geo       Vector Containing { radius of curvature of the tip point, radius of the base of the tip, tip length}
+     * @param[in]  loc       The location of the center of the object
+     * @param[in]  unitVec   An array of vectors describing the coordinate transform to make the objects orientation in the grids along the x,y,z axises
      */
     ters_tip(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc,std::array<std::array<double,3>,3> unitVec);
+
     /**
-     * @brief Copy Constructor
+     * @brief      Copy Constructor
      *
-     * @param o ters_tip to be copied
+     * @param[in]  o     TERS Tip to be copied
      */
     ters_tip(const ters_tip &o);
+
     /**
-     * @brief Determines if a point is inside the object
-     * @details Determines if a real space point is within the ters_tip
+     * @brief      Determines if a point is inside the object
      *
-     * @param v Point to check
-     * @param dx spatial step of the Cell
+     * @param[in]  v     real space point
+     * @param[in]  dx    grid spacing
      *
-     * @return Returns true if v is in the object
+     * @return     True if point is in the object, False otherwise.
      */
-    bool isObj(std::array<double,3> &v, double dx);
+    bool isObj(std::array<double,3> v, double dx);
+
     /**
-     * @brief returns the Shape parameter of the ters_tip
-     * @details Returns the type of object it is by mapping the object name to a enum Shape
-     * @return SHAPE::CONE
+     * @return     SHAPE::TERS_TIP
      */
     inline SHAPE shape() {return SHAPE::TERS_TIP;}
 };
@@ -425,35 +551,35 @@ class parabolic_ters_tip : public Obj
 {
 public:
     /**
-     * @brief Constructs a isosceles_tri_prism
-     * @details Constructs a isosceles_tri_prism using the Obj constructor
+     * @brief      Constructor
      *
-     * @param mater A vector with all the material descriptors in it
-     * @param geo A vector containing all the geometric properties of the isosceles_tri_prism
-     * @param loc A vector for the center point location of the isosceles_tri_prism
-     * @param ang orientation angle of the isosceles_tri_prism
+     * @param[in]  mater     Vector containing all electric field dispersive material parameters
+     * @param[in]  magMater  Vector containing all magnetic field dispersive material parameters
+     * @param[in]  geo       Vector Containing { radius of curvature of the tip, the tip length }
+     * @param[in]  loc       The location of the center of the object
+     * @param[in]  unitVec   An array of vectors describing the coordinate transform to make the objects orientation in the grids along the x,y,z axises
      */
     parabolic_ters_tip(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc,std::array<std::array<double,3>,3> unitVec);
+
     /**
-     * @brief Copy Constructor
+     * @brief      Copy Constructor
      *
-     * @param o parabolic_ters_tip to be copied
+     * @param[in]  o     Parabolic TERS Tip to be copied
      */
     parabolic_ters_tip(const parabolic_ters_tip &o);
+
     /**
-     * @brief Determines if a point is inside the object
-     * @details Determines if a real space point is within the parabolic_ters_tip
+     * @brief      Determines if a point is inside the object
      *
-     * @param v Point to check
-     * @param dx spatial step of the Cell
+     * @param[in]  v     real space point
+     * @param[in]  dx    grid spacing
      *
-     * @return Returns true if v is in the object
+     * @return     True if point is in the object, False otherwise.
      */
-    bool isObj(std::array<double,3> &v, double dx);
+    bool isObj(std::array<double,3> v, double dx);
+
     /**
-     * @brief returns the Shape parameter of the parabolic_ters_tip
-     * @details Returns the type of object it is by mapping the object name to a enum Shape
-     * @return SHAPE::CONE
+     * @return     SHAPE::PARABOLIC_TERS_TIP
      */
     inline SHAPE shape() {return SHAPE::PARABOLIC_TERS_TIP;}
 };

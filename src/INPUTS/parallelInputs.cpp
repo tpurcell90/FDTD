@@ -1,5 +1,6 @@
 #include <INPUTS/parallelInputs.hpp>
 parallelProgramInputs::parallelProgramInputs(boost::property_tree::ptree IP,std::string fn) :
+    // Initialize the general computational cell parameters
     periodic_(IP.get<bool>("CompCell.PBC", false) ),
     pol_(string2pol(IP.get<std::string>("CompCell.pol") ) ),
     filename_(fn),
@@ -11,17 +12,16 @@ parallelProgramInputs::parallelProgramInputs(boost::property_tree::ptree IP,std:
     I0_(IP.get<double>("CompCell.I0", a_ * EPS0 * SPEED_OF_LIGHT) ),
     cplxFields_(false),
     saveFreqField_(false),
-    // pmlThickness_( as_ptArr<double>(IP, "PML.thickness") ),
-    k_point_( as_ptArr<double>( IP, "k-point") ),
-
+    k_point_( std::array<double,3>({0,0,0} ) ),
+    // Initialize the PML parameters
     pmlAMax_( IP.get<double>("PML.aMax",0.25) ),
     pmlMa_( IP.get<double>("PML.ma", 1.0) ),
     pmlM_( IP.get<double>("PML.m", 3.0) ),
-
+    // Get values of planes to take slices in
     inputMapSlicesX_(as_vector<double>(IP, "CompCell.InputMaps_x") ),
     inputMapSlicesY_(as_vector<double>(IP, "CompCell.InputMaps_y") ),
     inputMapSlicesZ_(as_vector<double>(IP, "CompCell.InputMaps_z") ),
-
+    // Initialize the Source lists
     srcPol_( std::vector<POLARIZATION>(IP.get_child("SourceList").size(), POLARIZATION::EX) ),
     srcFxn_( std::vector<std::vector<std::vector<double>>>(IP.get_child("SourceList").size(), std::vector<std::vector<double>>() ) ),
     srcLoc_( std::vector<std::array<int,3>>(IP.get_child("SourceList").size() ) ),
@@ -32,7 +32,7 @@ parallelProgramInputs::parallelProgramInputs(boost::property_tree::ptree IP,std:
     srcEmax_( std::vector<std::vector<double>>(IP.get_child("SourceList").size(), std::vector<double>() ) ),
     srcEllipticalKratio_( std::vector<double>(IP.get_child("SourceList").size(), 0.0) ),
     srcPsi_( std::vector<double>(IP.get_child("SourceList").size(), 0.0) ),
-
+    // Initialize the TFSF lists
     tfsfLoc_( std::vector<std::array<int,3>>(IP.get_child("TFSF").size() ) ),
     tfsfSize_( std::vector<std::array<int,3>>(IP.get_child("TFSF").size() ) ),
     tfsfTheta_( std::vector<double>(IP.get_child("TFSF").size(), 0.0) ),
@@ -43,7 +43,7 @@ parallelProgramInputs::parallelProgramInputs(boost::property_tree::ptree IP,std:
     tfsfEmax_( std::vector<std::vector<double>>(IP.get_child("TFSF").size(),  std::vector<double>() ) ),
     tfsfCircPol_( std::vector<POLARIZATION>(IP.get_child("TFSF").size(), POLARIZATION::EX) ),
     tfsfEllipticalKratio_( std::vector<double>(IP.get_child("TFSF").size(), 0.0) ),
-
+    // Initialize the Detector lists
     dtcSI_( std::vector<bool>(IP.get_child("DetectorList").size(), false) ),
     dtcClass_( std::vector<DTCCLASS>(IP.get_child("DetectorList").size(), DTCCLASS::COUT) ),
     dtcLoc_( std::vector<std::array<int,3>>(IP.get_child("DetectorList").size() ) ),
@@ -51,12 +51,10 @@ parallelProgramInputs::parallelProgramInputs(boost::property_tree::ptree IP,std:
     dtcName_( std::vector<std::string>(IP.get_child("DetectorList").size(), std::string() ) ),
     dtcType_( std::vector<DTCTYPE>(IP.get_child("DetectorList").size(), DTCTYPE::EX ) ),
     dtcTimeInt_( std::vector<double>(IP.get_child("DetectorList").size(), 0.0) ),
-    dtcNFreq_( std::vector<int>(IP.get_child("DetectorList").size(), -1) ),
-    dtcfCen_( std::vector<double>(IP.get_child("DetectorList").size(), -1.0) ),
-    dtcfWidth_( std::vector<double>(IP.get_child("DetectorList").size(), -1.0) ),
-    dtcLamL_( std::vector<double>(IP.get_child("DetectorList").size(), -1.0) ),
-    dtcLamR_( std::vector<double>(IP.get_child("DetectorList").size(), -1.0) ),
-
+    dtcOutBMPFxnType_( std::vector<GRIDOUTFXN>(IP.get_child("DetectorList").size(), GRIDOUTFXN::REAL) ),
+    dtcOutBMPOutType_( std::vector<GRIDOUTTYPE>(IP.get_child("DetectorList").size(), GRIDOUTTYPE::NONE) ),
+    dtcFreqList_( std::vector<std::vector<double>>(IP.get_child("DetectorList").size(), std::vector<double> () ) ),
+    // Initialize the flux lists
     fluxXOff_( std::vector<int>(IP.get_child("FluxList").size(), 0) ),
     fluxYOff_( std::vector<int>(IP.get_child("FluxList").size(), 0) ),
     fluxTimeInt_( std::vector<int>(IP.get_child("FluxList").size(), 0) ),
@@ -64,32 +62,29 @@ parallelProgramInputs::parallelProgramInputs(boost::property_tree::ptree IP,std:
     fluxSz_( std::vector<std::array<int,3>>(IP.get_child("FluxList").size() ) ),
     fluxWeight_( std::vector<double>(IP.get_child("FluxList").size(), 0.0) ),
     fluxName_( std::vector<std::string>(IP.get_child("FluxList").size(), std::string()) ),
-    fluxFCen_( std::vector<double>(IP.get_child("FluxList").size(), 0.0) ),
-    fluxFWidth_( std::vector<double>(IP.get_child("FluxList").size(), 0.0) ),
-    fluxLamL_( std::vector<double>(IP.get_child("FluxList").size(), 0.0) ),
-    fluxLamR_( std::vector<double>(IP.get_child("FluxList").size(), 0.0) ),
+    fluxFreqList_( std::vector<std::vector<double>>(IP.get_child("FluxList").size(), std::vector<double> () ) ),
     fluxSI_( std::vector<bool>(IP.get_child("FluxList").size(), false) ),
     fluxCrossSec_( std::vector<bool>(IP.get_child("FluxList").size(), false) ),
     fluxSave_( std::vector<bool>(IP.get_child("FluxList").size(), false) ),
     fluxLoad_( std::vector<bool>(IP.get_child("FluxList").size(), false) ),
-    fluxIncdFieldsFilename_( std::vector<std::string>(IP.get_child("FluxList").size(), std::string() ) ),
-    fluxNFreq_( std::vector<int>( IP.get_child("FluxList").size(), 0 ) )
+    fluxIncdFieldsFilename_( std::vector<std::string>(IP.get_child("FluxList").size(), std::string() ) )
 {
+    // Convert PML thicnknesses to grid point values
     std::array<double,3> pmlThickness = as_ptArr<double>( IP, "PML.thickness");
     for(int ii = 0; ii < 3; ++ii)
         pmlThickness_[ii] = find_pt(pmlThickness[ii]);
+    // If using PBC and not normal k point use complex fields
     if(periodic_)
         for(int kk = 0; kk < k_point_.size(); kk++)
             if(k_point_[kk] != 0)
                 cplxFields_= true;
 
-
     int ii = 0;
     for (auto& iter : IP.get_child("SourceList") )
     {
-        // PLSSHAPE prof = string2prof(iter.second.get<std::string>("profile"));
+        // What field is the source acting on (if L or R then its circularly polarized)
         srcPol_[ii]      = string2pol(iter.second.get<std::string>("pol"));
-
+        // Initialize the Pulse parameters
         boost::property_tree::ptree& PulseList = iter.second.get_child("PulseList");
         std::vector<std::vector<double>> pulFxn_(PulseList.size(), std::vector<double>());
         std::vector<PLSSHAPE> pulShape_(PulseList.size(), PLSSHAPE::GAUSSIAN);
@@ -97,9 +92,12 @@ parallelProgramInputs::parallelProgramInputs(boost::property_tree::ptree IP,std:
         int pp = 0;
         for(auto& pul : PulseList )
         {
+            // get the pulse shape
             pulShape_[pp] = string2prof(pul.second.get<std::string>("profile"));
+            // get the Maximum pulse values
             pulEmax_[pp]  = pul.second.get<double>("Field_Intensity",1.0) * a_ * EPS0 * SPEED_OF_LIGHT / I0_;
             std::vector<double> fxn;
+            // Input all pulse function parameters
             switch (pulShape_[pp])
             {
                 case PLSSHAPE::GAUSSIAN:
@@ -139,18 +137,22 @@ parallelProgramInputs::parallelProgramInputs(boost::property_tree::ptree IP,std:
                     throw std::logic_error("This pulse shape is undefined in source ");
                 break;
             }
+            // Add the pulse function list to the correct vector
             pulFxn_[pp] = fxn;
             ++pp;
         }
+        // set the source function lists here
         srcPulShape_[ii] = pulShape_;
         srcEmax_[ii] = pulEmax_;
         srcFxn_[ii] = pulFxn_;
-
+        // If the light is elliptical what is the ratio between the sizes?
         srcEllipticalKratio_[ii] = iter.second.get<double>("ellpiticalKRat", 1.0);
+        // Get the size of the source in real space
         std::array<double,3> tempSz = as_ptArr<double>(iter.second, "size");
+        // Convert real space size to grid points
         for(int cc = 0; cc < 3; ++cc )
             srcSz_[ii][cc] = find_pt(tempSz[cc]) + 1;
-
+        // What is the angle of incidence of the source (azimuthal?)
         srcPhi_[ii] = iter.second.get<double>("phi", 90);
         if( (srcPol_[ii] == POLARIZATION::R || srcPol_[ii] == POLARIZATION::L) && isamin_(srcSz_[ii].size(), srcSz_[ii].data(), 1)-1 == 0 )
             srcPsi_[ii] = M_PI * iter.second.get<double>("psi", 0) / 180.0;
@@ -159,14 +161,20 @@ parallelProgramInputs::parallelProgramInputs(boost::property_tree::ptree IP,std:
         else if( (srcPol_[ii] == POLARIZATION::R || srcPol_[ii] == POLARIZATION::L) && isamin_(srcSz_[ii].size(), srcSz_[ii].data(), 1)-1 == 2 )
             srcPsi_[ii] = M_PI * iter.second.get<double>("psi", 0) / 180.0;
         int i = 0;
+        // Get the location of the source in number of grid points
         for(auto& loc : as_ptArr<double>(iter.second, "loc") )
         {
+            if(loc + tempSz[i]/2.0 > size_[i]/2.0 || loc - tempSz[i]/2.0 < -1.0*size_[i]/2.0)
+                throw std::logic_error("The source is at least partially outside the FDTD Cell");
+            // Is it normal source?
             if(srcPhi_[ii] == 90 || srcPhi_[ii] == 180 || srcPhi_[ii] == 270 || srcPhi_[ii] == 0 )
             {
+                // Yes give bottom, left, back corner
                 srcLoc_[ii][i] = find_pt(loc + size_[i]/2.0 - tempSz[i]/2.0);
             }
             else
             {
+                // no give center point
                 srcLoc_[ii][i] = find_pt(loc + size_[i]/2.0);
             }
             ++i;
@@ -178,33 +186,47 @@ parallelProgramInputs::parallelProgramInputs(boost::property_tree::ptree IP,std:
     for (auto& iter : IP.get_child("TFSF"))
     {
         int i = 0;
+        // Get the size of the TFSF surface in grid points
         for(auto& sz : as_ptArr<double>(iter.second, "size") )
         {
             tfsfSize_[ii][i] = find_pt(sz) + 1;
             ++i;
         }
         i = 0;
+        // Get the location of bottom, left, and back corner of the TFSF surface in grid points
         for(auto& loc : as_ptArr<double>(iter.second, "loc") )
         {
             tfsfLoc_[ii][i] = find_pt(loc + size_[i]/2.0) - (tfsfSize_[ii][i] - (tfsfSize_[ii][i] % 2) ) / 2 ;
             ++i;
         }
+        // Is the TFSF surface outside of the FDTD cell region?
+        for(int tt = 0; tt < 3; ++tt)
+        {
+            if(tfsfLoc_[ii][tt] + tfsfSize_[ii][tt]/2.0 > find_pt(size_[tt]) || tfsfLoc_[ii][tt] < 0 )
+                throw std::logic_error("A TFSF surface is outside the FDTD cell.");
+        }
+        // Get the polar angle of the k vector of the TFSF pulse
         tfsfTheta_[ii] = M_PI*iter.second.get<double>("theta" , 90.0)/180.0;
         if(tfsfTheta_[ii] < 0 || tfsfTheta_[ii] > M_PI)
             throw std::logic_error("The theta value for the TFSF surfaces must be between 0 and 180 degrees.");
+        // Get the azimuthal angle of the k vector of the TFSF pulse
         tfsfPhi_[ii] = M_PI*iter.second.get<double>("phi" , 90.0)/180.0;
+        // Get the polarization angle of the TFSF surface
         tfsfPsi_[ii] = M_PI*iter.second.get<double>("psi" , 90.0)/180.0;
-        tfsfCircPol_[ii] = string2pol( iter.second.get<std::string>("circPol", "Ex") );
-
+        // Initialize the pulse list
         boost::property_tree::ptree& PulseList = iter.second.get_child("PulseList");
         std::vector<std::vector<double>> pulFxn_(PulseList.size(), std::vector<double>());
         std::vector<PLSSHAPE> pulShape_(PulseList.size(), PLSSHAPE::GAUSSIAN);
         std::vector<double> pulEmax_(PulseList.size(), 0.0);
         int pp = 0;
+        // Construct all the pulses
         for(auto & pul : PulseList )
         {
+            // What is the profile of the pulse?
             pulShape_[pp] = string2prof(pul.second.get<std::string>("profile"));
+            // What is the maximum value of the pulse
             pulEmax_[pp]  = pul.second.get<double>("Field_Intensity",1.0) * a_ * EPS0 * SPEED_OF_LIGHT / I0_;
+            // Get the pulse function parameter
             std::vector<double> fxn;
             switch (pulShape_[pp])
             {
@@ -245,104 +267,195 @@ parallelProgramInputs::parallelProgramInputs(boost::property_tree::ptree IP,std:
                     throw std::logic_error("This pulse shape is undefined in source ");
                 break;
             }
+            // Add the function parameters to the list
             pulFxn_[pp] = fxn;
             ++pp;
         }
+        // Give the parameters to the TFSF lists
         tfsfEmax_[ii] = pulEmax_;
         tfsfPulShape_[ii] = pulShape_;
         tfsfPulFxn_[ii] = pulFxn_;
+        // Is the pulse circularly polarized, defaults to linear
+        tfsfCircPol_[ii] = string2pol( iter.second.get<std::string>("circPol", "Ex") );
+        // Is the light elliptical? Defaults to no, but if yes what is the ratio between the two axes
         tfsfEllipticalKratio_[ii] = iter.second.get<double>("ellpiticalKRat", 1.0);
     }
 
     int qq = 0;
+    // Initialize unit vectors for vacuum baseline object
     std::array<std::array<double,3>,3> uVecs;
     for(ii = 0; ii < uVecs.size(); ++ii)
     {
         uVecs[ii] = {{ 0.0, 0.0, 0.0}};
         uVecs[ii][ii] = 1.0;
     }
+    // set size of vacuum baseline object
     std::vector<double> szCell = {{ size_[0], size_[1], size_[2] }};
+    // construct and add vacuum baseline object to objArr
     objArr_.push_back(std::make_shared<block>(std::vector<double>(1,1.0), std::vector<double>(1,1.0), szCell, std::array<double,3>({{0.0,0.0,0.0}}) , uVecs ) );
+    // Start constructing all objects
     for (auto& iter : IP.get_child("ObjectList"))
     {
-        std::shared_ptr<Obj> obj = ptreeToObject(iter);
-        objArr_.push_back(obj);
+        objArr_.push_back( ptreeToObject(iter) );
     }
     ii = 0;
     int jj = 0;
     int dd = 0;
+    // Set up all of the detector values
     for (auto& iter : IP.get_child("DetectorList"))
     {
-        // dtcOutType t = string2out(iter.second.get<std::string>("type"));
-        // dtcType_.push_back(t);
+        // Get the detector type
         dtcType_[dd] = string2out(iter.second.get<std::string>("type") );
+        // Get the detector's file name
         std::string out_name = iter.second.get<std::string>("fname") + "_field_" + std::to_string(ii) + ".dat";
+        // Create the directories for the detectors
         boost::filesystem::path p(out_name.c_str());
         boost::filesystem::create_directories(p.remove_filename());
         ++ii;
+        // set the name to out_name
         dtcName_[dd] = out_name;
+        // get the detector class
         dtcClass_[dd] = string2dtcclass(iter.second.get<std::string>("dtc_class" ,"cout"));
+        // True if output should be in SI units
         dtcSI_[dd] = iter.second.get<bool>("SI", true);
+        // Get the interval of output (output once every (value) time units)
         dtcTimeInt_[dd] = iter.second.get<double>("Time_Interval", courant_/static_cast<double>(res_));
+        // For BMP detectors get what should be printed to the text file and how it should be printed
+        dtcOutBMPFxnType_[dd] = string2GRIDOUTFXN(iter.second.get<std::string>("txt_dat_type", "real"));
+        dtcOutBMPOutType_[dd] = string2GRIDOUTTYPE(iter.second.get<std::string>("txt_format_type", "none"));
 
+        // get the detector in real space values
         std::array<double,3> tempSz = as_ptArr<double>(iter.second, "size");
+        // Convert to Grid points
         for(int cc = 0; cc < 3; ++cc )
             dtcSz_[dd][cc] = find_pt(tempSz[cc]) + 1;
 
+        // Get loc in grid points
         int i = 0;
         for(auto& loc : as_ptArr<double>(iter.second, "loc") )
         {
+            if(loc - tempSz[i]/2.0 < -1.0*size_[i]/2.0 || loc + tempSz[i]/2.0 > size_[i]/2.0 )
+                throw std::logic_error("A detector is outside the FDTD cell.");
             dtcLoc_[dd][i] = find_pt(loc + size_[i]/2.0 - tempSz[i]/2.0);
             ++i;
         }
-
-        dtcNFreq_[dd] = iter.second.get<int>("nfreq", -1),
-        dtcfCen_[dd] = iter.second.get<double>("fcen"  , -1.0),
-        dtcfWidth_[dd] = iter.second.get<double>("fwidth", -1.0),
-        dtcLamL_[dd] = iter.second.get<double>("lamL", -1.0),
-        dtcLamR_[dd] = iter.second.get<double>("lamR", -1.0),
+        // If freq detector get the freq list
+        if(dtcClass_[dd] == DTCCLASS::FREQ)
+        {
+            // Either frequency or wavelength dependent input
+            double fCen   = iter.second.get<double>("fcen",-1.0);
+            double fWidth = iter.second.get<double>("fwidth",-1.0);
+            double lamL   = iter.second.get<double>("lamL",-1.0);
+            double lamR   = iter.second.get<double>("lamR",-1.0);
+            int nFreq     = iter.second.get<int>("nfreq",-1);
+            // if number of frequencies is less than 1 then the detector does not work; otherwise set up the freq list
+            if(nFreq < 1)
+                throw std::logic_error("The freq detector regions need to have a number of frequencies specified");
+            else
+                dtcFreqList_[dd] = std::vector<double>(nFreq, 0.0);
+            // Check if frequency is defined; if it is use that
+            if(fCen != -1.0 && fWidth != -1.0)
+            {
+                // Can't have conflicting freqLists
+                if(lamL != -1.0 && lamR != -1.0)
+                    throw std::logic_error("Both a freq and wavelength range is defined, please select one to define for the freq detector");
+                // Frequency step size
+                double dOmg = fWidth / static_cast<double>(nFreq-1);
+                // Fill list
+                for(int ii = 0; ii < nFreq; ++ii)
+                    dtcFreqList_[dd][ii] = (fCen - fWidth/2.0) * 2.0 * M_PI + ii*dOmg;
+            }
+            else if(lamL != -1.0 && lamR != -1.0)
+            {
+                // Wavelength step size
+                double dLam = (lamR - lamL) / static_cast<double>(nFreq - 1);
+                // Fill list
+                for(int ii = 0; ii < nFreq; ++ii)
+                    dtcFreqList_[dd][ii] = 2.0 * M_PI / (lamL + ii*dLam);
+            }
+            else
+                throw std::logic_error("All frequency detectors must either have fcen and fwidth defined or lamL and lamR defined");
+        }
         ++dd;
     }
     dd = 0;
     for (auto& iter : IP.get_child("FluxList"))
     {
+        // Flux's file name
         fluxName_[dd] = iter.second.get<std::string>("name");
-
+        // Create the directories for the flux regions
         boost::filesystem::path p(iter.second.get<std::string>("name").c_str());
         boost::filesystem::create_directories(p.remove_filename());
-
+        // Size of the region in real space
         std::array<double,3> tempSz = as_ptArr<double>(iter.second, "size");
+        // Convert to grid poitns
         for(int cc = 0; cc < 3; ++cc )
             fluxSz_[dd][cc] = find_pt(tempSz[cc]) + 1;
 
         int i = 0;
+        // Get the location of the flux region in grid points (lower, left, and back corner)
         for(auto& loc : as_ptArr<double>(iter.second, "loc") )
         {
+            if(loc - tempSz[i]/2.0 < -1.0*size_[i] || loc + tempSz[i]/2.0 > size_[i] )
+                throw std::logic_error("A flux region is outside the FDTD cell.");
             fluxLoc_[dd][i] = find_pt(loc + size_[i]/2.0 - tempSz[i]/2);
             ++i;
         }
+        // Get the weight of the region (typically 1.0 or -1.0)
         fluxWeight_[dd] = iter.second.get<double>("weight", 1.0);
-
+        // Get the time interval in terms of number of time steps (Time interval)/time step
         fluxTimeInt_[dd] = static_cast<int>( std::floor(iter.second.get<double>("Time_Interval", courant_/static_cast<double>(res_)) / (courant_/static_cast<double>(res_)) + 0.50) );
+        // If the time interval is less than 0 time steps make it 1
         if(fluxTimeInt_[dd] <= 0)
         {
             fluxTimeInt_[dd]=1;
         }
 
-        fluxFCen_[dd] = iter.second.get<double>("fcen",-1.0);
-        fluxFWidth_[dd] = iter.second.get<double>("fwidth",-1.0);
-        fluxLamL_[dd] = iter.second.get<double>("lamL",-1.0);
-        fluxLamR_[dd] = iter.second.get<double>("lamR",-1.0);
-        fluxNFreq_[dd] = iter.second.get<int>("nfreq",-1);
-
-
+        // Either frequency or wavelength dependent input
+        double fCen   = iter.second.get<double>("fcen",-1.0);
+        double fWidth = iter.second.get<double>("fwidth",-1.0);
+        double lamL   = iter.second.get<double>("lamL",-1.0);
+        double lamR   = iter.second.get<double>("lamR",-1.0);
+        int nFreq     = iter.second.get<int>("nfreq",-1);
+        // if number of frequencies is less than 1 then the detector does not work; otherwise set up the freq list
+        if(nFreq <= 0)
+            throw std::logic_error("The flux regions need to have a number of frequencies specified");
+        else
+            fluxFreqList_[dd] = std::vector<double>(nFreq, 0.0);
+        // Check if frequency is defined; if it is use that
+        if(fCen != -1.0 && fWidth != -1.0)
+        {
+            // Can't have conflicting freqLists
+            if(lamL != -1.0 && lamR != -1.0)
+                throw std::logic_error("Both a freq and wavelength range is defined, please select one to define");
+            // Frequency step size
+            double dOmg = fWidth / static_cast<double>(nFreq-1);
+            // Fill list
+            for(int ii = 0; ii < nFreq; ++ii)
+                fluxFreqList_[dd][ii] = (fCen - fWidth/2.0) * 2.0 * M_PI + ii*dOmg;
+        }
+        else if(lamL != -1.0 && lamR != -1.0)
+        {
+            // Wavelength step size
+            double dLam = (lamR - lamL) / static_cast<double>(nFreq - 1);
+            // Fill list
+            for(int ii = 0; ii < nFreq; ++ii)
+                fluxFreqList_[dd][ii] = 2.0 * M_PI / (lamL + ii*dLam);
+        }
+        else
+            throw std::logic_error("All fluxes must either have fcen and fwidth defined or lamL and lamR defined");
+        // True if outputting in SI units
         fluxSI_[dd] = iter.second.get<bool>("SI", false);
+        // true if outputting as a cross-section instead of relative fraction
         fluxCrossSec_[dd] = iter.second.get<bool>("cross_sec", false);
 
+        // File names of incident fields if inputting incident fields
         fluxIncdFieldsFilename_[dd] = iter.second.get<std::string>("incd_fileds", "");
+        // True if fields need to be saved
         fluxSave_[dd] = iter.second.get<bool>("save", false);
+        // True if fields need to be loaded in at the start
         fluxLoad_[dd] = iter.second.get<bool>("load", false);
-
+        // Make sure the incident field files exist if they are needed
         if(fluxLoad_[dd] && fluxIncdFieldsFilename_[dd] == "")
             throw std::logic_error("Trying to load in file without a valid path, in the " + std::to_string(dd) +" flux detector");
 
@@ -474,7 +587,32 @@ POLARIZATION parallelProgramInputs::string2pol(std::string p)
         throw std::logic_error("POLARIZATION undefined");
 
 }
-
+GRIDOUTFXN parallelProgramInputs::string2GRIDOUTFXN (std::string f)
+{
+    if(f.compare("real") == 0)
+        return GRIDOUTFXN::REAL;
+    else if(f.compare("imag") == 0)
+        return GRIDOUTFXN::IMAG;
+    else if(f.compare("magnitude") == 0)
+        return GRIDOUTFXN::MAG;
+    else if(f.compare("power") == 0)
+        return GRIDOUTFXN::POW;
+    else if(f.compare("ln_power") == 0)
+        return GRIDOUTFXN::LNPOW;
+    else
+        throw std::logic_error( f + " is not a valid GRIDOUTFXN type");
+}
+GRIDOUTTYPE parallelProgramInputs::string2GRIDOUTTYPE (std::string t)
+{
+    if(t.compare("box") == 0)
+        return GRIDOUTTYPE::BOX;
+    else if(t.compare("list") == 0)
+        return GRIDOUTTYPE::LIST;
+    else if(t.compare("none") == 0)
+        return GRIDOUTTYPE::NONE;
+    else
+        throw std::logic_error( t + " is not a valid GRIDOUTTYPE type");
+}
 DIRECTION parallelProgramInputs::string2dir(std::string dir)
 {
     if((dir.compare("x") == 0) || (dir.compare("X") == 0))
@@ -484,28 +622,16 @@ DIRECTION parallelProgramInputs::string2dir(std::string dir)
     else if ((dir.compare("z") == 0) || (dir.compare("Z") == 0))
         return DIRECTION::Z;
     else
-        throw std::logic_error("I would appricate it if you stick to the standard X,Y,Z DIRECTIONs. While it's fun to invent new ones, it is very hard to do calculations if I don't even understand what dimension I am in. Please try again!");
+        throw std::logic_error("A direction in the input file is undefined.");
 
 }
 
-DISTRIBUTION parallelProgramInputs::string2dist(std::string dist)
-{
-    if( (dist.compare("Gaussian") == 0) || (dist.compare("gaussian") == 0))
-        return DISTRIBUTION::GAUSSIAN;
-    else if( (dist.compare("delta_fxn") == 0) || (dist.compare("Delta_fxn") == 0) || (dist.compare("Delta_Fxn") == 0) || (dist.compare("delta_Fxn") == 0) || (dist.compare("DeltaFxn") == 0))
-        return DISTRIBUTION::DELTAFXN;
-    else if( (dist.compare("skew_normal") == 0) || (dist.compare("Skew_Normal") == 0) || (dist.compare("Skew_normal") == 0) || (dist.compare("skew_Normal") == 0) )
-        return DISTRIBUTION::SKEW_NORMAL;
-    else if( (dist.compare("chi_squared") == 0) || (dist.compare("Chi_Squared") == 0) || (dist.compare("Chi_squared") == 0) || (dist.compare("chi_Squared") == 0))
-        return DISTRIBUTION::CHI_SQUARED;
-    else
-        throw std::logic_error("The distribution type " + dist + " is not defined, please define it for me.");
-
-}
 SHAPE parallelProgramInputs::string2shape(std::string s)
 {
     if(s.compare("sphere") == 0)
         return SHAPE::SPHERE;
+    else if(s.compare("hemisphere") == 0)
+        return SHAPE::HEMISPHERE;
     else if (s.compare("block") == 0)
         return SHAPE::BLOCK;
     else if (s.compare("triangle_prism") == 0)
@@ -516,6 +642,8 @@ SHAPE parallelProgramInputs::string2shape(std::string s)
         return SHAPE::TERS_TIP;
     else if (s.compare("ellipsoid") == 0)
         return SHAPE::ELLIPSOID;
+    else if(s.compare("hemiellipsoid") == 0)
+        return SHAPE::HEMIELLIPSOID;
     else if (s.compare("cylinder") == 0)
         return SHAPE::CYLINDER;
     else if (s.compare("cone") == 0)
@@ -546,18 +674,26 @@ DTCTYPE parallelProgramInputs::string2out(std::string t)
         return DTCTYPE::PY;
     else if(t.compare("Pz") == 0)
         return DTCTYPE::PZ;
+    else if(t.compare("Mx") == 0)
+        return DTCTYPE::MX;
+    else if(t.compare("My") == 0)
+        return DTCTYPE::MY;
+    else if(t.compare("Mz") == 0)
+        return DTCTYPE::MZ;
     else if(t.compare("E_pow") == 0)
         return DTCTYPE::EPOW;
     else if(t.compare("H_pow") == 0)
         return DTCTYPE::HPOW;
     else
-        throw std::logic_error("I'm afraid I don't understand this detector type please, either give me a new definition in the string2out function of Inputs.cpp or try again. I hope you go for the former I always like new definitions");
+        throw std::logic_error("DTCTYPE (DetectorList.type) from input file not defined");
 }
 
 DTCCLASS parallelProgramInputs::string2dtcclass(std::string c)
 {
     if(c.compare("bin") == 0)
         return DTCCLASS::BIN;
+    else if(c.compare("bmp") == 0)
+        return DTCCLASS::BMP;
     else if(c.compare("txt") == 0)
         return DTCCLASS::TXT;
     else if(c.compare("cout") == 0)
@@ -565,7 +701,7 @@ DTCCLASS parallelProgramInputs::string2dtcclass(std::string c)
     else if(c.compare("freq") == 0)
         return DTCCLASS::FREQ;
     else
-        throw std::logic_error("I'm afraid I don't understand this detector class please, either give me a new definition in the string2dtcclass function of Inputs.cpp or try again. I hope you go for the former I always like new definitions");
+        throw std::logic_error("DTCCLASS (DetectorList.class) for input file is not defined");
 }
 
 PLSSHAPE parallelProgramInputs::string2prof(std::string p)
@@ -583,9 +719,8 @@ PLSSHAPE parallelProgramInputs::string2prof(std::string p)
     else if(p.compare("ramped_cont") == 0)
         return PLSSHAPE::RAMP_CONT;
     else
-        throw std::logic_error("Pulse sahpe undefined");
+        throw std::logic_error("Pulse shape undefined");
 }
-
 
 std::shared_ptr<Obj> parallelProgramInputs::ptreeToObject(boost::property_tree::ptree::value_type &iter)
 {
@@ -598,6 +733,7 @@ std::shared_ptr<Obj> parallelProgramInputs::ptreeToObject(boost::property_tree::
     // Parse the material information
     std::string material = iter.second.get<std::string>("material");
     std::vector<double> mater;
+    std::vector<double> chiMater;
     std::vector<double> magMater;
     if(material.compare("custom") == 0)
     {
@@ -635,22 +771,23 @@ std::shared_ptr<Obj> parallelProgramInputs::ptreeToObject(boost::property_tree::
     //If user inputs are not there use angles
     if(uvecs.size() == 0)
     {
-        double orTheta = iter.second.get<double>("orTheta", 0.0) * M_PI / 180.0;
-        double orPhi   = iter.second.get<double>("orPhi", 0.0) * M_PI / 180.0;
-        if(loc.size() == 2)
+        double orTheta = M_PI/2.0 - iter.second.get<double>("orTheta", 90.0) * M_PI / 180.0;
+        double orPhi   = -1.0*iter.second.get<double>("orPhi", 0.0) * M_PI / 180.0;
+        if(size_[2] == 0)
         {
-            unitVecs[0] = {{ cos(orPhi), -1.0*sin(orPhi), 0}};
-            unitVecs[1] = {{ sin(orPhi),      cos(orPhi), 0}};
+            unitVecs[0] = {{ std::cos(orPhi), -1.0*std::sin(orPhi), 0}};
+            unitVecs[1] = {{ std::sin(orPhi),      std::cos(orPhi), 0}};
             unitVecs[2] = {{        0.0,             0.0, 0}};
         }
         else
         {
-            // First rotate by theta about x axis then phi around z axis
-            unitVecs[0] = {{ cos(orPhi)             , -1.0*        sin(orPhi),  0.0 }};
-            unitVecs[1] = {{ cos(orTheta)*sin(orPhi), cos(orTheta)*cos(orPhi), -1.0*sin(orTheta) }};
-            unitVecs[2] = {{ sin(orTheta)*sin(orPhi), sin(orTheta)*cos(orPhi),      cos(orTheta) }};
+            // First rotate by theta about y axis then phi around z axis
+            unitVecs[0] = {{      std::cos(orTheta)*std::cos(orPhi), -1.0*std::cos(orTheta)*std::sin(orPhi), std::sin(orTheta) }};
+            unitVecs[1] = {{                        std::sin(orPhi),                        std::cos(orPhi), 0                 }};
+            unitVecs[2] = {{ -1.0*std::sin(orTheta)*std::cos(orPhi),      std::sin(orTheta)*std::sin(orPhi), std::cos(orTheta) }};
         }
     }
+    // Construct based on shape parameters
     SHAPE s = string2shape(iter.second.get<std::string>("shape"));
     switch (s)
     {
@@ -666,9 +803,17 @@ std::shared_ptr<Obj> parallelProgramInputs::ptreeToObject(boost::property_tree::
             geo_param = as_vector<double>(iter.second, "size");
             out = std::make_shared<ellipsoid>(mater, magMater, geo_param, loc, unitVecs);
         break;
+        case (SHAPE::HEMIELLIPSOID):
+            geo_param = as_vector<double>(iter.second, "size");
+            out = std::make_shared<hemiellipsoid>(mater, magMater, geo_param, loc, unitVecs);
+        break;
         case (SHAPE::SPHERE):
             geo_param = { iter.second.get<double>("radius",0.0) };
             out = std::make_shared<sphere>(mater, magMater, geo_param, loc, unitVecs);
+        break;
+        case (SHAPE::HEMISPHERE):
+            geo_param = { iter.second.get<double>("radius",0.0) };
+            out = std::make_shared<hemisphere>(mater, magMater, geo_param, loc, unitVecs);
         break;
         case (SHAPE::CYLINDER):
             geo_param = { iter.second.get<double>("radius",0.0), iter.second.get<double>("length",0.0) };
@@ -701,11 +846,12 @@ std::shared_ptr<Obj> parallelProgramInputs::ptreeToObject(boost::property_tree::
             out = std::make_shared<parabolic_ters_tip>(mater, magMater, geo_param, loc, unitVecs);
         break;
         default:
-            throw std::logic_error("You probably should specify a supported shape. You'll like your results better that way.");
+            throw std::logic_error("A shape in the ObjectList is not defined in the code");
         break;
     }
     return out;
 }
+
 void stripComments(std::string& filename)
 {
     //Open input and output file

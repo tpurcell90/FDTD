@@ -2,7 +2,6 @@
 #define FDTD_PARALLELGRID
 
 #include <MPI/mpiInterface.hpp>
-#include <GRID/Grid.hpp>
 #include <UTIL/enum.hpp>
 #include <UTIL/mathUtils.hpp>
 #include <boost/serialization/complex.hpp>
@@ -20,7 +19,7 @@ class parallelGrid
 {
 protected:
     // The Grid's Communicator
-    mpiInterface gridComm_; //!< The communicator for the processes that are storing the grid
+    std::shared_ptr<mpiInterface> gridComm_; //!< The communicator for the processes that are storing the grid
 
     // global parameters
     std::array<int,3> n_vec_; //!< number of grid points of the full grid in all directions
@@ -57,7 +56,6 @@ protected:
     std::unique_ptr<T[]> local_; //!< Data array for the local grid
 
 public:
-    void (*copy_)(const int a, const T* b, const int c, T* d, const int e); //!< copy command d or zcopy_ from BLAS
     /**
      * @brief      constructs a parallelGrid without any information on the workload for each process
      *
@@ -67,7 +65,7 @@ public:
      * @param[in]  d         grid spacing in all directions
      * @param[in]  ylim      True if grid is for Ey, Hx or Hz fields.
      */
-    parallelGrid(mpiInterface & gridComm, bool PBC, std::array<int,3> n_vec, std::array<double, 3> d, bool ylim=false) :
+    parallelGrid(std::shared_ptr<mpiInterface> gridComm, bool PBC, std::array<int,3> n_vec, std::array<double, 3> d, bool ylim=false) :
         gridComm_(gridComm),
         n_vec_(n_vec),
         ln_vec_({{0,0,0}}),
@@ -81,11 +79,11 @@ public:
         d_(d),
         procLoc_(std::array<int,3>({0,0,0})),
         procR_C_(std::array<int,3>({0,0,0})),
-        xTrans_(gridComm_.npX(),0),
-        yTrans_(gridComm_.npY(),0),
-        zTrans_(gridComm_.npZ(),0)
+        xTrans_(gridComm_->npX(),0),
+        yTrans_(gridComm_->npY(),0),
+        zTrans_(gridComm_->npZ(),0)
     {
-        std::tie(ln_vec_[0],ln_vec_[1], ln_vec_[2]) = gridComm_.numroc(n_vec_[0], n_vec_[1], n_vec_[2]);
+        std::tie(ln_vec_[0],ln_vec_[1], ln_vec_[2]) = gridComm_->numroc(n_vec_[0], n_vec_[1], n_vec_[2]);
         if(n_vec_[0] == 1)
             ln_vec_[0] = 1;
         if(n_vec_[1] == 1)
@@ -100,7 +98,7 @@ public:
         upSendIndex_ = ln_vec_[1]-2;
         // Find the procLocation of lower left corner in the grid Assumes Cartesian Grid for the procs
         determineProcLoc();
-        if(PBC && (gridComm_.rank() == gridComm_.size() - 1) && ylim)
+        if(PBC && (gridComm_->rank() == gridComm_->size() - 1) && ylim)
             upSendIndex_ -= 1;
     }
     /**
@@ -113,7 +111,7 @@ public:
      * @param[in]  d         grid spacing in all directions
      * @param[in]  ylim      True if grid is for Ey, Hx or Hz fields.
      */
-    parallelGrid(mpiInterface & gridComm, bool PBC, std::vector<real_grid_ptr> weights, std::array<int,3> n_vec, std::array<double,3> d, bool ylim=false) :
+    parallelGrid(std::shared_ptr<mpiInterface> gridComm, bool PBC, std::vector<real_grid_ptr> weights, std::array<int,3> n_vec, std::array<double,3> d, bool ylim=false) :
         gridComm_(gridComm),
         n_vec_(n_vec),
         ln_vec_({{0,0,0}}),
@@ -127,11 +125,11 @@ public:
         d_(d),
         procLoc_(std::array<int,3>({0,0,0})),
         procR_C_(std::array<int,3>({0,0,0})),
-        xTrans_(gridComm_.npX(),0),
-        yTrans_(gridComm_.npY(),0),
-        zTrans_(gridComm_.npZ(),0)
+        xTrans_(gridComm_->npX(),0),
+        yTrans_(gridComm_->npY(),0),
+        zTrans_(gridComm_->npZ(),0)
     {
-        std::tie(ln_vec_[0],ln_vec_[1], ln_vec_[2]) = gridComm_.getLocxLocyLocz(weights);
+        std::tie(ln_vec_[0],ln_vec_[1], ln_vec_[2]) = gridComm_->getLocxLocyLocz(weights);
         if(n_vec_[0] == 1)
             ln_vec_[0] = 1;
         if(n_vec_[1] == 1)
@@ -148,45 +146,47 @@ public:
         // Find the procLocation of lower left corner in the grid Assumes Cartesian Grid for the procs
         determineProcLoc();
         upSendIndex_ = ln_vec_[1]-2;
-        if(PBC && (gridComm_.rank() == gridComm_.size() - 1) && ylim)
+        if(PBC && (gridComm_->rank() == gridComm_->size() - 1) && ylim)
             upSendIndex_ -= 1;
     }
 
+
     /**
-     * @brief Determines which processors borders the current process
-     * @details Figures out where to send the boundary information in each process
+     * @brief     etermines which processors borders the current process
      *
-     * @param PBC boolean that sets if PBC are present
+     * @param[in]  PBC   True if using periodic boundary conditions
      */
     void genProcSendRecv(bool PBC)
     {
-        int ii = gridComm_.rank();
-        if(ii % gridComm_.npY() != 0)
+        int ii = gridComm_->rank();
+        // if the process is at the lower boundary down proc only exists with PBC
+        if(ii % gridComm_->npY() != 0)
         {
             downProc_ =  ii - 1;
-            downSendTag_ = gridComm_.cantorTagGen(gridComm_.rank(), downProc_, 4, 0);
-            downRecvTag_ = gridComm_.cantorTagGen(downProc_, gridComm_.rank(), 4, 1);
+            downSendTag_ = gridComm_->cantorTagGen(gridComm_->rank(), downProc_, 4, 0);
+            downRecvTag_ = gridComm_->cantorTagGen(downProc_, gridComm_->rank(), 4, 1);
         }
         else if(PBC)
         {
-            downProc_ =  ii + gridComm_.npY()-1;
-            downSendTag_ = gridComm_.cantorTagGen(gridComm_.rank(), downProc_, 4, 0);
-            downRecvTag_ = gridComm_.cantorTagGen(downProc_, gridComm_.rank(), 4, 1);
+            downProc_ =  ii + gridComm_->npY()-1;
+            downSendTag_ = gridComm_->cantorTagGen(gridComm_->rank(), downProc_, 4, 0);
+            downRecvTag_ = gridComm_->cantorTagGen(downProc_, gridComm_->rank(), 4, 1);
         }
 
-        if(ii % gridComm_.npY() != gridComm_.npY() - 1)
+        // if the process is at the upper boundary up proc only exists with PBC
+        if(ii % gridComm_->npY() != gridComm_->npY() - 1)
         {
             upProc_ =  ii + 1;
-            upSendTag_ = gridComm_.cantorTagGen(gridComm_.rank(), upProc_, 4, 1);
-            upRecvTag_ = gridComm_.cantorTagGen(upProc_, gridComm_.rank(), 4, 0);
+            upSendTag_ = gridComm_->cantorTagGen(gridComm_->rank(), upProc_, 4, 1);
+            upRecvTag_ = gridComm_->cantorTagGen(upProc_, gridComm_->rank(), 4, 0);
         }
         else if(PBC)
         {
-            upProc_ =  ii - gridComm_.npY()+1;
-            upSendTag_ = gridComm_.cantorTagGen(gridComm_.rank(), upProc_, 4, 1);
-            upRecvTag_ = gridComm_.cantorTagGen(upProc_, gridComm_.rank(), 4, 0);
+            upProc_ =  ii - gridComm_->npY()+1;
+            upSendTag_ = gridComm_->cantorTagGen(gridComm_->rank(), upProc_, 4, 1);
+            upRecvTag_ = gridComm_->cantorTagGen(upProc_, gridComm_->rank(), 4, 0);
         }
-
+        // if upProc_ is still -1 PROC_DIR == NONE otherwise its UP
         if(upProc_ != -1)
         {
             sendList_[0] = PROC_DIR::UP;
@@ -197,6 +197,7 @@ public:
             sendList_[0] = PROC_DIR::NONE;
             recvList_[1] = PROC_DIR::NONE;
         }
+        // if downProc_ is still -1 PROC_DIR == NONE otherwise its DOWN
         if(downProc_ != -1)
         {
             sendList_[1] = PROC_DIR::DOWN;
@@ -208,12 +209,13 @@ public:
             recvList_[0] = PROC_DIR::NONE;
         }
     }
+
     /**
-     * @brief Determines what grid point represents the lower left corner of the grid
-     * @details Stores the information for where the processor is in the real grid and the boundary included grid
+     * @brief      Determines what grid point represents the lower left corner of the grid
      */
     void determineProcLoc()
     {
+        // Grids are split only in the y direction so these are always 0
         procLoc_[0] = 0;
         procLoc_[2] = 0;
 
@@ -221,17 +223,22 @@ public:
         procR_C_[2] = 0;
 
         int sumY = 0, tempY;
-        for(int ii = 0; ii < gridComm_.npY(); ii++)
+        for(int ii = 0; ii < gridComm_->npY(); ii++)
         {
+            // yTrans stores all processes procR_C[1] value
             yTrans_[ii] = sumY + 2*ii;
-            if(gridComm_.rank() % gridComm_.npY() == ii)
+            if(gridComm_->rank() % gridComm_->npY() == ii)
             {
+                // procLoc does not include boundary PBC storage regions, procR_C does
                 procLoc_[1] = sumY;
                 procR_C_[1] = sumY + ii*2;
             }
-            if(gridComm_.rank() == ii)
+            // tempY does not include boundary
+            if(gridComm_->rank() == ii)
                 tempY = ln_vec_[1]-2;
-            broadcast(gridComm_, tempY, ii);
+            // send tempY for the process to all processes
+            broadcast(*gridComm_, tempY, ii);
+            // add tempY to sumY
             sumY += tempY;
         }
 
@@ -257,12 +264,12 @@ public:
     inline std::vector<int> z_trans() {return zTrans_;};
 
     /**
-     * @brief Get grid element at specified point
+     * @brief      returns the value at a point x_val,y_val,0
      *
-     * @param x x grid point
-     * @param y y grid point
+     * @param[in]  x_val  gird coordinate in the x direction
+     * @param[in]  y_val  grid coordinate in the y direction
      *
-     * @return Reference to data point
+     * @return     reference to the data point at (x,y,0)
      */
     inline T& point(const int x, const int y)
     {
@@ -271,12 +278,12 @@ public:
     }
 
     /**
-     * @brief Get grid element at specified point
+     * @brief      returns the value at a point x_val,y_val,0
      *
-     * @param x x grid point
-     * @param y y grid point
+     * @param[in]  x_val  gird coordinate in the x direction
+     * @param[in]  y_val  grid coordinate in the y direction
      *
-     * @return Reference to data point
+     * @return     reference to the data point at (x,y,0)
      */
     inline const T& point(const int x, const int y) const  {
         assert(0 <= x && x < ln_vec_[0] && 0 <= y && y < ln_vec_[1] );
@@ -284,33 +291,33 @@ public:
     }
 
     /**
-     * @brief Get grid element at specified point
+     * @brief      returns the value at a point x_val,y_val,0
      *
-     * @param x x grid point
-     * @param y y grid point
+     * @param[in]  x_val  gird coordinate in the x direction
+     * @param[in]  y_val  grid coordinate in the y direction
      *
-     * @return Reference to data point
+     * @return     reference to the data point at (x,y,0)
      */
     inline T& operator()(const int x, const int y) { return point(x,y); }
 
     /**
-     * @brief Get grid element at specified point
+     * @brief      returns the value at a point x_val,y_val,0
      *
-     * @param x x grid point
-     * @param y y grid point
+     * @param[in]  x_val  gird coordinate in the x direction
+     * @param[in]  y_val  grid coordinate in the y direction
      *
-     * @return Reference to data point
+     * @return     reference to the data point at (x,y,0)
      */
     inline const T& operator()(const int x, const int y) const { return point(x,y); }
 
     /**
-     * @brief Get grid element at specified point
+     * @brief      returns the value at a point x_val,y_val,z_val
      *
-     * @param x x grid point
-     * @param y y grid point
-     * @param z z grid point
+     * @param[in]  x_val  gird coordinate in the x direction
+     * @param[in]  y_val  grid coordinate in the y direction
+     * @param[in]  z_val  grid coordinate in the z direction
      *
-     * @return Reference to data point
+     * @return     reference to the data point at (x,y,z)
      */
     inline T& point(const int x, const int y, const int z)
     {
@@ -319,13 +326,13 @@ public:
     }
 
     /**
-     * @brief Get grid element at specified point
+     * @brief      returns the value at a point x_val,y_val,z_val
      *
-     * @param x x grid point
-     * @param y y grid point
-     * @param z z grid point
+     * @param[in]  x_val  gird coordinate in the x direction
+     * @param[in]  y_val  grid coordinate in the y direction
+     * @param[in]  z_val  grid coordinate in the z direction
      *
-     * @return Reference to data point
+     * @return     reference to the data point at (x,y,z)
      */
     inline const T& point(const int x, const int y, const int z) const  {
         assert(0 <= x && x < ln_vec_[0] && 0 <= y && y < ln_vec_[1] && 0 <= z && z < ln_vec_[2] );
@@ -333,24 +340,24 @@ public:
     }
 
     /**
-     * @brief Get grid element at specified point
+     * @brief      returns the value at a point x_val,y_val,z_val
      *
-     * @param x x grid point
-     * @param y y grid point
-     * @param z z grid point
+     * @param[in]  x_val  gird coordinate in the x direction
+     * @param[in]  y_val  grid coordinate in the y direction
+     * @param[in]  z_val  grid coordinate in the z direction
      *
-     * @return Reference to data point
+     * @return     reference to the data point at (x,y,z)
      */
     inline T& operator()(const int x, const int y, const int z) { return point(x,y,z); }
 
     /**
-     * @brief Get grid element at specified point
+     * @brief      returns the value at a point x_val,y_val,z_val
      *
-     * @param x x grid point
-     * @param y y grid point
-     * @param z z grid point
+     * @param[in]  x_val  gird coordinate in the x direction
+     * @param[in]  y_val  grid coordinate in the y direction
+     * @param[in]  z_val  grid coordinate in the z direction
      *
-     * @return Reference to data point
+     * @return     reference to the data point at (x,y,z)
      */
     inline const T& operator()(const int x, const int y, const int z) const { return point(x,y,z); }
 
@@ -358,102 +365,95 @@ public:
      * @brief Return the Data storage of the local grid
      * @return the Data storage of the local grid
      */
+    /**
+     *
+     * @return     a pointer to the data vector
+     */
     inline const std::unique_ptr<T[]>& local() const { return local_; }
 
     /**
-     * @brief Get the size of the data storage
-     * @return number of points in the grid
+     * @return     total size of the storage vector
      */
     inline int size() const { return ln_vec_[0]*ln_vec_[1]*ln_vec_[2]; }
 
     /**
-     * @brief Get number of global grid points in the x direction
-     * @return number of global grid points in the x direction
+     * @return     the global number of grid points in the x direction
      */
     inline int x() const { return n_vec_[0]; }
+
     /**
-     * @brief Get number of global grid points in the y direction
-     * @return number of global grid points in the y direction
+     * @return     the global number of grid points in the y direction
      */
     inline int y() const { return n_vec_[1]; }
+
     /**
-     * @brief Get number of global grid points in the z direction
-     * @return number of global grid points in the z direction
+     * @return     the global number of grid points in the z direction
      */
     inline int z() const { return n_vec_[2]; }
 
     /**
-     * @brief      returns the total field's size array including buffer space
-     *
-     * @return     n_vec_
+     * @return     an array containing the global number of grid points in all directions
      */
     inline std::array<int,3> n_vec() const {return n_vec_;}
+
     /**
-     * @brief      returns the local process' field's size array including buffer space
-     *
-     * @return     ;n_vec_
+     * @return     an array containing the global number of grid points in all directions
      */
     inline std::array<int,3> ln_vec() const {return ln_vec_;}
+
     /**
-     * @brief Get number of local grid points in the x direction
-     * @return number of local grid points in the x direction
+     * @return     the local number of grid points in the x direction
      */
     inline int local_x() const { return ln_vec_[0]; }
 
     /**
-     * @brief Get number of local grid points in the y direction
-     * @return number of local grid points in the y direction
+     * @return     the local number of grid points in the y direction
      */
     inline int local_y() const { return ln_vec_[1]; }
 
     /**
-     * @brief Get number of local grid points in the z direction
-     * @return number of local grid points in the z direction
+     * @return     the local number of grid points in the z direction
      */
     inline int local_z() const { return ln_vec_[2]; }
 
     /**
-     * @brief Assessor to step size in x direction
-     * @return d_[0]
+     * @return     the grid spacing in the x direction
      */
     inline double dx() const { return d_[0]; }
+
     /**
-     * @brief Assessor to step size in y direction
-     * @return d_[1]
+     * @return     the grid spacing in the y direction
      */
     inline double dy() const { return d_[1]; }
+
     /**
-     * @brief Assessor to step size in z direction
-     * @return d_[2]
+     * @return     the grid spacing in the z direction
      */
     inline double dz() const { return d_[2]; }
 
+    /**
+     * @return     an array storing grid spacing in all directions
+     */
     inline std::array<double,3> d() const {return d_;}
 
     /**
-     * @brief Accessor to procLoc
-     * @return procLoc
+     * @return     an array storing the first point this process holds in the global storage vector neglecting transfer boundaries
      */
     inline std::array<int,3> procLoc() {return procLoc_;}
 
     /**
-     * @brief Accessor to procR_C_
-     * @return procR_C_
+     * @return     an array storing the first point this process holds in the global storage vector including transfer boundaries
      */
     inline std::array<int,3> procR_C() {return procR_C_;}
 
 
     /**
-     * @brief Fills the local grid with a specified value
+     * @brief      Fills the local grid with a specified value
      *
-     * @param a value to fill the grid with
+     * @param[in]  a     value to fill vector with
      */
     inline void fill(const T a) { std::fill_n(local_.get(), ln_vec_[0]*ln_vec_[1]*ln_vec_[2], a); }
-    /**
-     * @brief Fills the local grid with the process rank
-     *
-     */
-    inline void fill_rank() { fill(static_cast<T>(gridComm_.rank())); }
+
     /**
      * @brief Fills the local grid with zeros
      *
@@ -461,64 +461,17 @@ public:
     inline void zero() { fill(static_cast<T>(0.0)); }
 
     /**
-     * @brief      returns true if periodic boundary conditions are used
-     *
-     * @return     PBC_
+     * @return     true if periodic boundary conditions are used
      */
     inline bool PBC() {return PBC_;}
+
     /**
-     * @brief      Accessor function to the grid's MPIInterface
-     *
-     * @return     gridComm_
+     * @return     shared_ptr to the mpiInterface
      */
-    inline mpiInterface gridComm(){return gridComm_;}
+    inline std::shared_ptr<mpiInterface> gridComm(){return gridComm_;}
+
     /**
-     * @brief Send boundary data between local grids
-     * @details Sends data from the current process to update the boundary of a neighboring process
-     *
-     * @param sendDir Direction of Communication
-     */
-    void sendDat(PROC_DIR sendDir)
-    {
-        switch(sendDir)
-        {
-            case PROC_DIR::UP:
-                gridComm_.send(upProc_, upSendTag_, &point(0,upSendIndex_, 0), (ln_vec_[0]) * (ln_vec_[2]));
-                break;
-            case PROC_DIR::DOWN:
-                gridComm_.send(downProc_, downSendTag_, &point(0,1,0), (ln_vec_[0]) * (ln_vec_[2]));
-                break;
-            case PROC_DIR::NONE:
-                break;
-            default:
-                throw std::logic_error("You made it to the default, you added directions but did not add the cases in sendDat in ParlellGrid.hpp");
-        }
-    }
-    /**
-     * @brief Recv boundary data between local grids
-     * @details Receives data from a neighboring process to update the boundary of its process
-     *
-     * @param sendDir Direction of Communication
-     */
-    void recvDat(PROC_DIR recvDir)
-    {
-        switch(recvDir)
-        {
-            case PROC_DIR::UP:
-                gridComm_.recv(upProc_, upRecvTag_, &point(0, upSendIndex_+1,0), ln_vec_[0]*ln_vec_[2]);
-                break;
-            case PROC_DIR::DOWN:
-                gridComm_.recv(downProc_, downRecvTag_, &point(0,0,0), ln_vec_[0]*ln_vec_[2]);
-                break;
-            case PROC_DIR::NONE:
-                break;
-            default:
-                throw std::logic_error("You made it to the default, you added directions but did not add the cases in sendDat in ParlellGrid.hpp");
-        }
-    }
-    /**
-     * @brief Update all the local boundaries
-     * @details Update each boundary direction
+     * @brief      Transfer data from one process to another
      */
     void transferDat()
     {
@@ -527,38 +480,40 @@ public:
             switch(sendList_[ii])
             {
                 case PROC_DIR::UP:
-                    reqs_[ii*2] = gridComm_.isend(  upProc_,   upSendTag_, &point(0,upSendIndex_,0), ln_vec_[0]*ln_vec_[2]);
+                    reqs_[ii*2] = gridComm_->isend(  upProc_,   upSendTag_, &point(0,upSendIndex_,0), ln_vec_[0]*ln_vec_[2]);
                     break;
                 case PROC_DIR::DOWN:
-                    reqs_[ii*2] = gridComm_.isend(downProc_, downSendTag_, &point(0,1,0), ln_vec_[0]*ln_vec_[2]);
+                    reqs_[ii*2] = gridComm_->isend(downProc_, downSendTag_, &point(0,1,0), ln_vec_[0]*ln_vec_[2]);
                     break;
                 case PROC_DIR::NONE:
                     break;
                 default:
-                    throw std::logic_error("You made it to the default, you added directions but did not add the cases in sendDat in ParlellGrid.hpp");
+                    throw std::logic_error("The PROC_DIR default has been hit, see transferDat() function to add the direction here.");
             }
             switch(recvList_[ii])
             {
                 case PROC_DIR::UP:
-                    reqs_[ii*2+1] = gridComm_.irecv(  upProc_,   upRecvTag_, &point(0, upSendIndex_+1,0), ln_vec_[0]*ln_vec_[2]);
+                    reqs_[ii*2+1] = gridComm_->irecv(  upProc_,   upRecvTag_, &point(0, upSendIndex_+1,0), ln_vec_[0]*ln_vec_[2]);
                     break;
                 case PROC_DIR::DOWN:
-                    reqs_[ii*2+1] = gridComm_.irecv(downProc_, downRecvTag_, &point(0,0,0), ln_vec_[0]*ln_vec_[2]);
+                    reqs_[ii*2+1] = gridComm_->irecv(downProc_, downRecvTag_, &point(0,0,0), ln_vec_[0]*ln_vec_[2]);
                     break;
                 case PROC_DIR::NONE:
                     break;
                 default:
-                    throw std::logic_error("You made it to the default, you added directions but did not add the cases in sendDat in ParlellGrid.hpp");
+                    throw std::logic_error("The PROC_DIR default has been hit, see transferDat() function to add the direction here.");
             }
             mpi::wait_all(reqs_.data(), reqs_.data() + reqs_.size() );
         }
     }
 
+
     /**
-     * @brief Returns prow and local x offset for ith x coordinate
+     * @brief      Finds the x coordinate in the process grid that has the value of i in the x coordinate of the real grid
      *
-     * @param i x coordinate value
-     * @return mypX and local x coordinate offset for ith x coordinate
+     * @param[in]  i     value of the grid's x coordinate you are looking to find
+     *
+     * @return     The x coordinate in the process grid, and the offset of where i is relative to the process Grid's x value
      */
     std::pair<int, int> locate_x(const int i)
     {
@@ -569,10 +524,11 @@ public:
     }
 
     /**
-     * @brief Returns prow and local y offset for jth y coordinate
+     * @brief      Finds the y coordinate in the process grid that has the value of i in the y coordinate of the real grid
      *
-     * @param j y coordinate value
-     * @return mypY and local y coordinate offset for jth y coordinate
+     * @param[in]  j     value of the grid's y coordinate you are looking to find
+     *
+     * @return     The y coordinate in the process grid, and the offset of where i is relative to the process Grid's y value
      */
     std::pair<int, int> locate_y(const int j)
     {
@@ -583,10 +539,11 @@ public:
     }
 
     /**
-     * @brief Returns prow and local z offset for kth z coordinate
+     * @brief      Finds the z coordinate in the process grid that has the value of i in the z coordinate of the real grid
      *
-     * @param k z coordinate value
-     * @return mypZ and local z coordinate offset for kth z coordinate
+     * @param[in]  k     value of the grid's z coordinate you are looking to find
+     *
+     * @return     The z coordinate in the process grid, and the offset of where i is relative to the process Grid's z value
      */
     std::pair<int, int> locate_z(const int k)
     {
@@ -597,10 +554,11 @@ public:
     }
 
     /**
-     * @brief Returns prow and local x offset for ith x coordinate
+     * @brief      Finds the x coordinate in the process grid that has the value of i in the x coordinate of the real grid (neglecting boundaries)
      *
-     * @param i x coordinate value
-     * @return mypX and local x coordinate offset for ith x coordinate
+     * @param[in]  i     value of the grid's x coordinate you are looking to find
+     *
+     * @return     The x coordinate in the process grid, and the offset of where i is relative to the process Grid's x value (neglecting boundaries)
      */
     std::pair<int, int> locate_x_no_boundaries(const int i)
     {
@@ -611,10 +569,11 @@ public:
     }
 
     /**
-     * @brief Returns prow and local y offset for jth y coordinate
+     * @brief      Finds the y coordinate in the process grid that has the value of i in the y coordinate of the real grid (neglecting boundaries)
      *
-     * @param j y coordinate value
-     * @return mypY and local y coordinate offset for jth y coordinate
+     * @param[in]  j     value of the grid's y coordinate you are looking to find
+     *
+     * @return     The y coordinate in the process grid, and the offset of where i is relative to the process Grid's y value (neglecting boundaries)
      */
     std::pair<int, int> locate_y_no_boundaries(const int j)
     {
@@ -625,10 +584,11 @@ public:
     }
 
     /**
-     * @brief Returns prow and local z offset for kth z coordinate
+     * @brief      Finds the z coordinate in the process grid that has the value of i in the z coordinate of the real grid (neglecting boundaries)
      *
-     * @param k z coordinate value
-     * @return mypY and local z coordinate offset for kth z coordinate
+     * @param[in]  k     value of the grid's z coordinate you are looking to find
+     *
+     * @return     The z coordinate in the process grid, and the offset of where i is relative to the process Grid's z value (neglecting boundaries)
      */
     std::pair<int, int> locate_z_no_boundaries(const int k)
     {
@@ -645,7 +605,7 @@ public:
      * @param[in]  yy    the point coordinate in the y direction
      * @param[in]  zz    the point coordinate in the z direction
      *
-     * @return     The locs proc.
+     * @return     The process that stores that point (xx, yy, zz) including boundaries
      */
     int getLocsProc(int xx, int yy, int zz)
     {
@@ -656,13 +616,13 @@ public:
     }
 
     /**
-     * @brief      Returns the process rank storing a particular point excluding all boundary buffers
+     * @brief      Returns the process rank storing a particular point (neglecting boundaries)
      *
      * @param[in]  xx    the point coordinate in the x direction
      * @param[in]  yy    the point coordinate in the y direction
      * @param[in]  zz    the point coordinate in the z direction
      *
-     * @return     The locs proc.
+     * @return     The process that stores the point (xx, yy, zz).
      */
     int getLocsProc_no_boundaries(int xx, int yy, int zz)
     {
@@ -679,7 +639,7 @@ public:
      * @param[in]  xx    the point coordinate in the x direction
      * @param[in]  yy    the point coordinate in the y direction
      *
-     * @return     The locs proc.
+     * @return     The process that stores that point (xx, yy, 0) including boundaries
      */
     int getLocsProc(int xx, int yy)
     {
@@ -690,12 +650,12 @@ public:
     }
 
     /**
-     * @brief      Returns the process rank storing a particular point excluding all boundary buffers
+     * @brief      Returns the process rank storing a particular point (neglecting boundaries)
      *
      * @param[in]  xx    the point coordinate in the x direction
      * @param[in]  yy    the point coordinate in the y direction
      *
-     * @return     The locs proc.
+     * @return     The process that stores the point (xx,yy).
      */
     int getLocsProc_no_boundaries(int xx, int yy)
     {
@@ -707,28 +667,30 @@ public:
     }
 
     /**
-     * @brief returns values of the grid along a particular row
+     * @brief      Gets the XZ plane at global point y=j.
      *
-     * @param j The y coordinate for where to take the plane
-     * @return A vector of all the values in a particular row
+     * @param[in]  j     global value of y to take the plane at
+     *
+     * @return     The XZ plane at global point y=j.
      */
     std::vector<T> getPlaneXZ(const int j)
     {
         int py, off;
         std::tie(py, off) = locate_y(j);
         std::vector<T> planeXZ(n_vec_[0]*n_vec_[2], 0.0);
-        if(gridComm_.rank() == py)
+        if(gridComm_->rank() == py)
             std::copy_n(&point(0,off,0), ln_vec_[0]*ln_vec_[2], planeXZ.data());
 
-        mpi::broadcast(gridComm_, planeXZ, py);
+        mpi::broadcast(*gridComm_, planeXZ, py);
         return planeXZ;
     }
 
     /**
-     * @brief returns values of the grid along a particular column
+     * @brief      Gets the XY plane at global point z=k.
      *
-     * @param k the z coordinate where to take the plane
-     * @return A vector of all the values in a particular column
+     * @param[in]  k     global value of z to take the plane at
+     *
+     * @return     The XZ plane at global point z=k.
      */
     std::vector<T> getPlaneXY(const int k)
     {
@@ -736,189 +698,87 @@ public:
         std::tie(pz, off) = locate_z(k);
         std::vector<T> planeXY(n_vec_[0]*n_vec_[1], 0.0);
 
-        if(gridComm_.rank() != pz)
+        if(gridComm_->rank() != pz)
         {
             std::vector<T> toSend(ln_vec_[1]*ln_vec_[0], 0.0);
             for(int yy = 0; yy < ln_vec_[1]; ++yy)
                 std::copy_n( &point(0, yy, off), ln_vec_[0], &toSend[ln_vec_[0]*yy] );
-                // copy_(ln_vec_[0], &point(0, yy, off), 1, &toSend[ln_vec_[0]*yy], 1);
-            gridComm_.send(pz, gridComm_.cantorTagGen(gridComm_.rank(), pz, 2, 0), toSend);
+            gridComm_->send(pz, gridComm_->cantorTagGen(gridComm_->rank(), pz, 2, 0), toSend);
         }
         else
         {
             for(int yy = 0; yy < ln_vec_[1]; ++yy)
                 std::copy_n( &point(0, yy, off), ln_vec_[0], &planeXY[ln_vec_[0]*yy] );
-                // copy_(ln_vec_[0], &point(0, yy, off), 1, &planeXY[ln_vec_[0]*yy], 1);
             int spot = ln_vec_[0]*ln_vec_[1];
-            for(int ii = 0; ii < gridComm_.size(); ii ++)
+            for(int ii = 0; ii < gridComm_->size(); ii ++)
             {
                 if(ii != pz )
                 {
                     std::vector<T> tempVec;
-                    gridComm_.recv(ii, gridComm_.cantorTagGen(ii, gridComm_.rank(), 2, 0), tempVec);
+                    gridComm_->recv(ii, gridComm_->cantorTagGen(ii, gridComm_->rank(), 2, 0), tempVec);
                     std::copy_n( tempVec.data(), tempVec.size(), &planeXY[spot] );
-                    // copy_(tempVec.size(), tempVec.data(), 1, &planeXY[spot], 1);
                     spot += tempVec.size();
                 }
             }
         }
-        mpi::broadcast(gridComm_, planeXY, pz);
+        mpi::broadcast(*gridComm_, planeXY, pz);
         return planeXY;
     }
 
     /**
-     * @brief returns values of the grid along a particular column
+     * @brief      Gets the YZ plane at global point x=i.
      *
-     * @param i the x coordinate of where to get the plane
-     * @return A vector of all the values in a particular column
+     * @param[in]  i     global value of x to take the plane at
+     *
+     * @return     The YZ plane at global point x=i.
      */
     std::vector<T> getPlaneYZ(const int i)
     {
-        gridComm_.barrier();
+        gridComm_->barrier();
         int px, off;
         std::tie(px, off) = locate_x(i);
         std::vector<T> planeYZ(n_vec_[1]*n_vec_[2], 0.0);
 
-        gridComm_.barrier();
-        if(gridComm_.rank() != px)
+        gridComm_->barrier();
+        if(gridComm_->rank() != px)
         {
-            // gridComm_.barrier();
+            // gridComm_->barrier();
             std::vector<T> toSend(ln_vec_[1]*ln_vec_[2], 0.0);
-            // gridComm_.barrier();
+            // gridComm_->barrier();
             for(int yy = 0; yy < ln_vec_[1]; ++yy)
-                copy_(ln_vec_[2], &point(off, yy, 0), ln_vec_[0], &toSend[ln_vec_[2]*yy], 1);
-            // gridComm_.barrier();
-            gridComm_.send(px, gridComm_.cantorTagGen(gridComm_.rank(), px, 2, 0), toSend);
-            // gridComm_.barrier();
+                for(int zz = 0; zz < ln_vec_[2]; ++zz)
+                    toSend[ln_vec_[2]*yy + zz] = point(off, yy, zz);
+            // gridComm_->barrier();
+            gridComm_->send(px, gridComm_->cantorTagGen(gridComm_->rank(), px, 2, 0), toSend);
+            // gridComm_->barrier();
         }
         else
         {
-            // gridComm_.barrier();
+            // gridComm_->barrier();
             for(int yy = 0; yy < ln_vec_[1]; ++yy)
-                copy_(ln_vec_[2], &point(off, yy, 0), ln_vec_[0], &planeYZ[ln_vec_[2]*yy], 1);
-            // gridComm_.barrier();
+                for(int zz = 0; zz < ln_vec_[2]; ++zz)
+                    planeYZ[ln_vec_[2]*yy+zz] = point(off, yy, zz);
+            // gridComm_->barrier();
             int spot = ln_vec_[2]*ln_vec_[1];
-            for(int ii = 0; ii < gridComm_.size(); ii ++)
+            for(int ii = 0; ii < gridComm_->size(); ii ++)
             {
                 if(ii != px )
                 {
                     std::vector<T> tempVec;
-                    gridComm_.recv(ii, gridComm_.cantorTagGen(ii, gridComm_.rank(), 2, 0), tempVec);
+                    gridComm_->recv(ii, gridComm_->cantorTagGen(ii, gridComm_->rank(), 2, 0), tempVec);
                     std::copy_n(tempVec.begin(), tempVec.size(), &planeYZ[spot]);
-                    // copy_(tempVec.size(), tempVec.data(), 1, &planeYZ[spot], 1);
                     spot += tempVec.size();
                 }
             }
-            // gridComm_.barrier();
+            // gridComm_->barrier();
         }
-        gridComm_.barrier();
-        mpi::broadcast(gridComm_, planeYZ, px);
-        gridComm_.barrier();
+        gridComm_->barrier();
+        mpi::broadcast(*gridComm_, planeYZ, px);
+        gridComm_->barrier();
         return planeYZ;
     }
 
     template <typename U> friend std::ostream &operator<<(std::ostream &out, const parallelGrid <U> &o);
-};
-
-class parallelGridReal : public parallelGrid<double>
-{
-public:
-    /**
-     * @brief      constructs a parallelGrid without any information on the workload for each process
-     *
-     * @param      gridComm  The mpiInterface for communication
-     * @param[in]  PBC       True if periodic
-     * @param[in]  n_vec     Size of the grid in all directions
-     * @param[in]  d         grid spacing in all directions
-     * @param[in]  ylim      True if grid is for Ey, Hx or Hz fields.
-     */
-    parallelGridReal(mpiInterface & gridComm, bool PBC, std::array<int,3> n_vec, std::array<double,3> d, bool ylim=false);
-    /**
-     * @brief      constructs a parallelGrid with information on the workload for each process
-     *
-     * @param      gridComm  The mpiInterface for communication
-     * @param[in]  PBC       True if periodic
-     * @param[in]  weights   Vector containing information of the work load for each point
-     * @param[in]  n_vec     Size of the grid in all directions
-     * @param[in]  d         grid spacing in all directions
-     * @param[in]  ylim      True if grid is for Ey, Hx or Hz fields.
-     */
-    parallelGridReal(mpiInterface & gridComm, bool PBC, std::vector<real_grid_ptr> weights, std::array<int,3> n_vec, std::array<double,3> d, bool ylim=false);
-};
-
-class parallelGridCplx : public parallelGrid<std::complex<double>>
-{
-public:
-    /**
-     * @brief      constructs a parallelGrid without any information on the workload for each process
-     *
-     * @param      gridComm  The mpiInterface for communication
-     * @param[in]  PBC       True if periodic
-     * @param[in]  n_vec     Size of the grid in all directions
-     * @param[in]  d         grid spacing in all directions
-     * @param[in]  ylim      True if grid is for Ey, Hx or Hz fields.
-     */
-    parallelGridCplx(mpiInterface & gridComm, bool PBC, std::array<int,3> n_vec, std::array<double,3> d, bool ylim=false);
-    /**
-     * @brief      constructs a parallelGrid with information on the workload for each process
-     *
-     * @param      gridComm  The mpiInterface for communication
-     * @param[in]  PBC       True if periodic
-     * @param[in]  weights   Vector containing information of the work load for each point
-     * @param[in]  n_vec     Size of the grid in all directions
-     * @param[in]  d         grid spacing in all directions
-     * @param[in]  ylim      True if grid is for Ey, Hx or Hz fields.
-     */
-    parallelGridCplx(mpiInterface & gridComm, bool PBC, std::vector<real_grid_ptr> weights, std::array<int,3> n_vec, std::array<double,3> d, bool ylim=false);
-};
-
-class parallelGridInt : public parallelGrid<int>
-{
-public:
-    /**
-     * @brief      constructs a parallelGrid without any information on the workload for each process
-     *
-     * @param      gridComm  The mpiInterface for communication
-     * @param[in]  PBC       True if periodic
-     * @param[in]  n_vec     Size of the grid in all directions
-     * @param[in]  d         grid spacing in all directions
-     * @param[in]  ylim      True if grid is for Ey, Hx or Hz fields.
-     */
-    parallelGridInt(mpiInterface & gridComm, bool PBC, std::array<int,3> n_vec, std::array<double,3> d, bool ylim=false);
-    /**
-     * @brief      constructs a parallelGrid with information on the workload for each process
-     *
-     * @param      gridComm  The mpiInterface for communication
-     * @param[in]  PBC       True if periodic
-     * @param[in]  weights   Vector containing information of the work load for each point
-     * @param[in]  n_vec     Size of the grid in all directions
-     * @param[in]  d         grid spacing in all directions
-     * @param[in]  ylim      True if grid is for Ey, Hx or Hz fields.
-     */
-    parallelGridInt(mpiInterface & gridComm, bool PBC, std::vector<real_grid_ptr> weights, std::array<int,3> n_vec, std::array<double,3> d, bool ylim=false);
-};
-
-
-
-/**
- * @details stream printer
- *
- * @param out output stream
- * @param o grid to be outputted
- */
-template <typename T>
-std::ostream &operator<<(std::ostream &out, const parallelGrid <T> &o)
-{
-    for (int yy = 0; yy < std::min(40,int(o.ln_vec_[1])); yy++)
-    {
-        for (int xx = 0; xx < std::min(40,int(o.ln_vec_[0])); xx++)
-        {
-            out << std::setprecision(3) << o(xx,yy) << "\t";
-        }
-        out << "\n";
-    }
-    out << std::endl;
-    return out;
 };
 
 #endif

@@ -1,10 +1,10 @@
 #include "Obj.hpp"
 
 Obj::Obj(const Obj &o) :
-    coordTransform_(o.coordTransform_),
+    unitVec_(o.unitVec_),
+    geoParam_(o.geoParam_),
     material_(o.material_),
     magMaterial_(o.magMaterial_),
-    geoParam_(o.geoParam_),
     location_(o.location_),
     alpha_(o.alpha_),
     xi_(o.xi_),
@@ -16,6 +16,7 @@ Obj::Obj(const Obj &o) :
 
 
 Obj::Obj(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc, std::array<std::array<double,3>,3> unitVec) :
+    unitVec_(unitVec),
     geoParam_(geo),
     material_(mater),
     magMaterial_(magMater),
@@ -27,12 +28,8 @@ Obj::Obj(std::vector<double> mater, std::vector<double> magMater, std::vector<do
     magXi_(std::vector<double>((magMaterial_.size()-1)/3, 0.0)),
     magGamma_(std::vector<double>((magMaterial_.size()-1)/3, 0.0))
 {
-    if(unitVec.size() != location_.size())
-        throw std::logic_error("The size of the unit vector descriptor vector must be the same as the dimensionality of the system");
     for(int ii = 0; ii < 3; ++ii)
     {
-        if(unitVec[ii].size() != unitVec.size())
-            throw std::logic_error("The size of each unit vector must be the same as the dimensionality of the system");
         for(int jj = 0; jj < 3; ++jj)
         {
             std::array<double,3>cartCoord = {{ 0, 0, 0 }};
@@ -45,6 +42,9 @@ Obj::Obj(std::vector<double> mater, std::vector<double> magMater, std::vector<do
 sphere::sphere(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc, std::array<std::array<double,3>,3> unitVec) :
     Obj(mater, magMater, geo, loc, unitVec)
 {}
+hemisphere::hemisphere(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc, std::array<std::array<double,3>,3> unitVec) :
+    Obj(mater, magMater, geo, loc, unitVec)
+{}
 cylinder::cylinder(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc, std::array<std::array<double,3>,3> unitVec) :
     Obj(mater, magMater, geo, loc, unitVec)
 {}
@@ -52,6 +52,9 @@ cone::cone(std::vector<double> mater, std::vector<double> magMater, std::vector<
     Obj(mater, magMater, geo, loc, unitVec)
 {}
 ellipsoid::ellipsoid(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc, std::array<std::array<double,3>,3> unitVec) :
+    Obj(mater, magMater, geo, loc, unitVec)
+{}
+hemiellipsoid::hemiellipsoid(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc, std::array<std::array<double,3>,3> unitVec) :
     Obj(mater, magMater, geo, loc, unitVec)
 {}
 block::block(std::vector<double> mater, std::vector<double> magMater, std::vector<double> geo, std::array<double,3> loc, std::array<std::array<double,3>,3> unitVec) :
@@ -87,6 +90,8 @@ parabolic_ters_tip::parabolic_ters_tip(std::vector<double> mater, std::vector<do
 
 sphere::sphere(const sphere &o) : Obj(o)
 {}
+hemisphere::hemisphere(const hemisphere &o) : Obj(o)
+{}
 cone::cone(const cone &o) : Obj(o)
 {}
 cylinder::cylinder(const cylinder &o) : Obj(o)
@@ -96,6 +101,8 @@ block::block(const block &o) : Obj(o)
 rounded_block::rounded_block(const rounded_block &o) : Obj(o), curveCens_(o.curveCens_)
 {}
 ellipsoid::ellipsoid(const ellipsoid &o) : Obj(o)
+{}
+hemiellipsoid::hemiellipsoid(const hemiellipsoid &o) : Obj(o)
 {}
 isosceles_tri_prism::isosceles_tri_prism(const isosceles_tri_prism &o) : Obj(o)
 {}
@@ -108,6 +115,7 @@ parabolic_ters_tip::parabolic_ters_tip(const parabolic_ters_tip &o) : Obj(o)
 
 void Obj::setUpConsts (double dt)
 {
+    // Converts Lorentzian style functions into constants that can be used for time updates based on Taflove Chapter 9
     for(int ii = 0; ii < (material_.size()-1)/3; ++ii)
     {
         double sig = material_[3*ii+1];
@@ -128,7 +136,7 @@ void Obj::setUpConsts (double dt)
     }
 }
 
-bool sphere::isObj(std::array<double,3> &v, double dx)
+bool sphere::isObj(std::array<double,3> v, double dx)
 {
     if(dist(v,location_) > geoParam_[0] + dx/1.0e6)
     {
@@ -136,15 +144,36 @@ bool sphere::isObj(std::array<double,3> &v, double dx)
     }
     return true;
 }
-bool block::isObj(std::array<double,3> &v, double dx)
+
+bool hemisphere::isObj(std::array<double,3> v, double dx)
 {
-    if(v.size() != location_.size())
-        throw std::logic_error("When checking if a point is inside an object the point and object must have same dimensionality.");
+    if(dist(v,location_) > geoParam_[0] + dx/1.0e6)
+    {
+        // Move origin to object's center
+        return false;
+    }
+    // Convert x, y, z coordinates to coordinates along the object's unit axis
     std::array<double,3> v_trans = {{0.0, 0.0, 0.0}};
+    // Do geo checks based on the the object oriented coordinates
     std::array<double,3> v_cen = {{0.0, 0.0, 0.0}};
     for(int ii = 0; ii < v_cen.size(); ++ii)
         v_cen[ii] = v[ii]-location_[ii];
     dgemv_('T', v_cen.size(), v_cen.size(), 1.0, coordTransform_.data(), v_cen.size(), v_cen.data(), 1, 0.0, v_trans.data(), 1 );
+    if(v_trans[0] > dx/1e6)
+        return false;
+    return true;
+}
+
+bool block::isObj(std::array<double,3> v, double dx)
+{
+    std::array<double,3> v_trans = {{0.0, 0.0, 0.0}};
+    std::array<double,3> v_cen = {{0.0, 0.0, 0.0}};
+    // Move origin to object's center
+    for(int ii = 0; ii < v_cen.size(); ++ii)
+        v_cen[ii] = v[ii]-location_[ii];
+    // Convert x, y, z coordinates to coordinates along the object's unit axis
+    dgemv_('T', v_cen.size(), v_cen.size(), 1.0, coordTransform_.data(), v_cen.size(), v_cen.data(), 1, 0.0, v_trans.data(), 1 );
+    // Do geo checks based on the the object oriented coordinates
     for(int ii = 0; ii < v.size(); ii++)
     {
         if((v_trans[ii] > geoParam_[ii]/2.0 + dx/1.0e6) || (v_trans[ii] < -1.0*geoParam_[ii]/2.0 - dx/1.0e6))
@@ -152,15 +181,16 @@ bool block::isObj(std::array<double,3> &v, double dx)
     }
     return true;
 }
-bool rounded_block::isObj(std::array<double,3> &v, double dx)
+bool rounded_block::isObj(std::array<double,3> v, double dx)
 {
-    if(v.size() != location_.size())
-        throw std::logic_error("When checking if a point is inside an object the point and object must have same dimensionality.");
     std::array<double,3> v_trans = {{0.0, 0.0, 0.0}};
     std::array<double,3> v_cen = {{0.0, 0.0, 0.0}};
+    // Move origin to object's center
     for(int ii = 0; ii < v_cen.size(); ++ii)
         v_cen[ii] = v[ii]-location_[ii];
+    // Convert x, y, z coordinates to coordinates along the object's unit axis
     dgemv_('T', v_cen.size(), v_cen.size(), 1.0, coordTransform_.data(), v_cen.size(), v_cen.data(), 1, 0.0, v_trans.data(), 1 );
+    // Do geo checks based on the the object oriented coordinates
     double radCurv = geoParam_.back();
     for(int ii = 0; ii < v.size(); ii++)
     {
@@ -176,15 +206,17 @@ bool rounded_block::isObj(std::array<double,3> &v, double dx)
     }
     return true;
 }
-bool ellipsoid::isObj(std::array<double,3> &v, double dx)
+
+bool ellipsoid::isObj(std::array<double,3> v, double dx)
 {
-    if(v.size() != location_.size())
-        throw std::logic_error("When checking if a point is inside an object the point and object must have same dimensionality.");
     std::array<double,3> v_trans = {{0.0, 0.0, 0.0}};
     std::array<double,3> v_cen = {{0.0, 0.0, 0.0}};
+    // Move origin to object's center
     for(int ii = 0; ii < v_cen.size(); ++ii)
         v_cen[ii] = v[ii]-location_[ii];
+    // Convert x, y, z coordinates to coordinates along the object's unit axis
     dgemv_('T', v_cen.size(), v_cen.size(), 1.0, coordTransform_.data(), v_cen.size(), v_cen.data(), 1, 0.0, v_trans.data(), 1 );
+    // Do geo checks based on the the object oriented coordinates
     double ptSum = 0.0;
     for( int ii = 0; ii < v_trans.size(); ++ii)
         ptSum += pow( (v_trans[ii]-dx/1.0e6) / (geoParam_[ii]/2.0), 2.0 );
@@ -193,15 +225,37 @@ bool ellipsoid::isObj(std::array<double,3> &v, double dx)
         return false;
     return true;
 }
-bool isosceles_tri_prism::isObj(std::array<double,3> &v, double dx)
+
+bool hemiellipsoid::isObj(std::array<double,3> v, double dx)
 {
-    if(v.size() != location_.size())
-        throw std::logic_error("When checking if a point is inside an object the point and object must have same dimensionality.");
     std::array<double,3> v_trans = {{0.0, 0.0, 0.0}};
     std::array<double,3> v_cen = {{0.0, 0.0, 0.0}};
+    // Move origin to object's center
     for(int ii = 0; ii < v_cen.size(); ++ii)
         v_cen[ii] = v[ii]-location_[ii];
+    // Convert x, y, z coordinates to coordinates along the object's unit axis
     dgemv_('T', v_cen.size(), v_cen.size(), 1.0, coordTransform_.data(), v_cen.size(), v_cen.data(), 1, 0.0, v_trans.data(), 1 );
+    // Do geo checks based on the the object oriented coordinates
+    if(v_trans[0] > dx/1e6)
+        return false;
+    double ptSum = 0.0;
+    for( int ii = 0; ii < v_trans.size(); ++ii)
+        ptSum += pow( (v_trans[ii]-dx/1.0e6) / (geoParam_[ii]/2.0), 2.0 );
+    if(1.0 < ptSum )
+        return false;
+    return true;
+}
+
+bool isosceles_tri_prism::isObj(std::array<double,3> v, double dx)
+{
+    std::array<double,3> v_trans = {{0.0, 0.0, 0.0}};
+    std::array<double,3> v_cen = {{0.0, 0.0, 0.0}};
+    // Move origin to object's center
+    for(int ii = 0; ii < v_cen.size(); ++ii)
+        v_cen[ii] = v[ii]-location_[ii];
+    // Convert x, y, z coordinates to coordinates along the object's unit axis
+    dgemv_('T', v_cen.size(), v_cen.size(), 1.0, coordTransform_.data(), v_cen.size(), v_cen.data(), 1, 0.0, v_trans.data(), 1 );
+    // Do geo checks based on the the object oriented coordinates
     // The last compenent is the length of the prism
     if( (v_trans[1] < -1.0*geoParam_[1]/2.0 + dx*1e-6) || (v_trans[1] > geoParam_[1]/2.0 + dx*1e-6) )
         return false;
@@ -212,15 +266,16 @@ bool isosceles_tri_prism::isObj(std::array<double,3> &v, double dx)
     return true;
 }
 
-bool trapezoid_prism::isObj(std::array<double,3> &v, double dx)
+bool trapezoid_prism::isObj(std::array<double,3> v, double dx)
 {
-    if(v.size() != location_.size())
-        throw std::logic_error("When checking if a point is inside an object the point and object must have same dimensionality.");
     std::array<double,3> v_trans = {{0.0, 0.0, 0.0}};
     std::array<double,3> v_cen = {{0.0, 0.0, 0.0}};
+    // Move origin to object's center
     for(int ii = 0; ii < v_cen.size(); ++ii)
         v_cen[ii] = v[ii]-location_[ii];
+    // Convert x, y, z coordinates to coordinates along the object's unit axis
     dgemv_('T', v_cen.size(), v_cen.size(), 1.0, coordTransform_.data(), v_cen.size(), v_cen.data(), 1, 0.0, v_trans.data(), 1 );
+    // Do geo checks based on the the object oriented coordinates
     // Last component the length of the prism
     if( (v_trans[1] < -1.0*geoParam_[2]/2.0 - dx*1e-6) || (v_trans[1] > geoParam_[2]/2.0 + dx*1e-6) )
         return false;
@@ -231,31 +286,35 @@ bool trapezoid_prism::isObj(std::array<double,3> &v, double dx)
     return true;
 }
 
-bool cone::isObj(std::array<double,3> &v, double dx)
+bool cone::isObj(std::array<double,3> v, double dx)
 {
-    if(v.size() != location_.size())
-        throw std::logic_error("When checking if a point is inside an object the point and object must have same dimensionality.");
     std::array<double,3> v_trans = {{0.0, 0.0, 0.0}};
     std::array<double,3> v_cen = {{0.0, 0.0, 0.0}};
+    // Move origin to object's center
     for(int ii = 0; ii < v_cen.size(); ++ii)
         v_cen[ii] = v[ii]-location_[ii];
+    // Convert x, y, z coordinates to coordinates along the object's unit axis
     dgemv_('T', v_cen.size(), v_cen.size(), 1.0, coordTransform_.data(), v_cen.size(), v_cen.data(), 1, 0.0, v_trans.data(), 1 );
-    if( (v_trans[2] < -1.0*geoParam_[1]/2.0 - dx*1e-6) || (v_trans[2] > geoParam_[1]/2.0 + dx*1e-6) )
+    // Do geo checks based on the the object oriented coordinates
+
+    double raiseAng = std::atan( (geoParam_[1] - geoParam_[0])/geoParam_[2] );
+    if( (v_trans[2] < -1.0*geoParam_[2]/2.0 - dx*1e-6) || (v_trans[2] > geoParam_[2]/2.0 + dx*1e-6) )
         return false;
-    else if( ( pow( v_trans[0], 2.0 ) + pow( v_trans[1], 2.0 ) ) * pow( cos(geoParam_[0]), 2.0 ) - pow( v_trans[2] * sin(geoParam_[0]), 2.0) > dx*1e-6 )
+    else if( ( pow( v_trans[0], 2.0 ) + pow( v_trans[1], 2.0 ) ) > geoParam_[0] + std::cos(raiseAng) * (v_trans[2] + geoParam_[2]/2.0) + dx*1e-6 )
         return false;
     return true;
 }
 
-bool cylinder::isObj(std::array<double,3> &v, double dx)
+bool cylinder::isObj(std::array<double,3> v, double dx)
 {
-    if(v.size() != location_.size())
-        throw std::logic_error("When checking if a point is inside an object the point and object must have same dimensionality.");
     std::array<double,3> v_trans = {{0.0, 0.0, 0.0}};
     std::array<double,3> v_cen = {{0.0, 0.0, 0.0}};
+    // Move origin to object's center
     for(int ii = 0; ii < v_cen.size(); ++ii)
         v_cen[ii] = v[ii]-location_[ii];
+    // Convert x, y, z coordinates to coordinates along the object's unit axis
     dgemv_('T', v_cen.size(), v_cen.size(), 1.0, coordTransform_.data(), v_cen.size(), v_cen.data(), 1, 0.0, v_trans.data(), 1 );
+    // Do geo checks based on the the object oriented coordinates
 
     if( (v_trans[2] < -1.0*geoParam_[1]/2.0 - dx*1e-6) || (v_trans[2] > geoParam_[1]/2.0 + dx*1e-6) )
         return false;
@@ -264,15 +323,16 @@ bool cylinder::isObj(std::array<double,3> &v, double dx)
     return true;
 }
 
-bool parabolic_ters_tip::isObj(std::array<double,3> &v, double dx)
+bool parabolic_ters_tip::isObj(std::array<double,3> v, double dx)
 {
-    if(v.size() != location_.size())
-        throw std::logic_error("When checking if a point is inside an object the point and object must have same dimensionality.");
     std::array<double,3> v_trans = {{0.0, 0.0, 0.0}};
     std::array<double,3> v_cen = {{0.0, 0.0, 0.0}};
+    // Move origin to object's center
     for(int ii = 0; ii < v_cen.size(); ++ii)
         v_cen[ii] = v[ii]-location_[ii];
+    // Convert x, y, z coordinates to coordinates along the object's unit axis
     dgemv_('T', v_cen.size(), v_cen.size(), 1.0, coordTransform_.data(), v_cen.size(), v_cen.data(), 1, 0.0, v_trans.data(), 1 );
+    // Do geo checks based on the the object oriented coordinates
     v_trans[1] += geoParam_[1]/2.0;
     if( (v_trans[2] > geoParam_[1] - dx*1e-6 ) || (v_trans[2] < dx*1e-6 + geoParam_[0] * pow( dist( std::array<double,3>( {{ v_trans[0], v_trans[1], 0 }} ), std::array<double,3>({{ 0, 0, 0 }}) ), 2.0 ) ) )
         return false;
@@ -280,19 +340,20 @@ bool parabolic_ters_tip::isObj(std::array<double,3> &v, double dx)
 }
 
 
-bool ters_tip::isObj(std::array<double,3> &v, double dx)
+bool ters_tip::isObj(std::array<double,3> v, double dx)
 {
-    if(v.size() != location_.size())
-        throw std::logic_error("When checking if a point is inside an object the point and object must have same dimensionality.");
     std::array<double,3> v_trans = {{0.0, 0.0, 0.0}};
     std::array<double,3> v_cen = {{0.0, 0.0, 0.0}};
+    // Move origin to object's center
     for(int ii = 0; ii < v_cen.size(); ++ii)
         v_cen[ii] = v[ii]-location_[ii];
+    // Convert x, y, z coordinates to coordinates along the object's unit axis
     dgemv_('T', v_cen.size(), v_cen.size(), 1.0, coordTransform_.data(), v_cen.size(), v_cen.data(), 1, 0.0, v_trans.data(), 1 );
+    // Do geo checks based on the the object oriented coordinates
     if( dist(v_trans, radCen_) < geoParam_[0]/2.0 )
         return true;
 
-    if( (v_trans[2] < geoParam_[0] - geoParam_[1]/2.0 - dx*1e-6) || (v_trans[2] > geoParam_[1]/2.0 + dx*1e-6) )
+    if( (v_trans[2] < geoParam_[0] - geoParam_[2]/2.0 - dx*1e-6) || (v_trans[2] > geoParam_[1]/2.0 + dx*1e-6) )
         return false;
     else if( ( pow( v_trans[0], 2.0 ) + pow( v_trans[1], 2.0 ) ) * pow( cos(geoParam_[0]), 2.0 ) - pow( v_trans[2] * sin(geoParam_[0]), 2.0)  > dx*1e-6 )
         return false;

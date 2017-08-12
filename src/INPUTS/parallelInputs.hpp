@@ -2,19 +2,12 @@
 #define PRALLEL_FDTD_INPUTS
 
 #include <src/OBJECTS/Obj.hpp>
-#include <src/UTIL/ml_consts.hpp>
+#include <src/UTIL/FDTD_consts.hpp>
 #include <src/UTIL/dielectric_params.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <iterator>
-#ifdef MKL
-#include <UTIL/utilities_MKL.hpp>
-#elif defined ACML
-#include <UTIL/utilities_acml.hpp>
-#else
-#include <UTIL/utilities_MKL.hpp>
-#endif
 
 struct EnergyLevelDiscriptor
 {
@@ -89,11 +82,9 @@ public:
     std::vector<std::string> dtcName_; //!< file name for all detectors
     std::vector<DTCTYPE> dtcType_; //!< whether the dtc stores the Ex, Ey, Ez, Hx, Hy, Hz fields or the H or E power
     std::vector<double> dtcTimeInt_; //!< time interval for all detectors
-    std::vector<int> dtcNFreq_; //!< number of frequencies to take in the range
-    std::vector<double> dtcfCen_; //!< center frequency
-    std::vector<double> dtcfWidth_; //!< frequency width
-    std::vector<double> dtcLamL_; //!< left wavelength end point
-    std::vector<double> dtcLamR_; //!< right wavelength end point
+    std::vector<GRIDOUTFXN> dtcOutBMPFxnType_; //!< what function should bmp converter use
+    std::vector<GRIDOUTTYPE> dtcOutBMPOutType_; //!< how to output the values for the detector ina text file
+    std::vector<std::vector<double>> dtcFreqList_; //!< center frequency
 
     std::vector<int> fluxXOff_; //!< the x location offset of the fields
     std::vector<int> fluxYOff_; //!< the y location offset of the fields
@@ -102,117 +93,140 @@ public:
     std::vector<std::array<int,3>> fluxSz_; //!< size of the flux surface
     std::vector<double> fluxWeight_; //!< weight of the flux surface
     std::vector<std::string> fluxName_; //!< file name for the output file
-    std::vector<double> fluxFCen_; //!<  center frequency
-    std::vector<double> fluxFWidth_; //!< frequency width of the flux
-    std::vector<double> fluxLamL_; //!< left wavelength limit
-    std::vector<double> fluxLamR_; //!< right wavelength limit
+    std::vector<std::vector<double>> fluxFreqList_; //!<  center frequency
     std::vector<bool> fluxSI_; //!<  use SI units
     std::vector<bool> fluxCrossSec_; //!< calculate the cross-section?
     std::vector<bool> fluxSave_; //!< save the fields?
     std::vector<bool> fluxLoad_; //!< load the fields?
     std::vector<std::string> fluxIncdFieldsFilename_; //!< incident file names
-    std::vector<int> fluxNFreq_; //!< number of frequencies
 
     /**
-     * @brief Constructs the input parameter file
+     * @brief      Constructs the input parameter object
      *
-     * @param IP boost property tree object
-     * @param fn input filename
+     * @param[in]  IP    boost property tree generated from the input json file
+     * @param[in]  fn    The filename of the input file
      */
     parallelProgramInputs(boost::property_tree::ptree IP,std::string fn);
+
     /**
-     * @brief get the dielectric parameters for a material
-     * @details uses a string identifier to get the dielectric parameters for a material
+     * @brief      Gets the dielectric parameters for a material.
      *
-     * @param mat string identifier for the material
-     * @return dielectric parameters
+     * @param[in]  mat   String identifier of the material
+     *
+     * @return     The dielectric parameters.
      */
     std::vector<double> getDielectricParams(std::string mat);
 
     /**
-     * @brief Converts the string from an input file into a POLARIZATION
+     * @brief      converts a string to GRIDOUTFXN
      *
-     * @param p String type of POLARIZATION
-     * @return The POLARIZATION
+     * @param[in]  f     String identifier to a GRIDOUTFXN
+     *
+     * @return     GRIDOUTFXN from that input string
+     */
+    GRIDOUTFXN string2GRIDOUTFXN (std::string f);
+
+    /**
+     * @brief      converts a string to GRIDOUTTYPE
+     *
+     * @param[in]  t     String identifier to a GRIDOUTTYPE
+     *
+     * @return     GRIDOUTTYPE from that input string
+     */
+    GRIDOUTTYPE string2GRIDOUTTYPE (std::string t);
+
+    /**
+     * @brief      converts a string to POLARIZATION
+     *
+     * @param[in]  p     String identifier to a POLARIZATION
+     *
+     * @return     POLARIZATION from that input string
      */
     POLARIZATION string2pol(std::string p);
+
     /**
-     * @brief Converts the string from an input file into a shape
+     * @brief      converts a string to SHAPE
      *
-     * @param p String type of shape
-     * @return The shape
+     * @param[in]  s     String identifier to a SHAPE
+     *
+     * @return     SHAPE from that input string
      */
     SHAPE string2shape(std::string s);
+
     /**
-     * @brief Converts the string from an input file into a Detector Type
+     * @brief      converts a string to DTCTYPE
      *
-     * @param p String type of Detector Type
-     * @return The Detector Type
+     * @param[in]  t     String identifier to a DTCTYPE
+     *
+     * @return     DTCTYPE from that input string
      */
     DTCTYPE string2out(std::string t);
+
     /**
-     * @brief Converts the string from an input file into a DTCCLASS
+     * @brief      converts a string to DTCCLASS
      *
-     * @param c String type of DTCCLASS
-     * @return The DTCCLASS
+     * @param[in]  c     String identifier to a DTCCLASS
+     *
+     * @return     DTCCLASS from that input string
      */
     DTCCLASS string2dtcclass(std::string c);
 
     /**
-     * @brief Converts the string from an input file into a Pulse Shape
+     * @brief      converts a string to PLSSHAPE
      *
-     * @param p String type of Pulse Shape
-     * @return The Pulse Shape
+     * @param[in]  p     String identifier to a PLSSHAPE
+     *
+     * @return     PLSSHAPE from that input string
      */
     PLSSHAPE string2prof(std::string p);
+
     /**
-     * @brief Converts the string from an input file into a DIRECTION
+     * @brief      converts a string to DIRECTION
      *
-     * @param dir String type of DIRECTION
-     * @return The DIRECTION
+     * @param[in]  dir   String identifier to a DIRECTION
+     *
+     * @return     DIRECTION from that input string
      */
     DIRECTION string2dir(std::string dir);
 
     /**
-     * @brief Converts the string from an input file into a DIRECTION
+     * @brief      Gets the material parameters for a given material
      *
-     * @param dist String key for each distribution
-     * @return The DISTRIBUTION
+     * @param[in]  mat   String identifying the material
+     *
+     * @return     The material parameters
      */
-    DISTRIBUTION string2dist(std::string dist);
+    std::tuple<std::vector<double>, std::vector<double>> getMater(std::string mat);
 
     /**
-     * @brief get the material parameters from a string identifier
-     * @details returns the material parameters
+     * @brief      Converts the metal parameters from eV based units to FDTD based units
      *
-     * @param mat string material identifier
-     * @return material parameters
-     */
-    std::tuple<std::vector<double>, std::vector<double> > getMater(std::string mat);
-    /**
-     * @brief Converts the eV dielectric function parameters to FDTD units
-     * @details Preforms a unit conversion on all dielectric parameters to get them in the correct units
+     * @param[in]  params  The parameters for the metallic material in eV
      *
-     * @param eV parameter
-     * @return dielectric parameters in FDTD units
+     * @return     The parameters for the metallic material in FDTD units
      */
     std::vector<double> getMetal(std::vector<double> params);
+
     /**
-     * @brief converts eV to FDTDsunits
+     * @brief      Converts eV units to FDTD units
      *
-     * @param eV a value in eV
-     * @return a value in FDTD units
+     * @param[in]  eV    The value in eV
+     *
+     * @return     The value in FDTD frequency units
      */
     double ev2FDTD(double eV);
+
     /**
-     * @brief Converts a distance in unit lengths to grid points
+     * @brief      Converts the point from real space to grid points
      *
-     * @param pt distance in unit lengths
-     * @return distance in grid points
+     * @param[in]  pt    Real space value
+     *
+     * @return     Corresponding grid point value
      */
     inline int find_pt(double pt) {return floor(pt*static_cast<double>(res_) + 0.5);}
+
     /**
-     * @return tMax
+     * @return     Maximum time of the simulation
      */
     inline double tMax() {return tMax_;}
     /**
@@ -222,10 +236,14 @@ public:
      * @param iter ptree object describing the object
      * @return the Object described by iter
      */
-    std::shared_ptr<Obj> ptreeToObject(boost::property_tree::ptree::value_type &iter);
     /**
-     * @brief removes comments from input file
+     * @brief      Constructs an object from the object list child tree
+     *
+     * @param      iter  boost::ptree child corresponding to the object
+     *
+     * @return     shared_ptr to the object
      */
+    std::shared_ptr<Obj> ptreeToObject(boost::property_tree::ptree::value_type &iter);
 };
 /**
  * @brief      strips comments from the input file

@@ -1,5 +1,5 @@
-#ifndef ML_CONST
-#define ML_CONST
+#ifndef FDTD_CONST
+#define FDTD_CONST
 
 #include <cmath>
 

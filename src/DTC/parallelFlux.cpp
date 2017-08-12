@@ -1,7 +1,7 @@
 #include <DTC/parallelFlux.hpp>
 
-parallelFluxDTCReal::parallelFluxDTCReal(mpiInterface gridComm, std::string name, double weight, pgrid_ptr Ex, pgrid_ptr Ey, pgrid_ptr Ez, pgrid_ptr Hx, pgrid_ptr Hy, pgrid_ptr Hz, std::array<int,3> loc, std::array<int,3> sz, bool cross_sec, bool save, bool load, int timeInt,   int nfreq, double fwidth, double fcen, DIRECTION propDir, std::array<double,3> d, double dt, double theta, double phi, double psi, double alpha, std::string incd_file, bool SI, double I0, double a) :
-    parallelFluxDTC<double>(gridComm, name, weight, Ex,Ey,Ez, Hx, Hy, Hz, loc, sz, cross_sec, save, load, timeInt,   nfreq, fwidth, fcen, propDir, d, dt, theta, phi, psi, alpha, incd_file, SI, I0, a)
+parallelFluxDTCReal::parallelFluxDTCReal(std::shared_ptr<mpiInterface> gridComm, std::string name, double weight, pgrid_ptr Ex, pgrid_ptr Ey, pgrid_ptr Ez, pgrid_ptr Hx, pgrid_ptr Hy, pgrid_ptr Hz, std::array<int,3> loc, std::array<int,3> sz, bool cross_sec, bool save, bool load, int timeInt, std::vector<double> freqList, DIRECTION propDir, std::array<double,3> d, double dt, double theta, double phi, double psi, double alpha, std::string incd_file, bool SI, double I0, double a) :
+    parallelFluxDTC<double>(gridComm, name, weight, Ex,Ey,Ez, Hx, Hy, Hz, loc, sz, cross_sec, save, load, timeInt, freqList, propDir, d, dt, theta, phi, psi, alpha, incd_file, SI, I0, a)
 {
     getIncdField_ = [](cplx a){return cplx(std::real(a), 0.0); };
     if( !(Ez && Hz ) )
@@ -58,66 +58,8 @@ parallelFluxDTCReal::parallelFluxDTCReal(mpiInterface gridComm, std::string name
     }
 }
 
-parallelFluxDTCReal::parallelFluxDTCReal(mpiInterface gridComm, std::string name, double weight, pgrid_ptr Ex, pgrid_ptr Ey, pgrid_ptr Ez, pgrid_ptr Hx, pgrid_ptr Hy, pgrid_ptr Hz, std::array<int,3> loc, std::array<int,3> sz, bool cross_sec, bool save, bool load, int timeInt, double lamL,   double lamR,    int nLam, DIRECTION propDir, std::array<double,3> d, double dt, double theta, double phi, double psi, double alpha, std::string incd_file, bool SI, double I0, double a) :
-    parallelFluxDTC<double>(gridComm, name, weight, Ex,Ey,Ez, Hx, Hy, Hz, loc, sz, cross_sec, save, load, timeInt, lamL,   lamR,    nLam, propDir, d, dt, theta, phi, psi, alpha, incd_file, SI, I0, a)
-{
-    getIncdField_ = [](cplx a){return cplx(std::real(a), 0.0); };
-    if(sz_.size() == 2)
-    {
-        if(sz_[0] > 1 && sz_[1] > 1)
-        {
-            // Surface at each end of the box
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::X, true ) );
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::X, false) );
-
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::Y, true ) );
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::Y, false) );
-        }
-        else if(sz_[0] == 1 && ( (Hz && Hz->local_x() != 3) || (Ez && Ez->local_x() !=3) ) )
-        {
-            // Single surface assume positive weight
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::X, true) );
-        }
-        else
-        {
-            // Single surface assume positive weight
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::Y, true) );
-        }
-    }
-    else
-    {
-        if(sz_[0] > 1 && sz_[1] > 1 && sz_[2] > 1)
-        {
-            // A plane for each surface of the box
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::X, true) );
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::X, false) );
-
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::Y, true) );
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::Y, false) );
-
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::Z, true) );
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::Z, false) );
-        }
-        else if(sz_[0] == 1)
-        {
-            // Single surface assume positive weight
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::X, true) );
-        }
-        else if(sz_[1] == 1)
-        {
-            // Single surface assume positive weight
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::Y, true) );
-        }
-        else if(sz_[2] == 1)
-        {
-            // Single surface assume positive weight
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::Z, true) );
-        }
-    }
-}
-
-parallelFluxDTCCplx::parallelFluxDTCCplx(mpiInterface gridComm, std::string name, double weight, pgrid_ptr Ex, pgrid_ptr Ey, pgrid_ptr Ez, pgrid_ptr Hx, pgrid_ptr Hy, pgrid_ptr Hz, std::array<int,3> loc, std::array<int,3> sz, bool cross_sec, bool save, bool load, int timeInt,   int nfreq, double fwidth, double fcen, DIRECTION propDir, std::array<double,3> d, double dt, double theta, double phi, double psi, double alpha, std::string incd_file, bool SI, double I0, double a) :
-    parallelFluxDTC<cplx>(gridComm, name, weight, Ex,Ey,Ez, Hx, Hy, Hz, loc, sz, cross_sec, save, load, timeInt,   nfreq, fwidth, fcen, propDir, d, dt, theta, phi, psi, alpha, incd_file, SI, I0, a)
+parallelFluxDTCCplx::parallelFluxDTCCplx(std::shared_ptr<mpiInterface> gridComm, std::string name, double weight, pgrid_ptr Ex, pgrid_ptr Ey, pgrid_ptr Ez, pgrid_ptr Hx, pgrid_ptr Hy, pgrid_ptr Hz, std::array<int,3> loc, std::array<int,3> sz, bool cross_sec, bool save, bool load, int timeInt, std::vector<double> freqList, DIRECTION propDir, std::array<double,3> d, double dt, double theta, double phi, double psi, double alpha, std::string incd_file, bool SI, double I0, double a) :
+    parallelFluxDTC<cplx>(gridComm, name, weight, Ex,Ey,Ez, Hx, Hy, Hz, loc, sz, cross_sec, save, load, timeInt, freqList, propDir, d, dt, theta, phi, psi, alpha, incd_file, SI, I0, a)
 {
     getIncdField_ = [](cplx a){return a; };
     if(sz_.size() == 2)
@@ -174,63 +116,6 @@ parallelFluxDTCCplx::parallelFluxDTCCplx(mpiInterface gridComm, std::string name
     }
 }
 
-parallelFluxDTCCplx::parallelFluxDTCCplx(mpiInterface gridComm, std::string name, double weight, pgrid_ptr Ex, pgrid_ptr Ey, pgrid_ptr Ez, pgrid_ptr Hx, pgrid_ptr Hy, pgrid_ptr Hz, std::array<int,3> loc, std::array<int,3> sz, bool cross_sec, bool save, bool load, int timeInt, double lamL,   double lamR,    int nLam, DIRECTION propDir, std::array<double,3> d, double dt, double theta, double phi, double psi, double alpha, std::string incd_file, bool SI, double I0, double a) :
-    parallelFluxDTC<cplx>(gridComm, name, weight, Ex,Ey,Ez, Hx, Hy, Hz, loc, sz, cross_sec, save, load, timeInt, lamL,   lamR,    nLam, propDir, d, dt, theta, phi, psi, alpha, incd_file, SI, I0, a)
-{
-    getIncdField_ = [](cplx a){return a; };
-    if(sz_.size() == 2)
-    {
-        if(sz_[0] > 1 && sz_[1] > 1)
-        {
-            // Surface at each end of the box
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::X, true ) );
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::X, false) );
-
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::Y, true ) );
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::Y, false) );
-        }
-        else if(sz_[0] == 1 && ( (Hz && Hz->local_x() != 3) || (Ez && Ez->local_x() !=3) ) )
-        {
-            // Single surface assume positive weight
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::X, true) );
-        }
-        else
-        {
-            // Single surface assume positive weight
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::Y, true) );
-        }
-    }
-    else
-    {
-        if(sz_[0] > 1 && sz_[1] > 1 && sz_[2] > 1)
-        {
-            // A plane for each surface of the box
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::X, true) );
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::X, false) );
-
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::Y, true) );
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::Y, false) );
-
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::Z, true) );
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::Z, false) );
-        }
-        else if(sz_[0] == 1)
-        {
-            // Single surface assume positive weight
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::X, true) );
-        }
-        else if(sz_[1] == 1)
-        {
-            // Single surface assume positive weight
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::Y, true) );
-        }
-        else if(sz_[2] == 1)
-        {
-            // Single surface assume positive weight
-            fInParam_.push_back(makeParamIn(Ex,Ey,Ez, Hx, Hy, Hz, DIRECTION::Z, true) );
-        }
-    }
-}
 parallelFluxDTCCplx::FieldInputParamsFlux parallelFluxDTCCplx::makeParamIn(pgrid_ptr Ex, pgrid_ptr Ey, pgrid_ptr Ez, pgrid_ptr Hx, pgrid_ptr Hy, pgrid_ptr Hz, DIRECTION dir, bool pl)
 {
     FieldInputParamsFlux to_return;
@@ -301,10 +186,9 @@ parallelFluxDTCCplx::FieldInputParamsFlux parallelFluxDTCCplx::makeParamIn(pgrid
     else
         toMaster.addIndex_ = {{ Hz->procLoc()[transCor1] - loc_[transCor1], Hz->procLoc()[cor] - loc_[cor] }};
 
-
+    // If addIndex < 0 then the object starts in this process
     if(toMaster.addIndex_[0] < 0)
         toMaster.addIndex_[0] = 0;
-
     if(toMaster.addIndex_[1] < 0)
         toMaster.addIndex_[1] = 0;
 
@@ -378,7 +262,7 @@ parallelFluxDTCCplx::FieldInputParamsFlux parallelFluxDTCCplx::makeParamIn(pgrid
     // For consistency with boxes everything point outward is positive
     pl  ? to_return.weight_ = 1.0 : to_return.weight_ = -1.0;
 
-    if( gridComm_.rank() == outProc_ )
+    if( gridComm_->rank() == outProc_ )
     {
         // Make all Ej, Ek, Hj, and Hk freq grids for collection and output on the process with rank == outProc
         if(to_return.Ej_dtc_.size() > 0)
@@ -406,17 +290,19 @@ parallelFluxDTCCplx::FieldInputParamsFlux parallelFluxDTCCplx::makeParamIn(pgrid
         Hk_freq_.push_back(nullptr);
     }
 
+    // Get the final importing field parameters constructed
     toMaster.szProcOffsetEj_ = constructSzProcOffsetLists( to_return.Ej_dtc_, toMaster.addIndex_, Ej, Ek, corJ, cor, transCor1 );
     toMaster.szProcOffsetEk_ = constructSzProcOffsetLists( to_return.Ek_dtc_, toMaster.addIndex_, Ek, Ej, corK, cor, transCor1 );
     toMaster.szProcOffsetHj_ = constructSzProcOffsetLists( to_return.Hj_dtc_, toMaster.addIndex_, Hj, Hk, corJ, cor, transCor1 );
     toMaster.szProcOffsetHk_ = constructSzProcOffsetLists( to_return.Hk_dtc_, toMaster.addIndex_, Hk, Hj, corK, cor, transCor1 );
 
-    if(gridComm_.rank() == outProc_)
+    // have the master process collect all necessary data for importing fields at the end of the calculation
+    if(gridComm_->rank() == outProc_)
     {
         // Gather all the toMaster on the collection/output process and add them to the appropriate vectors
         std::vector<std::shared_ptr<masterImportDat>> masterProc;
         std::vector<masterImportDat> allProcs;
-        mpi::gather(gridComm_, toMaster, allProcs, outProc_);
+        mpi::gather(*gridComm_, toMaster, allProcs, outProc_);
         for(auto & proc : allProcs)
         {
             if(proc.szProcOffsetEj_.size() > 0)
@@ -428,11 +314,13 @@ parallelFluxDTCCplx::FieldInputParamsFlux parallelFluxDTCCplx::makeParamIn(pgrid
             if(proc.szProcOffsetHk_.size() > 0)
                 to_return.combineHkFields_.push_back(std::make_shared<masterImportDat>(proc) );
         }
+        if(to_return.combineHkFields_.empty() && to_return.combineHjFields_.empty() && to_return.combineEkFields_.empty() && to_return.combineEjFields_.empty())
+            throw std::logic_error("One of the flux surfaces is outside the FDTD cell.");
     }
     else
     {
         // If not output/collection then send it and make the combine field vectors empty
-        mpi::gather(gridComm_, toMaster,  outProc_);
+        mpi::gather(*gridComm_, toMaster,  outProc_);
         to_return.combineEjFields_ = {};
         to_return.combineEkFields_ = {};
         to_return.combineHjFields_ = {};
@@ -512,6 +400,7 @@ parallelFluxDTCReal::FieldInputParamsFlux parallelFluxDTCReal::makeParamIn(pgrid
     else
         toMaster.addIndex_ = {{ Hz->procLoc()[transCor1] - loc_[transCor1], Hz->procLoc()[cor] - loc_[cor] }};
 
+    // If addIndex < 0 object starts in this process, so set it to 0
     if(toMaster.addIndex_[0] < 0)
         toMaster.addIndex_[0] = 0;
 
@@ -525,15 +414,7 @@ parallelFluxDTCReal::FieldInputParamsFlux parallelFluxDTCReal::makeParamIn(pgrid
         locOff[corK] -= 1;
         szOff[corK] += 1;
 
-        // gridComm_.barrier();
-        // std::cout << "EK" << std::endl;
-        // gridComm_.barrier();
-
         to_return.Ek_dtc_.push_back( std::make_shared<parallelStorageFreqDTCReal>(outProc_, Ek, dir, locOff, szOff, freqList_) );
-
-        // gridComm_.barrier();
-        // std::cout << "HK" << std::endl;
-        // gridComm_.barrier();
 
         to_return.Hk_dtc_.push_back( std::make_shared<parallelStorageFreqDTCReal>(outProc_, Hk, dir, locOff, szOff, freqList_) );
         locOff[corI] -= 1;
@@ -545,19 +426,9 @@ parallelFluxDTCReal::FieldInputParamsFlux parallelFluxDTCReal::makeParamIn(pgrid
         locOff[corJ] -= 1;
         szOff[corJ] += 1;
 
-        // std::cout << szOff[0] << '\t' << szOff[1] << '\t' << szOff[2] << '\t' << corJ << '\t' << corK << std::endl;
-
-        // gridComm_.barrier();
-        // std::cout << "HJ" << std::endl;
-        // gridComm_.barrier();
-
         to_return.Hj_dtc_.push_back( std::make_shared<parallelStorageFreqDTCReal>(outProc_, Hj, dir, locOff, szOff, freqList_) );
         locOff[corI] += 1;
         to_return.Hj_dtc_.push_back( std::make_shared<parallelStorageFreqDTCReal>(outProc_, Hj, dir, locOff, szOff, freqList_) );
-
-        // gridComm_.barrier();
-        // std::cout << "EJ" << std::endl;
-        // gridComm_.barrier();
 
         to_return.Ej_dtc_.push_back( std::make_shared<parallelStorageFreqDTCReal>(outProc_, Ej, dir, locOff, szOff, freqList_) );
     }
@@ -608,7 +479,7 @@ parallelFluxDTCReal::FieldInputParamsFlux parallelFluxDTCReal::makeParamIn(pgrid
     // For consistency with boxes everything point outward is positive
     pl  ? to_return.weight_ = 1.0 : to_return.weight_ = -1.0;
 
-    if( gridComm_.rank() == outProc_ )
+    if( gridComm_->rank() == outProc_ )
     {
         // Make all Ej, Ek, Hj, and Hk freq grids for collection and output on the process with rank == outProc
         if(to_return.Ej_dtc_.size() > 0)
@@ -635,16 +506,19 @@ parallelFluxDTCReal::FieldInputParamsFlux parallelFluxDTCReal::makeParamIn(pgrid
         Hj_freq_.push_back(nullptr);
         Hk_freq_.push_back(nullptr);
     }
+    // Construct parameters needed to import fields at the end of the calculation
     toMaster.szProcOffsetEj_ = constructSzProcOffsetLists( to_return.Ej_dtc_, toMaster.addIndex_, Ej, Ek, corJ, cor, transCor1 );
     toMaster.szProcOffsetEk_ = constructSzProcOffsetLists( to_return.Ek_dtc_, toMaster.addIndex_, Ek, Ej, corK, cor, transCor1 );
     toMaster.szProcOffsetHj_ = constructSzProcOffsetLists( to_return.Hj_dtc_, toMaster.addIndex_, Hj, Hk, corJ, cor, transCor1 );
     toMaster.szProcOffsetHk_ = constructSzProcOffsetLists( to_return.Hk_dtc_, toMaster.addIndex_, Hk, Hj, corK, cor, transCor1 );
-    if(gridComm_.rank() == outProc_)
+
+    // If master process collect all parameters
+    if(gridComm_->rank() == outProc_)
     {
         // Gather all the toMaster on the collection/output process and add them to the appropriate vectors
         std::vector<std::shared_ptr<masterImportDat>> masterProc;
         std::vector<masterImportDat> allProcs;
-        mpi::gather(gridComm_, toMaster, allProcs, outProc_);
+        mpi::gather(*gridComm_, toMaster, allProcs, outProc_);
         for(auto & proc : allProcs)
         {
             if(proc.szProcOffsetEj_.size() > 0)
@@ -656,11 +530,13 @@ parallelFluxDTCReal::FieldInputParamsFlux parallelFluxDTCReal::makeParamIn(pgrid
             if(proc.szProcOffsetHk_.size() > 0)
                 to_return.combineHkFields_.push_back(std::make_shared<masterImportDat>(proc) );
         }
+        if(to_return.combineHkFields_.empty() && to_return.combineHjFields_.empty() && to_return.combineEkFields_.empty() && to_return.combineEjFields_.empty())
+            throw std::logic_error("One of the flux surfaces is outside the FDTD cell.");
     }
     else
     {
         // If not output/collection then send it and make the combine field vectors empty
-        mpi::gather(gridComm_, toMaster,  outProc_);
+        mpi::gather(*gridComm_, toMaster,  outProc_);
         to_return.combineEjFields_ = {};
         to_return.combineEkFields_ = {};
         to_return.combineHjFields_ = {};

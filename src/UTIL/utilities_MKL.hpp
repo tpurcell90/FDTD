@@ -122,8 +122,10 @@ namespace
      * @param[in]  c       Array, size ldc by n. Before entry, the leading m-by-n part of the array c must contain the matrix C, except when beta is equal to zero, in which case c need not be set on entry.
      * @param[in]  ldc     Specifies the leading dimension of c as declared in the calling (sub)program.
      */
-    void dgemm_(char transa, char transb, const int m, const int n, const int k, const double alpha, const double* a, const int lda, const double* b, const int ldb, const double beta, double* c, const int ldc)
+    void dgemm_(char transa, char transb, const int& m, const int& n, const int& k, const double& alpha, const double* a, const int& lda, const double* b, const int& ldb, const double& beta, double* c, const int& ldc)
         { ::dgemm_(&transa, &transb,&m,&n,&k,&alpha,a,&lda,b,&ldb,&beta,c,&ldc); }
+    // void dgemm_(char transa, char transb, const int m, const int n, const int k, const double alpha, const double* a, const int lda, const double* b, const int ldb, const double beta, double* c, const int ldc)
+    //     { ::dgemm_(&transa, &transb,&m,&n,&k,&alpha,a,&lda,b,&ldb,&beta,c,&ldc); }
     /**
      * @brief      Wrapper for dgemm_: c<-$\alpha a*b + /beta*c
      *

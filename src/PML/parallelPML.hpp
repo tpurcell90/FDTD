@@ -1,43 +1,38 @@
 #ifndef PARALLEL_FDTD_PML
 #define PARALLEL_FDTD_PML
 
-#include <src/GRID/parallelGrid.hpp>
 #include <src/OBJECTS/Obj.hpp>
 
-
+/**
+ * @brief      parameters to update the $\psi$ fields for CPMLs
+ */
 struct updatePsiParams
 {
-    int transSz_; //!< size in the transvers diretion (how many points to do mkl operations on)
-    int stride_; //!< stride for the mkl operations
+    int transSz_; //!< size in the transverse direction (how many points to do blas operations on)
+    int stride_; //!< stride for the blas operations
     double b_; //!< the b parameter as defined in chapter 7 of Taflove
     double c_; //!< the c parameter as defined in chapter 7 of Taflove
-    double cOff_; //!< the c parameter as defined in chapter 7 of Taflove, but with the oppisite sing of c
-    std::array<int,3> loc_; //!< the starting point of the mkl operations
-    std::array<int,3> locOff_; //!< the starting point of teh mkl operations offset by the corret value
+    double cOff_; //!< the c parameter as defined in chapter 7 of Taflove, but with the opposite sign of c
+    std::array<int,3> loc_; //!< the starting point of the blas operations
+    std::array<int,3> locOff_; //!< the starting point of the blas operations offset by the correct value
 };
 /**
- * @brief a stoarge struct for adding ths psi fields into the the EM fields
- * @details Stores all necessary inforation to add teh psi fileds to the EM grids
-
+ * @brief      Parameters to update the fields using the $\psi$ fields
  */
 struct updateGridParams
 {
-    int nAx_; //!< size of mkl operator
-    int stride_; //!< tride for mkl operator
+    int nAx_; //!< size of blas operator
+    int stride_; //!< stride for blas operator
     double Db_; //!< psi factor add on prefactor
     std::array<int,3> loc_; //!< starting point of MKL operations
 };
 
-/**
- * @brief Implimentation of the CPMLs for the parallel FDTD fields
- * @details An implimientation of CPML for absorbing the EM fields at the cell boundaries
- *
- */
+
 template <typename T> class parallelCPML
 {
     typedef std::shared_ptr<parallelGrid<T>> pgrid_ptr;
 protected:
-    mpiInterface & gridComm_; //!< MPI Communicator
+    std::shared_ptr<mpiInterface> gridComm_; //!< MPI Communicator
     POLARIZATION pol_i_; //!< Polarization of the Field that the CPML is acting on
     DIRECTION i_; //!< Direction corresponding to polarization of the field the CPML is acting on
     DIRECTION j_; //!< Direction next in the cycle from i_; i.e. if i_ is DIRECTION::Y then j_ is DIRECTION::Z
@@ -91,7 +86,7 @@ public:
      * @param[in]  phys_Ey   The physical ey grid
      * @param[in]  objArr    The object arr
      */
-    parallelCPML(mpiInterface gridComm, std::vector<real_grid_ptr> weights, pgrid_ptr grid_i, pgrid_ptr grid_j, pgrid_ptr grid_k, POLARIZATION pol_i, std::array<int,3> n_vec, double m, double ma, double aMax, std::array<double,3> d, double dt, int_pgrid_ptr physGrid, std::vector<std::shared_ptr<Obj>> objArr) :
+    parallelCPML(std::shared_ptr<mpiInterface> gridComm, std::vector<real_grid_ptr> weights, pgrid_ptr grid_i, pgrid_ptr grid_j, pgrid_ptr grid_k, POLARIZATION pol_i, std::array<int,3> n_vec, double m, double ma, double aMax, std::array<double,3> d, double dt, int_pgrid_ptr physGrid, std::vector<std::shared_ptr<Obj>> objArr) :
         gridComm_(gridComm),
         pol_i_(pol_i),
         n_vec_(n_vec),
@@ -110,6 +105,7 @@ public:
             throw std::logic_error("PMLs have to have a real field to be associated with, grid_i_ can't be a nullptr.");
         kappaMax_ = 1.0;
         sigmaMax_ = 0.8*(m_+1)/d_[0];
+        // Determine the PML's i,j,k directions based on the polarization of the field, direction i shares the direction of the field polarization
         if(pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::EX)
         {
             i_ = DIRECTION::X;
@@ -128,7 +124,7 @@ public:
             j_ = DIRECTION::X;
             k_ = DIRECTION::Y;
         }
-        // In 2D z direction is assumed to be isotropic
+        // In 2D z direction is assumed to be isotropic, but 3D it is not
         if(grid_k_ && (grid_i_->local_z() != 1 || j_ != DIRECTION::Z) )
         {
             psi_j_ = std::make_shared<parallelGrid<T>>(gridComm, grid_k_->PBC(), weights, grid_k_->n_vec(), grid_k_->d() );
@@ -136,7 +132,7 @@ public:
         else
             psi_j_ = nullptr;
 
-        // In 2D z direction is assumed to be isotropic
+        // In 2D z direction is assumed to be isotropic, but in 3D it is not
         if(grid_j_ && (grid_i_->local_z() != 1 || k_ != DIRECTION::Z) )
         {
             psi_k_ = std::make_shared<parallelGrid<T>>(gridComm, grid_j_->PBC(), weights, grid_j_->n_vec(), grid_j_->d() );
@@ -145,10 +141,11 @@ public:
             psi_k_ = nullptr;
 
         if(!psi_k_ && ! psi_j_)
-            throw std::logic_error("Well now this is awkward, you apperently are telling the parallelCPML that you only have one field, light needs at least 2 so FAIL!!!!");
+            throw std::logic_error("Both PML auxiliary fields are undefined this likely means that there is an issue with grid_i or grid_k");
 
-        genDatStruct();
+        findLnVecs();
 
+        // Calculate the mean $\eta_r$ values for each PML
         genEtaEff(physGrid, DIRECTION::X, false, objArr, eta_eff_left_);
         genEtaEff(physGrid, DIRECTION::X,  true, objArr, eta_eff_right_);
 
@@ -161,54 +158,83 @@ public:
             genEtaEff(physGrid, DIRECTION::Z, false, objArr, eta_eff_back_);
             genEtaEff(physGrid, DIRECTION::Z,  true, objArr, eta_eff_front_);
         }
-        initalizeGrid(physGrid, objArr);
-        gridComm_.barrier();
-    }
-
-    double genEtaEffVal(const std::vector<int>& physVals, std::vector<std::shared_ptr<Obj>> objArr, double normEtaSumDiff)
-    {
-        double eta_sum = 0.0;
-        // Sum up all the dielectric constants in the plane, if it is a boundary region don't add it
-        for(auto& val : physVals)
-            if(val != -1)
-                eta_sum += objArr[val]->epsInfty()*objArr[val]->muInfty();
-        // Find the average dielectric constant if outside the boundary regions
-        return eta_sum / (physVals.size() - normEtaSumDiff);
+        // Initialize all update lists
+        initalizeLists(ln_vec_mn_[0], DIRECTION::X, false, grid_i_->procLoc()[0]                       , n_vec_[0]                      , n_vec_[0], ln_vec_mn_[0]);
+        initalizeLists(ln_vec_pl_[0], DIRECTION::X,  true, grid_i_->procLoc()[0] + grid_i_->local_x()-2, grid_i_->x()-2*gridComm_->npX(), n_vec_[0], ln_vec_pl_[0]);
+        initalizeLists(ln_vec_mn_[1], DIRECTION::Y, false, grid_i_->procLoc()[1]                       , n_vec_[1]                      , n_vec_[1], ln_vec_mn_[1]);
+        initalizeLists(ln_vec_pl_[1], DIRECTION::Y,  true, grid_i_->procLoc()[1] + grid_i_->local_y()-2, grid_i_->y()-2*gridComm_->npY(), n_vec_[1], ln_vec_pl_[1]);
+        initalizeLists(ln_vec_mn_[2], DIRECTION::Z, false, grid_i_->procLoc()[2]                       , n_vec_[2]                      , n_vec_[2], ln_vec_mn_[2]);
+        initalizeLists(ln_vec_pl_[2], DIRECTION::Z,  true, grid_i_->procLoc()[2] + grid_i_->local_z()-2, grid_i_->z()-2*gridComm_->npZ(), n_vec_[2], ln_vec_pl_[2]);
     }
 
     /**
-     * @brief      finds teh eta_eff values for all PMLs
-     * @details    no physEz since it is not needed in averaging
+     * @brief      calculates the effective mean value of $\eta_r$ for a plane in the FDTD cell
      *
-     * @param[in]  phys_Ex  physical grid for the y direction
-     * @param[in]  phys_Ey  physical grid for the x direction
-     * @param[in]  objArr   vector of all objects in the cell
+     * @param[in]  physVals        Slice from the object map grid
+     * @param[in]  objArr          The object arr
+     * @param[in]  normEtaSumDiff  The value to subtract from physVals.size() due to the -1 border
+     *
+     * @return     value of $\sqrt{\varepsilon_{r,eff} \mu_{r,eff}}$
+     */
+    double genEtaEffVal(const std::vector<int>& physVals, std::vector<std::shared_ptr<Obj>> objArr, double normEtaSumDiff)
+    {
+        double eps_sum = 0.0;
+        double mu_sum = 0.0;
+        // Sum up all the dielectric constants in the plane, if it is a boundary region don't add it
+        for(auto& val : physVals)
+        {
+            if(val != -1)
+            {
+                eps_sum += objArr[val]->epsInfty() / (physVals.size() - normEtaSumDiff);
+                mu_sum += objArr[val]->muInfty() / (physVals.size() - normEtaSumDiff);
+            }
+        }
+        // Find the average dielectric constant if outside the boundary regions
+        return eps_sum * mu_sum;
+    }
+
+    /**
+     * @brief      For the entire thickness of the PML find the values of the effective wave impedence
+     *
+     * @param[in]  physGrid      The object map grid
+     * @param[in]  planeNormDir  Direction of the normal vector to the PML
+     * @param[in]  pl            True if a pl PML
+     * @param[in]  objArr        The object arr
+     * @param      eta_eff       Vector storing the effective wave impedance for the PML
      */
     void genEtaEff(int_pgrid_ptr physGrid, DIRECTION planeNormDir, bool pl, std::vector<std::shared_ptr<Obj>> objArr, std::vector<double>& eta_eff)
     {
+        // Find cor_ii, jj, kk based on the the normal vector of the PML planes
+        // npII is the number of processes in the ii direction
+        // normEtaSumDiff removes the -1 boundary from the object
         int cor_ii = 0, cor_jj = 0,  cor_kk = 0, npII = 0;
         double normEtaSumDiff = 0.0;
         if(planeNormDir == DIRECTION::X)
         {
             cor_ii = 0, cor_jj = 1, cor_kk = 2;
-            npII = gridComm_.npX();
-            normEtaSumDiff = physGrid->local_z() != 1 ? 2*(gridComm_.npY()*physGrid->z() + gridComm_.npZ()*physGrid->y() ) - 4*(gridComm_.npY() * gridComm_.npZ()) : 2*gridComm_.npY();
+            npII = gridComm_->npX();
+            //For 3D: total elements in boundary = 2*(number processors in J dir * size in z + number of processors in K dir * size in j - 4 * num procs j * num procs k) last term to remove corners
+            normEtaSumDiff = physGrid->local_z() != 1 ? 2*(gridComm_->npY()*physGrid->z() + gridComm_->npZ()*physGrid->y() ) - 4*(gridComm_->npY() * gridComm_->npZ()) : 2*gridComm_->npY();
         }
         else if(planeNormDir == DIRECTION::Y)
         {
             cor_ii = 1, cor_jj = 2, cor_kk = 0;
-            npII = gridComm_.npY();
-            normEtaSumDiff = physGrid->local_z() != 1 ? 2*(gridComm_.npZ()*physGrid->x() + gridComm_.npX()*physGrid->z() ) - 4*(gridComm_.npZ() * gridComm_.npX()) : (2*( gridComm_.npX() ) );
+            npII = gridComm_->npY();
+            //For 3D: total elements in boundary = 2*(number processors in J dir * size in z + number of processors in K dir * size in j - 4 * num procs j * num procs k) last term to remove corners
+            normEtaSumDiff = physGrid->local_z() != 1 ? 2*(gridComm_->npZ()*physGrid->x() + gridComm_->npX()*physGrid->z() ) - 4*(gridComm_->npZ() * gridComm_->npX()) : (2*( gridComm_->npX() ) );
         }
         else if(planeNormDir == DIRECTION::Z)
         {
             cor_ii = 2, cor_jj = 0, cor_kk = 1;
-            npII = gridComm_.npZ();
-            normEtaSumDiff = 2*(gridComm_.npY()*physGrid->x() + gridComm_.npX()*physGrid->y() ) - 4*(gridComm_.npY() * gridComm_.npX());
+            npII = gridComm_->npZ();
+            //For 3D: total elements in boundary = 2*(number processors in J dir * size in z + number of processors in K dir * size in j - 4 * num procs j * num procs k) last term to remove corners
+            normEtaSumDiff = 2*(gridComm_->npY()*physGrid->x() + gridComm_->npX()*physGrid->y() ) - 4*(gridComm_->npY() * gridComm_->npX());
         }
+        // find values to loop over
         int min = pl ? physGrid->n_vec()[cor_ii] - (n_vec_[cor_ii] + npII*2) : 0;
         int max = pl ? physGrid->n_vec()[cor_ii] - 1 : n_vec_[cor_ii] + npII*2;
 
+        // loop over those values
         for(int ii = min; ii < max; ++ii)
         {
             double etaVal = 0.0;
@@ -227,27 +253,35 @@ public:
     }
 
     /**
-     * @brief determine the local nx and ny values for all directions on the local processor
+     * @brief      Finds each process's local PML thicknesses
      */
-    void genDatStruct()
+    void findLnVecs()
     {
+        // 1) Does the process inside the left PML? yes-> 2) Does the PML extend outside the process's region yes-> ln_vec_mn_[0] = local size of process, no-> ln_vec_mn_[0] = PML thickness-where the process started
         if(grid_i_->procLoc()[0] < n_vec_[0])
             ln_vec_mn_[0] = grid_i_->procLoc()[0] + grid_i_->local_x()-2 < n_vec_[0] ? grid_i_->local_x()-2 : n_vec_[0] - grid_i_->procLoc()[0];
-        if(grid_i_->procLoc()[0] + grid_i_->local_x()-2 > grid_i_->x() - 2*gridComm_.npX() - n_vec_[0])
-            ln_vec_pl_[0] = grid_i_->procLoc()[0] > grid_i_->x() - 2*gridComm_.npX() - n_vec_[0] ? grid_i_->local_x()-2 : grid_i_->procLoc()[0] + grid_i_->local_x() - 2 - (grid_i_->x() - 2*gridComm_.npX() - n_vec_[0]);;
 
+        // 1) Does the right PML begin before the process's region end? yes-> 2) Does the process begin after the PML begins? yes->ln_vec_pl_[0] = local size of process, no-> ln_vec_pl_[0] = the process's size - PML thickness
+        if(grid_i_->procLoc()[0] + grid_i_->local_x()-2 > grid_i_->x() - 2*gridComm_->npX() - n_vec_[0])
+            ln_vec_pl_[0] = grid_i_->procLoc()[0] > grid_i_->x() - 2*gridComm_->npX() - n_vec_[0] ? grid_i_->local_x()-2 : grid_i_->procLoc()[0] + grid_i_->local_x() - 2 - (grid_i_->x() - 2*gridComm_->npX() - n_vec_[0]);;
+
+        // 1) Does the process inside the bottom PML? yes-> 2) Does the PML extend outside the process's region yes-> ln_vec_mn_[1] = local size of process, no-> ln_vec_mn_[1] = PML thickness-where the process started
         if(grid_i_->procLoc()[1] < n_vec_[1])
             ln_vec_mn_[1] = grid_i_->procLoc()[1] + grid_i_->local_y()-2 < n_vec_[1] ? grid_i_->local_y()-2 : n_vec_[1] - grid_i_->procLoc()[1];
-        if(grid_i_->procLoc()[1] + grid_i_->local_y()-2 > grid_i_->y() - gridComm_.npY()*2 - n_vec_[1])
-            ln_vec_pl_[1] = grid_i_->procLoc()[1] > grid_i_->y() - gridComm_.npY()*2 - n_vec_[1] ? grid_i_->local_y()-2 : grid_i_->procLoc()[1] + grid_i_->local_y() - 2 - (grid_i_->y() - 2*gridComm_.npY() - n_vec_[1]);
+
+        // 1) Does the top PML begin before the process's region end? yes-> 2) Does the process begin after the PML begins? yes->ln_vec_pl_[1] = local size of process, no-> ln_vec_pl_[1] = the process's size - PML thickness
+        if(grid_i_->procLoc()[1] + grid_i_->local_y()-2 > grid_i_->y() - gridComm_->npY()*2 - n_vec_[1])
+            ln_vec_pl_[1] = grid_i_->procLoc()[1] > grid_i_->y() - gridComm_->npY()*2 - n_vec_[1] ? grid_i_->local_y()-2 : grid_i_->procLoc()[1] + grid_i_->local_y() - 2 - (grid_i_->y() - 2*gridComm_->npY() - n_vec_[1]);
 
         if(grid_i_->local_z() != 1)
         {
+            // 1) Does the process inside the back PML? yes-> 2) Does the PML extend outside the process's region yes-> ln_vec_mn_[2] = local size of process, no-> ln_vec_mn_[2] = PML thickness-where the process started
             if(grid_i_->procLoc()[2] < n_vec_[2])
                 ln_vec_mn_[2] = grid_i_->procLoc()[2] + grid_i_->local_z()-2 < n_vec_[2] ? grid_i_->local_z()-2 : n_vec_[2] - grid_i_->procLoc()[2];
 
-            if(grid_i_->procLoc()[2] + grid_i_->local_z()-2 > grid_i_->z() - gridComm_.npZ()*2 - n_vec_[2])
-                ln_vec_pl_[2] = grid_i_->procLoc()[2] > grid_i_->z() - gridComm_.npZ()*2 - n_vec_[2] ? grid_i_->local_z()-2 : grid_i_->procLoc()[2] + grid_i_->local_z() - 2 - (grid_i_->z() - 2*gridComm_.npZ() - n_vec_[2]);
+            // 1) Does the front PML begin before the process's region end? yes-> 2) Does the process begin after the PML begins? yes->ln_vec_pl_[2] = local size of process, no-> ln_vec_pl_[2] = the process's size - PML thickness
+            if(grid_i_->procLoc()[2] + grid_i_->local_z()-2 > grid_i_->z() - gridComm_->npZ()*2 - n_vec_[2])
+                ln_vec_pl_[2] = grid_i_->procLoc()[2] > grid_i_->z() - gridComm_->npZ()*2 - n_vec_[2] ? grid_i_->local_z()-2 : grid_i_->procLoc()[2] + grid_i_->local_z() - 2 - (grid_i_->z() - 2*gridComm_->npZ() - n_vec_[2]);
         }
     }
 
@@ -271,104 +305,97 @@ public:
         bool negC = true;
         int transSz2 = 1;
         std::vector<double> *eta_eff;
+
+        int cor_trans1 = -1, cor_trans2 = -1, cor_norm = -1;
+        int trans1FieldOff = 0, trans2FieldOff = 0;
+        int ccStart = 0; // where to start the loop over pmls
+        // Determine the coordinate system for the PML update lists compared to x,y,z
         if(dir == DIRECTION::X)
         {
-            if(grid_i_->local_z() != 1)
-            {
-                if(pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::EZ)
-                    param.transSz_ -= 1;
-                param.transSz_= grid_i_->local_z()-2;
-                transSz2 = grid_i_->local_y()-2;
-                if( (pol_i_ == POLARIZATION::EY || pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HZ ) && gridComm_.rank() == gridComm_.size() - 1)
-                    transSz2 -= 1;
-            }
-            else
-            {
-                param.transSz_= grid_i_->local_y()-2;
-                if( (pol_i_ == POLARIZATION::EY || pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HZ ) && gridComm_.rank() == gridComm_.size() - 1)
-                    param.transSz_ -= 1;
-            }
+            // 3D calculation do blas operations over z coordinate; for 2D do blas operations over y coordinate
+            cor_norm = 0;
+            cor_trans1 = (grid_i_->local_z() == 1) ? 1 : 2;
+            cor_trans2 = (grid_i_->local_z() == 1) ? 2 : 1;
+
             param.stride_ = grid_i_->local_x();
+            // What eta effective vector should be used
+            eta_eff = !pl ? &eta_eff_left_ : &eta_eff_right_;
+            // Determines sign of the spatial derivative
+            negC = (pol_i_ == POLARIZATION::EZ || pol_i_ == POLARIZATION::EY) ? false : true;
 
+            // Ey, Hx, and Hz fields have one less point in the y direction
+            if( (pol_i_ == POLARIZATION::EY || pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HZ ) && gridComm_->rank() == gridComm_->size() - 1)
+                (grid_i_->local_z() == 1) ? trans1FieldOff = 1 : trans2FieldOff = 1;
 
-            if(pol_i_ == POLARIZATION::EZ || pol_i_ == POLARIZATION::EY)
-                negC = false;
+            // Ez, Hx, and Hy fields have one less point in the z direction
+            if( (pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::EZ ) )
+                (grid_i_->local_z() == 1) ? trans2FieldOff = 1 : trans1FieldOff = 1;
 
-            if(pl)
-                eta_eff = &eta_eff_right_;
-            else
-                eta_eff = &eta_eff_left_;
+            // PML start / Max conditions depending on where in the map they are
+            if( pol_i_ == POLARIZATION::HZ || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::EX)
+                pl ? ccStart = 1 : dirMax -= 1;
         }
         else if(dir == DIRECTION::Y)
         {
-            param.transSz_= grid_i_->local_x()-2;
-            if(pol_i_ == POLARIZATION::EX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::HZ )
-                param.transSz_ -= 1;
+            cor_norm = 1;
+            cor_trans1 = 0;
+            cor_trans2 = 2;
 
-            if(grid_i_->local_z() != 1)
-            {
-                transSz2 = grid_i_->local_z()-2;
-                if( (pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::EZ ) )
-                    transSz2 -= 1;
-            }
             param.stride_ = 1;
-
-            if(pol_i_ == POLARIZATION::EZ || pol_i_ == POLARIZATION::EX)
-                negC = false;
-
-            if(pl)
-                eta_eff = &eta_eff_top_;
-            else
-                eta_eff = &eta_eff_bot_;
+            // What eta effective vector should be used
+            eta_eff = !pl ? &eta_eff_bot_ : &eta_eff_top_;
+            // Determines sign of the spatial derivative
+            negC = (pol_i_ == POLARIZATION::EZ || pol_i_ == POLARIZATION::EX) ? false : true;
+            // Ex, Hy, and Hz fields have one less point in the x direction
+            if(pol_i_ == POLARIZATION::EX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::HZ )
+                trans1FieldOff = 1;
+            // Ez, Hx, and Hy fields have one less point in the z direction
+            if( (pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::EZ ) )
+                trans2FieldOff = 1;
+            // Hx, Ey, and Hz fields all have one less point in the z direction
+            if( ( gridComm_->rank() == gridComm_->size()-1) && (pol_i_ == POLARIZATION::HZ || pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::EY) )
+                pl ? ccStart = 1 : dirMax -= 1;
         }
         else if(dir == DIRECTION::Z)
         {
-            param.transSz_= grid_i_->local_x()-2;
-            if(pol_i_ == POLARIZATION::EX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::HZ )
-                param.transSz_ -= 1;
-
-            transSz2 = grid_i_->local_y()-2;
-            if( (pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HZ || pol_i_ == POLARIZATION::EY ) && gridComm_.rank() == gridComm_.size() - 1)
-                transSz2 -= 1;
-
+            cor_norm = 2;
+            cor_trans1 = 0;
+            cor_trans2 = 1;
             param.stride_ = 1;
-
-            if(pol_i_ == POLARIZATION::EY || pol_i_ == POLARIZATION::EX)
-                negC = false;
-
-            if(pl)
-                eta_eff = &eta_eff_front_;
-            else
-                eta_eff = &eta_eff_back_;
+            // What eta effective vector should be used
+            eta_eff = !pl ? &eta_eff_back_ : &eta_eff_front_;
+            // Determines sign of the spatial derivative
+            negC = (pol_i_ == POLARIZATION::EY || pol_i_ == POLARIZATION::EX) ? false : true;
+            // Ex, Hy, and Hz fields have one less point in the x direction
+            if(pol_i_ == POLARIZATION::EX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::HZ )
+                trans1FieldOff = 1;
+            // Ey, Hx, and Hz fields have one less point in the y direction
+            if( (pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HZ || pol_i_ == POLARIZATION::EY ) && gridComm_->rank() == gridComm_->size() - 1)
+                trans2FieldOff = 1;
+            // Hx, Hy, and Ez fields all have one less point in the z direction
+            if( pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::EZ )
+                pl ? ccStart = 1 : dirMax -= 1;
         }
         else
+        {
             throw std::logic_error("PMLs need to be in X,Y, or Z direction it can't be NONE");
+        }
+        param.transSz_ = grid_i_->ln_vec()[cor_trans1] - 2 - trans1FieldOff;
+        transSz2       = grid_i_->ln_vec()[cor_trans2] - 2 - trans2FieldOff;
+        if(grid_i_->local_z() == 1 && cor_trans2 == 2)
+            transSz2 = 1;
 
+        // Magnetic fields are all 0.5 units off the main gird points in a direction not along its polarization (which are not included.)
+        int dist = 0;
         double distOff = 0.0;
         if(pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::HZ)
             distOff = pl ? -0.5 : 0.5;
 
-        int dist = 0;
-        int ccStart = 0;
-        if( (dir == DIRECTION::Z) && (pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::EZ) )
-            pl ? ccStart = 1 : dirMax -= 1;
-        else if( dir == DIRECTION::Y && (gridComm_.rank() == gridComm_.size()-1) && (pol_i_ == POLARIZATION::HZ || pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::EY) )
-            pl ? ccStart = 1 : dirMax -= 1;
-        else if( dir == DIRECTION::X && (pol_i_ == POLARIZATION::HZ || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::EX) )
-            pl ? ccStart = 1 : dirMax -= 1;
-
-        int zStart = 0;
-        if(grid_i_->local_z() != 1)
-            zStart = 1;
-
-        for(int cc = ccStart; cc < dirMax; cc++)
+        // Get the constants for all directions by looping over the PML thickness
+        for(int cc = ccStart; cc < dirMax; ++cc)
         {
-            if(dir == DIRECTION::X)
-                dist = pmlEdge > nDir ? (grid_i_->x()-2*gridComm_.npX()) - (startPt - cc) : cc+startPt;
-            else if(dir == DIRECTION::Y)
-                dist = pmlEdge > nDir ? (grid_i_->y()-2*gridComm_.npY()) - (startPt - cc) : cc+startPt;
-            else if(dir == DIRECTION::Z)
-                dist = pmlEdge > nDir ? (grid_i_->z()-2*gridComm_.npZ()) - (startPt - cc) : cc+startPt;
+            // calculate distance from edge (facing into the cell)
+            dist = pmlEdge > nDir ? (grid_i_->n_vec()[cor_norm]-2*gridComm_->npArr()[cor_norm]) - (startPt - cc) : cc+startPt;
 
             double sig = sigma( (static_cast<double>(dist) + distOff), static_cast<double>(nDir-1), eta_eff->at(dist));
             double kap = kappa( (static_cast<double>(dist) + distOff), static_cast<double>(nDir-1) );
@@ -379,44 +406,33 @@ public:
             param.cOff_ = c( sig, a, kap );
             negC ? param.c_ *= -1.0 : param.cOff_ *= -1.0;
 
+            // initialize the loc and locOff to -1, -1, -1
+            param.loc_    = {-1, -1, -1};
+            param.locOff_ = {-1, -1, -1};
+
+            // blas operations will always start at 1 (transSz)
+            param.loc_[cor_trans1] = 1;
+            param.locOff_[cor_trans1] = 1;
+            // along the transSz2 direction  get the offset location from the update and then put the param set at the end of the vector
             for(int jj = 0; jj < transSz2 ; ++jj)
             {
-                if(dir == DIRECTION::X)
-                {
-                    if(grid_i_->local_z() != 1)
-                    {
-                        pl ? param.loc_ = {grid_i_->local_x()-2 - cc, jj+1, zStart} : param.loc_ = {cc+1, jj+1, zStart};
-                        if(pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::HZ)
-                            pl ? param.locOff_ = {grid_i_->local_x()-1 - cc, 1+jj, zStart} : param.locOff_ = {cc+2, 1+jj, zStart};
-                        else
-                            pl ? param.locOff_ = {grid_i_->local_x()-3 - cc, 1+jj, zStart} : param.locOff_ = {cc  , 1+jj, zStart};
-                    }
-                    else
-                    {
-                        pl ? param.loc_ = {grid_i_->local_x()-2 - cc, 1, zStart+jj} : param.loc_ = {cc+1, 1, zStart+jj};
-                        if(pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::HZ)
-                            pl ? param.locOff_ = {grid_i_->local_x()-1 - cc, 1, zStart+jj} : param.locOff_ = {cc+2, 1, zStart+jj};
-                        else
-                            pl ? param.locOff_ = {grid_i_->local_x()-3 - cc, 1, zStart+jj} : param.locOff_ = {cc  , 1, zStart+jj};
-                    }
-                }
-                else if(dir == DIRECTION::Y)
-                {
-                    pl ? param.loc_ = {1, grid_i_->local_y()-2 - cc, zStart+jj} : param.loc_ = {1, cc+1, zStart+jj};
-                    if(pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::HZ)
-                        pl ? param.locOff_ = {1, grid_i_->local_y()-1 - cc, zStart+jj} : param.locOff_ = {1, cc+2, zStart+jj};
-                    else
-                        pl ? param.locOff_ = {1, grid_i_->local_y()-3 - cc, zStart+jj} : param.locOff_ = {1, cc  , zStart+jj};
-                }
-                else if(dir == DIRECTION::Z)
-                {
-                    pl ? param.loc_ = {1, jj+1, grid_i_->local_z()-2 - cc} : param.loc_ = {1, jj+1, cc+1};
-                    if(pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::HZ)
-                        pl ? param.locOff_ = {1, jj+1, grid_i_->local_z()-1 - cc} : param.locOff_ = {1, jj+1, cc+2};
-                    else
-                        pl ? param.locOff_ = {1, jj+1, grid_i_->local_z()-3 - cc} : param.locOff_ = {1, jj+1, cc  };
-                }
+                // param.loc_[cor_norm] is based on the distance and the locOff_[cor_norm] would be + 1 if an E field polarization, and - 1 if an H field polarization
+                param.loc_[cor_norm] = pl ? grid_i_->ln_vec()[cor_norm] - 2 - cc : cc+1;
+                if( pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::HZ )
+                    param.locOff_[cor_norm] = pl ? grid_i_->ln_vec()[cor_norm]-1-cc : cc + 2;
+                else
+                    param.locOff_[cor_norm] = pl ? grid_i_->ln_vec()[cor_norm]-3-cc : cc;
 
+                // looping parameters start at 1+jj
+                param.loc_[cor_trans2] = 1+jj;
+                param.locOff_[cor_trans2] = 1+jj;
+
+                // if 2D z coordinate will be 0 not one so subtract 1
+                if(grid_i_->local_z() == 1)
+                {
+                    param.loc_[2] -= 1;
+                    param.locOff_[2] -= 1;
+                }
                 paramList.push_back(param);
             }
         }
@@ -426,51 +442,73 @@ public:
     /**
      * @brief generate the lists that add psi to grid
      *
-     * @param[in] xmin minimum in the x direction
-     * @param[in] xmax maximum in the x direction
-     * @param[in] ymin minimum in the y direction
-     * @param[in] ymax maximum in the y direction
-     * @param[in] zmin minimum in the z direction
-     * @param[in] zmax maximum in the z direction
-     * @param[in] stride stride for mkl operations
+     * @param[in] min an array describing minimum values in each direction
+     * @param[in] max an array describing maximum values in each direction
+     * @param[in] stride stride for blas operations
      * @param[in] physGrid physical grid for direction
      * @return ax lists to generate the lists that add psi to grid
      */
-    std::vector<std::array<int,5>> getAxLists(int xmin, int xmax, int ymin, int ymax, int zmin, int zmax, int stride, int_pgrid_ptr physGrid)
+    std::vector<std::array<int,5>> getAxLists(std::array<int,3> min, std::array<int,3> max, int stride)
     {
+        // Loop over the PMLS and add the PML updates are independent of the object maps since they act on the D field if not in vacuum, the code is commented out in case this needs to change.
         std::vector<std::array<int,5>> axLists;
         if(stride == 1)
         {
-            for(int kk = zmin; kk < zmax; ++kk)
+            for(int kk = min[2]; kk < max[2]; ++kk)
             {
-                for(int jj = ymin; jj < ymax; ++jj)
+                for(int jj = min[1]; jj < max[1]; ++jj)
                 {
-                    int ii = xmin;
-                    while(ii < xmax)
-                    {
-                        int iistore = ii;
-                        while (ii < xmax-1 && physGrid->point(ii,jj,kk) == physGrid->point(ii+1,jj,kk) )
-                            ++ii;
-                        axLists.push_back( {{ iistore, jj, kk, ii-iistore+1, static_cast<int>(physGrid->point(iistore,jj,kk)) }} );
-                        ++ii;
-                    }
+                    axLists.push_back( {{ min[0], jj, kk, max[0]-min[0]+1, 0 }} );
+                    // int ii = min[0];
+                    // while(ii < max[0])
+                    // {
+                    //     int iistore = ii;
+                    //     while (ii < max[0]-1 && physGrid->point(ii,jj,kk) == physGrid->point(ii+1,jj,kk) )
+                    //         ++ii;
+                    //     axLists.push_back( {{ iistore, jj, kk, ii-iistore+1, static_cast<int>(physGrid->point(iistore,jj,kk)) }} );
+                    //     ++ii;
+                    // }
                 }
             }
         }
         else
         {
-            for(int kk = zmin; kk < zmax; ++kk)
+            // If 2D do the blas operations on the Y direction, if 3D do blas operations in the Z direction
+            if(grid_i_->local_z()==1)
             {
-                for(int ii = xmin; ii < xmax; ++ii)
+                for(int kk = min[2]; kk < max[2]; ++kk)
                 {
-                    int jj = ymin;
-                    while(jj < ymax)
+                    for(int ii = min[0]; ii < max[0]; ++ii)
                     {
-                        int jjstore = jj;
-                        while (jj < ymax-1 && physGrid->point(ii,jj,kk) == physGrid->point(ii,jj+1,kk) )
-                            ++jj;
-                        axLists.push_back( {{ ii, jjstore, kk, jj-jjstore+1, static_cast<int>(physGrid->point(ii,jjstore,kk)) }} );
-                        ++jj;
+                        axLists.push_back( {{ ii, min[1], kk, max[1]-min[1]+1, 0 }} );
+                        // int jj = min[1];
+                        // while(jj < max[1])
+                        // {
+                        //     int jjstore = jj;
+                        //     while (jj < max[1]-1 && physGrid->point(ii,jj,kk) == physGrid->point(ii,jj+1,kk) )
+                        //         ++jj;
+                        //     axLists.push_back( {{ ii, jjstore, kk, jj-jjstore+1, static_cast<int>(physGrid->point(ii,jjstore,kk)) }} );
+                        //     ++jj;
+                        // }
+                    }
+                }
+            }
+            else
+            {
+                for(int jj = min[1]; jj < max[1]; ++jj)
+                {
+                    for(int ii = min[0]; ii < max[0]; ++ii)
+                    {
+                        axLists.push_back( {{ ii, jj, min[2], max[2]-min[2]+1, 0 }} );
+                        // int kk = min[2];
+                        // while(kk < max[2])
+                        // {
+                        //     int kkstore = kk;
+                        //     while (kk < max[2]-1 && physGrid->point(ii,jj,kk) == physGrid->point(ii,jj,kk+1) )
+                        //         ++kk;
+                        //     axLists.push_back( {{ ii, jj, kkstore, kk-kkstore+1, static_cast<int>(physGrid->point(ii,jj,kkstore)) }} );
+                        //     ++kk;
+                        // }
                     }
                 }
             }
@@ -490,297 +528,143 @@ public:
      *
      * @return     The grid up list.
      */
-    std::vector<updateGridParams> getGridUpList(DIRECTION dir, bool pl,  int_pgrid_ptr physGrid, std::vector<std::shared_ptr<Obj>> objArr)
+    std::vector<updateGridParams> getGridUpList(DIRECTION dir, bool pl)
     {
         std::vector<updateGridParams> paramList;
         updateGridParams param;
 
-        bool negD = true;
-
+        std::array<int,3> min = {0,0,0};
+        std::array<int,3> max = {0,0,0};
+        int cor_ii = 0, cor_jj = 0, cor_kk = 0, off_ii = 0;
+        // Determine the x, y, and z min/max for each direction. For transverse directions it is the field size limitations and the normal direction is based on the PML thickness
         if(dir == DIRECTION::X)
         {
-            param.stride_ = grid_i_->local_x()*grid_i_->local_z();
-            int xmin, xmax, ymin, ymax, zmin, zmax;
-            ymin = 1;
-            ymax = grid_i_->local_y()-1;
-            if( ( gridComm_.rank() == gridComm_.size()-1 ) && (pol_i_ == POLARIZATION::HZ || pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::EY) )
-                ymax -= 1;
-            if(pl)
-            {
-                xmin = grid_i_->local_x() - ln_vec_pl_[0] - 1;
-                xmax = grid_i_->local_x() -1;
-                if( pol_i_ == POLARIZATION::HZ || pol_i_ == POLARIZATION::EX || pol_i_ == POLARIZATION::HY)
-                    xmax -= 1;
-            }
-            else
-            {
-                xmin = 1;
-                xmax = ln_vec_mn_[0];
-                if( pol_i_ == POLARIZATION::EZ || pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::EY)
-                    xmax += 1;
-            }
-            if(grid_i_->local_z() == 1)
-            {
-                zmin = 0;
-                zmax = 1;
-            }
-            else
-            {
-                zmin = 1;
-                zmax = grid_i_->local_z() - 1;
-                if(pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::EZ)
-                    zmax -= 1;
-            }
-            std::vector<std::array<int,5>> axParams = getAxLists(xmin, xmax, ymin, ymax, zmin, zmax, param.stride_, physGrid);
-            for(auto & axList : axParams)
-            {
-                param.loc_ = {axList[0], axList[1], axList[2]};
-                param.nAx_ = axList[3];
-                param.Db_    = dt_ / d_[0];
-                if(pol_i_ == POLARIZATION::HZ || pol_i_ == POLARIZATION::EY)
-                    param.Db_*=-1.0;
-                paramList.push_back(param);
-            }
+            param.stride_ = grid_i_->local_x();
+            cor_ii = 0; cor_jj = 1; cor_kk = 2;
+
+            // Prefactor sign can be determined by looking at Taflove Chapter 7
+            param.Db_    = dt_ / d_[0];
+            if(pol_i_ == POLARIZATION::HZ || pol_i_ == POLARIZATION::EY)
+                param.Db_*=-1.0;
+
+            // offset in the ii direction is based on taking the mirror image of the point in the opposite PML
+            if(pl && ( pol_i_ == POLARIZATION::HZ || pol_i_ == POLARIZATION::EX || pol_i_ == POLARIZATION::HY ) )
+                off_ii = -1;
+            else if( !pl && ( pol_i_ == POLARIZATION::EZ || pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::EY ) )
+                off_ii = 1;
         }
         else if(dir == DIRECTION::Y)
         {
             param.stride_ = 1;
-            int xmin, xmax, ymin, ymax, zmin, zmax;
-            xmin = 1;
-            xmax = grid_i_->local_x()-1;
-            if( pol_i_ == POLARIZATION::HZ || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::EX)
-                xmax -= 1;
-            if(pl)
-            {
-                ymin = grid_i_->local_y() - ln_vec_pl_[1] - 1;
-                ymax = grid_i_->local_y() -1;
-                if( pol_i_ == POLARIZATION::HZ || pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::EY)
-                    ymax -= 1;
-            }
-            else
-            {
-                ymin = 1;
-                ymax = ln_vec_mn_[1];
-                if( pol_i_ == POLARIZATION::EZ || pol_i_ == POLARIZATION::EX || pol_i_ == POLARIZATION::HY)
-                    ymax += 1;
-            }
-            if(grid_i_->local_z() == 1)
-            {
-                zmin = 0;
-                zmax = 1;
-            }
-            else
-            {
-                zmin = 1;
-                zmax = grid_i_->local_z() - 1;
-                if(pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::EZ)
-                    zmax -= 1;
-            }
-            std::vector<std::array<int,5>> axParams = getAxLists(xmin, xmax, ymin, ymax, zmin , zmax, param.stride_, physGrid);
-            for(auto & axList : axParams)
-            {
-                param.loc_ = {axList[0], axList[1], axList[2]};
-                param.nAx_ = axList[3];
-                param.Db_    = dt_ / d_[1];
-                if(pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::EZ)
-                    param.Db_*=-1.0;
-                paramList.push_back(param);
-            }
+            cor_ii = 1; cor_jj = 2; cor_kk = 0;
+
+            // Prefactor sign can be determined by looking at Taflove Chapter 7
+            param.Db_    = dt_ / d_[1];
+            if(pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::EZ)
+                param.Db_*=-1.0;
+
+            // offset in the ii direction is based on taking the mirror image of the point in the opposite PML
+            if(pl && ( pol_i_ == POLARIZATION::HZ || pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::EY ) )
+                off_ii = -1;
+            else if( !pl && ( pol_i_ == POLARIZATION::EZ || pol_i_ == POLARIZATION::EX || pol_i_ == POLARIZATION::HY ) )
+                off_ii = 1;
         }
         else if(dir == DIRECTION::Z)
         {
             param.stride_ = 1;
-            int xmin, xmax, ymin, ymax, zmin, zmax;
-            ymin = 1;
-            ymax = grid_i_->local_y()-1;
-            if( ( gridComm_.rank() == gridComm_.size()-1 ) && (pol_i_ == POLARIZATION::HZ || pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::EY) )
-                ymax -= 1;
-            if(pl)
-            {
-                zmin = grid_i_->local_z() - ln_vec_pl_[2] - 1;
-                zmax = grid_i_->local_z() -1;
-                if( pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::EZ)
-                    zmax -= 1;
-            }
-            else
-            {
-                zmin = 1;
-                zmax = ln_vec_mn_[2];
-                if( pol_i_ == POLARIZATION::EX || pol_i_ == POLARIZATION::EY || pol_i_ == POLARIZATION::HZ)
-                    zmax += 1;
-            }
-            xmin = 1;
-            xmax = grid_i_->local_x() - 1;
-            if(pol_i_ == POLARIZATION::EX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::HZ)
-                xmax -= 1;
-            std::vector<std::array<int,5>> axParams = getAxLists(xmin, xmax, ymin, ymax, zmin, zmax, param.stride_, physGrid);
-            for(auto & axList : axParams)
-            {
-                param.loc_ = {axList[0], axList[1], axList[2]};
-                param.nAx_ = axList[3];
-                param.Db_    = dt_ / d_[2];
-                if(pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::EX)
-                    param.Db_*=-1.0;
-                paramList.push_back(param);
-            }
+            cor_ii = 2; cor_jj = 0; cor_kk = 1;
+
+            // Prefactor sign can be determined by looking at Taflove Chapter 7
+            param.Db_    = dt_ / d_[2];
+            if(pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::EX)
+                param.Db_*=-1.0;
+
+            // offset in the ii direction is based on taking the mirror image of the point in the opposite PML
+            if(pl && ( pol_i_ == POLARIZATION::EZ || pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HY ) )
+                off_ii = -1;
+            else if( !pl && ( pol_i_ == POLARIZATION::HZ || pol_i_ == POLARIZATION::EX || pol_i_ == POLARIZATION::EY ) )
+                off_ii = 1;
         }
         else
             throw std::logic_error("Direction for grid updates has to be X, Y or Z not NONE");
+
+        min[cor_ii] += pl ? grid_i_->ln_vec()[cor_ii] - ln_vec_pl_[cor_ii] - 1  : 1 ;
+        max[cor_ii] += pl ? grid_i_->ln_vec()[cor_ii] -1  + off_ii: ln_vec_mn_[cor_ii] + off_ii;
+
+        min[cor_jj] = 1;
+        max[cor_jj] = grid_i_->ln_vec()[cor_jj]-1;
+
+        min[cor_kk] = 1;
+        max[cor_kk] = grid_i_->ln_vec()[cor_kk]-1;
+
+        // Ex, Hy, Hz fields have one less point in the x direction
+        if( cor_ii != 0 && ( pol_i_ == POLARIZATION::HZ || pol_i_ == POLARIZATION::EX || pol_i_ == POLARIZATION::HY ) )
+            max[0] -= 1;
+        // Hx, Ey, Hz fields have one less point in the y direction
+        if( cor_ii != 1 && ( gridComm_->rank() == gridComm_->size()-1 ) && (pol_i_ == POLARIZATION::HZ || pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::EY) )
+            max[1] -= 1;
+        // Hx, Hy, Ez fields have one less point in the z direction
+        if( cor_ii != 2 && grid_i_->local_z() != 1 && ( pol_i_ == POLARIZATION::HX || pol_i_ == POLARIZATION::HY || pol_i_ == POLARIZATION::EZ ) )
+            max[2] -= 1;
+
+
+        std::vector<std::array<int,5>> axParams = getAxLists(min, max, param.stride_);
+        for(auto & axList : axParams)
+        {
+            param.loc_ = {axList[0], axList[1], axList[2]};
+            param.nAx_ = axList[3];
+            paramList.push_back(param);
+        }
 
         return paramList;
     }
 
     /**
-     * @brief      Creates the psi update lists and the addition lists
-     * @details    No phys_Ez since there will always be a break at the Ez grid
+     * @brief      Fills the psi and grid update lists with the correct values
      *
-     * @param[in]  phys_Ex  The physical ex grids
-     * @param[in]  phys_Ey  The physical ey grids
-     * @param[in]  objArr   The lists of objects in the grid
+     * @param[in]  ln_pml   local size of the PML thickness
+     * @param[in]  dir      The direction of polarization of the $\psi$ field
+     * @param[in]  pl       True if top, right or front.
+     * @param[in]  startPt  Where the PMLs starts.
+     * @param[in]  pmlEdge  Where the PML ends
+     * @param[in]  nDir     Thickness in that direction.
+     * @param[in]  dirMax   How far to iterate over.
+     * @param      psiList   The $\psi$ update list
+     * @param      gridList  The grid_i update list
      */
-    void initalizeGrid(int_pgrid_ptr physGrid, std::vector<std::shared_ptr<Obj>> objArr)
+    void fillLists(DIRECTION dir, bool pl, int startPt, int pmlEdge, int nDir, int dirMax, std::vector<updatePsiParams>& psiList, std::vector<updateGridParams>& gridList)
     {
         std::vector<updatePsiParams> psiTemp;
         std::vector<updateGridParams> gridTemp;
-        int dirMax;
-        if(ln_vec_pl_[1] > 0 && i_ != DIRECTION::Y)
+
+        psiTemp  = getPsiUpList (dir, pl, startPt, pmlEdge, nDir, dirMax);
+        gridTemp = getGridUpList(dir, pl);
+
+        psiList.reserve(psiList.size() + psiTemp.size());
+        psiList.insert(psiList.end(), psiTemp.begin(), psiTemp.end());
+        gridList.reserve(gridList.size() + gridTemp.size());
+        gridList.insert(gridList.end(), gridTemp.begin(), gridTemp.end());
+    }
+
+    /**
+     * @brief      Initializes the update list with the correct parameters
+     *
+     * @param[in]  ln_pml   local size of the PML thickness
+     * @param[in]  dir      The direction of polarization of the $\psi$ field
+     * @param[in]  pl       True if top, right or front.
+     * @param[in]  startPt  Where the PMLs starts.
+     * @param[in]  pmlEdge  Where the PML ends
+     * @param[in]  nDir     Thickness in that direction.
+     * @param[in]  dirMax   How far to iterate over.
+     */
+    void initalizeLists(int ln_pml, DIRECTION dir, bool pl, int startPt, int pmlEdge, int nDir, int dirMax)
+    {
+        if(ln_pml > 0 && i_ != dir)
         {
-            if(grid_k_ && j_ == DIRECTION::Y)
-            {
-                psiTemp  = getPsiUpList (DIRECTION::Y, true, grid_i_->procLoc()[1] + grid_i_->local_y()-2,  grid_i_->y()-2*gridComm_.npY(), n_vec_[1], ln_vec_pl_[1]);
-                gridTemp = getGridUpList(DIRECTION::Y, true, physGrid, objArr);
-                updateListPsi_j_.reserve(updateListPsi_j_.size() + psiTemp.size());
-                updateListPsi_j_.insert(updateListPsi_j_.end(), psiTemp.begin(), psiTemp.end());
-                updateListGrid_j_.reserve(updateListGrid_j_.size() + gridTemp.size());
-                updateListGrid_j_.insert(updateListGrid_j_.end(), gridTemp.begin(), gridTemp.end());
-            }
-            else if(grid_j_ && k_ == DIRECTION::Y)
-            {
-                psiTemp  = getPsiUpList (DIRECTION::Y, true, grid_i_->procLoc()[1] + grid_i_->local_y()-2,  grid_i_->y()-2*gridComm_.npY(), n_vec_[1], ln_vec_pl_[1]);
-                gridTemp = getGridUpList(DIRECTION::Y, true, physGrid, objArr);
-                updateListPsi_k_.reserve(updateListPsi_k_.size() + psiTemp.size());
-                updateListPsi_k_.insert(updateListPsi_k_.end(), psiTemp.begin(), psiTemp.end());
-                updateListGrid_k_.reserve(updateListGrid_k_.size() + gridTemp.size());
-                updateListGrid_k_.insert(updateListGrid_k_.end(), gridTemp.begin(), gridTemp.end());
-            }
-        }
-        if(ln_vec_mn_[1] > 0 && i_ != DIRECTION::Y)
-        {
-            if(grid_k_ && j_ == DIRECTION::Y)
-            {
-                psiTemp  = getPsiUpList (DIRECTION::Y, false, grid_i_->procLoc()[1], n_vec_[1], n_vec_[1], ln_vec_mn_[1]);
-                gridTemp = getGridUpList(DIRECTION::Y, false, physGrid, objArr);
-
-                updateListPsi_j_.reserve(updateListPsi_j_.size() + psiTemp.size());
-                updateListPsi_j_.insert(updateListPsi_j_.end(), psiTemp.begin(), psiTemp.end());
-                updateListGrid_j_.reserve(updateListGrid_j_.size() + gridTemp.size());
-                updateListGrid_j_.insert(updateListGrid_j_.end(), gridTemp.begin(), gridTemp.end());
-            }
-            else if(grid_j_ && k_ == DIRECTION::Y)
-            {
-                psiTemp  = getPsiUpList (DIRECTION::Y, false, grid_i_->procLoc()[1], n_vec_[1], n_vec_[1], ln_vec_mn_[1]);
-                gridTemp = getGridUpList(DIRECTION::Y, false, physGrid, objArr);
-
-                updateListPsi_k_.reserve(updateListPsi_k_.size() + psiTemp.size());
-                updateListPsi_k_.insert(updateListPsi_k_.end(), psiTemp.begin(), psiTemp.end());
-                updateListGrid_k_.reserve(updateListGrid_k_.size() + gridTemp.size());
-                updateListGrid_k_.insert(updateListGrid_k_.end(), gridTemp.begin(), gridTemp.end());
-
-            }
-        }
-        if(ln_vec_mn_[0] > 0 && i_ != DIRECTION::X)
-        {
-            if(grid_k_ && j_ == DIRECTION::X)
-            {
-                psiTemp  = getPsiUpList (DIRECTION::X, false, grid_i_->procLoc()[0], n_vec_[0], n_vec_[0], ln_vec_mn_[0]);
-                gridTemp = getGridUpList(DIRECTION::X, false, physGrid, objArr);
-
-                updateListPsi_j_.reserve(updateListPsi_j_.size() + psiTemp.size());
-                updateListPsi_j_.insert(updateListPsi_j_.end(), psiTemp.begin(), psiTemp.end());
-                updateListGrid_j_.reserve(updateListGrid_j_.size() + gridTemp.size());
-                updateListGrid_j_.insert(updateListGrid_j_.end(), gridTemp.begin(), gridTemp.end());
-            }
-            else if(grid_j_ && k_ == DIRECTION::X)
-            {
-                psiTemp  = getPsiUpList (DIRECTION::X, false, grid_i_->procLoc()[0], n_vec_[0], n_vec_[0], ln_vec_mn_[0]);
-                gridTemp = getGridUpList(DIRECTION::X, false, physGrid, objArr);
-
-                updateListPsi_k_.reserve(updateListPsi_k_.size() + psiTemp.size());
-                updateListPsi_k_.insert(updateListPsi_k_.end(), psiTemp.begin(), psiTemp.end());
-                updateListGrid_k_.reserve(updateListGrid_k_.size() + gridTemp.size());
-                updateListGrid_k_.insert(updateListGrid_k_.end(), gridTemp.begin(), gridTemp.end());
-            }
-        }
-        if(ln_vec_pl_[0] > 0 && i_ != DIRECTION::X)
-        {
-            if(grid_k_ && j_ == DIRECTION::X)
-            {
-                psiTemp  = getPsiUpList (DIRECTION::X, true, grid_i_->procLoc()[0] + grid_i_->local_x()-2,  grid_i_->x()-2*gridComm_.npX(), n_vec_[0], ln_vec_pl_[0]);
-                gridTemp = getGridUpList(DIRECTION::X, true, physGrid, objArr);
-
-                updateListPsi_j_.reserve(updateListPsi_j_.size() + psiTemp.size());
-                updateListPsi_j_.insert(updateListPsi_j_.end(), psiTemp.begin(), psiTemp.end());
-                updateListGrid_j_.reserve(updateListGrid_j_.size() + gridTemp.size());
-                updateListGrid_j_.insert(updateListGrid_j_.end(), gridTemp.begin(), gridTemp.end());
-            }
-            else if(grid_j_ && k_ == DIRECTION::X)
-            {
-                psiTemp  = getPsiUpList (DIRECTION::X, true, grid_i_->procLoc()[0] + grid_i_->local_x()-2,  grid_i_->x()-2*gridComm_.npX(), n_vec_[0], ln_vec_pl_[0]);
-                gridTemp = getGridUpList(DIRECTION::X, true, physGrid, objArr);
-
-                updateListPsi_k_.reserve(updateListPsi_k_.size() + psiTemp.size());
-                updateListPsi_k_.insert(updateListPsi_k_.end(), psiTemp.begin(), psiTemp.end());
-                updateListGrid_k_.reserve(updateListGrid_k_.size() + gridTemp.size());
-                updateListGrid_k_.insert(updateListGrid_k_.end(), gridTemp.begin(), gridTemp.end());
-            }
-        }
-
-
-        if(ln_vec_mn_[2] > 0 && i_ != DIRECTION::Z)
-        {
-            if(grid_k_ && j_ == DIRECTION::Z)
-            {
-                psiTemp  = getPsiUpList (DIRECTION::Z, false, grid_i_->procLoc()[2], n_vec_[2], n_vec_[2], ln_vec_mn_[2]);
-                gridTemp = getGridUpList(DIRECTION::Z, false, physGrid, objArr);
-
-                updateListPsi_j_.reserve(updateListPsi_j_.size() + psiTemp.size());
-                updateListPsi_j_.insert(updateListPsi_j_.end(), psiTemp.begin(), psiTemp.end());
-                updateListGrid_j_.reserve(updateListGrid_j_.size() + gridTemp.size());
-                updateListGrid_j_.insert(updateListGrid_j_.end(), gridTemp.begin(), gridTemp.end());
-            }
-            else if(grid_j_ && k_ == DIRECTION::Z)
-            {
-                psiTemp  = getPsiUpList (DIRECTION::Z, false, grid_i_->procLoc()[2], n_vec_[2], n_vec_[2], ln_vec_mn_[2]);
-                gridTemp = getGridUpList(DIRECTION::Z, false, physGrid, objArr);
-
-                updateListPsi_k_.reserve(updateListPsi_k_.size() + psiTemp.size());
-                updateListPsi_k_.insert(updateListPsi_k_.end(), psiTemp.begin(), psiTemp.end());
-                updateListGrid_k_.reserve(updateListGrid_k_.size() + gridTemp.size());
-                updateListGrid_k_.insert(updateListGrid_k_.end(), gridTemp.begin(), gridTemp.end());
-            }
-        }
-        if(ln_vec_pl_[2] > 0 && i_ != DIRECTION::Z)
-        {
-            if(grid_k_ && j_ == DIRECTION::Z)
-            {
-                psiTemp  = getPsiUpList (DIRECTION::Z, true, grid_i_->procLoc()[2] + grid_i_->local_z()-2,  grid_i_->z()-2*gridComm_.npZ(), n_vec_[2], ln_vec_pl_[2]);
-                gridTemp = getGridUpList(DIRECTION::Z, true, physGrid, objArr);
-
-                updateListPsi_j_.reserve(updateListPsi_j_.size() + psiTemp.size());
-                updateListPsi_j_.insert(updateListPsi_j_.end(), psiTemp.begin(), psiTemp.end());
-                updateListGrid_j_.reserve(updateListGrid_j_.size() + gridTemp.size());
-                updateListGrid_j_.insert(updateListGrid_j_.end(), gridTemp.begin(), gridTemp.end());
-            }
-            else if(grid_j_ && k_ == DIRECTION::Z)
-            {
-                psiTemp  = getPsiUpList (DIRECTION::Z, true, grid_i_->procLoc()[0] + grid_i_->local_z()-2,  grid_i_->z()-2*gridComm_.npZ(), n_vec_[2], ln_vec_pl_[2]);
-                gridTemp = getGridUpList(DIRECTION::Z, true, physGrid, objArr);
-
-                updateListPsi_k_.reserve(updateListPsi_k_.size() + psiTemp.size());
-                updateListPsi_k_.insert(updateListPsi_k_.end(), psiTemp.begin(), psiTemp.end());
-                updateListGrid_k_.reserve(updateListGrid_k_.size() + gridTemp.size());
-                updateListGrid_k_.insert(updateListGrid_k_.end(), gridTemp.begin(), gridTemp.end());
-            }
+            if(grid_k_ && j_ == dir)
+                fillLists( dir, pl, startPt, pmlEdge, nDir, dirMax, updateListPsi_j_, updateListGrid_j_);
+            else if(grid_j_ && k_ == dir)
+                fillLists( dir, pl, startPt, pmlEdge, nDir, dirMax, updateListPsi_k_, updateListGrid_k_);
         }
     }
     /**
@@ -950,7 +834,7 @@ class parallelCPMLReal : public parallelCPML<double>
 {
 public:
     /**
-     * @brief      { function_description }
+     * @brief      Constructor class
      *
      * @param[in]  gridComm  mpi communicator
      * @param[in]  weights   The weights
@@ -968,14 +852,14 @@ public:
      * @param[in]  phys_Ey   The physical ey grid
      * @param[in]  objArr    The object arr
      */
-    parallelCPMLReal(mpiInterface gridComm, std::vector<real_grid_ptr> weights, real_pgrid_ptr grid_i, real_pgrid_ptr grid_j, real_pgrid_ptr grid_k, POLARIZATION pol_i, std::array<int,3> n_vec, double m, double ma, double aMax, std::array<double,3> d, double dt, int_pgrid_ptr physGrid, std::vector<std::shared_ptr<Obj>> objArr);
+    parallelCPMLReal(std::shared_ptr<mpiInterface> gridComm, std::vector<real_grid_ptr> weights, real_pgrid_ptr grid_i, real_pgrid_ptr grid_j, real_pgrid_ptr grid_k, POLARIZATION pol_i, std::array<int,3> n_vec, double m, double ma, double aMax, std::array<double,3> d, double dt, int_pgrid_ptr physGrid, std::vector<std::shared_ptr<Obj>> objArr);
 };
 
 class parallelCPMLCplx : public parallelCPML<cplx>
 {
 public:
     /**
-     * @brief      { function_description }
+     * @brief      Constructor class
      *
      * @param[in]  gridComm  mpi communicator
      * @param[in]  weights   The weights
@@ -993,6 +877,6 @@ public:
      * @param[in]  phys_Ey   The physical ey grid
      * @param[in]  objArr    The object arr
      */
-    parallelCPMLCplx(mpiInterface gridComm, std::vector<real_grid_ptr> weights, std::shared_ptr<parallelGrid<cplx > > grid_i, std::shared_ptr<parallelGrid<cplx > > grid_j, std::shared_ptr<parallelGrid<cplx > > grid_k, POLARIZATION pol_i, std::array<int,3> n_vec, double m, double ma, double aMax, std::array<double,3> d, double dt, int_pgrid_ptr physGrid, std::vector<std::shared_ptr<Obj>> objArr);
+    parallelCPMLCplx(std::shared_ptr<mpiInterface> gridComm, std::vector<real_grid_ptr> weights, std::shared_ptr<parallelGrid<cplx > > grid_i, std::shared_ptr<parallelGrid<cplx > > grid_j, std::shared_ptr<parallelGrid<cplx > > grid_k, POLARIZATION pol_i, std::array<int,3> n_vec, double m, double ma, double aMax, std::array<double,3> d, double dt, int_pgrid_ptr physGrid, std::vector<std::shared_ptr<Obj>> objArr);
 };
 #endif

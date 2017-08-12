@@ -2,7 +2,6 @@
 #define PARALLEL_FDTD_TYPEDEFS
 
 #include <array>
-#include <GRID/Grid.hpp>
 #include <GRID/parallelGrid.hpp>
 
 typedef std::vector<std::pair<std::array<int,8>, std::array<double,2> > > upLists;

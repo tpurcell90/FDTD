@@ -2,8 +2,7 @@
 #define FDTD_PARALLELDETECTORSTORAGE
 
 #include <DTC/parallelStorageDTCSructs.hpp>
-#include <src/GRID/parallelGrid.hpp>
-#include <src/UTIL/ml_consts.hpp>
+#include <src/UTIL/FDTD_consts.hpp>
 #include <cstdio>
 #include <UTIL/typedefs.hpp>
 
@@ -24,7 +23,7 @@ protected:
     std::shared_ptr<slaveProcDtc> slave_; //!< A shared pointer for the slaveProcDtc struct, set to a nullptr if the detector area does not include the process
     std::shared_ptr<copyProcDtc> toOutGrid_; //!< used to transfer from actual grid to the outGrid
     std::shared_ptr<parallelGrid<T>> grid_; //!< A shared pointer to a grid that the detector will need to generate the correct output
-    mpiInterface gridComm_; //!< The communicator for the grid and detector (must be the same communicator)
+    std::shared_ptr<mpiInterface> gridComm_; //!< The communicator for the grid and detector (must be the same communicator)
 
     std::vector<T> scratch_; //!< vector for scratch space
 
@@ -32,13 +31,13 @@ protected:
 public:
 
     /**
-     * @brief Constructor of parallelDTC
-     * @param dtcNum the detector number
-     * @param grid pointer to output grid
-     * @param loc location of lower left back corner of the dtc
-     * @param sz size in grid points for the dtc
+     * @brief      Constructs a storage detector (field collector for outputting)
+     *
+     * @param[in]  grid  pointer to output grid
+     * @param[in]  loc   location of lower left back corner of the dtc
+     * @param[in]  sz    size in grid points for the dtc
      */
-     parallelStorageDTC(int dtcNum, std::shared_ptr<parallelGrid<T>> grid, std::array<int,3> loc, std::array<int,3> sz) :
+    parallelStorageDTC(std::shared_ptr<parallelGrid<T>> grid, std::array<int,3> loc, std::array<int,3> sz) :
         masterBool_(false),
         loc_(loc),
         sz_(sz),
@@ -46,9 +45,10 @@ public:
         gridComm_(grid_->gridComm()),
         scratch_(std::accumulate(sz_.begin(), sz_.end(), 1, std::multiplies<int>()),0.0)
     {
-        genDatStruct(dtcNum);
+        // Set up the filed input structures
+        genDatStruct();
 
-        /// Output grid only made in the master process
+        // Output grid only made in the master process
         if(masterBool_ || toOutGrid_ )
             outGrid_ = std::make_shared<Grid<T>>( sz_, grid_->d()  );
         else
@@ -57,367 +57,221 @@ public:
     /**
      * @return  reference to loc_
      */
-    inline std::vector<int> &loc() {return loc_;}
+    inline std::array<int,3> loc() {return loc_;}
 
     /**
      * @return reference to sz_
      */
-    inline std::vector<int> &sz() {return sz_;}
+    inline std::array<int,3> sz() {return sz_;}
 
     /**
-     * @return reference to outGrid_
+     * @return outGrid_
      */
-    inline std::shared_ptr<Grid<T>> &outGrid() { return outGrid_; }
+    inline std::shared_ptr<Grid<T>> outGrid() { return outGrid_; }
 
+    /**
+     * returns the grid pointer
+     */
     inline std::shared_ptr<parallelGrid<T>> grid() {return grid_; }
 
     /**
-     * @brief Generates the slave and master process data structures so the output grid is constructed correctly.
-     * @details use size and location of the dtc to determine what information to send where
+     * @brief      Calculates the location of where to start the detector in this process
      *
-     * @param the index of the detector in the FDTDField dtcArr_
+     * @param[in]  ind  The index of the array to look at (0, 1, or 2)
+     *
+     * @return     The location of the detector's start in this process for the index ind
      */
-    void genDatStruct(int dtcNum)
+    int getLocalLocEl(int ind)
     {
-        /// initialize slave and master to null pointers
-        slave_ = nullptr;
-        master_ = {};
-
-        // Generate the slaveProcDtc and initialize all variables in the slave process
-        slaveProcDtc slaveProc;
-        slaveProc.masterProc_ = grid_->getLocsProc(loc_[0], loc_[1], loc_[2]);
-        // if(gridComm_.rank() == slaveProc.masterProc_ )
-        slaveProc.stride_ = 0;
-        slaveProc.sz_ = {0,0,0};
-        slaveProc.loc_ = {-1, -1, -1};
-        if(gridComm_.rank() != slaveProc.masterProc_)
-        {
-            if(loc_[0] >= grid_->procLoc()[0] && loc_[0] < grid_->procLoc()[0] + grid_->local_x() -2) //!< Is the process in the process col that contains the left boundary of the detector region?
-            {
-                slaveProc.loc_[0] = loc_[0] - grid_->procLoc()[0] + 1;
-
-                if(loc_[1] >= grid_->procLoc()[1] && loc_[1] < grid_->procLoc()[1] + grid_->local_y() -2) //!< Is the process in the process row that contains the lower boundary of the detector region?
-                {
-                    slaveProc.loc_[1] = loc_[1] - grid_->procLoc()[1] + 1;
-                    if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
-                    {
-                        slaveProc.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
-                    }
-                    else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
-                    {
-                        slaveProc.loc_[2] = 1;
-                    }
-                }
-                else if(loc_[1] < grid_->procLoc()[1] && loc_[1] + sz_[1] > grid_->procLoc()[1]) //!< Is the process in a process row that the detector region covers?
-                {
-                    slaveProc.loc_[1] = 1;
-                    if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
-                    {
-                        slaveProc.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
-                    }
-                    else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
-                    {
-                        slaveProc.loc_[2] = 1;
-                    }
-                }
-            }
-            else if(loc_[0] < grid_->procLoc()[0] && loc_[0] + sz_[0] > grid_->procLoc()[0]) //!< Is the process in a process col that the detector covers?
-            {
-                slaveProc.loc_[0] = 1;
-
-                if(loc_[1] >= grid_->procLoc()[1] && loc_[1] < grid_->procLoc()[1] + grid_->local_y() -2)
-                {
-                    slaveProc.loc_[1] = loc_[1] - grid_->procLoc()[1] + 1;
-                    if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
-                    {
-                        slaveProc.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
-                    }
-                    else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
-                    {
-                        slaveProc.loc_[2] = 1;
-                    }
-                }
-                else if(loc_[1] < grid_->procLoc()[1] && loc_[1] + sz_[1] > grid_->procLoc()[1])
-                {
-                    slaveProc.loc_[1] = 1;
-                    if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
-                    {
-                        slaveProc.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
-                    }
-                    else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
-                    {
-                        slaveProc.loc_[2] = 1;
-                    }
-                }
-            }
-            if(grid_->local_z() == 1)
-            {
-                slaveProc.loc_[2] = 0;
-            }
-            // If either slaveProc.loc_ values is 0 then the detector is not in the process
-            if(slaveProc.loc_[0] != -1 && slaveProc.loc_[1] != -1 && slaveProc.loc_[2] != -1  )
-            {
-                if(sz_[0] + loc_[0] > grid_->procLoc()[0] + grid_->local_x() - 2) // Does the detector go through the end of the process' grid?
-                {
-                    slaveProc.sz_[0] = grid_->local_x() - slaveProc.loc_[0] - 1;
-                }
-                else
-                {
-                    slaveProc.sz_[0] = loc_[0] + sz_[0] - (grid_->procLoc()[0] + slaveProc.loc_[0] - 1);
-                }
-
-                if(sz_[1] + loc_[1] > grid_->procLoc()[1] + grid_->local_y() - 2)
-                {
-                    slaveProc.sz_[1] = grid_->local_y() - slaveProc.loc_[1] - 1;
-                }
-                else
-                {
-                    slaveProc.sz_[1] = loc_[1] + sz_[1] - (grid_->procLoc()[1] + slaveProc.loc_[1] - 1);
-                }
-
-                if(grid_->local_z() != 1)
-                {
-                    if(sz_[2] + loc_[2] > grid_->procLoc()[2] + grid_->local_z() - 2)
-                        slaveProc.sz_[2] = grid_->local_z() - slaveProc.loc_[2] - 1;
-                    else
-                        slaveProc.sz_[2] = loc_[2] + sz_[2] - (grid_->procLoc()[2] + slaveProc.loc_[2] - 1);
-                }
-                else
-                {
-                    slaveProc.sz_[2] = 1;
-                }
-
-                if(isamax_(slaveProc.sz_.size(), slaveProc.sz_.data(), 1) - 1 == 0 )
-                {
-                    slaveProc.stride_ =  1;
-                    slaveProc.opSz_ = {{ slaveProc.sz_[0] , slaveProc.sz_[1], slaveProc.sz_ [2] }};
-                    if(slaveProc.loc_[2] == -1)
-                    {
-                        slaveProc.opSz_[2] = 1;
-                        slaveProc.loc_[2] = 0;
-                    }
-                    slaveProc.addVec1_ = {{ 0, 1, 0 }};
-                    slaveProc.addVec2_ = {{ 0, 0, 1 }};
-                }
-                else if(isamax_(slaveProc.sz_.size(), slaveProc.sz_.data(), 1) - 1 == 1 )
-                {
-                    slaveProc.stride_ =  grid_->local_x() * grid_->local_z();
-                    slaveProc.opSz_ = {{ slaveProc.sz_[1] , slaveProc.sz_[0], slaveProc.sz_ [2] }};
-                    if(slaveProc.loc_[2] == -1)
-                    {
-                        slaveProc.opSz_[2] = 1;
-                        slaveProc.loc_[2] = 0;
-                    }
-                    slaveProc.addVec1_ = {{ 1, 0, 0 }};
-                    slaveProc.addVec2_ = {{ 0, 0, 1 }};
-                }
-                else
-                {
-                    slaveProc.stride_ =  grid_->local_x();
-                    slaveProc.opSz_ = {{ slaveProc.sz_[2] , slaveProc.sz_[0], slaveProc.sz_ [1] }};
-                    if(slaveProc.loc_[2] == -1)
-                        throw std::logic_error("The max size is in a direction that is not defined, for 2D calcs set sz[2] to 0");
-                    slaveProc.addVec1_ = {{ 1, 0, 0 }};
-                    slaveProc.addVec2_ = {{ 0, 1, 0 }};
-                }
-                slave_ = std::make_shared<slaveProcDtc>(slaveProc); //!< only make slave active if necessary
-            }
-        }
+        if(loc_[ind] >= grid_->procLoc()[ind] && loc_[ind] < grid_->procLoc()[ind] + grid_->ln_vec()[ind] -2) //!< Does this process hold the lower, left or back boundary of the detector
+            return loc_[ind] - grid_->procLoc()[ind] + 1;
+        else if(loc_[ind] < grid_->procLoc()[ind] && loc_[ind] + sz_[ind] > grid_->procLoc()[ind]) //!< Does this process start inside the detectors region?
+            return 1;
         else
+            return -1;
+    }
+
+    /**
+     * @brief      Calculates the size of the detector on this process
+     *
+     * @param[in]  ind       The index of the array to look at (0, 1, or 2)
+     * @param[in]  localLoc  The location of the detector's start in this process for the index ind
+     *
+     * @return     The local size el.
+     */
+    int getLocalSzEl(int ind, int localLoc)
+    {
+        if(sz_[ind] + loc_[ind] > grid_->procLoc()[ind] + grid_->ln_vec()[ind] - 2) // Does the detector go through the end of the process' grid?
+            return grid_->ln_vec()[ind] - localLoc - 1;
+        else
+            return loc_[ind] + sz_[ind] - (grid_->procLoc()[ind] + localLoc - 1);
+    }
+    /**
+     * @brief      Generates the relevant structs to store the fields for output (this is based on if the process is the master or a slave)
+     */
+    void genDatStruct()
+    {
+        // Set master process to process containing the lower, left, back corner of the region
+        int masterProc = grid_->getLocsProc(loc_[0], loc_[1], loc_[2]);
+
+        // Initialize the temporary values, will be split into toOutGrid_ or slave_
+        int stride = 0; //!< stride of the blas operations for the filed
+        int outGridStride = 0; //!< stride for the operations (for the outGrid)
+        std::array<int,3> localFiledInLoc = {-1, -1, -1}; //!< location of where the detector starts for the process (set to element set to -1 if detector is not in the process)
+        std::array<int,3> localFiledInSz = {0, 0, 0};  //!< size of the detector in the process
+        std::array<int,3> opSz = {0,0,0}; //!< the size reordered in a way convenient to preform blas operations on {size blas, size of inner loop, size of outer loop}
+        std::array<int,3> addVec1 = {0,0,0}; //!< array describing the unit vec that the inner loop acts on
+        std::array<int,3> addVec2 = {0,0,0}; //!< array describing the unit vec that the outer loop acts on
+
+        // find the location of where the detector starts in this process
+        for(int ii = 0; ii < 3; ++ii)
+            localFiledInLoc[ii] = getLocalLocEl(ii);
+        // if 2D set the z local location to 0
+        if(grid_->local_z() == 1)
+            localFiledInLoc[2] = 0;
+        // If the detector is in the process check everything else
+        if( std::all_of(localFiledInLoc.begin(), localFiledInLoc.end(), [](int ii){return ii != -1;} ) )
         {
-            copyProcDtc toOutGrid;
-            toOutGrid.strideOutGrid_ = 0;
-            toOutGrid.stride_ = 0;
-
-            toOutGrid.locOutGrid_ = {0,0};
-            toOutGrid.sz_ = {0,0,0};
-            toOutGrid.loc_ = {-1,-1,-1};
-            if(loc_[0] >= grid_->procLoc()[0] && loc_[0] < grid_->procLoc()[0] + grid_->local_x() -2) //!< Is the process in the process col that contains the left boundary of the detector region?
-            {
-                toOutGrid.loc_[0] = loc_[0] - grid_->procLoc()[0] + 1;
-
-                if(loc_[1] >= grid_->procLoc()[1] && loc_[1] < grid_->procLoc()[1] + grid_->local_y() -2) //!< Is the process in the process row that contains the lower boundary of the detector region?
-                {
-                    toOutGrid.loc_[1] = loc_[1] - grid_->procLoc()[1] + 1;
-                    if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
-                        toOutGrid.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
-                    else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
-                        toOutGrid.loc_[2] = 1;
-                }
-                else if(loc_[1] < grid_->procLoc()[1] && loc_[1] + sz_[1] > grid_->procLoc()[1]) //!< Is the process in a process row that the detector region covers?
-                {
-                    toOutGrid.loc_[1] = 1;
-                    if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
-                        toOutGrid.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
-                    else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
-                        toOutGrid.loc_[2] = 1;
-                }
-            }
-            else if(loc_[0] < grid_->procLoc()[0] && loc_[0] + sz_[0] > grid_->procLoc()[0]) //!< Is the process in a process col that the detector covers?
-            {
-                toOutGrid.loc_[0] = 1;
-
-                if(loc_[1] >= grid_->procLoc()[1] && loc_[1] < grid_->procLoc()[1] + grid_->local_y() -2)
-                {
-                    toOutGrid.loc_[1] = loc_[1] - grid_->procLoc()[1] + 1;
-                    if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
-                        toOutGrid.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
-                    else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
-                        toOutGrid.loc_[2] = 1;
-                }
-                else if(loc_[1] < grid_->procLoc()[1] && loc_[1] + sz_[1] > grid_->procLoc()[1])
-                {
-                    toOutGrid.loc_[1] = 1;
-                    if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
-                        toOutGrid.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
-                    else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
-                        toOutGrid.loc_[2] = 1;
-                }
-            }
+            // Find the size of the detector in this process
+            for(int ii = 0; ii < 3; ++ii)
+                localFiledInSz[ii] = getLocalSzEl(ii, localFiledInLoc[ii]);
+            // If 2D set the size of the detector in this process in the z direction to 1
             if(grid_->local_z() == 1)
+                localFiledInSz[2] = 1;
+
+            // Preform the blas operations over the direction with the most elements
+            if(isamax_(localFiledInSz.size(), localFiledInSz.data(), 1) - 1 == 0 )
             {
-                toOutGrid.loc_[2] = 0;
+                // stride based on the stride needed to get the next element in the grid in the x direction
+                stride =  1;
+                // outGridStride based on the stride needed to get the next element in the outGrid in the x direction
+                outGridStride = 1;
+                // Have the outer loop be smaller than the inner loop ties go to the direction with the smallest stride
+                if( localFiledInSz[1] > localFiledInSz[2] )
+                {
+                    opSz = {{ localFiledInSz[0] , localFiledInSz[1], localFiledInSz [2] }};
+                    addVec1 = {{ 0, 1, 0 }};
+                    addVec2 = {{ 0, 0, 1 }};
+                }
+                else
+                {
+                    opSz = {{ localFiledInSz[0] , localFiledInSz[1], localFiledInSz [2] }};
+                    addVec1 = {{ 0, 1, 0 }};
+                    addVec2 = {{ 0, 0, 1 }};
+                }
             }
-            // If either toOutGrid.loc_ values is 0 then the detector is not in the process
-            if(toOutGrid.loc_[0] != -1 && toOutGrid.loc_[1] != -1 && toOutGrid.loc_[2] != -1)
+            else if(isamax_(localFiledInSz.size(), localFiledInSz.data(), 1) - 1 == 1 )
             {
-                if(sz_[0] + loc_[0] > grid_->procLoc()[0] + grid_->local_x() - 2) // Does the detector go through the end of the process' grid?
-                    toOutGrid.sz_[0] = grid_->local_x() - toOutGrid.loc_[0] - 1;
-                else
-                    toOutGrid.sz_[0] = loc_[0] + sz_[0] - (grid_->procLoc()[0] + toOutGrid.loc_[0] - 1);
-
-                if(sz_[1] + loc_[1] > grid_->procLoc()[1] + grid_->local_y() - 2)
-                    toOutGrid.sz_[1] = grid_->local_y() - toOutGrid.loc_[1] - 1;
-                else
-                    toOutGrid.sz_[1] = loc_[1] + sz_[1] - (grid_->procLoc()[1] + toOutGrid.loc_[1] - 1);
-
-                if(grid_->local_z() != 1)
+                // stride based on the stride needed to get the next element in the grid in the x direction
+                stride =  grid_->local_x() * grid_->local_z();
+                // outGridStride based on the stride needed to get the next element in the outGrid in the y direction
+                outGridStride = sz_[0]*sz_[2];
+                // Have the outer loop be smaller than the inner loop ties go to the direction with the smallest stride
+                if( localFiledInSz[0] >= localFiledInSz[2] )
                 {
-                    if(sz_[2] + loc_[2] > grid_->procLoc()[2] + grid_->local_z() - 2)
-                        toOutGrid.sz_[2] = grid_->local_z() - toOutGrid.loc_[2] - 1;
-                    else
-                        toOutGrid.sz_[2] = loc_[2] + sz_[2] - (grid_->procLoc()[2] + toOutGrid.loc_[2] - 1);
-                }
-                else
-                    toOutGrid.sz_[2] = 1;
-
-
-                toOutGrid.locOutGrid_ = {grid_->procLoc()[0] + toOutGrid.loc_[0] - 1 - loc_[0], grid_->procLoc()[1] + toOutGrid.loc_[1] - 1 - loc_[1], grid_->local_z() == 1 ? 0 : grid_->procLoc()[2] + toOutGrid.loc_[2] - 1 - loc_[2]}; //!< make loc relative to process grid
-                if(isamax_(toOutGrid.sz_.size(), toOutGrid.sz_.data(), 1) - 1 == 0 || (toOutGrid.sz_[0] == toOutGrid.sz_[1] && toOutGrid.sz_[0] <= toOutGrid.sz_[2]) || (toOutGrid.sz_[0] == toOutGrid.sz_[2] && toOutGrid.sz_[0] <= toOutGrid.sz_[1]) )
-                {
-                    toOutGrid.stride_ =  1;
-                    toOutGrid.opSz_ = {{ toOutGrid.sz_[0] , toOutGrid.sz_[1], toOutGrid.sz_ [2] }};
-                    if(toOutGrid.loc_[2] == -1)
-                    {
-                        toOutGrid.loc_[2] = 0;
-                        toOutGrid.opSz_[2] = 1;
-                    }
-                    toOutGrid.addVec1_ = {{ 0, 1, 0 }};
-                    toOutGrid.addVec2_ = {{ 0, 0, 1 }};
-
-                    toOutGrid.szOutGrid_ = {toOutGrid.sz_[0], toOutGrid.sz_[1], toOutGrid.sz_[2]};
-                    toOutGrid.strideOutGrid_ = 1;
-                }
-                else if(isamax_(toOutGrid.sz_.size(), toOutGrid.sz_.data(), 1) - 1 == 1 || (toOutGrid.sz_[1] == toOutGrid.sz_[2]) )
-                {
-                    toOutGrid.stride_ =  grid_->local_x() * grid_->local_z();
-                    toOutGrid.opSz_ = {{ toOutGrid.sz_[1] , toOutGrid.sz_[0], toOutGrid.sz_ [2] }};
-                    if(toOutGrid.loc_[2] == -1)
-                    {
-                        toOutGrid.loc_[2] = 0;
-                        toOutGrid.opSz_[2] = 1;
-                    }
-                    toOutGrid.addVec1_ = {{ 1, 0, 0 }};
-                    toOutGrid.addVec2_ = {{ 0, 0, 1 }};
-
-                    toOutGrid.szOutGrid_ = {toOutGrid.sz_[1], toOutGrid.sz_[0], toOutGrid.sz_[2]};
-                    toOutGrid.strideOutGrid_ = sz_[0]*sz_[2];
+                    opSz = {{ localFiledInSz[1] , localFiledInSz[0], localFiledInSz [2] }};
+                    addVec1 = {{ 1, 0, 0 }};
+                    addVec2 = {{ 0, 0, 1 }};
                 }
                 else
                 {
-                    toOutGrid.stride_ =  grid_->local_x();
-                    toOutGrid.opSz_ = {{ toOutGrid.sz_[2] , toOutGrid.sz_[0], toOutGrid.sz_ [1] }};
-                    if(toOutGrid.loc_[2] == -1)
-                        throw std::logic_error("The max size is in a direction that is not defined, for 2D calcs set sz[2] to 0");
-                    toOutGrid.addVec1_ = {{ 1, 0, 0 }};
-                    toOutGrid.addVec2_ = {{ 0, 1, 0 }};
-
-                    toOutGrid.szOutGrid_ = {toOutGrid.sz_[2], toOutGrid.sz_[0], toOutGrid.sz_[1]};
-                    toOutGrid.strideOutGrid_ = sz_[0];
+                    opSz = {{ localFiledInSz[1] , localFiledInSz[2], localFiledInSz [0] }};
+                    addVec1 = {{ 0, 0, 1 }};
+                    addVec2 = {{ 1, 0, 0 }};
                 }
-                toOutGrid_ = std::make_shared<copyProcDtc>(toOutGrid);
-            }
-        }
-        slaveProcInfo toMaster;
-        if(slave_)
-        {
-            toMaster.slaveProc_ = gridComm_.rank();
-            toMaster.loc_ = {grid_->procLoc()[0] + slave_->loc_[0] - 1 - loc_[0], grid_->procLoc()[1] + slave_->loc_[1] - 1 - loc_[1], grid_->procLoc()[2] + slave_->loc_[2] - 1 - loc_[2]}; //!< make loc relative to process grid
-            if(grid_->local_z() == 1)
-                toMaster.loc_[2]  = -1;
-
-            if(isamax_(slave_->sz_.size(), slave_->sz_.data(), 1) == 0 )
-            {
-                toMaster.stride_ =  1;
-                toMaster.sz_ = {{ slave_->sz_[0] , slave_->sz_[1], slave_->sz_[2] }};
-                if(slave_->loc_[2] == -1)
-                {
-                    toMaster.loc_[2] = 0;
-                    toMaster.sz_[2] = 1;
-                }
-                toMaster.addVec1_ = {{ 0, 1, 0 }};
-                toMaster.addVec2_ = {{ 0, 0, 1 }};
-            }
-            else if(isamax_(slave_->sz_.size(), slave_->sz_.data(), 1) == 1 )
-            {
-                toMaster.stride_ =  grid_->local_x() * grid_->local_z();
-                toMaster.sz_ = {{ slave_->sz_[1] , slave_->sz_[0], slave_->sz_ [2] }};
-                if(toMaster.loc_[2] == -1)
-                {
-                    toMaster.loc_[2] = 0;
-                    toMaster.sz_[2] = 1;
-                }
-                toMaster.addVec1_ = {{ 0, 0, 1 }};
-                toMaster.addVec2_ = {{ 1, 0, 0 }};
             }
             else
             {
-                toMaster.stride_ =  grid_->local_x();
-                toMaster.sz_ = {{ slave_->sz_[2] , slave_->sz_[0], slave_->sz_ [1] }};
-                if(toMaster.loc_[2] == -1)
-                    throw std::logic_error("The max size is in a direction that is not defined, for 2D calcs set sz[2] to 0");
-                toMaster.addVec1_ = {{ 1, 0, 0 }};
-                toMaster.addVec2_ = {{ 0, 1, 0 }};
+                // stride based on the stride needed to get the next element in the grid in the x direction
+                stride =  grid_->local_x();
+                // outGridStride based on the stride needed to get the next element in the outGrid in the y direction
+                outGridStride = sz_[0];
+                // Have the outer loop be smaller than the inner loop ties go to the direction with the smallest stride
+                if( localFiledInSz[0] >= localFiledInSz[1] )
+                {
+                    opSz = {{ localFiledInSz[2] , localFiledInSz[0], localFiledInSz [1] }};
+                    addVec1 = {{ 1, 0, 0 }};
+                    addVec2 = {{ 0, 1, 0 }};
+                }
+                else
+                {
+                    opSz = {{ localFiledInSz[2] , localFiledInSz[1], localFiledInSz [0] }};
+                    addVec1 = {{ 0, 1, 0 }};
+                    addVec2 = {{ 1, 0, 0 }};
+                }
             }
+            // If the process is the master set toOutGrid parameters, otherwise set the slave process
+            if(gridComm_->rank() == masterProc)
+            {
+                toOutGrid_ = std::make_shared<copyProcDtc>();
+                toOutGrid_->stride_ = stride;
+                toOutGrid_->loc_ = localFiledInLoc;
+                toOutGrid_->sz_ = localFiledInSz;
+                toOutGrid_->opSz_ = opSz;
+                toOutGrid_->addVec1_ = addVec1;
+                toOutGrid_->addVec2_ = addVec2;
+
+                toOutGrid_->strideOutGrid_ = outGridStride;
+                // Location of where to place the processes field info in the outGrid
+                toOutGrid_->locOutGrid_ = {grid_->procLoc()[0] + toOutGrid_->loc_[0] - 1 - loc_[0], grid_->procLoc()[1] + toOutGrid_->loc_[1] - 1 - loc_[1], grid_->local_z() == 1 ? 0 : grid_->procLoc()[2] + toOutGrid_->loc_[2] - 1 - loc_[2]}; //!< make loc relative to process grid
+            }
+            else
+            {
+                slave_ = std::make_shared<slaveProcDtc>();
+                slave_->masterProc_ = masterProc;
+                slave_->stride_ = stride;
+                slave_->loc_ = localFiledInLoc;
+                slave_->sz_ = localFiledInSz;
+                slave_->opSz_ = opSz;
+                slave_->addVec1_ = addVec1;
+                slave_->addVec2_ = addVec2;
+            }
+
+        }
+        slaveProcInfo toMaster;
+        // If there is a salve process then set the master info to be equivalent to the slave, otherwise say that its process is -1 (check to see if master needs to ad it)
+        if(slave_)
+        {
+            toMaster.slaveProc_ = gridComm_->rank();
+            // Where does this process's information get stored in the outGrid
+            toMaster.loc_ = {grid_->procLoc()[0] + slave_->loc_[0] - 1 - loc_[0], grid_->procLoc()[1] + slave_->loc_[1] - 1 - loc_[1], grid_->procLoc()[2] + slave_->loc_[2] - 1 - loc_[2]}; //!< make loc relative to process grid
+            if(grid_->local_z() == 1)
+                toMaster.loc_[2]  = 0;
+            toMaster.stride_ = slave_->stride_;
+            toMaster.sz_ = slave_->opSz_;
+            toMaster.addVec1_ = slave_->addVec1_;
+            toMaster.addVec2_ = slave_->addVec2_;
         }
         else
             toMaster.slaveProc_ = -1;
-        gridComm_.barrier();
-        if(gridComm_.rank() == slaveProc.masterProc_)
+
+        if(gridComm_->rank() == masterProc)
         {
             masterBool_ = true;
             std::vector<slaveProcInfo> allProcs;
-            mpi::gather(gridComm_, toMaster, allProcs, slaveProc.masterProc_);
+            // collect all slave processes into allProcs
+            mpi::gather(*gridComm_, toMaster, allProcs, masterProc);
             for(auto & proc : allProcs)
             {
+                // If the process does not have the detector discard it, otherwise add it to master_
                 if(proc.slaveProc_ != -1)
                     master_.push_back(std::make_shared<slaveProcInfo>(proc) );
             }
-
-            // master_ = std::make_shared<std::vector<slaveProcInfo>>(masterProc);
         }
         else
-            mpi::gather(gridComm_, toMaster,  slaveProc.masterProc_);
+            mpi::gather(*gridComm_, toMaster,  masterProc);
 
         return;
     }
+
     /**
-     * @brief Communicate the fields to the detector output
-     * @details The slave processes send their data to the master and the master moves it to the output grid
-     *
+     * @brief      Master collects al the fields from the slave processes and puts it into the outGrid
      */
     virtual void getField() = 0;
 
+    /**
+     * @return     true if the process is the master process
+     */
     inline bool master() { return masterBool_; }
 };
 
@@ -425,35 +279,33 @@ class parallelStorageDTCReal : public parallelStorageDTC<double>
 {
 public:
     /**
-     * @brief Constructor of parallelStorageDTC
-     * @param dtcNum the detector number
-     * @param grid pointer to output grid
-     * @param loc location of lower left back corner of the dtc
-     * @param sz size in grid points for the dtc
+     * @brief      Constructs a storage detector (field collector for outputting)
+     *
+     * @param[in]  grid  pointer to output grid
+     * @param[in]  loc   location of lower left back corner of the dtc
+     * @param[in]  sz    size in grid points for the dtc
      */
-    parallelStorageDTCReal(int dtcNum, real_pgrid_ptr grid, std::array<int,3> loc, std::array<int,3> sz);
+    parallelStorageDTCReal(real_pgrid_ptr grid, std::array<int,3> loc, std::array<int,3> sz);
+    /**
+     * @brief      Master collects al the fields from the slave processes and puts it into the outGrid
+     */
     void getField();
 };
 
-/**
- * Complex version of FluxDTC see base class for more descriptions
- */
 class parallelStorageDTCCplx : public parallelStorageDTC<cplx>
 {
 public:
     /**
-     * @brief Constructor of parallelStorageDTC
-     * @param dtcNum the detector number
-     * @param grid pointer to output grid
-     * @param loc location of lower left back corner of the dtc
-     * @param sz size in grid points for the dtc
+     * @brief      Constructs a storage detector (field collector for outputting)
+     *
+     * @param[in]  grid  pointer to output grid
+     * @param[in]  loc   location of lower left back corner of the dtc
+     * @param[in]  sz    size in grid points for the dtc
      */
-    parallelStorageDTCCplx(int dtcNum, cplx_pgrid_ptr grid, std::array<int,3> loc, std::array<int,3> sz);
+    parallelStorageDTCCplx(cplx_pgrid_ptr grid, std::array<int,3> loc, std::array<int,3> sz);
 
     /**
-     * @brief Communicate the fields to the detector output
-     * @details The slave processes send their data to the master and the master moves it to the output grid
-     *
+     * @brief      Master collects al the fields from the slave processes and puts it into the outGrid
      */
     void getField();
 };

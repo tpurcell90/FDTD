@@ -3,7 +3,6 @@
 
 // #include "enum.hpp"
 #include <SOURCE/Pulse.hpp>
-#include <src/GRID/parallelGrid.hpp>
 /**
  * @brief data structure to know where to add the pulse
  *
@@ -26,7 +25,7 @@ struct SalveSource
 template <typename T> class parallelSourceBase
 {
 protected:
-    mpiInterface gridComm_; //!<  mpiInterface for the FDTD field
+    std::shared_ptr<mpiInterface> gridComm_; //!<  mpiInterface for the FDTD field
     std::vector< std::shared_ptr<PulseBase> > pulse_; //!< the pulse that the source is adding to the filed
     std::shared_ptr<parallelGrid<T>> grid_; //!< the grid that the source is adding the pulse to
 
@@ -38,15 +37,15 @@ public:
     /**
      * @brief Constructor for the parallel source
      *
-     * @param[in]  comm       mpiInterface for the caclutlation
+     * @param[in]  gridComm   mpiInterface for the caclutlation
      * @param[in]  srcNum     index of the source in srcArr_
      * @param[in]  pulse      pulse of the calculation
      * @param[in]  grid       grid the source adds the pulse to
      * @param[in]  dt         time step of the calculation
      * @param[in]  loc        location of the lower left corner of source
      */
-    parallelSourceBase(mpiInterface comm, std::vector<std::shared_ptr<PulseBase>> pulse, std::shared_ptr<parallelGrid<T>> grid, double dt, std::array<int,3> loc, std::array<int,3> sz) :
-        gridComm_(comm),
+    parallelSourceBase(std::shared_ptr<mpiInterface> gridComm, std::vector<std::shared_ptr<PulseBase>> pulse, std::shared_ptr<parallelGrid<T>> grid, double dt, std::array<int,3> loc, std::array<int,3> sz) :
+        gridComm_(gridComm),
         grid_(grid),
         dt_(dt),
         loc_(loc),

@@ -1,8 +1,8 @@
 #include <SOURCE/parallelSourceOblique.hpp>
 
 
-parallelSourceObliqueReal::parallelSourceObliqueReal(mpiInterface comm, std::vector<std::shared_ptr<PulseBase>> pulse, real_pgrid_ptr grid, POLARIZATION pol, double dt, std::array<int,3> loc, std::array<int,3> sz, double phi, double theta) :
-    parallelSourceObliqueBase<double>(comm, pulse, grid, pol, dt, loc, sz, phi, theta)
+parallelSourceObliqueReal::parallelSourceObliqueReal(std::shared_ptr<mpiInterface> gridComm, std::vector<std::shared_ptr<PulseBase>> pulse, real_pgrid_ptr grid, POLARIZATION pol, double dt, std::array<int,3> loc, std::array<int,3> sz, double phi, double theta) :
+    parallelSourceObliqueBase<double>(gridComm, pulse, grid, pol, dt, loc, sz, phi, theta)
 {}
 
 void parallelSourceObliqueReal::addPul(double t)
@@ -13,8 +13,8 @@ void parallelSourceObliqueReal::addPul(double t)
     grid_->transferDat();
 
 }
-parallelSourceObliqueCplx::parallelSourceObliqueCplx(mpiInterface comm, std::vector<std::shared_ptr<PulseBase>> pulse, cplx_pgrid_ptr grid, POLARIZATION pol, double dt, std::array<int,3> loc, std::array<int,3> sz, double phi, double theta) :
-    parallelSourceObliqueBase<cplx>(comm, pulse, grid, pol, dt, loc, sz, phi, theta)
+parallelSourceObliqueCplx::parallelSourceObliqueCplx(std::shared_ptr<mpiInterface> gridComm, std::vector<std::shared_ptr<PulseBase>> pulse, cplx_pgrid_ptr grid, POLARIZATION pol, double dt, std::array<int,3> loc, std::array<int,3> sz, double phi, double theta) :
+    parallelSourceObliqueBase<cplx>(gridComm, pulse, grid, pol, dt, loc, sz, phi, theta)
 {}
 
 void parallelSourceObliqueCplx::addPul(double t)

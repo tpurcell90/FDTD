@@ -7,16 +7,11 @@
 #include <DTC/parallelDTC_BIN.hpp>
 #include <DTC/parallelDTC_FREQ.hpp>
 #include <DTC/parallelFlux.hpp>
+#include <DTC/toBitMap.hpp>
 #include <SOURCE/parallelSourceNormal.hpp>
 #include <SOURCE/parallelSourceOblique.hpp>
 #include <SOURCE/parallelTFSF.hpp>
-#include <PML/parallelPML.hpp>
-#include <DTC/toBitMap.hpp>
 #include <UTIL/FDTD_up_eq.hpp>
-
-// #include <UTIL/FDTD_up_eq.hpp>
-typedef cplx cplx;
-typedef std::shared_ptr<std::vector<std::vector<std::array<double,5>>>> preConsts;
 
 /**
  * @brief The main FDTD propagator class
@@ -27,10 +22,11 @@ template <typename T> class parallelFDTDFieldBase
 protected:
     typedef std::shared_ptr<parallelGrid<T>> pgrid_ptr;
     typedef std::shared_ptr<parallelCPML<T>> pml_ptr;
-    mpiInterface & gridComm_; //!< mpi communicator for the propagator
 
-    bool dielectricMatInPML_;
-    bool magMatInPML_;
+    std::shared_ptr<mpiInterface> gridComm_; //!< mpi communicator for the propagator
+
+    bool dielectricMatInPML_; //!< True if dielectric (constant or dispersive) material are in the PML's
+    bool magMatInPML_; //!< True if magnetic (constant or dispersive) material are in the PML's
 
     int res_; //!< number of grid points per unit length
     int t_step_; //!< the number of time steps that happened
@@ -62,21 +58,21 @@ protected:
     std::vector<std::shared_ptr<parallelDetectorBase<T> > > dtcArr_; //!< the vector of detectors in the cell
     std::vector<std::shared_ptr<parallelSourceBase<T> > > srcArr_; //!< the vector of all sources in the cell
 
-    upLists axHx_; //!< the list of parameters used to update the Hx field
-    upLists axHy_; //!< the list of parameters used to update the Hy field
-    upLists axHz_; //!< the list of parameters used to update the Hz field
+    upLists upHx_; //!< the list of parameters used to update the Hx field containing : std::pair(std::array<int,8>( number of elements for the calculation, x start, y start, z start, x offset for j(y) spatial derivative, y offset for j(y) spatial derivative, z offset for j(y) spatial derivative, object array index ), std::array<double,2> ( scaling factor (assumed to be 1 right now since conductivity = 0.0), spatial derivative prefactor for j spatial derivative) )
+    upLists upHy_; //!< the list of parameters used to update the Hy field containing : std::pair(std::array<int,8>( number of elements for the calculation, x start, y start, z start, x offset for j(z) spatial derivative, y offset for j(z) spatial derivative, z offset for j(z) spatial derivative, object array index ), std::array<double,2> ( scaling factor (assumed to be 1 right now since conductivity = 0.0), spatial derivative prefactor for j spatial derivative) )
+    upLists upHz_; //!< the list of parameters used to update the Hz field containing : std::pair(std::array<int,8>( number of elements for the calculation, x start, y start, z start, x offset for j(x) spatial derivative, y offset for j(x) spatial derivative, z offset for j(x) spatial derivative, object array index ), std::array<double,2> ( scaling factor (assumed to be 1 right now since conductivity = 0.0), spatial derivative prefactor for j spatial derivative) )
 
-    upLists axEx_; //!< the list of parameters used to update the Ex field
-    upLists axEy_; //!< the list of parameters used to update the Ey field
-    upLists axEz_; //!< the list of parameters used to update the Ez field
+    upLists upEx_; //!< the list of parameters used to update the Ex field containing : std::pair(std::array<int,8>( number of elements for the calculation, x start, y start, z start, x offset for j(y) spatial derivative, y offset for j(y) spatial derivative, z offset for j(y) spatial derivative, object array index ), std::array<double,2> ( scaling factor (assumed to be 1 right now since conductivity = 0.0), spatial derivative prefactor for j spatial derivative) )
+    upLists upEy_; //!< the list of parameters used to update the Ey field containing : std::pair(std::array<int,8>( number of elements for the calculation, x start, y start, z start, x offset for j(z) spatial derivative, y offset for j(z) spatial derivative, z offset for j(z) spatial derivative, object array index ), std::array<double,2> ( scaling factor (assumed to be 1 right now since conductivity = 0.0), spatial derivative prefactor for j spatial derivative) )
+    upLists upEz_; //!< the list of parameters used to update the Ez field containing : std::pair(std::array<int,8>( number of elements for the calculation, x start, y start, z start, x offset for j(x) spatial derivative, y offset for j(x) spatial derivative, z offset for j(x) spatial derivative, object array index ), std::array<double,2> ( scaling factor (assumed to be 1 right now since conductivity = 0.0), spatial derivative prefactor for j spatial derivative) )
 
-    upLists axDx_; //!< the list of parameters used to update the Dx field and polarization fields
-    upLists axDy_; //!< the list of parameters used to update the Dy field and polarization fields
-    upLists axDz_; //!< the list of parameters used to update the Dz field and polarization fields
+    upLists upDx_; //!< the list of parameters used to update the Dx field and polarization fields containing : std::pair(std::array<int,8>( number of elements for the calculation, x start, y start, z start, x offset for j(y) spatial derivative, y offset for j(y) spatial derivative, z offset for j(y) spatial derivative, object array index ), std::array<double,2> ( scaling factor (assumed to be 1 right now since conductivity = 0.0), spatial derivative prefactor for j spatial derivative) )
+    upLists upDy_; //!< the list of parameters used to update the Dy field and polarization fields containing : std::pair(std::array<int,8>( number of elements for the calculation, x start, y start, z start, x offset for j(z) spatial derivative, y offset for j(z) spatial derivative, z offset for j(z) spatial derivative, object array index ), std::array<double,2> ( scaling factor (assumed to be 1 right now since conductivity = 0.0), spatial derivative prefactor for j spatial derivative) )
+    upLists upDz_; //!< the list of parameters used to update the Dz field and polarization fields containing : std::pair(std::array<int,8>( number of elements for the calculation, x start, y start, z start, x offset for j(x) spatial derivative, y offset for j(x) spatial derivative, z offset for j(x) spatial derivative, object array index ), std::array<double,2> ( scaling factor (assumed to be 1 right now since conductivity = 0.0), spatial derivative prefactor for j spatial derivative) )
 
-    upLists axBx_; //!< the list of parameters used to update the Bx field and magnetization fields
-    upLists axBy_; //!< the list of parameters used to update the By field and magnetization fields
-    upLists axBz_; //!< the list of parameters used to update the Bz field and magnetization fields
+    upLists upBx_; //!< the list of parameters used to update the Bx field and magnetization fields containing : std::pair(std::array<int,8>( number of elements for the calculation, x start, y start, z start, x offset for j(y) spatial derivative, y offset for j(y) spatial derivative, z offset for j(y) spatial derivative, object array index ), std::array<double,2> ( scaling factor (assumed to be 1 right now since conductivity = 0.0), spatial derivative prefactor for j spatial derivative) )
+    upLists upBy_; //!< the list of parameters used to update the By field and magnetization fields containing : std::pair(std::array<int,8>( number of elements for the calculation, x start, y start, z start, x offset for j(z) spatial derivative, y offset for j(z) spatial derivative, z offset for j(z) spatial derivative, object array index ), std::array<double,2> ( scaling factor (assumed to be 1 right now since conductivity = 0.0), spatial derivative prefactor for j spatial derivative) )
+    upLists upBz_; //!< the list of parameters used to update the Bz field and magnetization fields containing : std::pair(std::array<int,8>( number of elements for the calculation, x start, y start, z start, x offset for j(x) spatial derivative, y offset for j(x) spatial derivative, z offset for j(x) spatial derivative, object array index ), std::array<double,2> ( scaling factor (assumed to be 1 right now since conductivity = 0.0), spatial derivative prefactor for j spatial derivative) )
 
     std::function<void( std::array<int,8>&, std::array<double,2>&, pgrid_ptr, pgrid_ptr, pgrid_ptr )> upHxFxn_; //!< function that will update the Hx field
     std::function<void( std::array<int,8>&, std::array<double,2>&, pgrid_ptr, pgrid_ptr, pgrid_ptr )> upHyFxn_; //!< function that will update the Hy field
@@ -143,13 +139,14 @@ protected:
     std::vector< std::shared_ptr< parallelDetectorFREQ_Base< T > > > dtcFreqArr_; //!< vector storing all dtcFREQ objects
     std::vector< std::shared_ptr< parallelFluxDTC< T > > > fluxArr_; //!< vector storing all flux objects
 
-    std::shared_ptr<parallelGridInt> phys_Ex_;
-    std::shared_ptr<parallelGridInt> phys_Ey_;
-    std::shared_ptr<parallelGridInt> phys_Ez_;
+    std::shared_ptr<parallelGrid<int>> phys_Ex_; //!< Map of what objects are at each grid point for the Ex field.
+    std::shared_ptr<parallelGrid<int>> phys_Ey_; //!< Map of what objects are at each grid point for the Ey field.
+    std::shared_ptr<parallelGrid<int>> phys_Ez_; //!< Map of what objects are at each grid point for the Ez field.
 
-    std::shared_ptr<parallelGridInt> phys_Hx_;
-    std::shared_ptr<parallelGridInt> phys_Hy_;
-    std::shared_ptr<parallelGridInt> phys_Hz_;
+    std::shared_ptr<parallelGrid<int>> phys_Hx_; //!< Map of what objects are at each grid point for the Hx field.
+    std::shared_ptr<parallelGrid<int>> phys_Hy_; //!< Map of what objects are at each grid point for the Hy field.
+    std::shared_ptr<parallelGrid<int>> phys_Hz_; //!< Map of what objects are at each grid point for the Hz field.
+
 public:
 
     pgrid_ptr Hx_; //!< parallel grid corresponding to the Hx field
@@ -167,14 +164,6 @@ public:
     pgrid_ptr Dx_; //!< parallel grid corresponding to the Dx field
     pgrid_ptr Dy_; //!< parallel grid corresponding to the Dy field
     pgrid_ptr Dz_; //!< parallel grid corresponding to the Dz field
-
-    pgrid_ptr prevHx_; //!< parallel grid corresponding to the Hx field
-    pgrid_ptr prevHy_; //!< parallel grid corresponding to the Hy field
-    pgrid_ptr prevHz_; //!< parallel grid corresponding to the Hz field
-
-    pgrid_ptr prevEx_; //!< parallel grid corresponding to the Ex field
-    pgrid_ptr prevEy_; //!< parallel grid corresponding to the Ey field
-    pgrid_ptr prevEz_; //!< parallel grid corresponding to the Ez field
 
     std::vector<pgrid_ptr> lorPx_; //!< a vector of Polarization fields for the x direction at the current time step
     std::vector<pgrid_ptr> lorPy_; //!< a vector of Polarization fields for the y direction at the current time step
@@ -199,15 +188,13 @@ public:
     pml_ptr HyPML_; //!< PML for the Hy field
     pml_ptr HzPML_; //!< PML for the Hz field
 
-
     /**
-     * @brief Constructor
-     * @details Takes in the parallelProgramInputs structure and generates an FDTDField
+     * @brief      Constructs a FDTD Propagator class
      *
-     * @param IP parallelProgramInputs
-     * @param gridComm mpi communicator for the system
+     * @param[in]  IP        Input parameter object that read in values from a json input file
+     * @param[in]  gridComm  A shared_ptr to the MPI interface for the calculation
      */
-    parallelFDTDFieldBase(parallelProgramInputs &IP, mpiInterface & gridComm) :
+    parallelFDTDFieldBase(const parallelProgramInputs &IP, std::shared_ptr<mpiInterface> gridComm) :
         gridComm_(gridComm),
         dielectricMatInPML_(false),
         magMatInPML_(false),
@@ -243,9 +230,13 @@ public:
         H_incd_   .reserve( ceil(IP.tMax_ / dt_ ) + 1 );
         H_mn_incd_.reserve( ceil(IP.tMax_ / dt_ ) + 1 );
 
+        // Set up weights to scale where the process boundaries should be located (based on Instruction Calls for various objects)
         setupWeightsGrid(IP);
 
-        int nz = IP.size_[2] == 0 ? 1 : n_vec_[2]+2*gridComm_.npZ();
+        // If only a 2D calculation set the number of points in the z direction to 1, otherwise like any other direction
+        int nz = IP.size_[2] == 0 ? 1 : n_vec_[2]+2*gridComm_->npZ();
+
+        // Construct and set up all the physical grids
         setupPhysFields(phys_Ex_, IP.periodic_, std::array<double,3>( {{ 0.5, 0.0, 0.0}} ), nz );
         setupPhysFields(phys_Ey_, IP.periodic_, std::array<double,3>( {{ 0.0, 0.5, 0.0}} ), nz );
         setupPhysFields(phys_Ez_, IP.periodic_, std::array<double,3>( {{ 0.0, 0.0, 0.5}} ), nz );
@@ -257,7 +248,7 @@ public:
         // Determine if magnetic or electric dielectric material are in the PMLs
         for(int pp = 0; pp < pmlThickness_.size(); ++pp)
         {
-            // Determine what the i, j, k values for the PML are i is in the direction of the PML
+            // Determine what the i, j, k values for the PML are i is in the direction normal to the PML and j and k are inside the plane (i.e. if Left/Right ii = 0 (x) jj = 1(y) kk = 2(z))
             int cor_ii = pp;
             int cor_jj = (pp + 1) % 3;
             int cor_kk = (pp + 2) % 3;
@@ -266,31 +257,33 @@ public:
             std::array<int,3> ptVec_jj = {0, 0, 0};
             std::array<int,3> ptVec_kk = {0, 0, 0};
 
+            // Constructs a unit vector to convert ii, jj, kk to xx, yy, zz
             ptVec_ii[cor_ii] = 1;
             ptVec_jj[cor_jj] = 1;
             ptVec_kk[cor_kk] = 1;
             int xx = 0, yy = 0 , zz = 0;
             int max_ii = pmlThickness_[cor_ii];
-
             // Max value for the left, bottom, or back PMLs
+            // If the process starts outside the PML don't include it for dielectric/magnetic PML inclusion
             if(phys_Ex_->procLoc()[cor_ii] < pmlThickness_[cor_ii])
                 max_ii = pmlThickness_[cor_ii] - phys_Ex_->procLoc()[cor_ii];
             else
                 max_ii = 0;
 
+            // If PML is inside the PML and extends outside of it then max is the max point inside the process
             if(max_ii >= phys_Ex_->ln_vec()[cor_ii])
                 max_ii = phys_Ex_->ln_vec()[cor_ii]-1;
 
             // Min value for the right, top, or right PMLs
             int min_ii = n_vec_[cor_ii] - pmlThickness_[cor_ii] - 1;
+            // If PML starts before the process starts set the min value to the start of the process, else if the PML starts inside the process set it to the local starting point, else don't include it
             if(phys_Ex_->procLoc()[cor_ii] >= n_vec_[cor_ii] - pmlThickness_[cor_ii])
                 min_ii = 1;
-            else if(phys_Ex_->procLoc()[cor_ii]+phys_Ex_->ln_vec()[cor_ii]-1 >= n_vec_[cor_ii] - pmlThickness_[cor_ii])
-                min_ii = phys_Ex_->ln_vec()[cor_ii] - 1 - pmlThickness_[cor_ii];
+            else if(phys_Ex_->procLoc()[cor_ii]+phys_Ex_->ln_vec()[cor_ii]-2 >= n_vec_[cor_ii] - pmlThickness_[cor_ii])
+                min_ii = (n_vec_[cor_ii] - phys_Ex_->procLoc()[cor_ii]) - pmlThickness_[cor_ii];
             else
                 min_ii = phys_Ex_->ln_vec()[cor_ii];
 
-            // std::cout << gridComm_.rank() << '\t' << max_ii << '\t' << min_ii << std::endl;
             // Loop over PML's area
             for(int jj = 1; jj < phys_Ex_->ln_vec()[cor_jj]-1; ++jj)
             {
@@ -340,13 +333,8 @@ public:
                 }
             }
         }
-        // // if(dielectricMatInPML_)
-        // //     std::cout << "DIELECTRIC" << std::endl;
-        // // if(magMatInPML_)
-        // //     std::cout << "MAG" << std::endl;
-        // mpi::all_reduce(gridComm_, dielectricMatInPML_, std::logical_or<bool>());
-        // mpi::all_reduce(gridComm_, magMatInPML_, std::logical_or<bool>());
-        // See if any objects would require chiral, electric dispersive, or magnetic dispersive materials
+
+        // See if any objects would require electric dispersive, or magnetic dispersive materials
         bool disp = false;
         bool magnetic = false;
         for(auto& obj : objArr_)
@@ -356,81 +344,54 @@ public:
             if(obj->mat().size() > 1 || obj->epsInfty() > 1.0)
                 disp = true;
         }
+
         if(dielectricMatInPML_)
             disp = true;
         if(magMatInPML_)
             magnetic = true;
         // Initialize all girds
-        if(IP.size_[2] != 0)
-        {
-            Ex_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, false);
-            Hz_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, true);
-            Ey_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, true);
-            Hx_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, true);
-            Ez_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, false);
-            Hy_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, false);
-
-            if(disp)
-            {
-                Dx_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, false);
-                Dy_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, true);
-                Dz_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, false);
-            }
-
-            if(magnetic)
-            {
-                Bx_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, true);
-                By_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, false);
-                Bz_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, true);
-            }
-
-            ln_vec_[0] = Hz_->local_x()-2;
-            ln_vec_[1] = Hz_->local_y()-2;
-            ln_vec_[2] = Hz_->local_z()-2;
-            pbcZMin_ = 1;
-            pbcZMax_ = ln_vec_[2];
-        }
-        else if(IP.pol_ == POLARIZATION::HZ || IP.pol_ == POLARIZATION::EX || IP.pol_ == POLARIZATION::EY)
+        if(IP.size_[2] != 0 || IP.pol_ == POLARIZATION::HZ || IP.pol_ == POLARIZATION::EX || IP.pol_ == POLARIZATION::EY)
         {
             // Defined TEz mode
-            Ex_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }}),d_, false);
-            Hz_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }}),d_, true);
-            Ey_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }}),d_, true);
+            Ex_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_->npX(), n_vec_[1]+2*gridComm_->npY(), nz }}), d_, false);
+            Hz_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_->npX(), n_vec_[1]+2*gridComm_->npY(), nz }}), d_, true);
+            Ey_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_->npX(), n_vec_[1]+2*gridComm_->npY(), nz }}), d_, true);
 
             if(disp)
             {
-                Dx_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, false);
-                Dy_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, true);
+                Dx_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_->npX(), n_vec_[1]+2*gridComm_->npY(), nz }}), d_, false);
+                Dy_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_->npX(), n_vec_[1]+2*gridComm_->npY(), nz }}), d_, true);
             }
             if(magnetic)
-                Bz_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, true);
-            else
-                Bz_ = nullptr;
-
+            {
+                Bz_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_->npX(), n_vec_[1]+2*gridComm_->npY(), nz }}), d_, true);
+            }
             ln_vec_[0] = Hz_->local_x()-2;
             ln_vec_[1] = Hz_->local_y()-2;
-            ln_vec_[2] = 1;
+            ln_vec_[2] = (nz == 1) ? 1 : Hz_->local_z()-2;
         }
-        else
+        if(IP.size_[2] != 0 || IP.pol_ == POLARIZATION::EZ || IP.pol_ == POLARIZATION::HX || IP.pol_ == POLARIZATION::HY)
         {
             // Define TMz mode
-            Hx_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }}),d_, true);
-            Ez_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }}),d_,false);
-            Hy_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), 1 }}),d_,false);
+            Hx_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_->npX(),n_vec_[1]+2*gridComm_->npY(), nz }}),d_, true);
+            Ez_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_->npX(),n_vec_[1]+2*gridComm_->npY(), nz }}),d_,false);
+            Hy_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_->npX(),n_vec_[1]+2*gridComm_->npY(), nz }}),d_,false);
 
             if(disp)
             {
-                Dz_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, false);
+                Dz_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_->npX(), n_vec_[1]+2*gridComm_->npY(),  nz }}), d_, false);
             }
             if(magnetic)
             {
-                Bx_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, true);
-                By_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_.npX(), n_vec_[1]+2*gridComm_.npY(),  n_vec_[2]+2*gridComm_.npZ() }}), d_, false);
+                Bx_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_->npX(), n_vec_[1]+2*gridComm_->npY(),  nz }}), d_, true);
+                By_ = std::make_shared<parallelGrid<T>> (gridComm_, IP.periodic_, weights_, std::array<int,3>({{ n_vec_[0]+2*gridComm_->npX(), n_vec_[1]+2*gridComm_->npY(),  nz }}), d_, false);
             }
             ln_vec_[0] = Ez_->local_x()-2;
             ln_vec_[1] = Ez_->local_y()-2;
-            ln_vec_[2] = 1;
+            ln_vec_[2] = (nz == 1) ? 1 : Ez_->local_z()-2;
         }
+        pbcZMin_ = (nz == 1) ? 0 : 1;
+        pbcZMax_ = (nz == 1) ? 1 : ln_vec_[2];
         // Initialize object specific grids
         for(auto & obj :objArr_)
         {
@@ -439,34 +400,33 @@ public:
             {
                 if(Dx_)
                 {
-                    prevLorPy_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, true) );
-                    prevLorPx_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-                    lorPx_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-                    lorPy_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, true) );
+                    prevLorPy_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_->npX(),n_vec_[1]+2*gridComm_->npY(), nz }} ), d_, true) );
+                    prevLorPx_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_->npX(),n_vec_[1]+2*gridComm_->npY(), nz }} ), d_, false) );
+                    lorPx_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_->npX(),n_vec_[1]+2*gridComm_->npY(), nz }} ), d_, false) );
+                    lorPy_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_->npX(),n_vec_[1]+2*gridComm_->npY(), nz }} ), d_, true) );
                 }
                 if(Dz_)
                 {
-                    lorPz_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-                    prevLorPz_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
+                    lorPz_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_->npX(),n_vec_[1]+2*gridComm_->npY(), nz }} ), d_, false) );
+                    prevLorPz_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_->npX(),n_vec_[1]+2*gridComm_->npY(), nz }} ), d_, false) );
                 }
             }
             while((obj->magMat().size() - 1) / 3.0 > lorMx_.size())
             {
                 if(Bx_)
                 {
-                    prevLorMy_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, true) );
-                    prevLorMx_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-                    lorMx_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-                    lorMy_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, true) );
+                    prevLorMy_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_->npX(),n_vec_[1]+2*gridComm_->npY(), nz }} ), d_, true) );
+                    prevLorMx_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_->npX(),n_vec_[1]+2*gridComm_->npY(), nz }} ), d_, false) );
+                    lorMx_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_->npX(),n_vec_[1]+2*gridComm_->npY(), nz }} ), d_, false) );
+                    lorMy_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_->npX(),n_vec_[1]+2*gridComm_->npY(), nz }} ), d_, true) );
                 }
                 if(Bz_)
                 {
-                    lorMz_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
-                    prevLorMz_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), n_vec_[2]+2*gridComm_.npZ() }} ), d_, false) );
+                    lorMz_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_->npX(),n_vec_[1]+2*gridComm_->npY(), nz }} ), d_, false) );
+                    prevLorMz_.push_back(std::make_shared<parallelGrid<T>>(gridComm_, false, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_->npX(),n_vec_[1]+2*gridComm_->npY(), nz }} ), d_, false) );
                 }
             }
         }
-
         for(auto& xx : IP.inputMapSlicesX_)
             convertInputs2Map(IP, DIRECTION::X, xx);
         for(auto& yy : IP.inputMapSlicesY_)
@@ -484,34 +444,34 @@ public:
      * @param[in]  derivOff  An array describing the offset for the j spatial derivative
      * @param[in]  fieldEnd  The first grid point outside where the field is defined
      * @param[in]  d         grid spacing
-     * @param      axU       axE/axH update list
-     * @param      axD       The axD/axB update list
+     * @param      upU       upE/upH update list
+     * @param      upD       The upD/upB update list
      */
-    void initializeList(std::shared_ptr<parallelGridInt> physGrid, std::shared_ptr<parallelCPML<T>> pml, bool E, std::array<int,3> derivOff, std::array<int,3> fieldEnd, double d, upLists& axU, upLists& axD)
+    void initializeList(std::shared_ptr<parallelGrid<int>> physGrid, std::shared_ptr<parallelCPML<T>> pml, bool E, std::array<int,3> derivOff, std::array<int,3> fieldEnd, double d, upLists& upU, upLists& upD )
     {
         int zmin = physGrid->z() == 1 ? 0 : 1;
         int zmax = physGrid->z() == 1 ? 1 : physGrid->local_z()-1;
         std::vector<std::array<int, 5>> tempU, tempD;
-        std::tie(tempU, tempD) = getAxLists(  E, {{ 1, 1, zmin }}, {{ physGrid->ln_vec()[0]-1, physGrid->ln_vec()[1]-1, zmax }}, physGrid, pml);
-        for(auto & ax : tempU)
+        std::tie(tempU, tempD) = getBlasLists(  E, {{ 1, 1, zmin }}, {{ physGrid->ln_vec()[0]-1, physGrid->ln_vec()[1]-1, zmax }}, physGrid, pml);
+        for(auto & up : tempU)
         {
-            double ep_mu = E ? objArr_[ax[4]]->epsInfty() : objArr_[ax[4]]->muInfty();
-            if( ax[1] + physGrid->procLoc()[1] != fieldEnd[1] && ax[2] + physGrid->procLoc()[2] != fieldEnd[2] )
+            double ep_mu = E ? objArr_[up[4]]->epsInfty() : objArr_[up[4]]->muInfty();
+            if( up[1] + physGrid->procLoc()[1] != fieldEnd[1] && up[2] + physGrid->procLoc()[2] != fieldEnd[2] )
             {
-                if(ax[3] + ax[0] - 1 == fieldEnd[0])
-                    axU.push_back(std::make_pair(std::array<int,8>({ax[3]-1, ax[0], ax[1], ax[2], derivOff[0], derivOff[1] , derivOff[2], ax[4]}), std::array<double,2>({1.0, -1.0*dt_/(ep_mu*d)}) ) );
+                if(up[3] + up[0] - 1 == fieldEnd[0])
+                    upU.push_back(std::make_pair(std::array<int,8>({up[3]-1, up[0], up[1], up[2], derivOff[0], derivOff[1] , derivOff[2], up[4]}), std::array<double,2>({1.0, -1.0*dt_/(ep_mu*d)}) ) );
                 else
-                    axU.push_back(std::make_pair(std::array<int,8>({ax[3]  , ax[0], ax[1], ax[2], derivOff[0], derivOff[1] , derivOff[2], ax[4]}), std::array<double,2>({1.0, -1.0*dt_/(ep_mu*d)}) ) );
+                    upU.push_back(std::make_pair(std::array<int,8>({up[3]  , up[0], up[1], up[2], derivOff[0], derivOff[1] , derivOff[2], up[4]}), std::array<double,2>({1.0, -1.0*dt_/(ep_mu*d)}) ) );
             }
         }
-        for(auto & ax : tempD)
+        for(auto & up : tempD)
         {
-            if( ax[1] + physGrid->procLoc()[1] != fieldEnd[1] && ax[2] + physGrid->procLoc()[2] != fieldEnd[2] )
+            if( up[1] + physGrid->procLoc()[1] != fieldEnd[1] && up[2] + physGrid->procLoc()[2] != fieldEnd[2] )
             {
-                if(ax[3] + ax[0] - 1 == fieldEnd[0])
-                    axD.push_back(std::make_pair(std::array<int,8>({ax[3]-1, ax[0], ax[1], ax[2], derivOff[0], derivOff[1] , derivOff[2], ax[4]}), std::array<double,2>({1.0, -1.0*dt_/d}) ) );
+                if(up[3] + up[0] - 1 == fieldEnd[0])
+                    upD.push_back(std::make_pair(std::array<int,8>({up[3]-1, up[0], up[1], up[2], derivOff[0], derivOff[1] , derivOff[2], up[4]}), std::array<double,2>({1.0, -1.0*dt_/d}) ) );
                 else
-                    axD.push_back(std::make_pair(std::array<int,8>({ax[3]  , ax[0], ax[1], ax[2], derivOff[0], derivOff[1] , derivOff[2], ax[4]}), std::array<double,2>({1.0, -1.0*dt_/d}) ) );
+                    upD.push_back(std::make_pair(std::array<int,8>({up[3]  , up[0], up[1], up[2], derivOff[0], derivOff[1] , derivOff[2], up[4]}), std::array<double,2>({1.0, -1.0*dt_/d}) ) );
             }
         }
     }
@@ -520,8 +480,6 @@ public:
      * @brief      Constructs a DTC based off of the input parameters and puts it in the proper detector vector
      *
      * @param[in]  c             class type of the dtc (bin, bmp, cout, txt, freq)
-     * @param[in]  fPow          True if outputting power
-     * @param[in]  dtcNum        number of the detector
      * @param[in]  grid          vector of the fields that need to be outputted
      * @param[in]  SI            true if outputting in SI units
      * @param[in]  loc           The location of the detectors lower left corner in grid points
@@ -530,91 +488,39 @@ public:
      * @param[in]  fxn           Function used to modify base field data
      * @param[in]  txtType       if BMP what should be outputted to the text file
      * @param[in]  type          The type of the detector (Ex, Ey, Epow, etc)
-     * @param[in]  nfreq         The number of frequencies to keep track of if Freq detector
-     * @param[in]  fcen          The center frequency of the freq range
-     * @param[in]  fwidth        The frequency width of the detector
-     * @param[in]  lamL          The left end point of the wavelength range
-     * @param[in]  lamR          The right end point of the wavelength range
+     * @param[in]  freqList      The frequency list
      * @param[in]  timeInterval  The number of time steps per field output
-     * @param[in]  fristComp     The first component: is loc[0] in the x y or z direction
      * @param[in]  a             unit length of the calculation
      * @param[in]  I0            unit current of the calculation
      * @param[in]  t_max         The time at the final time step
      */
-    virtual void coustructDTC(DTCCLASS c, bool fPow, int dtcNum, std::vector<pgrid_ptr> grid, bool SI, std::array<int,3> loc, std::array<int,3> sz, std::string out_name, DTCTYPE type, int nfreq, double fcen, double fwidth, double lamL, double lamR, double timeInterval, DIRECTION fristComp, double a, double I0, double t_max) = 0;
+    virtual void coustructDTC(DTCCLASS c, std::vector<pgrid_ptr> grid, bool SI, std::array<int,3> loc, std::array<int,3> sz, std::string out_name, GRIDOUTFXN fxn, GRIDOUTTYPE txtType, DTCTYPE type, std::vector<double> freqList, double timeInterval, double a, double I0, double t_max) = 0;
 
     /**
-     * @brief      Constructs a frequency detector and returns a shared_ptr to it
+     * @brief      Generates the FDTD update lists
      *
-     * @param[in]  fPow          True if outputting power
-     * @param[in]  dtcNum        number of the detector
-     * @param      grid          vector of the fields that need to be outputted
-     * @param[in]  SI            true if outputting in SI units
-     * @param[in]  loc           The location of the detectors lower left corner in grid points
-     * @param[in]  sz            The size of the detector in grid points
-     * @param[in]  out_name      The output file name
-     * @param[in]  fxn           Function used to modify base field data
-     * @param[in]  txtType       if BMP what should be outputted to the text file
-     * @param[in]  type          The type of the detector (Ex, Ey, Epow, etc)
-     * @param[in]  nfreq         The number of frequencies to keep track of if Freq detector
-     * @param[in]  fcen          The center frequency of the freq range
-     * @param[in]  fwidth        The frequency width of the detector
-     * @param[in]  lamL          The left end point of the wavelength range
-     * @param[in]  lamR          The right end point of the wavelength range
-     * @param[in]  timeInterval  The number of time steps per field output
-     * @param[in]  fristComp     The first component: is loc[0] in the x y or z direction
-     * @param[in]  a             unit length of the calculation
-     * @param[in]  I0            unit current of the calculation
+     * @param[in]  E         True if the field the list is being generated for is an electric field
+     * @param[in]  min       An array containing the minimum grid points in all direction
+     * @param[in]  max       An array containing the maximum grid points in all directions
+     * @param[in]  physGrid  The map of all objects on that grid
+     * @param[in]  pml       The cPML associated with the grid
      *
-     * @return     A shared_ptr to the frequency detector
+     * @return     A tuple containing all update lists for the grid containing (x start, y start, z start, number of elements to include, object parameters to use)
      */
-    virtual std::shared_ptr<parallelDetectorFREQ_Base<T>> constructFreqDTC(bool fPow, int dtcNum, std::vector<pgrid_ptr> &grid, bool SI, std::array<int,3> loc, std::array<int,3> sz, std::string out_name, DTCTYPE type, int nfreq, double fcen, double fwidth, double lamL, double lamR, double timeInterval, DIRECTION fristComp, double a, double I0) = 0;
-
-    /**
-     * @brief Creates geometry update lists for E and D fields
-     * @details Creates the precurser lists that will be used to described the cell geometry  in the update parameter lists
-     *
-     * @param xmin minimum x grid point
-     * @param xmax maximum x grid point
-     * @param ymin minimum y grid point
-     * @param ymax maximum y grid point
-     * @param physGrid physical grid for the particular field
-     * @return a pair of update preurser lists for the D and E fields
-     */
-    std::tuple< std::vector<std::array<int,5>>, std::vector<std::array<int,5>> > getAxLists(bool E, std::array<int,3> min, std::array<int,3> max, std::shared_ptr<parallelGridInt> physGrid, std::shared_ptr<parallelCPML<T>> pml)
+    std::tuple< std::vector<std::array<int,5>>, std::vector<std::array<int,5>> > getBlasLists(bool E, std::array<int,3> min, std::array<int,3> max, std::shared_ptr<parallelGrid<int>> physGrid, std::shared_ptr<parallelCPML<T>> pml)
     {
-        std::vector<std::array<int,5>> axULists = {};
-        std::vector<std::array<int,5>> axDLists = {};
+        std::vector<std::array<int,5>> upULists;
+        std::vector<std::array<int,5>> upDLists;
 
-        int PML_y_bot = 0;
-        int PML_y_top = 0;
-        int PML_x_right = 0;
-        int PML_x_left = 0;
-        int PML_z_back = 0;
-        int PML_z_front = 0;
-        if(dielectricMatInPML_ && Ez_ && Hz_)
-        {
-            PML_z_back  = EzPML_->lnz_back();
-            PML_z_front = EzPML_->lnz_front();
-            PML_y_bot   = ExPML_->lny_bot();
-            PML_y_top   = ExPML_->lny_top();
-            PML_x_right = EyPML_->lnx_right();
-            PML_x_left  = EyPML_->lnx_left();
-        }
-        else if(dielectricMatInPML_ && Hz_)
-        {
-            PML_y_bot   = ExPML_->lny_bot();
-            PML_y_top   = ExPML_->lny_top();
-            PML_x_right = EyPML_->lnx_right();
-            PML_x_left  = EyPML_->lnx_left();
-        }
-        else if(dielectricMatInPML_)
-        {
-            PML_y_bot   = EzPML_->lny_bot();
-            PML_y_top   = EzPML_->lny_top();
-            PML_x_right = EzPML_->lnx_right();
-            PML_x_left  = EzPML_->lnx_left();
-        }
+        // Include PMLs if material is inside them
+        int PML_y_bot = ( (E && dielectricMatInPML_) || (!E && magMatInPML_) ) ? pml->lny_bot() : 0;
+        int PML_y_top = ( (E && dielectricMatInPML_) || (!E && magMatInPML_) ) ? pml->lny_top() : 0;
+        int PML_x_right = ( (E && dielectricMatInPML_) || (!E && magMatInPML_) ) ? pml->lnx_right() : 0;
+        int PML_x_left  = ( (E && dielectricMatInPML_) || (!E && magMatInPML_) ) ? pml->lnx_left() : 0;
+        int PML_z_back  = (Ez_ && Hz_ && ( (E && dielectricMatInPML_) || (!E && magMatInPML_) ) ) ? pml->lnz_back()  : 0;
+        int PML_z_front = (Ez_ && Hz_ && ( (E && dielectricMatInPML_) || (!E && magMatInPML_) ) ) ? pml->lnz_front() : 0;
+
+        std::shared_ptr<Obj> obj;
         // If inside the bottom PML everything should be updated with a D field
         for(int jj = min[1]; jj < min[1]+PML_y_bot; ++jj)
         {
@@ -625,14 +531,17 @@ public:
                 {
                     int iistore = ii;
                     // Check if points are in same object
-                    while ( (ii < max[0]-1) && ( physGrid->point(ii,jj,kk) == physGrid->point(ii+1,jj,kk) ) ) ++ii;
+                    while ( (ii < max[0]-1) && ( physGrid->point(ii,jj,kk) == physGrid->point(ii+1,jj,kk) ) )
+                        ++ii;
 
-                    axDLists.push_back({{ iistore,jj,kk,ii-iistore+1,static_cast<int>(physGrid->point(iistore,jj,kk))}});
+                    obj = objArr_[ physGrid->point(iistore, jj, kk) ];
+                    upDLists.push_back({{ iistore,jj,kk,ii-iistore+1,static_cast<int>(physGrid->point(iistore,jj,kk))}});
+
                     ++ii;
                 }
             }
         }
-        // Centeral region only the left and right PMLs should be 100% inside D lists
+        // Central region only the left, right, front and back PMLs should be 100% inside D lists
         for(int jj = min[1]+PML_y_bot; jj < max[1]-PML_y_top; ++jj)
         {
             for(int kk = min[2]; kk < min[2] + PML_z_back; ++kk )
@@ -642,8 +551,12 @@ public:
                 {
                     int iistore = ii;
                     // Check if points are in same object
-                    while ( (ii < max[0]-1) && ( physGrid->point(ii,jj,kk) == physGrid->point(ii+1,jj,kk) ) ) ++ii;
-                    axDLists.push_back({{ iistore,jj,kk,ii-iistore+1,static_cast<int>(physGrid->point(iistore,jj,kk))}});
+                    while ( (ii < max[0]-1) && ( physGrid->point(ii,jj,kk) == physGrid->point(ii+1,jj,kk) ) )
+                        ++ii;
+
+                    objArr_[ physGrid->point(iistore, jj, kk) ];
+                    upDLists.push_back({{ iistore,jj,kk,ii-iistore+1,static_cast<int>(physGrid->point(iistore,jj,kk))}});
+
                     ++ii;
                 }
             }
@@ -654,13 +567,15 @@ public:
                 {
                     int iistore = ii;
                     // Check if points are in same object and whether or not at a PML boundary (always cut off at the boundary)
-                    while ( (ii < max[0]-1) && ( physGrid->point(ii,jj,kk) == physGrid->point(ii+1,jj,kk) ) && (ii != PML_x_left ) && (ii != max[0]-PML_x_right ) ) ++ii;
+                    while ( (ii < max[0]-1) && ( physGrid->point(ii,jj,kk) == physGrid->point(ii+1,jj,kk) ) && (ii != PML_x_left ) && (ii != max[0]-PML_x_right ) )
+                        ++ii;
 
-                    // If the point is not in a PML or dispersive material put it in update E field; else update D
-                    if( ( !E && objArr_[ physGrid->point(iistore,jj,kk) ]->magMat().size() <= 1 ) || (E && objArr_[ physGrid->point(iistore,jj,kk) ]->mat().size() <= 1 && ii > PML_x_left && ii <=  max[0]-PML_x_right ) )
-                        axULists.push_back({{ iistore,jj,kk,ii-iistore+1,static_cast<int>(physGrid->point(iistore,jj,kk))}});
+                    obj = objArr_[ physGrid->point(iistore, jj, kk) ];
+                    // If the point is not in a PML or dispersive material put it in update U field; else update D or
+                    if( ( !E && obj->magMat().size() <= 1 ) || ( E && obj->mat().size() <= 1 && ii > PML_x_left && ii <=  max[0]-PML_x_right ) )
+                        upULists.push_back({{ iistore,jj,kk,ii-iistore+1,static_cast<int>(physGrid->point(iistore,jj,kk))}});
                     else
-                        axDLists.push_back({{ iistore,jj,kk,ii-iistore+1,static_cast<int>(physGrid->point(iistore,jj,kk))}});
+                        upDLists.push_back({{ iistore,jj,kk,ii-iistore+1,static_cast<int>(physGrid->point(iistore,jj,kk))}});
                     ++ii;
                 }
             }
@@ -671,8 +586,10 @@ public:
                 {
                     int iistore = ii;
                     // Check if points are in same object
-                    while ( (ii < max[0]-1) && ( physGrid->point(ii,jj,kk) == physGrid->point(ii+1,jj,kk) ) ) ++ii;
-                    axDLists.push_back({{ iistore,jj,kk,ii-iistore+1,static_cast<int>(physGrid->point(iistore,jj,kk))}});
+                    while ( (ii < max[0]-1) && ( physGrid->point(ii,jj,kk) == physGrid->point(ii+1,jj,kk) ) )
+                        ++ii;
+                    objArr_[ physGrid->point(iistore, jj, kk) ];
+                    upDLists.push_back({{ iistore,jj,kk,ii-iistore+1,static_cast<int>(physGrid->point(iistore,jj,kk))}});
                     ++ii;
                 }
             }
@@ -687,27 +604,30 @@ public:
                 {
                     int iistore = ii;
                     // Check if points are in same object
-                    while ( (ii < max[0]-1) && ( physGrid->point(ii,jj,kk) == physGrid->point(ii+1,jj,kk) ) ) ++ii;
-                    axDLists.push_back({{ iistore,jj,kk,ii-iistore+1,static_cast<int>(physGrid->point(iistore,jj,kk))}});
+                    while ( (ii < max[0]-1) && ( physGrid->point(ii,jj,kk) == physGrid->point(ii+1,jj,kk) ) )
+                        ++ii;
+
+                    objArr_[ physGrid->point(iistore, jj, kk) ];
+                    upDLists.push_back({{ iistore,jj,kk,ii-iistore+1,static_cast<int>(physGrid->point(iistore,jj,kk))}});
+
                     ++ii;
                 }
             }
         }
-        // std::cout << axULists.size() << '\t' << axDLists.size() << '\t' << axChiDLists.size() << std::endl;
-        return std::make_tuple(axULists, axDLists);
+        return std::make_tuple(upULists, upDLists);
     }
 
     /**
-     * @brief Uses the objArr to generate the physical grids
-     * @details goes through all the grid points and determines if there is an object is at the grid point and if so sets the point to that value
+     * @brief      Sets up the object map grids for each field
      *
-     * @param physGrid physGrid to be set
-     * @param offPt offset for all the coordinate
-     * @param nz the number of points in the z direction (3D or 2D)
+     * @param      physGrid  The object map to be made
+     * @param[in]  PBC       True if periodic boundary conditions used
+     * @param[in]  offPt     values for the offset from the base grid point for each field
+     * @param[in]  nz        number of grid points in the z direction
      */
-    void setupPhysFields(std::shared_ptr<parallelGridInt>& physGrid, bool PBC, std::array<double,3> offPt, int nz)
+    void setupPhysFields(std::shared_ptr<parallelGrid<int>>& physGrid, bool PBC, std::array<double,3> offPt, int nz)
     {
-        physGrid = std::make_shared<parallelGridInt >(gridComm_, PBC, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_.npX(),n_vec_[1]+2*gridComm_.npY(), nz }} ), d_, false);
+        physGrid = std::make_shared<parallelGrid<int> >(gridComm_, PBC, weights_, std::array<int,3>( {{ n_vec_[0]+2*gridComm_->npX(),n_vec_[1]+2*gridComm_->npY(), nz }} ), d_, false);
         // Test point used
         std::array<double,3> pt = {{ 0,0,0}};
         // Objects on the same points over write each other (last object made wins)
@@ -770,81 +690,80 @@ public:
     }
 
     /**
-     * @brief      Is used to make the weights grid for dividing the FDTD fields evenly
+     * @brief      Sets up the weight grid for dividing processes by taking average of H/E fields and for 3D calcs the flux region calcs
      *
-     * @param      IP    Input parameter from the constructor
+     * @param[in]  IP    Input parameter object that is being used to construct the propagator
      */
-    void setupWeightsGrid(parallelProgramInputs &IP)
+    void setupWeightsGrid(const parallelProgramInputs &IP)
     {
         // test point will move across all grid points
         // Set weights based off of normal materials, number of axpy calls per time step (6 base + 3*n_lor_pol = 6 + 3*(objArr_[kk]->mat().size()-1)/3)*number of E fields
-        // Separated by polarization since TE and TM grids look at different points in the same grid cell.
-        if(n_vec_[2] > 1)
+        std::array<double,3> pt = {{0,0,0}};
+        weights_.push_back(std::make_shared<Grid<double>>(n_vec_, d_) );
+        weights_.push_back(std::make_shared<Grid<double>>(n_vec_, d_) );
+        weights_.push_back(std::make_shared<Grid<double>>(n_vec_, d_) );
+        for(int oo = 0; oo < objArr_.size(); ++oo)
         {
-            std::array<double,3> pt = {{0,0,0}};
-            weights_.push_back(std::make_shared<Grid<double>>(n_vec_, d_) );
-            weights_.push_back(std::make_shared<Grid<double>>(n_vec_, d_) );
-            weights_.push_back(std::make_shared<Grid<double>>(n_vec_, d_) );
-            for(int oo = 0; oo < objArr_.size(); ++oo)
+            for(int ii = 0; ii < n_vec_[0]; ++ii)
             {
-                for(int ii = 0; ii < n_vec_[0]; ++ii)
+                for(int jj = 0; jj < n_vec_[1]; ++jj)
                 {
-                    for(int jj = 0; jj < n_vec_[1]; ++jj)
+                    for(int kk = 0; kk < n_vec_[2]; ++kk)
                     {
-                        for(int kk = 0; kk < n_vec_[2]; ++kk)
-                        {
-                            // Ex points located at ii+1/2, jj
-                            pt[0] = (ii-(n_vec_[0]-1)/2.0+0.5)*d_[0];
-                            pt[1] = (jj-(n_vec_[1]-1)/2.0    )*d_[1];
-                            pt[2] = (kk-(n_vec_[2]-1)/2.0    )*d_[2];
-                            if(objArr_[oo]->isObj(pt,d_[0]))
-                                weights_[0]->point(ii,jj,kk) =  (2.0 + (2.0666666666666*static_cast<double>(objArr_[oo]->mat().size()-1) + 2.0666666666666*static_cast<double>(objArr_[oo]->magMat().size()-1) )/2.0 ) ;
-                            // Ey points located ii, jj+1/2
-                            pt[1] += 0.5*d_[1];
-                            pt[0] -= 0.5*d_[0];
-                            if(objArr_[oo]->isObj(pt,d_[0]))
-                                weights_[1]->point(ii,jj,kk) =  (2.0 + (2.0666666666666*static_cast<double>(objArr_[oo]->mat().size()-1) + 2.0666666666666*static_cast<double>(objArr_[oo]->magMat().size()-1) )/2.0 ) ;
-                            // Ez point is at ii, jj
-                            pt[1] -= 0.5*d_[1];
-                            pt[2] += 0.5*d_[2];
-                            if(objArr_[oo]->isObj(pt,d_[0]))
-                                weights_[2]->point(ii,jj,kk) =  (2.0 + (2.0666666666666*static_cast<double>(objArr_[oo]->mat().size()-1) + 2.0666666666666*static_cast<double>(objArr_[oo]->magMat().size()-1) )/2.0 ) ;
-                        }
+                        // Ex points located at ii+1/2, jj
+                        pt[0] = (ii-(n_vec_[0]-1)/2.0+0.5)*d_[0];
+                        pt[1] = (jj-(n_vec_[1]-1)/2.0    )*d_[1];
+                        pt[2] = (kk-(n_vec_[2]-1)/2.0    )*d_[2];
+                        if(objArr_[oo]->isObj(pt,d_[0]))
+                            weights_[0]->point(ii,jj,kk) =  (2.0 + (2.0666666666666*static_cast<double>(objArr_[oo]->mat().size()-1) + 2.0666666666666*static_cast<double>(objArr_[oo]->magMat().size()-1) )/2.0 ) ;
+                        // Ey points located ii, jj+1/2
+                        pt[1] += 0.5*d_[1];
+                        pt[0] -= 0.5*d_[0];
+                        if(objArr_[oo]->isObj(pt,d_[0]))
+                            weights_[1]->point(ii,jj,kk) =  (2.0 + (2.0666666666666*static_cast<double>(objArr_[oo]->mat().size()-1) + 2.0666666666666*static_cast<double>(objArr_[oo]->magMat().size()-1) )/2.0 ) ;
+                        // Ez point is at ii, jj
+                        pt[1] -= 0.5*d_[1];
+                        pt[2] += 0.5*d_[2];
+                        if(objArr_[oo]->isObj(pt,d_[0]))
+                            weights_[2]->point(ii,jj,kk) =  (2.0 + (2.0666666666666*static_cast<double>(objArr_[oo]->mat().size()-1) + 2.0666666666666*static_cast<double>(objArr_[oo]->magMat().size()-1) )/2.0 ) ;
                     }
                 }
             }
-            std::vector<double> copyZero(n_vec_[0]*n_vec_[2], 0.0);
-            // Ey has no points on the ny-1 face
-            std::copy_n( copyZero.data(), n_vec_[0]*n_vec_[2], &weights_[1]->point(0, n_vec_[1]-1, 0) );
-            // Ex has no points on the nx-1 face
-            for(int yy = 0; yy < n_vec_[1]; ++yy)
-                dcopy_(n_vec_[2], copyZero.data(), 1, &weights_[0]->point(n_vec_[0]-1, yy, 0), weights_[0]->x() );
-            // Ez has no points on the nz-1 face
-            for(int yy = 0; yy < n_vec_[1]; ++yy)
-                std::copy_n(copyZero.data(), n_vec_[0], &weights_[2]->point(0, yy, n_vec_[2]-1) );
-            // Add PMLs
-            for(int xx = 0; xx < IP.pmlThickness_[0]; ++xx)
+        }
+        std::vector<double> copyZero(n_vec_[0]*n_vec_[2], 0.0);
+        // Ey has no points on the ny-1 face
+        std::copy_n( copyZero.data(), n_vec_[0]*n_vec_[2], &weights_[1]->point(0, n_vec_[1]-1, 0) );
+        // Ex has no points on the nx-1 face
+        for(int yy = 0; yy < n_vec_[1]; ++yy)
+            dcopy_(n_vec_[2], copyZero.data(), 1, &weights_[0]->point(n_vec_[0]-1, yy, 0), weights_[0]->x() );
+        // Ez has no points on the nz-1 face
+        for(int yy = 0; yy < n_vec_[1]; ++yy)
+            std::copy_n(copyZero.data(), n_vec_[0], &weights_[2]->point(0, yy, n_vec_[2]-1) );
+        // Add PMLs
+        for(int xx = 0; xx < IP.pmlThickness_[0]; ++xx)
+        {
+            // Ex field has no PML along the left and right
+            for(int yy = 0; yy < weights_[0]->y(); ++ yy)
             {
-                // Ex field has no PML along the left and right
-                for(int yy = 0; yy < weights_[0]->y(); ++ yy)
-                {
-                    daxpy_(weights_[1]->z(), 1.0, std::vector<double>(n_vec_[2], 3.1).data(), 1, &weights_[1]->point(            xx, yy, 0), weights_[1]->x());
-                    daxpy_(weights_[2]->z(), 1.0, std::vector<double>(n_vec_[2], 3.1).data(), 1, &weights_[2]->point(            xx, yy, 0), weights_[2]->x());
+                daxpy_(weights_[1]->z(), 1.0, std::vector<double>(n_vec_[2], 3.1).data(), 1, &weights_[1]->point(            xx, yy, 0), weights_[1]->x());
+                daxpy_(weights_[2]->z(), 1.0, std::vector<double>(n_vec_[2], 3.1).data(), 1, &weights_[2]->point(            xx, yy, 0), weights_[2]->x());
 
-                    daxpy_(weights_[1]->z(), 1.0, std::vector<double>(n_vec_[2], 3.1).data(), 1, &weights_[1]->point(n_vec_[0]-1-xx, yy, 0), weights_[1]->x());
-                    daxpy_(weights_[2]->z(), 1.0, std::vector<double>(n_vec_[2], 3.1).data(), 1, &weights_[2]->point(n_vec_[0]-1-xx, yy, 0), weights_[2]->x());
-                }
+                daxpy_(weights_[1]->z(), 1.0, std::vector<double>(n_vec_[2], 3.1).data(), 1, &weights_[1]->point(n_vec_[0]-1-xx, yy, 0), weights_[1]->x());
+                daxpy_(weights_[2]->z(), 1.0, std::vector<double>(n_vec_[2], 3.1).data(), 1, &weights_[2]->point(n_vec_[0]-1-xx, yy, 0), weights_[2]->x());
             }
-            std::fill_n(copyZero.begin(), copyZero.size(), 3.1);
-            for(int yy = 0; yy < IP.pmlThickness_[1]; ++yy)
-            {
-                // Ey field has no PML along the top and bottom
-                std::transform(copyZero.begin(), copyZero.end(), &weights_[0]->point(0,             yy, 0), &weights_[0]->point(0,             yy, 0), [](double a, double b){return a+b;});
-                std::transform(copyZero.begin(), copyZero.end(), &weights_[2]->point(0,             yy, 0), &weights_[2]->point(0,             yy, 0), [](double a, double b){return a+b;});
+        }
+        std::fill_n(copyZero.begin(), copyZero.size(), 3.1);
+        for(int yy = 0; yy < IP.pmlThickness_[1]; ++yy)
+        {
+            // Ey field has no PML along the top and bottom
+            std::transform(copyZero.begin(), copyZero.end(), &weights_[0]->point(0,             yy, 0), &weights_[0]->point(0,             yy, 0), [](double a, double b){return a+b;});
+            std::transform(copyZero.begin(), copyZero.end(), &weights_[2]->point(0,             yy, 0), &weights_[2]->point(0,             yy, 0), [](double a, double b){return a+b;});
 
-                std::transform(copyZero.begin(), copyZero.end(), &weights_[0]->point(0, n_vec_[1]-1-yy, 0), &weights_[0]->point(0, n_vec_[1]-1-yy, 0), [](double a, double b){return a+b;});
-                std::transform(copyZero.begin(), copyZero.end(), &weights_[2]->point(0, n_vec_[1]-1-yy, 0), &weights_[2]->point(0, n_vec_[1]-1-yy, 0), [](double a, double b){return a+b;});
-            }
+            std::transform(copyZero.begin(), copyZero.end(), &weights_[0]->point(0, n_vec_[1]-1-yy, 0), &weights_[0]->point(0, n_vec_[1]-1-yy, 0), [](double a, double b){return a+b;});
+            std::transform(copyZero.begin(), copyZero.end(), &weights_[2]->point(0, n_vec_[1]-1-yy, 0), &weights_[2]->point(0, n_vec_[1]-1-yy, 0), [](double a, double b){return a+b;});
+        }
+        if(IP.size_[2] > 0)
+        {
             for(int zz = 0; zz < IP.pmlThickness_[2]; ++zz)
             {
                 // Ez field has no PML along the front/back
@@ -858,10 +777,14 @@ public:
 
                 }
             }
+        }
+        // Computational cost of flux for 2D calcs is small so it is neglected.
+        if(IP.size_[2] > 0)
+        {
             // Include weights for flux regions
             for(int ff = 0; ff < IP.fluxLoc_.size(); ++ff)
             {
-                std::vector<double> fluxWeight( std::max( std::max(n_vec_[0], n_vec_[1]), n_vec_[2] ), IP.fluxNFreq_[ff] );
+                std::vector<double> fluxWeight( std::max( std::max(n_vec_[0], n_vec_[1]), n_vec_[2] ), IP.fluxFreqList_[ff].size() );
                 for(int yy = 0; yy < IP.fluxSz_[ff][1]; ++yy)
                 {
                     daxpy_(IP.fluxSz_[ff][0], 1.0, fluxWeight.data(), 1, &weights_[0]->point(IP.fluxLoc_[ff][0], IP.fluxLoc_[ff][1]+yy, IP.fluxLoc_[ff][2]), 1);
@@ -892,109 +815,30 @@ public:
                 }
             }
         }
-        else if(IP.pol_ == POLARIZATION::HZ || IP.pol_ == POLARIZATION::EX || IP.pol_ == POLARIZATION::EY)
-        {
-
-            std::array<double,3> pt = {{0.0, 0.0, 0.0}};
-            weights_.push_back(std::make_shared<Grid<double>>(n_vec_, d_) );
-            weights_.push_back(std::make_shared<Grid<double>>(n_vec_, d_) );
-            // Objects on the same points over write each other (last object made wins)
-            for(int oo = 0; oo < objArr_.size(); ++oo)
-            {
-                for(int ii = 0; ii < n_vec_[0]; ++ii)
-                {
-                    for(int jj = 0; jj < n_vec_[1]; ++jj)
-                    {
-                        // Ex points located at ii+1/2, jj
-                        pt[0] = (ii-(n_vec_[0]-1)/2.0+0.5)*d_[0];
-                        pt[1] = (jj-(n_vec_[1]-1)/2.0    )*d_[1];
-                        if(objArr_[oo]->isObj(pt,d_[0])==true)
-                            weights_[0]->point(ii,jj) =  (2.0 + (2.0666666666666*static_cast<double>(objArr_[oo]->mat().size()-1) + 2.0666666666666*static_cast<double>(objArr_[oo]->magMat().size()-1) ) / 2.0 ) ; // / objArr_[oo]->geo()[0] ;
-                        // Ey points located ii, jj+1/2
-                        pt[1] += 0.5*d_[1];
-                        pt[0] -= 0.5*d_[0];
-                        if(objArr_[oo]->isObj(pt,d_[0])==true)
-                            weights_[1]->point(ii,jj) =  (2.0 + (2.0666666666666*static_cast<double>(objArr_[oo]->mat().size()-1) + 2.0666666666666*static_cast<double>(objArr_[oo]->magMat().size()-1) ) / 2.0 ) ; // / objArr_[oo]->geo()[0] ;
-                    }
-                }
-            }
-            // Ey has no points across the top edge
-            dcopy_(n_vec_[0], std::vector<double>(n_vec_[0],0.0).data(), 1, &weights_[1]->point(0, n_vec_[1]-1), 1);
-            // Ex has no points across right edge
-            dcopy_(n_vec_[1], std::vector<double>(n_vec_[1],0.0).data(), 1, &weights_[0]->point(n_vec_[0]-1, 0), weights_[0]->x() );
-
-            // Add PMLs
-            for(int xx = 0; xx < IP.pmlThickness_[0]; ++xx)
-            {
-                // Ex field has no PML along the left and right
-                daxpy_(weights_[1]->y(), 1.0, std::vector<double>(n_vec_[1], 3.1).data(), 1, &weights_[1]->point(      xx, 0), weights_[1]->x());
-                daxpy_(weights_[1]->y(), 1.0, std::vector<double>(n_vec_[1], 3.1).data(), 1, &weights_[1]->point(n_vec_[0]-1-xx, 0), weights_[1]->x());
-            }
-            for(int yy = 0; yy < IP.pmlThickness_[1]; ++yy)
-            {
-                // Ey field has no PML along the top and bottom
-                daxpy_(weights_[0]->x(), 1.0, std::vector<double>(n_vec_[0], 3.1).data(), 1, &weights_[0]->point(0,       yy), 1);
-                daxpy_(weights_[0]->x(), 1.0, std::vector<double>(n_vec_[0], 3.1).data(), 1, &weights_[0]->point(0, n_vec_[1]-1-yy), 1);
-            }
-            // Hz has no points across the top and right edge
-            // dcopy_(n_vec_[0], std::vector<double>(n_vec_[0],0.0).data(), 1, &weights_[2]->point(0, n_vec_[1]-1), 1);
-            // dcopy_(n_vec_[1], std::vector<double>(n_vec_[1],0.0).data(), 1, &weights_[2]->point(n_vec_[0]-1, 0), weights_[1]->x());
-        }
-        else
-        {
-            std::array<double,3> pt = {{0.0, 0.0, 0.0}};
-            weights_.push_back(std::make_shared<Grid<double>>(n_vec_, d_) );
-            for(int oo = 0; oo < objArr_.size(); ++oo)
-            {
-                for(int ii = 0; ii < n_vec_[0]; ++ii)
-                {
-                    for(int jj = 0; jj < n_vec_[1]; ++jj)
-                    {
-                        // Ez point is at ii, jj
-                        pt[0] = (ii-(n_vec_[0]-1)/2.0 )*d_[0];
-                        pt[1] = (jj-(n_vec_[1]-1)/2.0 )*d_[1];
-                        if(objArr_[oo]->isObj(pt,d_[0])==true)
-                            weights_[0]->point(ii,jj) =  (2.0 + ( 2.0666666666666*static_cast<double>(objArr_[oo]->mat().size()-1) + 2.0666666666666*static_cast<double>(objArr_[oo]->magMat().size()-1) ) / 2.0 ) ; // / objArr_[oo]->geo()[0] ;
-                    }
-                }
-            }
-            // Add PMLs
-            for(int xx = 0; xx < IP.pmlThickness_[0]; ++xx)
-            {
-                daxpy_(weights_[0]->y(), 1.0, std::vector<double>(n_vec_[1], 3.1).data(), 1, &weights_[0]->point(      xx, 0), weights_[0]->x());
-                daxpy_(weights_[0]->y(), 1.0, std::vector<double>(n_vec_[1], 3.1).data(), 1, &weights_[0]->point(n_vec_[0]-1-xx, 0), weights_[0]->x());
-            }
-            for(int yy = 0; yy < IP.pmlThickness_[1]; ++yy)
-            {
-                daxpy_(weights_[0]->x(), 1.0, std::vector<double>(n_vec_[0], 3.1).data(), 1, &weights_[0]->point(0,       yy), 1);
-                daxpy_(weights_[0]->x(), 1.0, std::vector<double>(n_vec_[0], 3.1).data(), 1, &weights_[0]->point(0, n_vec_[1]-1-yy), 1);
-            }
-            // Hx has no points across top edge
-            // dcopy_(n_vec_[0], std::vector<double>(n_vec_[0],0.0).data(), 1, &weights_[0]->point(0, n_vec_[1]-1), 1);
-            // Hy has no points across right edge
-            // dcopy_(n_vec_[1], std::vector<double>(n_vec_[1],0.0).data(), 1, &weights_[1]->point(n_vec_[0]-1, 0), weights_[1]->x());
-        }
-        // Add time for flux regions
     }
     /**
      * @brief return the current time
      * @return tcur_
      */
-    inline double & getTime(){return tcur_;}
+    inline double getTime(){return tcur_;}
 
     /**
-     * @brief updates the grids one step in time
-     * @details Runs each update function and propagates grids forward in time one step
+     * @brief      steps the propagator forward one unit in time
      */
     void step()
     {
-        // Update H fields
+        // Update H/B fields
         updateH();
-        updateMagH();
+        updateB();
 
+        // Include PML updates before transferring from B to H
         updateHxPML_(HxPML_);
         updateHyPML_(HyPML_);
         updateHzPML_(HzPML_);
+
+        // Update all magnetization terms to the H field
+        updateMagH();
+
         // Add the H incident field before stepping tfsf objects (like H updates) and then add the E incd (like normal updates)
         for(auto & tfsf : tfsfArr_)
         {
@@ -1007,6 +851,7 @@ public:
         for(auto & src :srcArr_)
             src->addPul(tcur_);
 
+        // Transfer PBC and MPI related H field information
         pbcHx_(Hx_, k_point_, ln_vec_[0]+1, ln_vec_[1]+1, pbcZMax_+1, ln_vec_[0]+1, yHxPBC_, pbcZMin_, pbcZMax_  , d_[0], d_[1], d_[2] );
         pbcHy_(Hy_, k_point_, ln_vec_[0]+1, ln_vec_[1]+1, pbcZMax_+1, ln_vec_[0]  , yHyPBC_, pbcZMin_, pbcZMax_  , d_[0], d_[1], d_[2] );
         pbcHz_(Hz_, k_point_, ln_vec_[0]+1, ln_vec_[1]+1, pbcZMax_+1, ln_vec_[0]  , yHzPBC_, pbcZMin_, pbcZMax_+1, d_[0], d_[1], d_[2] );
@@ -1015,13 +860,16 @@ public:
         transferHy_();
         transferHz_();
 
-        // Update E fields
+        // Update E.D fields
         updateE();
+        updateD();
 
+        // Include PML updates before transferring from D to E
         updateExPML_(ExPML_);
         updateEyPML_(EyPML_);
         updateEzPML_(EzPML_);
-        // Add dispersive materials and update E field PML's during upD function calls (done to include dispersive materials more easily)
+
+        // Update all polarization terms to the E field
         updateDispE();
 
         // All E-field Updates should now be completed transfer border values for the E-fields
@@ -1035,7 +883,7 @@ public:
 
         // Increment time steps to before output as all fields should be updated to the next time step now
         tcur_ += dt_;
-        t_step_ ++;
+        ++t_step_;
 
         // Output all detector values
         for(auto & dtc : dtcArr_)
@@ -1050,88 +898,116 @@ public:
     }
 
     /**
-     * @brief Updates the magnetic fields
-     * @details Propagates the magnetic fields forward in time using the magnetic field functors
+     * @brief      Updates the H fields forward in time
      */
     void updateH()
     {
-        for(auto& ax : axHx_)
-            upHxFxn_(std::get<0>(ax), std::get<1>(ax), Hx_, Ey_, Ez_);
-        for(auto& ax : axHy_)
-            upHyFxn_(std::get<0>(ax), std::get<1>(ax), Hy_, Ez_, Ex_);
-        for(auto& ax : axHz_)
-            upHzFxn_(std::get<0>(ax), std::get<1>(ax), Hz_, Ex_, Ey_);
+        for(auto& up : upHx_)
+            upHxFxn_(std::get<0>(up), std::get<1>(up), Hx_, Ey_, Ez_);
+        for(auto& up : upHy_)
+            upHyFxn_(std::get<0>(up), std::get<1>(up), Hy_, Ez_, Ex_);
+        for(auto& up : upHz_)
+            upHzFxn_(std::get<0>(up), std::get<1>(up), Hz_, Ex_, Ey_);
     }
+
     /**
-     * @brief Updates the electric fields forward in time
-     * @details Propagates the electric fields forward in time using the electric field functors
+     * @brief      Updates the E fields forward in time
      */
     void updateE()
     {
-        for(auto& ax : axEx_)
-            upExFxn_(std::get<0>(ax), std::get<1>(ax), Ex_, Hy_, Hz_);
-        for(auto& ax : axEy_)
-            upEyFxn_(std::get<0>(ax), std::get<1>(ax), Ey_, Hz_, Hx_);
-        for(auto& ax : axEz_)
-            upEzFxn_(std::get<0>(ax), std::get<1>(ax), Ez_, Hx_, Hy_);
+        for(auto& up : upEx_)
+            upExFxn_(std::get<0>(up), std::get<1>(up), Ex_, Hy_, Hz_);
+        for(auto& up : upEy_)
+            upEyFxn_(std::get<0>(up), std::get<1>(up), Ey_, Hz_, Hx_);
+        for(auto& up : upEz_)
+            upEzFxn_(std::get<0>(up), std::get<1>(up), Ez_, Hx_, Hy_);
     }
+
     /**
-     * @brief Updates the electric fields for dispersive materials
-     * @details Updates he electric fields for the dispersive materials using the appropriate functors: Start off with updating the Lorentzian Polarization fields and the D fields (should be independent of each other), then combine in the E-fields; E = $\eps_\infty \vec{D} + \sum \vec{P}
+     * @brief      Updates the B fields forward in time
+     */
+    void updateB()
+    {
+        for(auto& up : upBx_)
+            upHxFxn_(std::get<0>(up), std::get<1>(up), Bx_, Ey_, Ez_);
+        for(auto& up : upBy_)
+            upHyFxn_(std::get<0>(up), std::get<1>(up), By_, Ez_, Ex_);
+        for(auto& up : upBz_)
+            upHzFxn_(std::get<0>(up), std::get<1>(up), Bz_, Ex_, Ey_);
+    }
+
+    /**
+     * @brief      Updates the D fields forward in time
+     */
+    void updateD()
+    {
+        for(auto& up : upDx_)
+            upExFxn_(std::get<0>(up), std::get<1>(up), Dx_, Hy_, Hz_);
+        for(auto& up : upDy_)
+            upEyFxn_(std::get<0>(up), std::get<1>(up), Dy_, Hz_, Hx_);
+        for(auto& up : upDz_)
+            upEzFxn_(std::get<0>(up), std::get<1>(up), Dz_, Hx_, Hy_);
+    }
+
+    /**
+     * @brief      Updates the polarization fields and adds them to the D field to get the E field for electrically dispersive materials
      */
     void updateDispE()
     {
-        for(auto& ax : axDx_)
+        for(auto& up : upDx_)
         {
-            upExFxn_(std::get<0>(ax), std::get<1>(ax), Dx_, Hy_, Hz_);
-            upLorPxFxn_( std::get<0>(ax), Ex_, lorPx_, prevLorPx_, scratch_.data(), objArr_[ std::get<0>(ax)[7] ]);
-            D2ExFxn_( std::get<0>(ax), Dx_, Ex_, lorPx_, objArr_[ std::get<0>(ax)[7] ]);
+            upLorPxFxn_( std::get<0>(up), Ex_, lorPx_, prevLorPx_, scratch_.data(), objArr_[ std::get<0>(up)[7] ]);
+            D2ExFxn_( std::get<0>(up), Dx_, Ex_, lorPx_, objArr_[ std::get<0>(up)[7] ]);
         }
-        for(auto& ax : axDy_)
+        for(auto& up : upDy_)
         {
-            upEyFxn_(std::get<0>(ax), std::get<1>(ax), Dy_, Hz_, Hx_);
-            upLorPyFxn_( std::get<0>(ax), Ey_, lorPy_, prevLorPy_, scratch_.data(), objArr_[ std::get<0>(ax)[7] ]);
-            D2EyFxn_( std::get<0>(ax), Dy_, Ey_, lorPy_, objArr_[ std::get<0>(ax)[7] ]);
+            upLorPyFxn_( std::get<0>(up), Ey_, lorPy_, prevLorPy_, scratch_.data(), objArr_[ std::get<0>(up)[7] ]);
+            D2EyFxn_( std::get<0>(up), Dy_, Ey_, lorPy_, objArr_[ std::get<0>(up)[7] ]);
         }
-        for(auto& ax : axDz_)
+        for(auto& up : upDz_)
         {
-            upEzFxn_(std::get<0>(ax), std::get<1>(ax), Dz_, Hx_, Hy_);
-            upLorPzFxn_( std::get<0>(ax), Ez_, lorPz_, prevLorPz_, scratch_.data(), objArr_[ std::get<0>(ax)[7] ]);
-            D2EzFxn_( std::get<0>(ax), Dz_, Ez_, lorPz_, objArr_[ std::get<0>(ax)[7] ]);
+            upLorPzFxn_( std::get<0>(up), Ez_, lorPz_, prevLorPz_, scratch_.data(), objArr_[ std::get<0>(up)[7] ]);
+            D2EzFxn_( std::get<0>(up), Dz_, Ez_, lorPz_, objArr_[ std::get<0>(up)[7] ]);
         }
     }
 
     /**
-     * @brief Updates the magnetic fields for magnetically dispersive materials
+     * @brief      Updates the magnetization fields and adds them to the B field to get the H field for magnetically dispersive materials
      */
     void updateMagH()
     {
-        for(auto& ax : axBx_)
+        for(auto& up : upBx_)
         {
-            upHxFxn_(std::get<0>(ax), std::get<1>(ax), Bx_, Ey_, Ez_);
-            upLorMxFxn_( std::get<0>(ax), Hx_, lorMx_, prevLorMx_, scratch_.data(), objArr_[ std::get<0>(ax)[7] ]);
-            B2HxFxn_( std::get<0>(ax), Bx_, Hx_, lorMx_, objArr_[ std::get<0>(ax)[7] ]);
+            upLorMxFxn_( std::get<0>(up), Hx_, lorMx_, prevLorMx_, scratch_.data(), objArr_[ std::get<0>(up)[7] ]);
+            B2HxFxn_( std::get<0>(up), Bx_, Hx_, lorMx_, objArr_[ std::get<0>(up)[7] ]);
         }
-        for(auto& ax : axBy_)
+        for(auto& up : upBy_)
         {
-            upHyFxn_(std::get<0>(ax), std::get<1>(ax), By_, Ez_, Ex_);
-            upLorMyFxn_( std::get<0>(ax), Hy_, lorMy_, prevLorMy_, scratch_.data(), objArr_[ std::get<0>(ax)[7] ]);
-            B2HyFxn_( std::get<0>(ax), By_, Hy_, lorMy_, objArr_[ std::get<0>(ax)[7] ]);
+            upLorMyFxn_( std::get<0>(up), Hy_, lorMy_, prevLorMy_, scratch_.data(), objArr_[ std::get<0>(up)[7] ]);
+            B2HyFxn_( std::get<0>(up), By_, Hy_, lorMy_, objArr_[ std::get<0>(up)[7] ]);
         }
-        for(auto& ax : axBz_)
+        for(auto& up : upBz_)
         {
-            upHzFxn_(std::get<0>(ax), std::get<1>(ax), Bz_, Ex_, Ey_);
-            upLorMzFxn_( std::get<0>(ax), Hz_, lorMz_, prevLorMz_, scratch_.data(), objArr_[ std::get<0>(ax)[7] ]);
-            B2HzFxn_( std::get<0>(ax), Bz_, Hz_, lorMz_, objArr_[ std::get<0>(ax)[7] ]);
+            upLorMzFxn_( std::get<0>(up), Hz_, lorMz_, prevLorMz_, scratch_.data(), objArr_[ std::get<0>(up)[7] ]);
+            B2HzFxn_( std::get<0>(up), Bz_, Hz_, lorMz_, objArr_[ std::get<0>(up)[7] ]);
         }
     }
 
-    void convertInputs2Map(parallelProgramInputs &IP, DIRECTION sliceDir, double sliceCoord)
+    /**
+     * @brief      Creates a BMP image for a slice of the input maps
+     *
+     * @param[in]  IP          Input parameters object used to create the FDTD propagator
+     * @param[in]  sliceDir    Direction of the normal vector of the plane a slice is being taken of
+     * @param[in]  sliceCoord  The value of the slice in real space along the normal direction to output the slice
+     */
+    void convertInputs2Map(const parallelProgramInputs &IP, DIRECTION sliceDir, double sliceCoord)
     {
-        // Print out XY-Plane
-        if(gridComm_.rank() != 0)
+        // Only do the output if on the first process
+        if(gridComm_->rank() != 0)
             return;
+        // iterator is what counts up to make each object have its value
         double iterator = 1;
+        // will be set based on the direction if x normal ii=x, jj=y, kk=z
         int cor_ii = -1, cor_jj = -1, cor_kk = -1;
         std::string fname;
         // set the coordinate indexes needed to complete the operation
@@ -1160,7 +1036,6 @@ public:
             cor_kk = 1;
             if( (!Hz_ || !Ez_) && sliceCoord != 0.0)
             {
-                std::cout << "WARNING: Setting sliceCoord to 0 since it is a 2D calculation." << std::endl;
                 sliceCoord = 0.0;
             }
             fname = "InputMap_XY_plane_" + std::to_string(sliceCoord) + ".bmp";
@@ -1170,10 +1045,12 @@ public:
         int sliceNum = (sliceCoord + IP.size_[cor_ii]/2.0 + 0.5*d_[cor_ii] )*IP.res_; // Do things in terms of grid points not actual values
         int map_nx = n_vec_[cor_jj];
         int map_ny = n_vec_[cor_kk];
+        //construct map
         real_grid_ptr map = std::make_shared<Grid<double>>( std::array<int,3>({{map_nx, map_ny, 1}}) , std::array<double,3>({{ d_[cor_jj], d_[cor_kk], 1.0}}) );
         std::vector<double> ones(std::max(n_vec_[cor_jj], n_vec_[cor_kk]), 1);
         std::vector<double> includePML(ones.size(), 1.0);
-        // PMLs are ones (basically background, but different to tell where they are)
+
+        // PMLs regions initially set to 1
         for(int xx = 0; xx < IP.pmlThickness_[cor_jj]; ++xx)
         {
             dcopy_(map_ny, includePML.data(), 1, &map->point(xx             , 0 ), map->x() );
@@ -1185,7 +1062,7 @@ public:
             dcopy_(map_nx, includePML.data(), 1, &map->point(0, map->y()-(1+yy) ), 1 );
         }
 
-        iterator++;
+        ++iterator;
         for(int dd = 0; dd < IP.dtcLoc_.size(); ++dd)
         {
             std::fill_n(ones.begin(), ones.size(), static_cast<double>(iterator) );
@@ -1254,37 +1131,64 @@ public:
             }
             ++iterator;
         }
+
         for(int oo = 1; oo < objArr_.size(); ++oo)
         {
             // look at all local points only
-            if(oo == 0 || objArr_[oo]->mat().size() > 2 || objArr_[oo]->epsInfty() != 1.0 || objArr_[oo]->magMat().size() > 2 || objArr_[oo]->muInfty() != 1.0)
+            if(oo == 0 || objArr_[oo]->mat().size() > 1 || objArr_[oo]->epsInfty() != 1.0 || objArr_[oo]->magMat().size() > 1 || objArr_[oo]->muInfty() != 1.0 )
             {
                 std::array<double,3>pt ={sliceCoord, sliceCoord, sliceCoord};
                 for(int ii = 0; ii < map->x(); ++ii)
                 {
                     for(int jj = 0; jj < map->y(); ++jj)
                     {
+                        // split it up by component so you can see what goes where
                         pt[cor_jj] = ((ii)-(n_vec_[cor_jj]-1)/2.0)*d_[cor_jj];
                         pt[cor_kk] = ((jj)-(n_vec_[cor_kk]-1)/2.0)*d_[cor_kk];
                         if(objArr_[oo]->isObj(pt,d_[cor_jj])==true)
-                            map->point(ii,jj) += static_cast<double>(iterator)/3.0;
+                            map->point(ii,jj) += static_cast<double>(iterator+oo)/3.0;
 
                         pt[cor_jj] = ((ii)+0.5-(n_vec_[cor_jj]-1)/2.0)*d_[cor_jj];
                         pt[cor_kk] = ((jj)-(n_vec_[cor_kk]-1)/2.0)*d_[cor_kk];
                         if(objArr_[oo]->isObj(pt,d_[cor_jj])==true)
-                            map->point(ii,jj) += static_cast<double>(iterator)/3.0;
+                            map->point(ii,jj) += static_cast<double>(iterator+oo)/3.0;
 
                         pt[cor_jj] = ((ii)-(n_vec_[cor_jj]-1)/2.0)*d_[cor_jj];
                         pt[cor_kk] = ((jj)+0.5-(n_vec_[cor_kk]-1)/2.0)*d_[cor_kk];
                         if(objArr_[oo]->isObj(pt,d_[cor_jj])==true)
-                            map->point(ii,jj) += static_cast<double>(iterator)/3.0;
+                            map->point(ii,jj) += static_cast<double>(iterator+oo)/3.0;
                     }
                 }
             }
-            ++iterator;
-        }
-        // to get to the next value do size of objArr +2
+            else
+            {
+                for(int o1 = 1; o1 < objArr_.size(); ++o1)
+                {
+                    // If object is vacuum return to initial background values
+                    std::array<double,3>pt ={sliceCoord, sliceCoord, sliceCoord};
+                    for(int ii = 0; ii < map->x(); ++ii)
+                    {
+                        for(int jj = 0; jj < map->y(); ++jj)
+                        {
+                            pt[cor_jj] = ((ii)-(n_vec_[cor_jj]-1)/2.0)*d_[cor_jj];
+                            pt[cor_kk] = ((jj)-(n_vec_[cor_kk]-1)/2.0)*d_[cor_kk];
+                            if(oo != o1 && objArr_[oo]->isObj(pt,d_[cor_jj])==true && objArr_[o1]->isObj(pt,d_[cor_jj])==true)
+                                map->point(ii,jj) -= static_cast<double>(iterator+o1)/3.0;
 
+                            pt[cor_jj] = ((ii)+0.5-(n_vec_[cor_jj]-1)/2.0)*d_[cor_jj];
+                            pt[cor_kk] = ((jj)-(n_vec_[cor_kk]-1)/2.0)*d_[cor_kk];
+                            if(oo != o1 && objArr_[oo]->isObj(pt,d_[cor_jj])==true && objArr_[o1]->isObj(pt,d_[cor_jj])==true)
+                                map->point(ii,jj) -= static_cast<double>(iterator+o1)/3.0;
+
+                            pt[cor_jj] = ((ii)-(n_vec_[cor_jj]-1)/2.0)*d_[cor_jj];
+                            pt[cor_kk] = ((jj)+0.5-(n_vec_[cor_kk]-1)/2.0)*d_[cor_kk];
+                            if(oo != o1 && objArr_[oo]->isObj(pt,d_[cor_jj])==true && objArr_[o1]->isObj(pt,d_[cor_jj])==true)
+                                map->point(ii,jj) -= static_cast<double>(iterator+o1)/3.0;
+                        }
+                    }
+                }
+            }
+        }
         // OUtput to bmp
         GridToBitMap(map, fname, PLOTTYPE::MAG);
         return;
@@ -1342,54 +1246,24 @@ public:
      * @return     dtcFreqArr_
      */
     inline std::vector<std::shared_ptr<parallelDetectorFREQ_Base<T>>>& dtcFreqArr() {return dtcFreqArr_;}
-
 };
 
 class parallelFDTDFieldReal : public parallelFDTDFieldBase<double>
 {
 public:
     /**
-     * @brief Constructor
-     * @details Takes in the parallelProgramInputs structure and generates an FDTDField
+     * @brief      Constructs a FDTD Propagator class
      *
-     * @param IP parallelProgramInputs
-     * @param gridComm mpi communicator for the system
+     * @param[in]  IP        Input parameter object that read in values from a json input file
+     * @param[in]  gridComm  A shared_ptr to the MPI interface for the calculation
      */
-    parallelFDTDFieldReal(parallelProgramInputs &IP, mpiInterface & gridComm);
+    parallelFDTDFieldReal(parallelProgramInputs &IP, std::shared_ptr<mpiInterface> gridComm);
 
-    /**
-     * @brief      Constructs a frequency detector and returns a shared_ptr to it
-     *
-     * @param[in]  fPow          True if outputting power
-     * @param[in]  dtcNum        number of the detector
-     * @param      grid          vector of the fields that need to be outputted
-     * @param[in]  SI            true if outputting in SI units
-     * @param[in]  loc           The location of the detectors lower left corner in grid points
-     * @param[in]  sz            The size of the detector in grid points
-     * @param[in]  out_name      The output file name
-     * @param[in]  fxn           Function used to modify base field data
-     * @param[in]  txtType       if BMP what should be outputted to the text file
-     * @param[in]  type          The type of the detector (Ex, Ey, Epow, etc)
-     * @param[in]  nfreq         The number of frequencies to keep track of if Freq detector
-     * @param[in]  fcen          The center frequency of the freq range
-     * @param[in]  fwidth        The frequency width of the detector
-     * @param[in]  lamL          The left end point of the wavelength range
-     * @param[in]  lamR          The right end point of the wavelength range
-     * @param[in]  timeInterval  The number of time steps per field output
-     * @param[in]  fristComp     The first component: is loc[0] in the x y or z direction
-     * @param[in]  a             unit length of the calculation
-     * @param[in]  I0            unit current of the calculation
-     *
-     * @return     A shared_ptr to the frequency detector
-     */
-    std::shared_ptr<parallelDetectorFREQ_Base<double>> constructFreqDTC(bool fPow, int dtcNum, std::vector<pgrid_ptr>& grid, bool SI, std::array<int,3> loc, std::array<int,3> sz, std::string out_name, DTCTYPE type, int nfreq, double fcen, double fwidth, double lamL, double lamR, double timeInterval, DIRECTION fristComp, double a, double I0);
 
     /**
      * @brief      Constructs a DTC based off of the input parameters and puts it in the proper detector vector
      *
      * @param[in]  c             class type of the dtc (bin, bmp, cout, txt, freq)
-     * @param[in]  fPow          True if outputting power
-     * @param[in]  dtcNum        number of the detector
      * @param[in]  grid          vector of the fields that need to be outputted
      * @param[in]  SI            true if outputting in SI units
      * @param[in]  loc           The location of the detectors lower left corner in grid points
@@ -1398,65 +1272,32 @@ public:
      * @param[in]  fxn           Function used to modify base field data
      * @param[in]  txtType       if BMP what should be outputted to the text file
      * @param[in]  type          The type of the detector (Ex, Ey, Epow, etc)
-     * @param[in]  nfreq         The number of frequencies to keep track of if Freq detector
-     * @param[in]  fcen          The center frequency of the freq range
-     * @param[in]  fwidth        The frequency width of the detector
-     * @param[in]  lamL          The left end point of the wavelength range
-     * @param[in]  lamR          The right end point of the wavelength range
+     * @param[in]  freqList      The frequency list
      * @param[in]  timeInterval  The number of time steps per field output
-     * @param[in]  fristComp     The first component: is loc[0] in the x y or z direction
      * @param[in]  a             unit length of the calculation
      * @param[in]  I0            unit current of the calculation
      * @param[in]  t_max         The time at the final time step
      */
-    void coustructDTC(DTCCLASS c, bool fPow, int dtcNum, std::vector<pgrid_ptr> grid, bool SI, std::array<int,3> loc, std::array<int,3> sz, std::string out_name, DTCTYPE type, int nfreq, double fcen, double fwidth, double lamL, double lamR, double timeInterval, DIRECTION fristComp, double a, double I0, double t_max);
+    void coustructDTC(DTCCLASS c, std::vector<real_pgrid_ptr> grid, bool SI, std::array<int,3> loc, std::array<int,3> sz, std::string out_name, GRIDOUTFXN fxn, GRIDOUTTYPE txtType, DTCTYPE type, std::vector<double> freqList, double timeInterval, double a, double I0, double t_max);
+
 };
 
 class parallelFDTDFieldCplx : public parallelFDTDFieldBase<cplx>
 {
 public:
     /**
-     * @brief Constructor
-     * @details Takes in the parallelProgramInputs structure and generates an FDTDField
+     * @brief      Constructs a FDTD Propagator class
      *
-     * @param IP parallelProgramInputs
-     * @param gridComm mpi communicator for the system
+     * @param[in]  IP        Input parameter object that read in values from a json input file
+     * @param[in]  gridComm  A shared_ptr to the MPI interface for the calculation
      */
-    parallelFDTDFieldCplx(parallelProgramInputs &IP, mpiInterface & gridComm);
+    parallelFDTDFieldCplx(parallelProgramInputs &IP, std::shared_ptr<mpiInterface> gridComm);
 
-    /**
-     * @brief      Constructs a frequency detector and returns a shared_ptr to it
-     *
-     * @param[in]  fPow          True if outputting power
-     * @param[in]  dtcNum        number of the detector
-     * @param      grid          vector of the fields that need to be outputted
-     * @param[in]  SI            true if outputting in SI units
-     * @param[in]  loc           The location of the detectors lower left corner in grid points
-     * @param[in]  sz            The size of the detector in grid points
-     * @param[in]  out_name      The output file name
-     * @param[in]  fxn           Function used to modify base field data
-     * @param[in]  txtType       if BMP what should be outputted to the text file
-     * @param[in]  type          The type of the detector (Ex, Ey, Epow, etc)
-     * @param[in]  nfreq         The number of frequencies to keep track of if Freq detector
-     * @param[in]  fcen          The center frequency of the freq range
-     * @param[in]  fwidth        The frequency width of the detector
-     * @param[in]  lamL          The left end point of the wavelength range
-     * @param[in]  lamR          The right end point of the wavelength range
-     * @param[in]  timeInterval  The number of time steps per field output
-     * @param[in]  fristComp     The first component: is loc[0] in the x y or z direction
-     * @param[in]  a             unit length of the calculation
-     * @param[in]  I0            unit current of the calculation
-     *
-     * @return     A shared_ptr to the frequency detector
-     */
-    std::shared_ptr<parallelDetectorFREQ_Base<cplx>> constructFreqDTC(bool fPow, int dtcNum, std::vector<pgrid_ptr>& grid, bool SI, std::array<int,3> loc, std::array<int,3> sz, std::string out_name, DTCTYPE type, int nfreq, double fcen, double fwidth, double lamL, double lamR, double timeInterval, DIRECTION fristComp, double a, double I0);
 
     /**
      * @brief      Constructs a DTC based off of the input parameters and puts it in the proper detector vector
      *
      * @param[in]  c             class type of the dtc (bin, bmp, cout, txt, freq)
-     * @param[in]  fPow          True if outputting power
-     * @param[in]  dtcNum        number of the detector
      * @param[in]  grid          vector of the fields that need to be outputted
      * @param[in]  SI            true if outputting in SI units
      * @param[in]  loc           The location of the detectors lower left corner in grid points
@@ -1465,18 +1306,13 @@ public:
      * @param[in]  fxn           Function used to modify base field data
      * @param[in]  txtType       if BMP what should be outputted to the text file
      * @param[in]  type          The type of the detector (Ex, Ey, Epow, etc)
-     * @param[in]  nfreq         The number of frequencies to keep track of if Freq detector
-     * @param[in]  fcen          The center frequency of the freq range
-     * @param[in]  fwidth        The frequency width of the detector
-     * @param[in]  lamL          The left end point of the wavelength range
-     * @param[in]  lamR          The right end point of the wavelength range
+     * @param[in]  freqList      The frequency list
      * @param[in]  timeInterval  The number of time steps per field output
-     * @param[in]  fristComp     The first component: is loc[0] in the x y or z direction
      * @param[in]  a             unit length of the calculation
      * @param[in]  I0            unit current of the calculation
      * @param[in]  t_max         The time at the final time step
      */
-    void coustructDTC(DTCCLASS c, bool fPow, int dtcNum, std::vector<pgrid_ptr> grid, bool SI, std::array<int,3> loc, std::array<int,3> sz, std::string out_name, DTCTYPE type, int nfreq, double fcen, double fwidth, double lamL, double lamR, double timeInterval, DIRECTION fristComp, double a, double I0, double t_max);
+    void coustructDTC(DTCCLASS c, std::vector<cplx_pgrid_ptr> grid, bool SI, std::array<int,3> loc, std::array<int,3> sz, std::string out_name, GRIDOUTFXN fxn, GRIDOUTTYPE txtType, DTCTYPE type, std::vector<double> freqList, double timeInterval, double a, double I0, double t_max);
 };
 
 #endif

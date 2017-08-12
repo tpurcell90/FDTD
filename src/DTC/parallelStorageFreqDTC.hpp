@@ -2,8 +2,7 @@
 #define FDTD_PARALLELDETECTORSTORAGEFREQ
 
 #include <DTC/parallelStorageDTCSructs.hpp>
-#include <src/GRID/parallelGrid.hpp>
-#include <src/UTIL/ml_consts.hpp>
+#include <src/UTIL/FDTD_consts.hpp>
 #include <UTIL/typedefs.hpp>
 #include <cstdio>
 
@@ -14,7 +13,7 @@ template <typename T> class parallelStorageFreqDTC
 protected:
     char noTranspose_; //!< char for mkl functions
     char transpose_; //!< char for mkl functions
-    mpiInterface gridComm_; //!< mpi interface for all mpi calls
+    std::shared_ptr<mpiInterface> gridComm_; //!< mpi interface for all mpi calls
     int nfreq_; //!<  number of frequencies to detect
     int zgemmK_; //!< k value for mkl functions
     int shift_j_; //!< 0 if j = outGrid dir 1; 1 if j is outGrid dir 2
@@ -32,7 +31,7 @@ protected:
 
     std::vector<T> scratch_; //!< scratch space
 
-    cplx_grid_ptr outGrid_; //!< the output gird storage
+    cplx_grid_ptr outGrid_; //!< the output grid storage
 
     std::shared_ptr<fInParam> fieldInFreq_; //!< parameters to take in field
 public:
@@ -91,272 +90,143 @@ public:
     /**
      * @return  reference to loc_
      */
-    inline std::array<int,3> &loc() {return loc_;}
+    inline std::array<int,3> loc() {return loc_;}
 
     /**
      * @return reference to sz_
      */
-    inline std::array<int,3> &sz() {return sz_;}
+    inline std::array<int,3> sz() {return sz_;}
 
     /**
      * @return reference to outGrid_
      */
-    inline cplx_grid_ptr &outGrid() { return outGrid_; }
+    inline cplx_grid_ptr outGrid() { return outGrid_; }
 
     /**
-     * @brief Generates the slave and master process data structures so the output grid is constructed correctly.
-     * @details use size and location of the dtc to determine what information to send where
+     * @brief      Calculates the location of where to start the detector in this process
      *
-     * @param the index of the detector in the FDTDField dtcArr_
+     * @param[in]  ind  The index of the array to look at (0, 1, or 2)
+     *
+     * @return     The location of the detector's start in this process for the index ind
+     */
+    int getLocalLocEl(int ind)
+    {
+        if(loc_[ind] >= grid_->procLoc()[ind] && loc_[ind] < grid_->procLoc()[ind] + grid_->ln_vec()[ind] - 2) //!< Does this process hold the lower, left or back boundary of the detector
+            return loc_[ind] - grid_->procLoc()[ind] + 1;
+        else if(loc_[ind] < grid_->procLoc()[ind] && loc_[ind] + sz_[ind] > grid_->procLoc()[ind]) //!< Does this process start inside the detectors region?
+            return 1;
+        else
+            return -1;
+    }
+
+    /**
+     * @brief      Calculates the size of the detector on this process
+     *
+     * @param[in]  ind       The index of the array to look at (0, 1, or 2)
+     * @param[in]  localLoc  The location of the detector's start in this process for the index ind
+     *
+     * @return     The local size el.
+     */
+    int getLocalSzEl(int ind, int localLoc)
+    {
+        if(sz_[ind] + loc_[ind] > grid_->procLoc()[ind] + grid_->ln_vec()[ind] - 2) // Does the detector go through the end of the process' grid?
+            return grid_->ln_vec()[ind] - localLoc - 1;
+        else
+            return loc_[ind] + sz_[ind] - (grid_->procLoc()[ind] + localLoc - 1);
+    }
+
+    /**
+     * @brief      Generates the field input parameters
+     *
+     * @param[in]  propDir  The direction of propagation through the region that is being looked at
      */
     void genDatStruct(int dtcNum, DIRECTION propDir)
     {
         fInParam fieldInFreq;
-        fieldInFreq.loc_ = {-2, -2, -2};
+        fieldInFreq.loc_ = {-1, -1, -1};
         fieldInFreq.sz_ = {0,0,0};
         fieldInFreq.stride_ = 0;
 
-        if(loc_[0] >= grid_->procLoc()[0] && loc_[0] < grid_->procLoc()[0] + grid_->local_x() -2) //!< Is the process in the process col that contains the left boundary of the detector region?
-        {
-            fieldInFreq.loc_[0] = loc_[0] - grid_->procLoc()[0] + 1;
-
-            if(loc_[1] >= grid_->procLoc()[1] && loc_[1] < grid_->procLoc()[1] + grid_->local_y() -2) //!< Is the process in the process row that contains the lower boundary of the detector region?
-            {
-                fieldInFreq.loc_[1] = loc_[1] - grid_->procLoc()[1] + 1;
-                if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
-                {
-                    fieldInFreq.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
-                }
-                else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
-                {
-                    fieldInFreq.loc_[2] = 1;
-                }
-            }
-            else if(loc_[1] < grid_->procLoc()[1] && loc_[1] + sz_[1] > grid_->procLoc()[1]) //!< Is the process in a process row that the detector region covers?
-            {
-                fieldInFreq.loc_[1] = 1;
-                if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
-                {
-                    fieldInFreq.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
-                }
-                else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
-                {
-                    fieldInFreq.loc_[2] = 1;
-                }
-            }
-        }
-        else if(loc_[0] < grid_->procLoc()[0] && loc_[0] + sz_[0] > grid_->procLoc()[0]) //!< Is the process in a process col that the detector covers?
-        {
-            fieldInFreq.loc_[0] = 1;
-
-            if(loc_[1] >= grid_->procLoc()[1] && loc_[1] < grid_->procLoc()[1] + grid_->local_y() -2)
-            {
-                fieldInFreq.loc_[1] = loc_[1] - grid_->procLoc()[1] + 1;
-                if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
-                {
-                    fieldInFreq.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
-                }
-                else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
-                {
-                    fieldInFreq.loc_[2] = 1;
-                }
-            }
-            else if(loc_[1] < grid_->procLoc()[1] && loc_[1] + sz_[1] > grid_->procLoc()[1])
-            {
-                fieldInFreq.loc_[1] = 1;
-                if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
-                {
-                    fieldInFreq.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
-                }
-                else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
-                {
-                    fieldInFreq.loc_[2] = 1;
-                }
-            }
-        }
-
-        // if(loc_[0] >= grid_->procLoc()[0] && loc_[0] < grid_->procLoc()[0] + grid_->local_x() -2) //!< Is the process in the process col that contains the left boundary of the detector region?
-        // {
-        //     fieldInFreq.loc_[0] = loc_[0] - grid_->procLoc()[0] + 1;
-        //     if(loc_[1] >= grid_->procLoc()[1] && loc_[1] < grid_->procLoc()[1] + grid_->local_y() -2) //!< Is the process in the process row that contains the lower boundary of the detector region?
-        //     {
-        //         fieldInFreq.loc_[1] = loc_[1] - grid_->procLoc()[1] + 1;
-        //         if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
-        //         {
-        //             fieldInFreq.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
-        //         }
-        //         else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
-        //         {
-        //             fieldInFreq.loc_[2] = 1;
-        //         }
-        //     }
-        //     else if(loc_[1] < grid_->procLoc()[1] && loc_[1] + sz_[1] > grid_->procLoc()[1]) //!< Is the process in a process row that the detector region covers?
-        //     {
-        //         fieldInFreq.loc_[1] = 1;
-        //         if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
-        //         {
-        //             fieldInFreq.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
-        //         }
-        //         else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
-        //         {
-        //             fieldInFreq.loc_[2] = 1;
-        //         }
-        //     }
-        // }
-        // else if(loc_[0] < grid_->procLoc()[0] && loc_[0] + sz_[0] > grid_->procLoc()[0]) //!< Is the process in a process col that the detector covers?
-        // {
-        //     fieldInFreq.loc_[0] = 1;
-        //     if(loc_[1] >= grid_->procLoc()[1] && loc_[1] < grid_->procLoc()[1] + grid_->local_y() -2)
-        //     {
-        //         fieldInFreq.loc_[1] = loc_[1] - grid_->procLoc()[1] + 1;
-        //         if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
-        //         {
-        //             fieldInFreq.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
-        //         }
-        //         else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
-        //         {
-        //             fieldInFreq.loc_[2] = 1;
-        //         }
-        //     }
-        //     else if(loc_[1] < grid_->procLoc()[1] && loc_[1] + sz_[1] > grid_->procLoc()[1])
-        //     {
-        //         fieldInFreq.loc_[1] = 1;
-        //         if(loc_[2] >= grid_->procLoc()[2] && loc_[2] < grid_->procLoc()[2] + grid_->local_z() -2)
-        //         {
-        //             fieldInFreq.loc_[2] = loc_[2] - grid_->procLoc()[2] + 1;
-        //         }
-        //         else if(loc_[2] < grid_->procLoc()[2] && loc_[2] + sz_[2] > grid_->procLoc()[2])
-        //         {
-        //             fieldInFreq.loc_[2] = 1;
-        //         }
-        //     }
-        // }
+        for(int ii = 0; ii < 3; ++ii)
+            fieldInFreq.loc_[ii] = getLocalLocEl(ii);
         if(grid_->local_z() == 1)
-        {
             fieldInFreq.loc_[2] = 0;
-        }
+
         // If either fieldInFreq.loc_ values is 0 then the detector is not in the process
-        if(fieldInFreq.loc_[0] != -2 && fieldInFreq.loc_[1] != -2 && fieldInFreq.loc_[2] != -2)
+        if(fieldInFreq.loc_[0] != -1 && fieldInFreq.loc_[1] != -1 && fieldInFreq.loc_[2] != -1)
         {
             if( propDir == DIRECTION::X || (propDir == DIRECTION::NONE  && isamax_(sz_.size(), sz_.data(), 1) - 1 == 1) )
             {
+                // set stride to number of elements between consecutive z or y (if 2D) points
                 fieldInFreq.stride_ = grid_->local_x();
-                // 2D use y to copy else use z
+
+                // If 2D the do blas operations over y if 3D do blas operations over z
+                shift_j_ = ( grid_->local_z() == 1 ) ? 0 : 1;
+                shift_k_ = ( grid_->local_z() == 1 ) ? 1 : 0;
+
+                // set outer loop to direction of propagation (likely 1)
+                fieldInFreq.sz_[2] = getLocalSzEl(0, fieldInFreq.loc_[0] );
+
                 if( grid_->local_z() == 1 )
                 {
-                    shift_j_ = 0;
-                    shift_k_ = 1;
-                    if( (sz_[1] + loc_[1] > grid_->procLoc()[1] + grid_->local_y() - 2)) // Does the detector go through the end of the process' grid?
-                        fieldInFreq.sz_[0] = grid_->local_y() - fieldInFreq.loc_[1] - 1;
-                    else
-                        fieldInFreq.sz_[0] = loc_[1] + sz_[1] - (grid_->procLoc()[1] + fieldInFreq.loc_[1] - 1);
+                    // if 2D set blas operations sizes to 1
+                    fieldInFreq.sz_[0] = getLocalSzEl(1, fieldInFreq.loc_[1] );
+                    // Z size is always 1
+                    fieldInFreq.sz_[1] = 1;
 
+                    // make add arrays represent the sz arrays
                     fieldInFreq.addVec1_ = {0, 0, 1};
                     fieldInFreq.addVec2_ = {1, 0, 0};
-
-                    if(sz_[0] + loc_[0] > grid_->procLoc()[0] + grid_->local_x() - 2)
-                        fieldInFreq.sz_[2] = grid_->local_x() - fieldInFreq.loc_[0] - 1;
-                    else
-                        fieldInFreq.sz_[2] = loc_[0] + sz_[0] - (grid_->procLoc()[0] + fieldInFreq.loc_[0] - 1);
-
-                    if(grid_->local_z() == 1)
-                         fieldInFreq.sz_[1] = 1;
-                    else if(sz_[2] + loc_[2] > grid_->procLoc()[2] + grid_->local_z() - 2)
-                    {
-                        fieldInFreq.sz_[1] = grid_->local_z() - fieldInFreq.loc_[2] - 1;
-                    }
-                    else
-                    {
-                        fieldInFreq.sz_[1] = loc_[2] + sz_[2] - (grid_->procLoc()[2] + fieldInFreq.loc_[2] - 1);
-                    }
                 }
                 else
                 {
-                    shift_j_ = 1;
-                    shift_k_ = 0;
-                    if( (sz_[1] + loc_[1] > grid_->procLoc()[1] + grid_->local_y() - 2)) // Does the detector go through the end of the process' grid?
-                        fieldInFreq.sz_[1] = grid_->local_y() - fieldInFreq.loc_[1] - 1;
-                    else
-                        fieldInFreq.sz_[1] = loc_[1] + sz_[1] - (grid_->procLoc()[1] + fieldInFreq.loc_[1] - 1);
+                    // set blas operations to the z direction
+                    fieldInFreq.sz_[0] = getLocalSzEl(2, fieldInFreq.loc_[2] );
+                    // set inner loop to direction to y
+                    fieldInFreq.sz_[1] = getLocalSzEl(1, fieldInFreq.loc_[1] );
 
+                    // make add arrays represent the sz arrays
                     fieldInFreq.addVec1_ = {0, 1, 0};
                     fieldInFreq.addVec2_ = {1, 0, 0};
-
-                    if(sz_[0] + loc_[0] > grid_->procLoc()[0] + grid_->local_x() - 2)
-                        fieldInFreq.sz_[2] = grid_->local_x() - fieldInFreq.loc_[0] - 1;
-                    else
-                        fieldInFreq.sz_[2] = loc_[0] + sz_[0] - (grid_->procLoc()[0] + fieldInFreq.loc_[0] - 1);
-
-                    if(sz_[2] + loc_[2] > grid_->procLoc()[2] + grid_->local_z() - 2)
-                    {
-                        fieldInFreq.sz_[0] = grid_->local_z() - fieldInFreq.loc_[2] - 1;
-                    }
-                    else
-                    {
-                        fieldInFreq.sz_[0] = loc_[2] + sz_[2] - (grid_->procLoc()[2] + fieldInFreq.loc_[2] - 1);
-                    }
                 }
             }
             else if( propDir == DIRECTION::Y || (propDir == DIRECTION::NONE  && isamax_(sz_.size(), sz_.data(), 1) - 1 == 0) )
             {
+                // set stride to number of elements between consecutive x points
+                fieldInFreq.stride_ = 1;
 
                 shift_j_ = 1;
                 shift_k_ = 0;
-                fieldInFreq.stride_ = 1;
-                if(sz_[0] + loc_[0] > grid_->procLoc()[0] + grid_->local_x() - 2)
-                    fieldInFreq.sz_[0] = grid_->local_x() - fieldInFreq.loc_[0] - 1;
-                else
-                    fieldInFreq.sz_[0] = loc_[0] + sz_[0] - (grid_->procLoc()[0] + fieldInFreq.loc_[0] - 1);
 
+                // set size of blas operations to x sizw
+                fieldInFreq.sz_[0] = getLocalSzEl(0, fieldInFreq.loc_[0]);
+                // set the inner loop to the larger non blas operation sizes
+                fieldInFreq.sz_[1] = (grid_->local_z() == 1) ? 1 : getLocalSzEl(2, fieldInFreq.loc_[2]);
+                // set outer loop to be propagation/smallest size direction
+                fieldInFreq.sz_[2] = getLocalSzEl(1, fieldInFreq.loc_[1]);
+
+                // make add arrays represent the sz arrays
                 fieldInFreq.addVec1_ = {0, 0, 1};
                 fieldInFreq.addVec2_ = {0, 1, 0};
-
-                if( (sz_[1] + loc_[1] > grid_->procLoc()[1] + grid_->local_y() - 2)) // Does the detector go through the end of the process' grid?
-                    fieldInFreq.sz_[2] = grid_->local_y() - fieldInFreq.loc_[1] - 1;
-                else
-                    fieldInFreq.sz_[2] = loc_[1] + sz_[1] - (grid_->procLoc()[1] + fieldInFreq.loc_[1] - 1);
-
-                if(grid_->local_z() == 1)
-                {
-                    fieldInFreq.sz_[1] = 1;
-                }
-                else if(sz_[2] + loc_[2] > grid_->procLoc()[2] + grid_->local_z() - 2)
-                {
-                    fieldInFreq.sz_[1] = grid_->local_z() - fieldInFreq.loc_[2] - 1;
-                }
-                else
-                {
-                    fieldInFreq.sz_[1] = loc_[2] + sz_[2] - (grid_->procLoc()[2] + fieldInFreq.loc_[2] - 1);
-                }
             }
             else
             {
+                // set stride to number of elements between consecutive x points
+                fieldInFreq.stride_ = 1;
+
                 shift_j_ = 0;
                 shift_k_ = 1;
-                fieldInFreq.stride_ = 1;
-                if(sz_[0] + loc_[0] > grid_->procLoc()[0] + grid_->local_x() - 2)
-                    fieldInFreq.sz_[0] = grid_->local_x() - fieldInFreq.loc_[0] - 1;
-                else
-                    fieldInFreq.sz_[0] = loc_[0] + sz_[0] - (grid_->procLoc()[0] + fieldInFreq.loc_[0] - 1);
 
+                // set size of blas operations to x sizw
+                fieldInFreq.sz_[0] = getLocalSzEl(0, fieldInFreq.loc_[0]);
+                // set the inner loop to the larger non blas operation sizes
+                fieldInFreq.sz_[1] = getLocalSzEl(1, fieldInFreq.loc_[1]);
+                // set outer loop to be propagation/smallest size direction
+                fieldInFreq.sz_[2] = getLocalSzEl(2, fieldInFreq.loc_[2]);
+
+                // make add arrays represent the sz arrays
                 fieldInFreq.addVec1_ = {0, 1, 0};
                 fieldInFreq.addVec2_ = {0, 0, 1};
-
-                if( (sz_[1] + loc_[1] > grid_->procLoc()[1] + grid_->local_y() - 2)) // Does the detector go through the end of the process' grid?
-                    fieldInFreq.sz_[1] = grid_->local_y() - fieldInFreq.loc_[1] - 1;
-                else
-                    fieldInFreq.sz_[1] = loc_[1] + sz_[1] - (grid_->procLoc()[1] + fieldInFreq.loc_[1] - 1);
-                if(sz_[2] + loc_[2] > grid_->procLoc()[2] + grid_->local_z() - 2)
-                    fieldInFreq.sz_[2] = grid_->local_z() - fieldInFreq.loc_[2] - 1;
-                else
-                    fieldInFreq.sz_[2] = loc_[2] + sz_[2] - (grid_->procLoc()[2] + fieldInFreq.loc_[2] - 1);
-                // gridComm_.barrier();
-                // if(gridComm_.rank() == 0)
-                //     std::cout << gridComm_.rank() << '\t' << fieldInFreq.loc_[0] << '\t' << fieldInFreq.loc_[1] << '\t' << fieldInFreq.loc_[2] << '\t' << fieldInFreq.sz_[0] << '\t' << fieldInFreq.sz_[1] << '\t' << fieldInFreq.sz_[2] << std::endl;
-                // gridComm_.barrier();
-                // if(gridComm_.rank() == 1)
-                //     std::cout << gridComm_.rank() << '\t' << fieldInFreq.loc_[0] << '\t' << fieldInFreq.loc_[1] << '\t' << fieldInFreq.loc_[2] << '\t' << fieldInFreq.sz_[0] << '\t' << fieldInFreq.sz_[1] << '\t' << fieldInFreq.sz_[2] << std::endl;
-                // gridComm_.barrier();
             }
             fieldInFreq_ = std::make_shared<fInParam>(fieldInFreq); //!< only make slave active if necessary
         }
@@ -370,6 +240,9 @@ public:
      */
     virtual void fieldIn(cplx* fftFact) = 0;
 
+    /**
+     * returns master_
+     */
     inline std::shared_ptr<std::vector<slaveProcInfo>> master() { return master_; }
 };
 

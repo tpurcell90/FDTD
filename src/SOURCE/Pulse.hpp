@@ -1,9 +1,7 @@
 #ifndef FDTD_PULSE
 #define FDTD_PULSE
 
-#include <src/UTIL/enum.hpp>
 #include <UTIL/typedefs.hpp>
-#include <iostream>
 
 class PulseBase
 {
